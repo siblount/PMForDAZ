@@ -1,0 +1,262 @@
+           Solomon Blount Keep It Free License              |
+                        Version 1
+                Last Updated: 1/18/2022
+
+Copyright (C) 2022 Solomon Blount - Everyone is permitted to
+distribute and copy this document. Modification of the 
+license content is strictly prohibited. 
+
+                        Summary
+
+Permissions Granted: Copy, Distribute, Modify, Private Use, 
+    and Commerical Use*
+
+Permissions Denied: Patent, Trademark Use, Sublicense
+
+Protections: Warranty, Liability (No warranty or liability unless
+expressed)
+
+Conditions: Disclose source code to the public without request
+and without charge, copy of license must be available in source 
+code, this license must be applied and cannot be removed.
+
+Important Notes: Under no circumstances, unless with explicit
+written permission from the copyright holder, are you allowed
+to sell a competiting product that shows similarities to the
+original project. It must remain free.
+
+Unless you are working privately, under no circumstances, 
+unless with explicit written permission from the copyright holder,
+are you allowed to hide, minify, sale, or require authentication 
+to the source code. YOU MUST SHARE THE SOURCE CODE WITHOUT REQUEST. 
+If you publish Project A, to the web, anyone should be able to 
+access Project A's source code without having to pay, log in, 
+or send a request for the code.
+
+You are not allowed to trademark anything unless all terms are
+met.
+
+You are not strictly not allowed to patent anything that uses 
+the code licensed under the Keep It Free license. This can be
+overrided by explicit permission from the copyright holder.
+
+You may not sublicense or remove this license. Any regular or
+modified version must be under this license. Derivated works
+must also be under this license.
+
+If you decline to cooperate with any of the terms of conditions,
+you must remove any source code, libraries, executables,
+and other works you obtain protected by this license. 
+
+
+            THIS IS A SUMMARY AND NOT A SUBSTITUTE
+                    FOR THIS LICENSE!
+
+                     End of Summary
+
+                        Preamble
+
+The Keep It Free license aims to be a copy-left free license for 
+all kinds of work and designed to encourage contribution with
+the community.
+
+The license is also designed to ensure that work derived from
+the original work(s) remain free and open-source. 
+
+With this license, I hope to negate the possibilty of an 
+individual/company/clan/group of people make free open-source
+work(s) into proprietary products. Additionally, it enforces
+any work(s) that uses this license must disclose the
+human-readable source code without need of a request; in
+other words, no one should have to send an e-mail to request
+for the source code. 
+
+                    Terms and Conditions
+    0.  Definitions
+
+    "this license" - Keep It Free License, 
+    Solomon Blount Keep It Free License
+
+    "Program" - refers to any copyrightable work
+
+    "Licensor" - any individual, company, organization issuing
+    this license. 
+
+    "Licensee" - any individual, company, organization to abide
+    by this license; also known as you, the reader.
+
+    "any party" - licensor, licensee(s), and copyright holder. 
+    The copyright holder is, by nature, the initial licensor.
+
+    "Source code" - the original programming language that
+    a person uses as originally written with the means to make
+    modifications to it.
+
+    "Modification" / "modify" - Modification of work is when the 
+    work is adapted from the original work that requires copyright 
+    permission from the licensor and has been edited. Cannot be an 
+    exact copy.
+    
+    1. License life-time
+
+    License remains in effect until the copyright hold on the program
+    expires, or if the license is terminated. 
+
+    2. Termination
+
+    Unless otherwise written by the copyright holder, the copyright 
+    holder is the only person who may terminate this license.
+
+    Unless expressed by the copyright holder in written form, if a 
+    licensee uses an older version of the source code with the license 
+    non-terminated, the license is still in effect. If a licensee 
+    uses  a version of the source code where the license is terminated,
+    the license is terminated unless re-established in a later version.
+    
+
+    Any violation in this license's terms of conditions, results in the 
+    termination of the licensees rights under this license.
+
+    In the event that a licensee's rights are terminated, the licensee
+    must seize all operations and information permitted by this license.
+
+    3. Permissions
+
+    All permissions are granted unless otherwise explictly written by
+    the copyright holder and in any condition expressed in this license.
+    
+    This license grants the licensees' permission to run the 
+    unmodified version of the program provided it is not used to gain 
+    any profit.
+
+    This license permits copy, modification, and distribution, private
+    use, commerical use but must be under the terms of this license.
+
+    Assume anything not explicitly written in this license or by the
+    copyright holder granted permission, unless it:
+        
+        a) Prohibits, restrains, delay, halt, limit, or impedes 
+        any persons ability to have access to the source code and
+        this license.
+
+        b) Allows the licensee to gain profit from the end-user in 
+        any relation to the program.
+
+        c) Requires the end-user to pay to gain access to have 
+        access to the program.
+
+        d) May not require but make seemingly impossible to obtain free
+        access to the program.
+
+    4. Conditions
+
+    The following conditions must be met in addition to, or in 
+    modification, at the sole disrection of the copyright holder 
+    expressed in written form:
+
+        a) This license must be embedded in any source code or 
+        referenced to an easily obtainable location; including, but
+        not limited to; referring this license to the root directory
+        of a project, to an unmodified external webpage, referring to
+        this license in full.
+
+        b) This license and the source code must be easily available  
+        for anyone to access. 
+
+        c) This license only applies to work(s) where this license is
+        embedded or referenced.
+
+        d) Derived works, including any modifications or anything
+        statically linked to the program can only be licensed under
+        this license and no other license.
+
+        d) Licensees may not create a patent that uses any part of the 
+        program. 
+
+        e) Trademark use
+
+        f) Licensees can not extend the rights nor negate the restrictions 
+        placed on the licensee themselves to others.
+
+
+    5. Additional Terms
+
+    Additional terms that the copyright holder wishes to add must attach
+    a file and make it clear that:
+        
+        a) It is an extension of this license.
+
+        b) The additonal terms are clear and understandable.
+
+    6. Inablity to comply
+
+    If licensees are unable to comply to the full extent of these terms,
+    the licensee must:
+        
+        a) Comply to the fullest of their extent to these terms.
+
+        b) Create an easily obtainable and readable description describing
+        which sections of this terms they cannot comply with.
+
+        c) Make clear that although the licensee cannot comply with 
+        the full extent of these terms, that anyone they distribute to
+        must agree to all of these terms.
+
+    7. Disclaimer of Warranty
+
+    If no warranty is explictly provided, assume there is no warranty 
+    whatsoever for this program.
+
+    The program is provided "as is". All risks pertaining to the program
+    is entirely up to the licensees. In the event the program has become
+    non-operational, the liceneeses bare responibility for all servicing,
+    and corrections needed as necessary.
+
+    
+    8. Limitation of Liability
+
+    Unless the licensor explicitly establishes responibility for damages,
+    the licensor and licensees are not be liable for any and all damages 
+    that have been caused due to the program. 
+
+    9. General exclusion
+
+    Unless explicitly written from the copyright holder and/or the 
+    licensors, all terms, conditions, limitations described in this 
+    license apply to all parties.
+
+                End of Terms and Conditions
+
+        Best way to apply these terms to your program
+
+You should write at the header of each file that the license applies to-
+that code, including the name of the license and where a full copy can 
+be found.
+
+                        Example 1
+
+    # This code is licensed under the Keep It Free License.
+    # This code is licensed under the Solomon Blount Keep It Free License.
+
+    # You may find a full copy of this license at LICENSE.txt
+
+                        Example 2
+
+    # This code is licensed under the Keep It Free License.
+    # This code is licensed under the Solomon Blount Keep It Free License. 
+
+    # You may find a full copy of this license at www.example.com
+    
+                        Example 3
+
+    # This code is licensed under the Keep It Free License.
+    #           Summary of the Keep It Free License
+    # [Insert license summary]
+
+    # You may find a full copy of this license at www.exmaple.com
+
+                        Example 4
+
+    # This code is licensed under the Keep It Free License.
+    #           [Insert full license text]
+

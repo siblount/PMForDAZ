@@ -1,0 +1,4 @@
+﻿[*.cs]
+
+# CA2011: Avoid infinite recursion
+dotnet_diagnostic.CA2011.severity = warning
