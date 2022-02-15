@@ -51,8 +51,7 @@ namespace DAZ_Installer
         {
             get => foldersLabel.Visible;
             set {
-                foldersLabel.Visible = value;
-                foldersLabel.Enabled = true;
+                foldersLabel.Visible = foldersLabel.Enabled = value;
                 if (value == true) showFoldersBtn.Image = arrowDownImage;
                 else showFoldersBtn.Image = arrowRightImage;
             }
@@ -79,8 +78,6 @@ namespace DAZ_Installer
         private Image arrowDownImage;
         private Image arrowRightImage;
 
-        private readonly List<Label> folderLabels = new List<Label>();
-
         private readonly List<Label> labels = new List<Label>();
         public LibraryItem()
         {
@@ -95,7 +92,7 @@ namespace DAZ_Installer
         
         private string[] GetFolders()
         {
-            return folderLabels[0].Text.Split('\n');
+            return foldersLabel.Text.Split("\n");
         }
 
         private string[] GetTags()
@@ -110,9 +107,9 @@ namespace DAZ_Installer
 
         private void UpdateFolders(string[] folders)
         {
-            folderLabels.Clear();
             var foldersToString = string.Join("\n", folders);
-            CreateFolder(foldersToString);
+            foldersLabel.Text = foldersToString;
+            foldersLabel.Size = new Size(foldersLabel.Width, foldersLabel.PreferredHeight);
         }
 
         private void UpdateTags(string[] tags)
@@ -146,11 +143,6 @@ namespace DAZ_Installer
             }
 
             tagsLayoutPanel.ResumeLayout();
-        }
-
-        private void CreateFolder(string folderName = "")
-        {
-            foldersLabel.Text = folderName;
         }
 
         private Label CreateTag(string tagName = "")
@@ -222,16 +214,6 @@ namespace DAZ_Installer
                 DPCommon.WriteToLog($"Failed to create tags. REASON: {ee}");
             }
             tagsLayoutPanel.ResumeLayout();
-        }
-
-        private void foldersLabel_VisibleChanged(object sender, EventArgs e)
-        {
-            foldersLabel.MaximumSize = new Size((int) ((340 / 500f) * Size.Width), 9999);
-        }
-
-        private void LibraryItem_Resize(object sender, EventArgs e)
-        {
-            foldersLabel.MaximumSize = new Size((int)((340 / 500f) * Size.Width), 9999);
         }
     }
 }

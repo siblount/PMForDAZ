@@ -83,19 +83,23 @@ namespace DAZ_Installer
             // 
             // foldersLabel
             // 
+            this.foldersLabel.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
+            | System.Windows.Forms.AnchorStyles.Right)));
             this.foldersLabel.AutoEllipsis = true;
-            this.foldersLabel.AutoSize = true;
             this.foldersLabel.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Italic, System.Drawing.GraphicsUnit.Point);
             this.foldersLabel.Location = new System.Drawing.Point(177, 139);
+            this.foldersLabel.Margin = new System.Windows.Forms.Padding(3, 0, 3, 15);
             this.foldersLabel.Name = "foldersLabel";
-            this.foldersLabel.Size = new System.Drawing.Size(120, 20);
+            this.foldersLabel.Size = new System.Drawing.Size(352, 20);
             this.foldersLabel.TabIndex = 12;
             this.foldersLabel.Text = "Folder Label Here";
+            this.foldersLabel.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
             this.foldersLabel.Visible = false;
-            this.foldersLabel.VisibleChanged += new System.EventHandler(this.foldersLabel_VisibleChanged);
             // 
             // showFoldersBtn
             // 
+            this.showFoldersBtn.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
+            | System.Windows.Forms.AnchorStyles.Right)));
             this.showFoldersBtn.FlatAppearance.BorderSize = 0;
             this.showFoldersBtn.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.showFoldersBtn.ImageAlign = System.Drawing.ContentAlignment.MiddleLeft;
@@ -103,7 +107,7 @@ namespace DAZ_Installer
             this.showFoldersBtn.Name = "showFoldersBtn";
             this.showFoldersBtn.Size = new System.Drawing.Size(375, 29);
             this.showFoldersBtn.TabIndex = 13;
-            this.showFoldersBtn.Text = "Folders";
+            this.showFoldersBtn.Text = " Folders";
             this.showFoldersBtn.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
             this.showFoldersBtn.TextImageRelation = System.Windows.Forms.TextImageRelation.ImageBeforeText;
             this.showFoldersBtn.UseVisualStyleBackColor = true;
@@ -122,9 +126,8 @@ namespace DAZ_Installer
             this.Controls.Add(this.label1);
             this.Controls.Add(this.imageBox);
             this.Name = "LibraryItem";
-            this.Size = new System.Drawing.Size(552, 159);
+            this.Size = new System.Drawing.Size(552, 174);
             this.Load += new System.EventHandler(this.LibraryItem_Load);
-            this.Resize += new System.EventHandler(this.LibraryItem_Resize);
             ((System.ComponentModel.ISupportInitialize)(this.imageBox)).EndInit();
             this.ResumeLayout(false);
             this.PerformLayout();
