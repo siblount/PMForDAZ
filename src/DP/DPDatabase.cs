@@ -45,9 +45,12 @@ namespace DAZ_Installer.DP
                 CreateDatabase();
                 // Update database info.
                 InsertValueToTable("DatabaseInfo", new string[] {"Version"}, new ArrayList { 1 });
+            } else
+            {
+                _connectionString = "Data Source = " + Path.GetFullPath(expectedDatabasePath);
+                _connection.ConnectionString = _connectionString;
             }
-            _connectionString = "Data Source = " + Path.GetFullPath(expectedDatabasePath);
-            _connection.ConnectionString = _connectionString;
+            
 
             Initalized = true;
 
@@ -65,7 +68,7 @@ namespace DAZ_Installer.DP
         }
         internal static void CloseConnection(bool forceClose = false)
         {
-            if (_connection.State == System.Data.ConnectionState.Executing && !forceClose)
+            if (_connection.State == ConnectionState.Executing && !forceClose)
             {
                 _connection.StateChange += CloseOnStatusChange;
             } else
@@ -81,7 +84,6 @@ namespace DAZ_Installer.DP
         {
             // Call this function when the location of the database has been updated!
             CloseConnection(forceRefresh);
-            _connection.ReleaseMemory();
 
             // Clear all queues, this is top priority!
             _actionQueue.Clear();
@@ -157,13 +159,14 @@ namespace DAZ_Installer.DP
             CreateIndexes(databasePath);
 
             CloseConnection(true);
-            _connection.ReleaseMemory();
+            //_connection.ReleaseMemory();
         }
 
         private static void CreateTables(string databasePath)
         {
             _connectionString = "Data Source = " + Path.GetFullPath(databasePath);
-            _connection.ConnectionString = _connectionString;
+            if (_connectionString != _connection.ConnectionString)
+                _connection.ConnectionString = _connectionString;
             _connection.Open();
 
             const string createProductRecordsCommand = @"
@@ -225,8 +228,9 @@ namespace DAZ_Installer.DP
         private static void CreateIndexes(string databasePath)
         {
             _connectionString = "Data Source = " + Path.GetFullPath(databasePath);
-            _connection.ConnectionString = _connectionString;
-            if (_connection.State != System.Data.ConnectionState.Open) _connection.Open();
+            if (_connectionString != _connection.ConnectionString)
+                _connection.ConnectionString = _connectionString;
+            if (_connection.State != ConnectionState.Open) _connection.Open();
 
             const string createTagToPIDCommand = @"
             CREATE UNIQUE INDEX ""idx_TagToPID"" ON ""Tags"" (
