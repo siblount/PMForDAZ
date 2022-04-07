@@ -5,19 +5,25 @@ using System;
 using System.Data;
 using System.Collections.Generic;
 using System.Collections;
-using System.Linq;
 using System.Text;
+using System.Linq;
+using System.Text.RegularExpressions;
+using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Data.SQLite;
 using System.IO;
 
+
 namespace DAZ_Installer.DP
 {
     /// <summary>
     /// This class will handle all database operations such as initializing the database, creating tables, rows, deleting, etc.
+    /// Database will be run on a different thread aside from the main thread.
     /// </summary>
     internal static class DPDatabase
+        // TODO: Backup Database.
+        // TODO: Tool to use backup database.
     {
         // Internal
         internal static bool DatabaseExists { get; private set; } = false;
@@ -25,91 +31,115 @@ namespace DAZ_Installer.DP
 
         // Private
         private static SQLiteConnection _connection = new SQLiteConnection();
+        private static string _expectedDatabasePath { get; set; } = Path.Join(DPSettings.databasePath, "db.db");
         private static string _connectionString { get; set; } = string.Empty;
 
-        private static Queue<Action> _actionQueue = new Queue<Action>(1); // Queue of Action or Dictionary<Action<params>, params>
-        private const int _databaseVersion = 1;
+        // Main task manager...
+
+        private static DPTaskManager _taskManager = new DPTaskManager();
+        
+        // Search task manager...
+
+        private const byte DATABASE_VERSION = 2;
 
         // Cache :D
-        private static Dictionary<string, string[]> _columnsCache = new();
+        // TODO: Limit cache to 5.
+        // Might remove to keep low-memory profile.
+        private static DPCache<string, string[]> _columnsCache = new();
 
-
+        /// <summary>
+        /// This function is called at Library initalization async'ly. It is also always called when exposed functions
+        /// are called when the database has not been initalize.
+        /// </summary>
         internal static void Initalize()
         {
             // Check if database exists.
-            string expectedDatabasePath = Path.Join(DPSettings.databasePath, "db.db");
-            DatabaseExists = File.Exists(expectedDatabasePath);
+            _expectedDatabasePath = Path.Join(DPSettings.databasePath, "db.db");
+            DatabaseExists = File.Exists(_expectedDatabasePath);
+            // TODO: Check if const database version is higher than the one in the database.
             if (!DatabaseExists)
             {
                 // Create the database.
                 CreateDatabase();
                 // Update database info.
-                InsertValueToTable("DatabaseInfo", new string[] {"Version"}, new ArrayList { 1 });
+                InsertValueToTable("DatabaseInfo", new string[] {"Version"}, new object[] {DATABASE_VERSION});
             } else
             {
-                _connectionString = "Data Source = " + Path.GetFullPath(expectedDatabasePath);
+                _connectionString = "Data Source = " + Path.GetFullPath(_expectedDatabasePath);
                 _connection.ConnectionString = _connectionString;
             }
             
-
             Initalized = true;
+            
 
         }
+        #region Queryable methods
         internal static void LoadDatabase()
         {
             
-            if (_connection.State != System.Data.ConnectionState.Open)
+            if (_connection.State != ConnectionState.Open)
             {
-                if (_connection.State == System.Data.ConnectionState.Broken) throw new Exception("Database is corrupted.");
-                _actionQueue.Enqueue(LoadDatabase);
-                OpenConnection(true);
+                if (_connection.State == ConnectionState.Broken) throw new Exception("Database is corrupted.");
+                _taskManager.AddToQueue(OpenConnection);
             }
 
         }
+
+        /// <summary>
+        /// If `forceClose` is false, the close action will be queued. Otherwise, the action queue will be cleared and database will be closed immediately.
+        /// </summary>
+        /// <param name="forceClose">Closes the database connection immediately if True, otherwise database closure is queued.</param>
         internal static void CloseConnection(bool forceClose = false)
         {
-            if (_connection.State == ConnectionState.Executing && !forceClose)
+            if (!forceClose)
+                _taskManager.AddToQueue(() => _connection.Close()); 
+            else
+                _connection.Close();
+        }
+        /// <summary>
+        /// If `forceRefresh` is false, the refresh action will be queued. Otherwise, the action queue will be cleared and database will be refreshed immediately.
+        /// </summary>
+        /// <param name="forceRefresh">Refreshes immediately if True, otherwise it is queued.</param>
+        internal static void RefreshDatabase(bool forceRefresh = false)
+        {
+            if (forceRefresh)
             {
-                _connection.StateChange += CloseOnStatusChange;
+                _taskManager.Stop();
             } else
             {
-                var task = _connection.CloseAsync();
-                DPCommon.WriteToLog(task.Status);
-                //task.Start(); // Not sure if it was already started.
+                // TO DO: Refresh database code.
+                _taskManager.AddToQueue(RefreshDatabase, false);
             }
             
         }
 
-        internal static void RefreshDatabase(bool forceRefresh = false)
+        private static void InsertValueToTable(string tableName, IEnumerable<string> columns, object[] values)
         {
-            // Call this function when the location of the database has been updated!
-            CloseConnection(forceRefresh);
-
-            // Clear all queues, this is top priority!
-            _actionQueue.Clear();
-            _actionQueue.Enqueue(() => Initalized = false);
-            _actionQueue.Enqueue(new Action(Initalize));
-            // Reset all event calls.
-
-            //Initalized = false;
-            //Initalize();
-        }
-
-        private static void InsertValueToTable(string tableName, IEnumerable<string> columns, IEnumerable values)
-        {
+            // TODO: Create a transcation in case of database failure.
+            
             if (!Initalized) Initalize();
             if (_connection.State != ConnectionState.Open) _connection.Open();
 
+            SQLiteTransaction transaction = _connection.BeginTransaction();
             // Build columns.
             var columnsToAdd = string.Join(',', columns);
             var valuesToAdd = string.Join(',', values);
             var insertCommand = $"INSERT INTO {tableName} ({columnsToAdd})\nVALUES({valuesToAdd});";
-
-            var sqlCommand = new SQLiteCommand(insertCommand, _connection);
-            sqlCommand.ExecuteNonQueryAsync();
+            try
+            {
+                var sqlCommand = new SQLiteCommand(insertCommand, _connection);
+                sqlCommand.ExecuteNonQuery();
+                transaction.Commit();
+                transaction.Dispose();
+            } catch (Exception ex)
+            {
+                DPCommon.WriteToLog($"Failed to insert {valuesToAdd} to {columnsToAdd}. REASON: {ex.Message}");
+                transaction.Rollback();
+            }
 
         }
 
+        // TO DO: Add to queue.
         internal static void GetAllValuesFromTable(string tableName)
         {
             if (!Initalized) Initalize();
@@ -126,24 +156,59 @@ namespace DAZ_Installer.DP
             
         }
         
-        internal static void Search(string searchQuery)
+        // TO DO: Improve. This can be so much more efficient.
+        // I lack the brain capacity to do this at the moment.
+        /// <summary>
+        /// Generates SQL command based on search query and returns a sorted list of products.
+        /// </summary>
+        /// <param name="searchQuery"></param>
+        /// <returns></returns>
+        internal static DPProductRecord[] Search(string searchQuery)
         {
-            var processedStr = "";
-            var anyCaseStr = "SELECT * FROM ProductRecords WHERE * MATCH *";
 
-            // TODO: Make sure strings are lowercased.
-            // TODO: Make sure word itself is not *
+            var getUserCommand = GetUserSearchQueryCommand(searchQuery);
+            var tagSearchResults = SearchViaTags(getUserCommand);
+
+            var getProductsCommand = GetProductsFromUserSearchCommand(tagSearchResults);
+            return SearchProductRecordsViaTags(getProductsCommand);
+
         }
+
+        #endregion
 
         #region Private methods
 
-        private static void OpenConnection(bool addListener = false)
+        private static void CreateConnection()
         {
-            if (_connection.State == System.Data.ConnectionState.Closed)
+            _connection = new SQLiteConnection();
+            _connectionString = "Data Source = " + Path.GetFullPath(_expectedDatabasePath);
+            _connection.ConnectionString = _connectionString;
+        }
+
+        private static void UpdateConnectionString()
+        {
+            if (_connection != null)
             {
-                var task = _connection.OpenAsync();
-                if (addListener) _connection.StateChange += OpenStatusEmitter;
+                CreateConnection();
+                return;
             }
+            _connectionString = "Data Source = " + Path.GetFullPath(_expectedDatabasePath);
+            _connection.ConnectionString = _connectionString;  
+        }
+
+        private static void OpenConnection()
+        {
+            if (_connection?.State != ConnectionState.Open || _connection?.State != ConnectionState.Connecting)
+            {
+                _connection.Open();
+                return;
+            }
+            if (_connection == null)
+            {
+                CreateConnection();
+                _connection.Open();
+            }
+
         }
 
         private static void CreateDatabase()
@@ -212,17 +277,24 @@ namespace DAZ_Installer.DP
 
                 ""Version""   INTEGER NOT NULL
             )";
-
+            const string createTagsCommand = @"
+                CREATE TABLE ""Tags""(
+                ""Tag""   TEXT NOT NULL,
+                ""Product Record ID""	TEXT NOT NULL,
+                PRIMARY KEY(""Tag"")
+            )";
             //var createCommand = new SQLiteCommand(createSequenceCommand, _connection);
             //var task = createCommand.ExecuteNonQueryAsync();
             var createCommand = new SQLiteCommand(createProductRecordsCommand, _connection);
-            createCommand.ExecuteNonQueryAsync();
+            createCommand.ExecuteNonQuery();
             createCommand = new SQLiteCommand(createExtractionRecordsCommand, _connection);
-            createCommand.ExecuteNonQueryAsync();
+            createCommand.ExecuteNonQuery();
             createCommand = new SQLiteCommand(createCachedSearchCommand, _connection);
-            createCommand.ExecuteNonQueryAsync();
+            createCommand.ExecuteNonQuery();
             createCommand = new SQLiteCommand(createDatabaseInfoCommand, _connection);
-            createCommand.ExecuteNonQueryAsync();
+            createCommand.ExecuteNonQuery();
+            createCommand = new SQLiteCommand(createTagsCommand, _connection);
+            createCommand.ExecuteNonQuery();
         }
 
         private static void CreateIndexes(string databasePath)
@@ -271,38 +343,131 @@ namespace DAZ_Installer.DP
             _columnsCache[tableName] = columns.ToArray();
             return _columnsCache[tableName];
         }
-        
-        private static string GenerateSearchParamaters(string searchQuery)
+
+        private static string GetUserSearchQueryCommand(string searchQuery)
         {
             // $[Name]:[query]
             // [$]\[\(?\w\]:\w
-
-            string workingFinalString = string.Empty;
-            List<string> workingStrings = new List<string>();
-            Stack<string> conditionalStrings = new Stack<string>();
-            HashSet<string> keywords = new HashSet<string> { "NOT", "AND", "OR" };
-            bool use_raw = searchQuery.StartsWith(':') && searchQuery.EndsWith(':');
-
-            string[] wordsSplit = searchQuery.Split(' ');
-
-            if (use_raw) return searchQuery;
-
-            
-            
-            for (int i = 0; i < wordsSplit.Length; i++)
+            var anyCaseStr = "SELECT * FROM Tags WHERE Tag";
+            var ur = "OR";
+            bool addWildcard = true;
+            var potTags = searchQuery.Split(' ');
+            StringBuilder whereBuilder =
+                new StringBuilder(searchQuery.Length + (searchQuery.Length - potTags.Length) * 8);
+            for (var i = 0; i < potTags.Length; i++)
             {
-                var word = wordsSplit[i];
-                
-                // Find any special conditions first.
-                if (word.EndsWith(')'))
+                var tag = potTags[i];
+                switch (tag)
                 {
-                    // ( must be the first character.
-                    // Check to see if it is in this word.
+                    case "|AND|":
+                        ur = "AND";
+                        break;
+                    case "|OR|":
+                        ur = "OR";
+                        break;
+                    case "|EQUAL|":
+                        addWildcard = false;
+                        break;
+                    default:
+                        if (addWildcard) whereBuilder.Append(" LIKE \"" + tag + "%\" ESCAPE \"\\\" " + ur);
+                        else whereBuilder.Append(" LIKE \"" + tag + "%\" " + ur);
+                        break;
                 }
-
             }
-            return "";
+            anyCaseStr += whereBuilder.ToString().TrimEnd();
+            anyCaseStr = anyCaseStr.Substring(0, anyCaseStr.Length - ur.Length - 1); // Remove last OR/AND.
+
+            return anyCaseStr;
         }
+
+        private static string GetProductsFromUserSearchCommand(uint[] ids)
+        {
+            // WARNING: ids should not have length 0!
+            var baseStr = "SELECT * FROM ProductRecords WHERE";
+            var op = " ID = ";
+            int lastNumDigitCount = Convert.ToInt16(Math.Ceiling(Math.Log10(ids[ids.Length - 1] + 1)));
+            var builder = new StringBuilder((op.Length * ids.Length) + ( ids.Length * lastNumDigitCount));
+
+            foreach (var id in ids)
+            {
+                builder.Append(op + id);
+            }
+
+            baseStr += builder.ToString().TrimEnd();
+            baseStr = baseStr.Substring(0, baseStr.Length - op.Length); // Remove last op.
+            return baseStr;
+
+        }
+
+        private static uint[] SearchViaTags(string getUserCommand)
+        {
+            // TODO: Make all of this a private function.
+            var sqlCommand = new SQLiteCommand(getUserCommand, _connection);
+            // Here create a command, and try REGEXP, for example
+            // SELECT * FROM "table" WHERE "column" REGEXP '(?i)\btest\b'
+            // looks for the word 'test', case-insensitive in a string column
+            // example SQL: SELECT* FROM Foo WHERE Foo.Name REGEXP '$bar'
+            var reader = sqlCommand.ExecuteReader();
+            var IDtoCountMap = new SortedDictionary<uint, uint>();
+            // Sort by value.
+            // Get the product IDs
+            // For each product ID in the ID column, add it to the dictionary for sorting.
+            while (reader.Read())
+            {
+                // Get the product IDs in the column.
+                var PDIDs = ((string)reader.GetValue(1)).Split(',');
+                // For every product ID...
+                foreach (var id in PDIDs)
+                {
+                    // Convert it into an unsigned integer.
+                    uint n_id = uint.Parse(id);
+                    // If it exists, increment the count for sorting.
+                    if (IDtoCountMap.ContainsKey(n_id)) IDtoCountMap[n_id]++;
+                    // Else add it to dictionary and setting the count to 1.
+                    else IDtoCountMap[n_id] = 1;
+                }
+            }
+            // Now sort by relevance.
+            var ids = IDtoCountMap.ToList();
+            ids.Sort((pair1, pair2) => pair1.Value.CompareTo(pair2.Value));
+            // Now let's return only the ids (not the count and the class).
+            var raw_ids = new uint[ids.Count];
+            for (int i = 0; i < ids.Count; i++)
+            {
+                raw_ids[i] = ids[i].Value;
+            }
+            return raw_ids;
+        }
+        private static DPProductRecord[] SearchProductRecordsViaTags(string getProductsCommand)
+        {
+            var sqlCommand = new SQLiteCommand(getProductsCommand, _connection);
+            var reader = sqlCommand.ExecuteReader();
+
+            List<DPProductRecord> searchResults = new List<DPProductRecord>(reader.StepCount);
+            string productName, author, thumbnailPath;
+            string[] tags;
+            uint extractionID, sku, pid;
+
+            // TODO : Use new product search record.
+            while (reader.Read())
+            {
+                // Construct product records
+                // NULL values return type DB.NULL.
+                productName = (string)reader["Product Name"];
+                tags = ((string)reader["Tags"]).Trim().Split(','); // May return null but never does.
+                author = reader["Author"] as string; // May return NULL
+                thumbnailPath = reader["Thumbnail Full Path"] as string; // May return NULL
+                extractionID = Convert.ToUInt32(reader["Extraction Record ID"]);
+                sku = reader["SKU"] is DBNull ? 0 : Convert.ToUInt32(reader["SKU"]); // May return NULL - cannot have uint as null.
+                pid = Convert.ToUInt32(reader["ID"]);
+                searchResults.Add(
+                    new DPProductRecord(productName, tags, null,
+                    DateTime.Today, null, "", thumbnailPath, pid));
+            }
+
+            return searchResults.ToArray();
+        }
+
         #endregion
 
         #region Handle Events
@@ -311,25 +476,12 @@ namespace DAZ_Installer.DP
         /// </summary>
         /// <param name="sender"></param>
         /// <param name="e"></param>
-        private static void CloseOnStatusChange(object sender,System.Data.StateChangeEventArgs e)
+        private static void CloseOnStatusChange(object sender, StateChangeEventArgs e)
         {
             if (_connection.State != System.Data.ConnectionState.Executing)
             {
                 _connection.StateChange -= CloseOnStatusChange;
                 CloseConnection();
-            }
-        }
-
-        private static void OpenStatusEmitter(object sender, System.Data.StateChangeEventArgs e)
-        {
-            
-            if (_connection.State == System.Data.ConnectionState.Open)
-            {
-                while (_actionQueue.Count > 0)
-                {
-                    _actionQueue.Dequeue()(); // Call the function.
-                    _connection.StateChange -= OpenStatusEmitter;
-                }
             }
         }
 
