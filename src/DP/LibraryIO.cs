@@ -79,15 +79,15 @@ namespace DAZ_Installer
                 string imageLocation = "";
                 if (DPSettings.downloadImages == SettingOptions.Yes)
                 {
-                    imageLocation = DPNetwork.DownloadImage(workingExtractionRecord.archiveFileName);
+                    imageLocation = DPNetwork.DownloadImage(workingExtractionRecord.ArchiveFileName);
                 }
                 else if (DPSettings.downloadImages == SettingOptions.Prompt)
                 {
                     // Pre-check if the archive file name starts with "IM"
-                    if (workingExtractionRecord.archiveFileName.StartsWith("IM"))
+                    if (workingExtractionRecord.ArchiveFileName.StartsWith("IM"))
                     {
                         var result = extractControl.extractPage.DoPromptMessage("Do you wish to download the thumbnail for this product?", "Download Thumbnail Prompt", System.Windows.Forms.MessageBoxButtons.YesNo);
-                        if (result == System.Windows.Forms.DialogResult.Yes) imageLocation = DPNetwork.DownloadImage(workingExtractionRecord.archiveFileName);
+                        if (result == System.Windows.Forms.DialogResult.Yes) imageLocation = DPNetwork.DownloadImage(workingExtractionRecord.ArchiveFileName);
                     }
                 }
 
@@ -184,7 +184,7 @@ namespace DAZ_Installer
                 }
                 catch (Exception e)
                 {
-                    DPCommon.WriteToLog($"Unable to delete extraction record {dpe.archiveFileName}. Reason: {e}");
+                    DPCommon.WriteToLog($"Unable to delete extraction record {dpe.ArchiveFileName}. Reason: {e}");
                 }
 
             }
@@ -200,7 +200,7 @@ namespace DAZ_Installer
                 }
                 catch (Exception e)
                 {
-                    DPCommon.WriteToLog($"Unable to delete product record {dpp.productName}. Reason: {e}");
+                    DPCommon.WriteToLog($"Unable to delete product record {dpp.ProductName}. Reason: {e}");
                 }
 
             }
@@ -265,17 +265,17 @@ namespace DAZ_Installer
             // If only new product name
             if (newTags == null && !string.IsNullOrEmpty(newProductName))
             {
-                var newRecord = new DPProductRecord(newProductName, record.tags, record.directories, record.time, record.filesExtracted, record.expectedExtractionRecordLocation, record.expectedImageLocation, record.id);
+                var newRecord = new DPProductRecord(newProductName, record.Tags, record.Directories, record.Time, record.FilesExtracted, record.ExpectedExtractionRecordLocation, record.ExpectedImageLocation, record.ID);
                 WriteRecordToDisk(newRecord);
                 return newRecord;
             } else if (newTags != null && !string.IsNullOrEmpty(newProductName))
             {
-                var newRecord = new DPProductRecord(record.productName, newTags, record.directories, record.time, record.filesExtracted, record.expectedExtractionRecordLocation, record.expectedImageLocation, record.id);
+                var newRecord = new DPProductRecord(record.ProductName, newTags, record.Directories, record.Time, record.FilesExtracted, record.ExpectedExtractionRecordLocation, record.ExpectedImageLocation, record.ID);
                 WriteRecordToDisk(newRecord);
                 return newRecord;
             } else
             {
-                var newRecord = new DPProductRecord(newProductName, newTags, record.directories, record.time, record.filesExtracted, record.expectedExtractionRecordLocation, record.expectedImageLocation, record.id);
+                var newRecord = new DPProductRecord(newProductName, newTags, record.Directories, record.Time, record.FilesExtracted, record.ExpectedExtractionRecordLocation, record.ExpectedImageLocation, record.ID);
                 WriteRecordToDisk(newRecord);
                 return newRecord;
 
@@ -296,17 +296,17 @@ namespace DAZ_Installer
             const string seperator = "|.|";
             const int stringcapacity = 7;
             StringBuilder builder = new StringBuilder(stringcapacity);
-            builder.AppendLine(record.productName);
+            builder.AppendLine(record.ProductName);
             // Cleanse tags from "" tags.
-            builder.AppendLine(string.Join(seperator, record.tags));
-            builder.AppendLine(string.Join(seperator, record.directories));
-            builder.AppendLine(string.Join(seperator, record.filesExtracted));
-            builder.AppendLine(record.time.ToString());
-            if (string.IsNullOrEmpty(record.expectedExtractionRecordLocation)) builder.AppendLine("NULL");
-            else builder.AppendLine(record.expectedExtractionRecordLocation);
-            if (string.IsNullOrEmpty(record.expectedImageLocation)) builder.AppendLine("NULL");
-            else builder.AppendLine(record.expectedImageLocation);
-            builder.Append(record.id);
+            builder.AppendLine(string.Join(seperator, record.Tags));
+            builder.AppendLine(string.Join(seperator, record.Directories));
+            builder.AppendLine(string.Join(seperator, record.FilesExtracted));
+            builder.AppendLine(record.Time.ToString());
+            if (string.IsNullOrEmpty(record.ExpectedExtractionRecordLocation)) builder.AppendLine("NULL");
+            else builder.AppendLine(record.ExpectedExtractionRecordLocation);
+            if (string.IsNullOrEmpty(record.ExpectedImageLocation)) builder.AppendLine("NULL");
+            else builder.AppendLine(record.ExpectedImageLocation);
+            builder.Append(record.ID);
             return builder.ToString();
         }
 
@@ -326,15 +326,15 @@ namespace DAZ_Installer
             const string seperator = "|.|";
             const int stringcapacity = 7;
             StringBuilder builder = new StringBuilder(stringcapacity);
-            builder.AppendLine(record.archiveFileName);
-            builder.AppendLine(string.Join(seperator, record.filesLocation));
-            builder.AppendLine(record.time.ToString());
-            builder.AppendLine(record.errors.ToString());
-            builder.AppendLine(record.filesExtracted.ToString());
-            builder.AppendLine(string.Join(seperator, record.missingFiles));
-            builder.AppendLine(string.Join(seperator, record.erroredFiles));
-            builder.AppendLine(((int)record.type).ToString());
-            builder.Append(record.id);
+            builder.AppendLine(record.ArchiveFileName);
+            builder.AppendLine(string.Join(seperator, record.FilesLocation));
+            builder.AppendLine(record.Time.ToString());
+            builder.AppendLine(record.Errors.ToString());
+            builder.AppendLine(record.FilesExtracted.ToString());
+            builder.AppendLine(string.Join(seperator, record.MissingFiles));
+            builder.AppendLine(string.Join(seperator, record.ErroredFiles));
+            builder.AppendLine(((int)record.Type).ToString());
+            builder.Append(record.ID);
             return builder.ToString();
         }
 
@@ -359,12 +359,12 @@ namespace DAZ_Installer
         // File Name = [IDUpTo8Chars]-[ProductNameMaxUpTo20Char].erec || .prec
         static private string GetProductRecordName(DPProductRecord record)
         {
-            return record.id.ToString() + "-" + GetNameUpTo20Chars(record.productName) + ".prec";
+            return record.ID.ToString() + "-" + GetNameUpTo20Chars(record.ProductName) + ".prec";
         }
 
         static private string GetExtractRecordName(DPExtractionRecord record)
         {
-            return record.id.ToString() + "-" + GetNameUpTo20Chars(record.archiveFileName) + ".erec";
+            return record.ID.ToString() + "-" + GetNameUpTo20Chars(record.ArchiveFileName) + ".erec";
         }
 
         static private string GetNameUpTo20Chars(string name)
