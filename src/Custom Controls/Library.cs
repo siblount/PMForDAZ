@@ -54,7 +54,8 @@ namespace DAZ_Installer
         // Called only when visible. Can be loaded but but visible.
         private void Library_Load(object sender, EventArgs e)
         {
-            DP.DPDatabase.GetAllValuesFromTable("ExtractionRecords");
+            DP.DPDatabase.GetAllValuesFromTable("ExtractionRecords"); // operation is not valid due to state o fcurrent obj.
+            DP.DPDatabase.Search("E");
             //ForcePageUpdate();
         }
 
@@ -104,7 +105,7 @@ namespace DAZ_Installer
             {
                 var record = LibraryIO.ProductRecords[i];
                 var lb = AddNewLibraryItem(record);
-                var imageLocation = record.expectedImageLocation;
+                var imageLocation = record.ExpectedImageLocation;
                 if (File.Exists(imageLocation))
                 {
                     lb.Image = AddReferenceImage(imageLocation);
@@ -128,7 +129,7 @@ namespace DAZ_Installer
                 if (lb == null || lb.ProductRecord == null) continue;
 
                 lb.Image = null;
-                RemoveReferenceImage(Path.GetFileName(lb.ProductRecord.expectedImageLocation));
+                RemoveReferenceImage(Path.GetFileName(lb.ProductRecord.ExpectedImageLocation));
                 lb.Dispose();
             }
             ArrayHelper.ClearArray(libraryPanel1.LibraryItems);
@@ -160,9 +161,9 @@ namespace DAZ_Installer
                 return (LibraryItem)Invoke(new Func<DPProductRecord, LibraryItem>(AddNewLibraryItem), record);
             }
             var lb = new LibraryItem();
-            lb.TitleText = record.productName;
-            lb.Tags = record.tags;
-            lb.Folders = record.directories;
+            lb.TitleText = record.ProductName;
+            lb.Tags = record.Tags;
+            lb.Folders = record.Directories;
             lb.Dock = DockStyle.Top;
             lb.Anchor = AnchorStyles.Left | AnchorStyles.Right | AnchorStyles.Top;
             lb.ArrowRightImage = arrowRight;
@@ -288,9 +289,9 @@ namespace DAZ_Installer
                 libraryItems[count] = lb;
 
                 // Check if image exists.
-                if (File.Exists(record.expectedImageLocation))
+                if (File.Exists(record.ExpectedImageLocation))
                 {
-                    var image = AddReferenceImage(record.expectedImageLocation);
+                    var image = AddReferenceImage(record.ExpectedImageLocation);
                     lb.Image = image;
                 } else lb.Image = noImageFound;
             }
