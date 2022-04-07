@@ -108,6 +108,7 @@ namespace DAZ_Installer
 
         internal static void DeleteTempFiles()
         {
+            // Issue: UnauthorizedAccessException for weird reason.
             if (Directory.Exists(tempPath))
             {
                 Directory.Delete(tempPath,true);
@@ -117,7 +118,7 @@ namespace DAZ_Installer
 
         public static bool SaveSettings(out string errorMsg)
         {
-            var stringbuilder = new StringBuilder(3);
+            var stringbuilder = new StringBuilder(50 * 3);
             var contentWriteResult = WriteContentFolderNames();
             var contentRedirectsWriteResult = WriteFolderRedirects();
             var otherSettingsWriteResult = WriteOtherSettings();
