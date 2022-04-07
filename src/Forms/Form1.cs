@@ -106,5 +106,10 @@ namespace DAZ_Installer
         {
             SwitchPage(settings1);
         }
+
+        private void Form1_FormClosing(object sender, FormClosingEventArgs e)
+        {
+            DPGlobal.HandleAppClosing();
+        }
     }
 }
