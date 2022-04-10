@@ -51,8 +51,7 @@ namespace DAZ_Installer
         // Called only when visible. Can be loaded but but visible.
         private void Library_Load(object sender, EventArgs e)
         {
-            DP.DPDatabase.GetAllValuesFromTable("ExtractionRecords");
-            //ForcePageUpdate();
+
         }
 
         // Called on a different thread.
@@ -245,7 +244,7 @@ namespace DAZ_Installer
         public void ForcePageUpdate()
         {
             DPCommon.WriteToLog("force page update called.");
-            if (InvokeRequired) {Invoke(new MethodInvoker(ForcePageUpdate)); return; }
+            if (InvokeRequired) {Invoke(ForcePageUpdate); return; }
             ClearPageContents();
             AddLibraryItems();
             // TO DO : Check if we need to move to the left page.
@@ -295,14 +294,8 @@ namespace DAZ_Installer
             libraryPanel1.EditMode = false;
         }
         
-
-        private void titleLbl_Click(object sender, EventArgs e)
-        {
-            AddNewLibraryItem("Little League's Court", new string[] { "Environment", "Sports" }, new string[] { "Content/" });
-            ForcePageUpdate();
-            var eFG = new ProductRecordForm();
-            eFG.Show();
-        }
+        // Possible race condition: ForcePageUpdate() from initailization.
+        // TODO: Fix ^
 
         private void toolStripStatusLabel1_Click(object sender, EventArgs e)
         {
