@@ -15,7 +15,6 @@ namespace DAZ_Installer
     /// </summary>
     public partial class Library : UserControl
     {
-        // TODO : Load via JSON | Save via JSON.
         public static Library self;
         protected static Image arrowRight;
         protected static Image arrowDown;
@@ -26,8 +25,8 @@ namespace DAZ_Installer
         protected byte maxImageFit;
         protected LibraryItem[] libraryItems { get => libraryPanel1.LibraryItems;  }
         protected Dictionary<uint, List<LibraryItem>> pages = new Dictionary<uint, List<LibraryItem>>();
-        // Cross thread communication.
-        protected volatile bool mainImagesLoaded = false;
+        
+        protected bool mainImagesLoaded = false;
         // Quick Library Info 
         public Library()
         {
@@ -295,7 +294,6 @@ namespace DAZ_Installer
                 } else lb.Image = noImageFound;
             }
             libraryPanel1.EditMode = false;
-            //libraryPanel1.UpdateMainContent();
         }
         
 
