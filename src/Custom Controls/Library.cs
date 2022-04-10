@@ -35,18 +35,16 @@ namespace DAZ_Installer
             libraryPanel1.LibraryItems = new LibraryItem[25];
             libraryPanel1.CurrentPage = 1;
 
-            // Do on another thread load items.
-            var thread = new Thread(Initalize);
-            thread.IsBackground = true;
-            thread.Start();
+            Initalize();
             // Am listening...
             libraryPanel1.AddPageChangeListener(UpdatePage);
         }
 
+        // Tasks could be done on main thread or (usually) on another thread.
         private void Initalize()
         {
-            Task.Run(LoadLibraryItemImages);
-            Task.Run(LoadLibraryItems);
+            var t1 = Task.Run(LoadLibraryItemImages);
+            t1.ContinueWith(t => LoadLibraryItems());
             Task.Run(DP.DPDatabase.Initalize);
         }
 
@@ -78,6 +76,8 @@ namespace DAZ_Installer
             // ReadLibraryItemsFile.
 
             // Wait for main image loading to be true.
+            // TODO: Remove while loop.
+            // Shouldn't sleep anymore since its chained with ContinueWith.
             while (!mainImagesLoaded || libraryItems == null)
             {
                 Thread.Sleep(50);
@@ -87,7 +87,7 @@ namespace DAZ_Installer
             InitalizeDictionary();
             GenerateLibraryItemsFromDisk();
 
-            Invoke(new MethodInvoker(ForcePageUpdate));
+            Invoke(ForcePageUpdate);
             DPCommon.WriteToLog("Loaded library items.");
 
         }
@@ -133,7 +133,6 @@ namespace DAZ_Installer
             ArrayHelper.ClearArray(libraryPanel1.LibraryItems);
             libraryPanel1.EditMode = false;
             // Get the current page contents.
-
         }
         
         private void InitalizeDictionary()
