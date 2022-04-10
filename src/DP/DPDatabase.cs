@@ -8,12 +8,10 @@ using System.Collections;
 using System.Text;
 using System.Linq;
 using System.Text.RegularExpressions;
-using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Data.SQLite;
 using System.IO;
-
 
 namespace DAZ_Installer.DP
 {
@@ -22,12 +20,53 @@ namespace DAZ_Installer.DP
     /// Database will be run on a different thread aside from the main thread.
     /// </summary>
     internal static class DPDatabase
+        // Internal methods with suffix 'Q' are methods that can be queued to the TaskScheduler. 
+        // Some can be executed immediately, such as RefreshDatabase.
+        
+        // Private methods with suffix 'S' are methods that are used for priority search calls.
+        // Any method without this suffix will stop at the beginning of the method call and wait until the search has 
+        // been completed before completing task.
+        
+        // All applicable methods that has the CancellationToken as the last parameter will stop before, during an expensive operation.
+        // When this occurs, these methods should return false, empty array of type, empty string, -1.
+        
+        // DO NOT THROW ERRORS! IT IS SIGNIFICANTLY SLOW!
+        // RETURN A BOOL DETERMINING IF IT WAS SUCCESSFUL OR NOT. AND IF YOU NEED TO RETURN A VALUE USE OUT PARAM OR REF PARAM!
+
         // TODO: Backup Database.
         // TODO: Tool to use backup database.
-    {
+    {   // TODO : Hold last transcations.
         // Internal
         internal static bool DatabaseExists { get; private set; } = false;
         internal static bool Initalized { get; private set; } = false;
+
+        // Database State
+        internal static bool IsReadyToExecute => _connection.State == ConnectionState.Open && !isSearching;
+        internal static bool IsBroken => _connection.State == ConnectionState.Broken;
+        internal static bool CanBeOpened
+        {
+            get
+            {
+                if (_connection == null) return true;
+                switch (_connection.State)
+                {
+                    case ConnectionState.Executing:
+                    case ConnectionState.Connecting:
+                    case ConnectionState.Fetching:
+                    case ConnectionState.Broken:
+                        return false;
+                    default:
+                        return true;
+                }
+            }
+        }
+
+        // Search
+        internal static DPSearchRecord[] results;
+
+        // Events
+        internal static event Action SearchUpdated;
+        internal static event Action DatabaseUpdated;
 
         // Private
         private static SQLiteConnection _connection = new SQLiteConnection();
@@ -36,22 +75,73 @@ namespace DAZ_Installer.DP
 
         // Main task manager...
 
-        private static DPTaskManager _taskManager = new DPTaskManager();
-        
-        // Search task manager...
+        private static DPTaskManager _mainTaskManager = new DPTaskManager();
 
+        private static DPTaskManager _searchTaskManager = new DPTaskManager();
+
+        // Task state.
+        private static bool isSearching = false;
+        private static byte nonSearchTaskIsAboutToExecute = 0;
         private const byte DATABASE_VERSION = 2;
 
         // Cache :D
         // TODO: Limit cache to 5.
         // Might remove to keep low-memory profile.
-        private static DPCache<string, string[]> _columnsCache = new();
+        private readonly static DPCache<string, string[]> _columnsCache = new();
+
+
+        #region Queryable methods
+
+        internal static void InitializeQ()
+        {
+            if (!Initalized)
+                _mainTaskManager.AddToQueue(Initialize);
+        }
 
         /// <summary>
-        /// This function is called at Library initalization async'ly. It is also always called when exposed functions
-        /// are called when the database has not been initalize.
+        /// If `forceClose` is false, the close action will be queued. Otherwise, the action queue will be cleared and database will be closed immediately.
         /// </summary>
-        internal static void Initalize()
+        /// <param name="forceClose">Closes the database connection immediately if True, otherwise database closure is queued.</param>
+        internal static void CloseConnectionQ(bool forceClose = false)
+        {
+            if (!forceClose)
+                _mainTaskManager.AddToQueue(CloseConnection); 
+            else
+                CloseConnection(CancellationToken.None);
+        }
+        /// <summary>
+        /// If `forceRefresh` is false, the refresh action will be queued. Otherwise, the action queue will be cleared and database will be refreshed immediately.
+        /// </summary>
+        /// <param name="forceRefresh">Refreshes immediately if True, otherwise it is queued.</param>
+        internal static void RefreshDatabaseQ(bool forceRefresh = false)
+        {
+            if (forceRefresh)
+            {
+                _mainTaskManager.Stop();
+                Initalized = false;
+                InitializeQ();
+                _columnsCache.Clear();
+            } else
+            {
+                _mainTaskManager.AddToQueue(RefreshDatabase);
+            }
+            
+        }
+
+        // TO DO: Improve. This can be so much more efficient.
+        // I lack the brain capacity to do this at the moment.
+        internal static void Search(string searchQuery)
+        {
+            _searchTaskManager.Stop();
+            _searchTaskManager.AddToQueue(DoSearchS, searchQuery);
+        }
+
+        internal static void CancelDatabaseOperations() => _mainTaskManager.Stop();
+
+        #endregion
+
+        #region Private methods
+        private static void Initialize()
         {
             // Check if database exists.
             _expectedDatabasePath = Path.Join(DPSettings.databasePath, "db.db");
@@ -62,121 +152,34 @@ namespace DAZ_Installer.DP
                 // Create the database.
                 CreateDatabase();
                 // Update database info.
-                InsertValueToTable("DatabaseInfo", new string[] {"Version"}, new object[] {DATABASE_VERSION});
-            } else
-            {
-                _connectionString = "Data Source = " + Path.GetFullPath(_expectedDatabasePath);
-                _connection.ConnectionString = _connectionString;
+                InsertValuesToTable("DatabaseInfo", new string[] { "Version" }, new object[] { DATABASE_VERSION }, CancellationToken.None);
             }
-            
-            Initalized = true;
-            
-
-        }
-        #region Queryable methods
-        internal static void LoadDatabase()
-        {
-            
-            if (_connection.State != ConnectionState.Open)
-            {
-                if (_connection.State == ConnectionState.Broken) throw new Exception("Database is corrupted.");
-                _taskManager.AddToQueue(OpenConnection);
-            }
-
-        }
-
-        /// <summary>
-        /// If `forceClose` is false, the close action will be queued. Otherwise, the action queue will be cleared and database will be closed immediately.
-        /// </summary>
-        /// <param name="forceClose">Closes the database connection immediately if True, otherwise database closure is queued.</param>
-        internal static void CloseConnection(bool forceClose = false)
-        {
-            if (!forceClose)
-                _taskManager.AddToQueue(() => _connection.Close()); 
             else
-                _connection.Close();
-        }
-        /// <summary>
-        /// If `forceRefresh` is false, the refresh action will be queued. Otherwise, the action queue will be cleared and database will be refreshed immediately.
-        /// </summary>
-        /// <param name="forceRefresh">Refreshes immediately if True, otherwise it is queued.</param>
-        internal static void RefreshDatabase(bool forceRefresh = false)
-        {
-            if (forceRefresh)
             {
-                _taskManager.Stop();
-            } else
-            {
-                // TO DO: Refresh database code.
-                _taskManager.AddToQueue(RefreshDatabase, false);
+                UpdateConnectionString();
             }
-            
-        }
-
-        private static void InsertValueToTable(string tableName, IEnumerable<string> columns, object[] values)
-        {
-            // TODO: Create a transcation in case of database failure.
-            
-            if (!Initalized) Initalize();
-            if (_connection.State != ConnectionState.Open) _connection.Open();
-
-            SQLiteTransaction transaction = _connection.BeginTransaction();
-            // Build columns.
-            var columnsToAdd = string.Join(',', columns);
-            var valuesToAdd = string.Join(',', values);
-            var insertCommand = $"INSERT INTO {tableName} ({columnsToAdd})\nVALUES({valuesToAdd});";
-            try
-            {
-                var sqlCommand = new SQLiteCommand(insertCommand, _connection);
-                sqlCommand.ExecuteNonQuery();
-                transaction.Commit();
-                transaction.Dispose();
-            } catch (Exception ex)
-            {
-                DPCommon.WriteToLog($"Failed to insert {valuesToAdd} to {columnsToAdd}. REASON: {ex.Message}");
-                transaction.Rollback();
-            }
-
-        }
-
-        // TO DO: Add to queue.
-        internal static void GetAllValuesFromTable(string tableName)
-        {
-            if (!Initalized) Initalize();
-            if (_connection.State != ConnectionState.Open) _connection.Open();
-
-            var columns = GetColumns(tableName);
-            var getCommand = $"SELECT * FROM {tableName}";
-            var sqlCommand = new SQLiteCommand(getCommand, _connection);
-            var reader = sqlCommand.ExecuteReader();
-            var table = reader.GetSchemaTable();
-
-            foreach (DataRow row in table.Rows) DPCommon.WriteToLog(row.ItemArray[0]); // row.ItemArray[0] = column name
-
-            
+            Initalized = true;
+            DatabaseUpdated?.Invoke();
         }
         
-        // TO DO: Improve. This can be so much more efficient.
-        // I lack the brain capacity to do this at the moment.
         /// <summary>
-        /// Generates SQL command based on search query and returns a sorted list of products.
+        /// Returns true if the database was ready (or broken) before the timeout. Otherwise, false.
         /// </summary>
-        /// <param name="searchQuery"></param>
-        /// <returns></returns>
-        internal static DPProductRecord[] Search(string searchQuery)
+        /// <param name="timeoutMilliseconds"> The milliseconds until timeout.</param>
+        private static bool WaitUntilDatabaseReady(int timeoutMilliseconds)
         {
-
-            var getUserCommand = GetUserSearchQueryCommand(searchQuery);
-            var tagSearchResults = SearchViaTags(getUserCommand);
-
-            var getProductsCommand = GetProductsFromUserSearchCommand(tagSearchResults);
-            return SearchProductRecordsViaTags(getProductsCommand);
-
+            try {
+                SpinWait.SpinUntil(() => IsReadyToExecute || IsBroken, timeoutMilliseconds);
+                return true;
+            } catch (Exception _) {
+                return false;
+            }
         }
 
-        #endregion
-
-        #region Private methods
+        private static void WaitUntilDatabaseReady()
+        {
+            SpinWait.SpinUntil(() => IsReadyToExecute);
+        }
 
         private static void CreateConnection()
         {
@@ -192,17 +195,16 @@ namespace DAZ_Installer.DP
                 CreateConnection();
                 return;
             }
+
             _connectionString = "Data Source = " + Path.GetFullPath(_expectedDatabasePath);
             _connection.ConnectionString = _connectionString;  
         }
 
         private static void OpenConnection()
         {
-            if (_connection?.State != ConnectionState.Open || _connection?.State != ConnectionState.Connecting)
-            {
+            if (_connection?.State == ConnectionState.Closed)
                 _connection.Open();
-                return;
-            }
+
             if (_connection == null)
             {
                 CreateConnection();
@@ -220,20 +222,18 @@ namespace DAZ_Installer.DP
             SQLiteConnection.CreateFile(databasePath);
 
             // Create tables.
-            CreateTables(databasePath);
-            CreateIndexes(databasePath);
+            CreateTables();
+            CreateIndexes();
 
-            CloseConnection(true);
+            CloseConnectionQ(true);
             //_connection.ReleaseMemory();
         }
 
-        private static void CreateTables(string databasePath)
+        private static bool CreateTables()
         {
-            _connectionString = "Data Source = " + Path.GetFullPath(databasePath);
-            if (_connectionString != _connection.ConnectionString)
-                _connection.ConnectionString = _connectionString;
-            _connection.Open();
-
+            // At this point, we are being called via Initialization, no need to wait.
+            if (!IsReadyToExecute && IsBroken || !CanBeOpened) return false;
+            if (!IsReadyToExecute && CanBeOpened) OpenConnection();
             const string createProductRecordsCommand = @"
             CREATE TABLE ""ProductRecords"" (
 
@@ -285,24 +285,31 @@ namespace DAZ_Installer.DP
             )";
             //var createCommand = new SQLiteCommand(createSequenceCommand, _connection);
             //var task = createCommand.ExecuteNonQueryAsync();
-            var createCommand = new SQLiteCommand(createProductRecordsCommand, _connection);
-            createCommand.ExecuteNonQuery();
-            createCommand = new SQLiteCommand(createExtractionRecordsCommand, _connection);
-            createCommand.ExecuteNonQuery();
-            createCommand = new SQLiteCommand(createCachedSearchCommand, _connection);
-            createCommand.ExecuteNonQuery();
-            createCommand = new SQLiteCommand(createDatabaseInfoCommand, _connection);
-            createCommand.ExecuteNonQuery();
-            createCommand = new SQLiteCommand(createTagsCommand, _connection);
-            createCommand.ExecuteNonQuery();
+            try
+            {
+                var createCommand = new SQLiteCommand(createProductRecordsCommand, _connection);
+                createCommand.ExecuteNonQuery();
+                createCommand = new SQLiteCommand(createExtractionRecordsCommand, _connection);
+                createCommand.ExecuteNonQuery();
+                createCommand = new SQLiteCommand(createCachedSearchCommand, _connection);
+                createCommand.ExecuteNonQuery();
+                createCommand = new SQLiteCommand(createDatabaseInfoCommand, _connection);
+                createCommand.ExecuteNonQuery();
+                createCommand = new SQLiteCommand(createTagsCommand, _connection);
+                createCommand.ExecuteNonQuery();
+            } catch (Exception ex)
+            {
+                DPCommon.WriteToLog($"An error occurred while attempting to create database. REASON: {ex}");
+                return false;
+            }
+            return true;
         }
 
-        private static void CreateIndexes(string databasePath)
+        private static bool CreateIndexes()
         {
-            _connectionString = "Data Source = " + Path.GetFullPath(databasePath);
-            if (_connectionString != _connection.ConnectionString)
-                _connection.ConnectionString = _connectionString;
-            if (_connection.State != ConnectionState.Open) _connection.Open();
+            // At this point, we are being called via Initialization, no need to wait.
+            if (!IsReadyToExecute && IsBroken || !CanBeOpened) return false;
+            if (!IsReadyToExecute && CanBeOpened) OpenConnection();
 
             const string createTagToPIDCommand = @"
             CREATE UNIQUE INDEX ""idx_TagToPID"" ON ""Tags"" (
@@ -314,38 +321,58 @@ namespace DAZ_Installer.DP
 
                 ""Archive Name"",
 	            ""ID""
-            )"; 
+            )";
 
-            var createCommand = new SQLiteCommand(createTagToPIDCommand, _connection);
-            createCommand.ExecuteNonQueryAsync();
-            createCommand = new SQLiteCommand(createArchiveNameToEIDCommand, _connection);
-            createCommand.ExecuteNonQueryAsync();
-
-
+            try
+            {
+                var createCommand = new SQLiteCommand(createTagToPIDCommand, _connection);
+                createCommand.ExecuteNonQueryAsync();
+                createCommand = new SQLiteCommand(createArchiveNameToEIDCommand, _connection);
+                createCommand.ExecuteNonQueryAsync();
+            } catch (Exception ex)
+            {
+                DPCommon.WriteToLog($"An error occurred creating indexes. REASON: {ex}");
+                return false;
+            }
+            return true;
         }
         
-        private static string[] GetColumns(string tableName)
+        private static string[] GetColumns(string tableName, CancellationToken t)
         {
-            if (!Initalized) Initalize();
+            if (t.IsCancellationRequested || tableName.Length == 0) return Array.Empty<string>();
+            nonSearchTaskIsAboutToExecute++;
+            WaitUntilDatabaseReady();
+            if (!Initalized) InitializeQ();
+            if (!IsReadyToExecute && IsBroken || !CanBeOpened) return Array.Empty<string>();
+            if (!IsReadyToExecute && CanBeOpened) OpenConnection();
             if (_columnsCache.ContainsKey(tableName)) return _columnsCache[tableName];
 
-            if (_connection.State != ConnectionState.Open) _connection.Open();
+            try {
+                var randomCommand = $"SELECT * FROM {tableName} LIMIT 1;";
+                var sqlCommand = new SQLiteCommand(randomCommand, _connection);
+                var reader = sqlCommand.ExecuteReader();
+                var table = reader.GetSchemaTable();
 
-            var randomCommand = $"SELECT * FROM {tableName} LIMIT 1;";
-            var sqlCommand = new SQLiteCommand(randomCommand, _connection);
-            var reader = sqlCommand.ExecuteReader();
-            var table = reader.GetSchemaTable();
+                List<string> columns = new List<string>();
+                foreach (DataRow row in table.Rows) {
+                    if (t.IsCancellationRequested) return Array.Empty<string>();
+                    columns.Add((string) row.ItemArray[0]);
+                }
 
-            List<string> columns = new List<string>();
-            foreach (DataRow row in table.Rows) columns.Add((string) row.ItemArray[0]);
-
-            // Cache it.
-            _columnsCache[tableName] = columns.ToArray();
-            return _columnsCache[tableName];
+                // Cache it.
+                _columnsCache[tableName] = columns.ToArray();
+                return _columnsCache[tableName];
+            } catch (Exception e) {
+                DPCommon.WriteToLog($"An unexpected error occurred attempting to get columns for table: {tableName}. REASON: {e}");
+            } finally {
+                nonSearchTaskIsAboutToExecute--;
+            }
+            return Array.Empty<string>();
         }
 
-        private static string GetUserSearchQueryCommand(string searchQuery)
+        private static string GetUserSearchQueryCommandS(string searchQuery, CancellationToken t)
         {
+            if (t.IsCancellationRequested || searchQuery.Length == 0) return string.Empty;
             // $[Name]:[query]
             // [$]\[\(?\w\]:\w
             var anyCaseStr = "SELECT * FROM Tags WHERE Tag";
@@ -356,7 +383,8 @@ namespace DAZ_Installer.DP
                 new StringBuilder(searchQuery.Length + (searchQuery.Length - potTags.Length) * 8);
             for (var i = 0; i < potTags.Length; i++)
             {
-                var tag = potTags[i];
+                if (t.IsCancellationRequested) return string.Empty;
+                var tag = EscapeTag(potTags[i]);
                 switch (tag)
                 {
                     case "|AND|":
@@ -380,8 +408,9 @@ namespace DAZ_Installer.DP
             return anyCaseStr;
         }
 
-        private static string GetProductsFromUserSearchCommand(uint[] ids)
+        private static string GetProductsFromUserSearchCommandS(uint[] ids, CancellationToken t)
         {
+            if (t.IsCancellationRequested || ids.Length == 0) return string.Empty;
             // WARNING: ids should not have length 0!
             var baseStr = "SELECT * FROM ProductRecords WHERE";
             var op = " ID = ";
@@ -390,6 +419,7 @@ namespace DAZ_Installer.DP
 
             foreach (var id in ids)
             {
+                if (t.IsCancellationRequested || ids.Length == 0) return string.Empty;
                 builder.Append(op + id);
             }
 
@@ -399,8 +429,43 @@ namespace DAZ_Installer.DP
 
         }
 
-        private static uint[] SearchViaTags(string getUserCommand)
+        private static bool InsertValuesToTable(string tableName, IEnumerable<string> columns, object[] values, CancellationToken t)
         {
+            if (t.IsCancellationRequested) return false;
+            // TODO: Create a transaction in case of database failure.
+            if (IsBroken || (!IsReadyToExecute && !CanBeOpened)) return false;
+            if (!IsReadyToExecute && CanBeOpened) OpenConnection();
+            
+            SQLiteTransaction transaction = _connection.BeginTransaction();
+            // Build columns.
+            var columnsToAdd = string.Join(',', columns);
+            var valuesToAdd = string.Join(',', values);
+            var insertCommand = $"INSERT INTO {tableName} ({columnsToAdd})\nVALUES({valuesToAdd});";
+            try
+            {
+                var sqlCommand = new SQLiteCommand(insertCommand, _connection, transaction);
+                WaitUntilDatabaseReady();
+                nonSearchTaskIsAboutToExecute++;
+                sqlCommand.ExecuteNonQuery();
+                transaction.Commit();
+                transaction.Dispose();
+                DatabaseUpdated?.Invoke();
+            }
+            catch (Exception ex)
+            {
+                DPCommon.WriteToLog($"Failed to insert {valuesToAdd} to {columnsToAdd}. REASON: {ex.Message}");
+                transaction.Rollback();
+                return false;
+            }
+            nonSearchTaskIsAboutToExecute--;
+            return true;
+
+        }
+        private static uint[] SearchViaTagsS(string getUserCommand, CancellationToken t)
+        {
+            if (t.IsCancellationRequested) {
+                return Array.Empty<uint>();
+            }
             // TODO: Make all of this a private function.
             var sqlCommand = new SQLiteCommand(getUserCommand, _connection);
             // Here create a command, and try REGEXP, for example
@@ -426,6 +491,9 @@ namespace DAZ_Installer.DP
                     // Else add it to dictionary and setting the count to 1.
                     else IDtoCountMap[n_id] = 1;
                 }
+                if (t.IsCancellationRequested) {
+                    return Array.Empty<uint>();
+                }
             }
             // Now sort by relevance.
             var ids = IDtoCountMap.ToList();
@@ -438,12 +506,15 @@ namespace DAZ_Installer.DP
             }
             return raw_ids;
         }
-        private static DPProductRecord[] SearchProductRecordsViaTags(string getProductsCommand)
+        private static DPSearchRecord[] SearchProductRecordsViaTagsS(string getProductsCommand, CancellationToken t)
         {
+            if (t.IsCancellationRequested) {
+                return Array.Empty<DPSearchRecord>();
+            }
             var sqlCommand = new SQLiteCommand(getProductsCommand, _connection);
             var reader = sqlCommand.ExecuteReader();
 
-            List<DPProductRecord> searchResults = new List<DPProductRecord>(reader.StepCount);
+            var searchResults = new List<DPSearchRecord>(reader.StepCount);
             string productName, author, thumbnailPath;
             string[] tags;
             uint extractionID, sku, pid;
@@ -451,6 +522,9 @@ namespace DAZ_Installer.DP
             // TODO : Use new product search record.
             while (reader.Read())
             {
+                if (t.IsCancellationRequested) {
+                    return Array.Empty<DPSearchRecord>();
+                }
                 // Construct product records
                 // NULL values return type DB.NULL.
                 productName = (string)reader["Product Name"];
@@ -461,30 +535,117 @@ namespace DAZ_Installer.DP
                 sku = reader["SKU"] is DBNull ? 0 : Convert.ToUInt32(reader["SKU"]); // May return NULL - cannot have uint as null.
                 pid = Convert.ToUInt32(reader["ID"]);
                 searchResults.Add(
-                    new DPProductRecord(productName, tags, null,
-                    DateTime.Today, null, "", thumbnailPath, pid));
+                    new DPSearchRecord(pid, productName, tags, author, 
+                                        sku, extractionID, thumbnailPath));
+                
             }
 
             return searchResults.ToArray();
         }
-
-        #endregion
-
-        #region Handle Events
-        /// <summary>
-        /// Closes the connection at the appropriate time. Closes only when not executing a command.
-        /// </summary>
-        /// <param name="sender"></param>
-        /// <param name="e"></param>
-        private static void CloseOnStatusChange(object sender, StateChangeEventArgs e)
+        // TO DO: Add to queue.
+        private static string[][] GetAllValuesFromTable(string tableName, out string[] headers, CancellationToken t)
         {
-            if (_connection.State != System.Data.ConnectionState.Executing)
-            {
-                _connection.StateChange -= CloseOnStatusChange;
-                CloseConnection();
+            headers = Array.Empty<string>();
+            if (!Initalized) Initialize();
+            if (_connection.State != ConnectionState.Open) _connection.Open();
+            if (t.IsCancellationRequested) {
+                return Array.Empty<string[]>();
+            }
+            WaitUntilDatabaseReady();
+            nonSearchTaskIsAboutToExecute++;
+            try {
+                headers = GetColumns(tableName, t);
+                var getCommand = $"SELECT * FROM {tableName}";
+                var sqlCommand = new SQLiteCommand(getCommand, _connection);
+                var reader = sqlCommand.ExecuteReader();
+
+                if (headers.Length == 0) return Array.Empty<string[]>();
+
+                List<string[]> values = new List<string[]>(5);
+                while (reader.Read())
+                {
+                    string[] arr = new string[headers.Length];
+                    for (int i = 0; i < arr.Length; i++)
+                    {
+                        arr[i] = Convert.ToString(reader.GetValue(i));
+                    }
+                    values.Add(arr);
+                }
+                return values.ToArray();
+            } catch (Exception e) {
+                DPCommon.WriteToLog($"Unexpected error occured while trying to get all the values from table: {tableName}. REASON: {e}");
+            } finally {
+                nonSearchTaskIsAboutToExecute--;
+            }
+            return Array.Empty<string[]>();
+        }
+
+        private static string EscapeTag(string tag) => tag.Replace("%", "\\%").Replace("_", "\\_");
+
+        // TO DO: Refresh database code.
+        private static void RefreshDatabase(CancellationToken t) {
+            if (t.IsCancellationRequested) return;
+            nonSearchTaskIsAboutToExecute++;
+            WaitUntilDatabaseReady();
+            try {
+                _mainTaskManager.Stop();
+                _searchTaskManager.Stop();
+                Initalized = false;
+                Initialize();
+                _columnsCache.Clear();
+            } catch (Exception e) {
+                DPCommon.WriteToLog($"An unexpected error occured while attempting to refresh the database. REASON: {e}");
             }
         }
 
+        private static void CloseConnection(CancellationToken t) {
+            if (t.IsCancellationRequested) return;
+            _connection.Close();
+        }
+        
+        /// <summary>
+        /// Generates SQL command based on search query and returns a sorted list of products.
+        /// </summary>
+        /// <param name="searchQuery">The raw search query from the user.</param>
+        /// <returns></returns>
+        private static void DoSearchS(string searchQuery, CancellationToken t) {
+            // User initialized another search while an old search hasn't finished completing.
+            if (isSearching) {
+                _searchTaskManager.Stop();
+            }
+            isSearching = true;
+            try {
+                SpinWait.SpinUntil(() => nonSearchTaskIsAboutToExecute == 0, 60 * 10000);
+            } catch (Exception e) {
+                DPCommon.WriteToLog("Search timedout due to previous tasks.");
+            }
+            if (!Initalized) Initialize();
+            if (IsBroken) {
+                DPCommon.WriteToLog("Search cannot proceed due to database being broken.");
+                results = Array.Empty<DPSearchRecord>();
+                SearchUpdated?.Invoke();
+            }
+            OpenConnection();
+            try {
+                var getUserCommand = GetUserSearchQueryCommandS(searchQuery, t);
+                var tagSearchResults = SearchViaTagsS(getUserCommand, t);
+                var getProductsCommand = GetProductsFromUserSearchCommandS(tagSearchResults, t);
+                results = SearchProductRecordsViaTagsS(getProductsCommand, t);
+                SearchUpdated?.Invoke();
+            } catch (Exception e) {
+                DPCommon.WriteToLog("An error occurred with the search function.");
+            }
+
+            if (!t.IsCancellationRequested) isSearching = false;
+        }
+        
+        private static void BackupDatabase(CancellationToken t) {
+            return;
+        }
+
+        private static void RestoreDatabase(CancellationToken t) {
+            return;
+        }
 
 
         #endregion
