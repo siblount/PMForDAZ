@@ -43,16 +43,15 @@ namespace DAZ_Installer
         // Tasks could be done on main thread or (usually) on another thread.
         private void Initalize()
         {
-            Task.Run(LoadLibraryItemImages);
-            Task.Run(LoadLibraryItems);
-            DP.DPDatabase.InitializeQ();
+            var t1 = Task.Run(LoadLibraryItemImages);
+            t1.ContinueWith(t => LoadLibraryItems());
+            Task.Run(DP.DPDatabase.Initalize);
         }
 
         // Called only when visible. Can be loaded but but visible.
         private void Library_Load(object sender, EventArgs e)
         {
-           /* Task.Run(() => DP.DPDatabase.GetAllValuesFromTable("ExtractionRecords")); */// operation is not valid due to state o fcurrent obj.
-            //ForcePageUpdate();
+
         }
 
         // Called on a different thread.
@@ -245,7 +244,7 @@ namespace DAZ_Installer
         public void ForcePageUpdate()
         {
             DPCommon.WriteToLog("force page update called.");
-            if (InvokeRequired) {Invoke(new MethodInvoker(ForcePageUpdate)); return; }
+            if (InvokeRequired) {Invoke(ForcePageUpdate); return; }
             ClearPageContents();
             AddLibraryItems();
             // TO DO : Check if we need to move to the left page.
@@ -295,14 +294,8 @@ namespace DAZ_Installer
             libraryPanel1.EditMode = false;
         }
         
-
-        private void titleLbl_Click(object sender, EventArgs e)
-        {
-            AddNewLibraryItem("Little League's Court", new string[] { "Environment", "Sports" }, new string[] { "Content/" });
-            ForcePageUpdate();
-            var eFG = new ProductRecordForm();
-            eFG.Show();
-        }
+        // Possible race condition: ForcePageUpdate() from initailization.
+        // TODO: Fix ^
 
         private void toolStripStatusLabel1_Click(object sender, EventArgs e)
         {
