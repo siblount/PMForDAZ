@@ -45,7 +45,7 @@ namespace DAZ_Installer
         {
             var t1 = Task.Run(LoadLibraryItemImages);
             t1.ContinueWith(t => LoadLibraryItems());
-            Task.Run(DP.DPDatabase.Initalize);
+            Task.Run(DP.DPDatabase.Initialize);
         }
 
         // Called only when visible. Can be loaded but but visible.
