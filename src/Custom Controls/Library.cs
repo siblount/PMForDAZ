@@ -2,12 +2,12 @@
 // You may find a full copy of this license at root project directory\LICENSE
 using System;
 using System.IO;
-using System.Linq;
 using System.Drawing;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using System.Collections.Generic;
+
 namespace DAZ_Installer
 {
     /// <summary>
@@ -47,14 +47,13 @@ namespace DAZ_Installer
         {
             Task.Run(LoadLibraryItemImages);
             Task.Run(LoadLibraryItems);
-            Task.Run(DP.DPDatabase.Initalize);
+            DP.DPDatabase.InitializeQ();
         }
 
         // Called only when visible. Can be loaded but but visible.
         private void Library_Load(object sender, EventArgs e)
         {
-            DP.DPDatabase.GetAllValuesFromTable("ExtractionRecords"); // operation is not valid due to state o fcurrent obj.
-            DP.DPDatabase.Search("E");
+           /* Task.Run(() => DP.DPDatabase.GetAllValuesFromTable("ExtractionRecords")); */// operation is not valid due to state o fcurrent obj.
             //ForcePageUpdate();
         }
 
@@ -309,6 +308,14 @@ namespace DAZ_Installer
         private void toolStripStatusLabel1_Click(object sender, EventArgs e)
         {
 
+        }
+
+        private void searchBox_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.KeyCode == Keys.Enter)
+            {
+                DP.DPDatabase.Search(searchBox.Text);
+            }
         }
     }
 }
