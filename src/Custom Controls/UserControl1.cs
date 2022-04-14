@@ -48,7 +48,7 @@ namespace DAZ_Installer
             // Clear everything from extract page.
             eControl.ResetExtractPage();
             // Goto next page.
-            Form1.SwitchPage(eControl);
+            MainForm.SwitchPage(eControl);
 
             var newJob = new DPExtractJob(listView1.Items); // Todo: make a list.
             var newTask = new Task(newJob.DoJob);

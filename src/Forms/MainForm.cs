@@ -13,15 +13,15 @@ using System.Windows.Forms;
 
 namespace DAZ_Installer
 {
-    public partial class Form1 : Form
+    public partial class MainForm : Form
     {
         public static Color initialSidePanelColor;
         public static Color darkerSidePanelColor = Color.FromArgb(50, Color.FromKnownColor(KnownColor.ForestGreen));
-        public static Form1 activeForm;
+        public static MainForm activeForm;
 
         internal static UserControl[] userControls = new UserControl[4];
         internal static UserControl visiblePage = null;
-        public Form1()
+        public MainForm()
         {
             CheckForIllegalCrossThreadCalls = false;
             InitializeComponent();
