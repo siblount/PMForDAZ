@@ -3,7 +3,7 @@
 
 using System.Windows.Forms;
 
-namespace DAZ_Installer
+namespace DAZ_Installer.DP
 {
     public interface IDPWorkingFile
     {

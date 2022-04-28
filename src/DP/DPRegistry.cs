@@ -7,7 +7,7 @@ using System.Linq;
 using System.Text;
 using Microsoft.Win32;
 
-namespace DAZ_Installer
+namespace DAZ_Installer.DP
 {
     /// <summary>
     /// This class is used to gather important registry values.

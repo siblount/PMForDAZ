@@ -1,28 +1,36 @@
-﻿// This code is licensed under the Keep It Free License V1.
-// You may find a full copy of this license at root project directory\LICENSE
-
+﻿using DAZ_Installer.DP;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
-using System.Windows.Forms;
+using System.Data;
 using System.Drawing;
-using DAZ_Installer.DP;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using System.Windows.Forms;
 
 namespace DAZ_Installer
 {
-    // TO DO: Add max tag viewing limit.
-    // TO DO: Show only up to the max tag limit OR until the last tag is ellipsed.
-    // TO DO: Create up to max tag limit, show tags up til the ellipsed tag.
-    public partial class LibraryItem : UserControl
+    public partial class LibrarySearchItem : UserControl
     {
         public static Color initialColor;
         public static Color darkerColor = Color.FromArgb(60, Color.FromKnownColor(KnownColor.ForestGreen));
         protected bool initalized = false;
+
+        public LibrarySearchItem()
+        {
+            InitializeComponent();
+            if (!initalized)
+            {
+                initalized = true;
+                initialColor = titleText.BackColor;
+            }
+        }
         [Description("Title text"), Category("Data"), Browsable(true), EditorBrowsable(EditorBrowsableState.Always), DesignerSerializationVisibility(DesignerSerializationVisibility.Visible)]
         public string TitleText
         {
-            get => label1.Text;
-            set => label1.Text = value;
+            get => titleText.Text;
+            set => titleText.Text = value;
         }
 
         [Description("Holds the image inside of the imagebox."), Category("Data"), Browsable(true)]
@@ -40,19 +48,12 @@ namespace DAZ_Installer
             set => UpdateTags(value);
         }
 
-        internal DPProductRecord ProductRecord { get; set; }
+        [Description("Holds the arrow down image."), Category("Data"), Browsable(true)]
 
-        private readonly List<Label> labels = new List<Label>();
-        public LibraryItem()
-        {
-            InitializeComponent();
-            if (!initalized)
-            {
-                initalized = true;
-                initialColor = label1.BackColor;
-            }
-        }
 
+        internal DPSearchRecord SearchRecord { get; set; }
+
+        private readonly List<Label> labels = new List<Label>((int) DPSettings.maxTagsToShow);
 
         private string[] GetTags()
         {
@@ -64,7 +65,6 @@ namespace DAZ_Installer
             return tags;
         }
 
-
         private void UpdateTags(string[] tags)
         {
             ReleaseTags(false);
@@ -75,7 +75,7 @@ namespace DAZ_Installer
                 var t = 0;
 
                 for (var i = 0; i < tags.Length && t < DPSettings.maxTagsToShow; i++)
-                    // TODO: Use AddRange instead of Controls.Add
+                // TODO: Use AddRange instead of Controls.Add
                 {
                     var tagName = tags[i];
                     if (string.IsNullOrEmpty(tagName) || string.IsNullOrWhiteSpace(tagName))
@@ -91,7 +91,8 @@ namespace DAZ_Installer
                 }
                 tagsLayoutPanel.Controls.AddRange(labels.ToArray());
             }
-            catch (Exception e) {
+            catch (Exception e)
+            {
                 DPCommon.WriteToLog($"Failed to create tags. REASON: {e}");
             }
 
@@ -119,9 +120,8 @@ namespace DAZ_Installer
             labels.Clear();
             if (restartLayout) tagsLayoutPanel.ResumeLayout();
         }
-        
 
-        private void tagsLayoutPanel_ClientSizeChanged(object sender, EventArgs e)
+        private void LibrarySearchItem_ClientSizeChanged(object sender, EventArgs e)
         {
             // Re-calculate visible tags.
             tagsLayoutPanel.SuspendLayout();
@@ -131,7 +131,7 @@ namespace DAZ_Installer
                 for (var i = 0; i < labels.Count && i < DPSettings.maxTagsToShow; i++)
                 {
                     var workingLabel = labels[i];
-                    
+
                     if (workingLabel.Parent == null)
                     {
                         // Only immediately add to the tag layout panel if it can be seen.
@@ -139,7 +139,8 @@ namespace DAZ_Installer
 
                         // If the label we created is ellipsed, show no more.
                         if (workingLabel.PreferredWidth > workingLabel.Width) foundEllipsedLabel = true;
-                    } else
+                    }
+                    else
                     {
                         if (!foundEllipsedLabel)
                         {
@@ -158,17 +159,6 @@ namespace DAZ_Installer
                 DPCommon.WriteToLog($"Failed to create tags. REASON: {ee}");
             }
             tagsLayoutPanel.ResumeLayout();
-        }
-
-        private void showFoldersBtn_Click(object sender, EventArgs e)
-        {
-            if (ProductRecord == null)
-            {
-                MessageBox.Show("Unable to show record due to product record not available.", "Unable to view", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                return;
-            }
-            ProductRecordForm recordForm = new ProductRecordForm(ProductRecord);
-            recordForm.ShowDialog();
         }
     }
 }

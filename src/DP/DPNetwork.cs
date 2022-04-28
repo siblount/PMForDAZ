@@ -6,7 +6,7 @@ using System.Net;
 using System.IO;
 using HtmlAgilityPack;
 
-namespace DAZ_Installer
+namespace DAZ_Installer.DP
 {
     internal class DPNetwork
     {
@@ -25,7 +25,7 @@ namespace DAZ_Installer
                     var htmlDoc = web.Load(link);
                     var imgNode = htmlDoc.DocumentNode.SelectSingleNode("/html/body/div[1]/div/div[2]/div[2]/div/div/div/p[1]/a/img");
                     //if (imgNode != null) 
-                    var imgLink = imgNode.GetAttributeValue("src", "");
+                    var imgLink = imgNode.GetAttributeValue("src", ""); // imgNode is null WHEN PAGE IS NOT FOUND.
                     var equalSignIndex = imgLink.IndexOf("media") + 6; // +6 = media (5) + equal sign (1)
                     var gcdnLink = WebUtility.UrlDecode(imgLink.Substring(equalSignIndex));
                     if (imgLink != "")
@@ -41,7 +41,8 @@ namespace DAZ_Installer
                         }
                     }
                 }
-            } catch (Exception e)
+            }
+            catch (Exception e)
             {
                 DPCommon.WriteToLog($"Unable to download image. REASON: {e}");
             }

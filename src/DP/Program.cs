@@ -2,9 +2,7 @@
 // You may find a full copy of this license at root project directory\LICENSE
 
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
+using System.Threading;
 using System.Windows.Forms;
 
 namespace DAZ_Installer
@@ -17,10 +15,22 @@ namespace DAZ_Installer
         [STAThread]
         static void Main()
         {
-            Application.SetHighDpiMode(HighDpiMode.SystemAware);
-            Application.EnableVisualStyles();
-            Application.SetCompatibleTextRenderingDefault(false);
-            Application.Run(new Form1());
+            using (var mutex = new Mutex(false, "DAZ_Installer Instance"))
+            {
+                // Code from: https://saebamini.com/Allowing-only-one-instance-of-a-C-app-to-run/
+                bool isAnotherInstanceOpen = !mutex.WaitOne(0);
+                if (isAnotherInstanceOpen)
+                {
+                    MessageBox.Show(null, "Only one instance of Daz Product Installer is allowed!", "Launch cancelled", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    return;
+                }
+                Application.SetHighDpiMode(HighDpiMode.SystemAware);
+                Application.EnableVisualStyles();
+                Application.SetCompatibleTextRenderingDefault(false);
+                Application.Run(new MainForm());
+                mutex.ReleaseMutex();
+            }
+
         }
     }
 }

@@ -7,7 +7,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Windows.Forms;
 
-namespace DAZ_Installer
+namespace DAZ_Installer.DP
 {
     // ZIP Transversal Check
     /*
@@ -58,7 +58,7 @@ namespace DAZ_Installer
         private List<string> lastVolumes { get; } = new List<string>();
         internal string productName { get; set; }
         internal bool errored { get; set; } = false;
-        internal string[] tags { get; set; } 
+        internal string[] tags { get; set; }
         private Dictionary<string, string> volumePairs = new Dictionary<string, string>(); // First key is the OLD nonworking one, Second key is the working one.
         protected char[] password;
         internal List<DPArchive> internalArchives { get; init; } = new List<DPArchive>();
@@ -142,7 +142,7 @@ namespace DAZ_Installer
         public TreeNode associatedTreeNode { get; set; }
         internal static Dictionary<string, DPArchive> DPArchives { get; } = new Dictionary<string, DPArchive>();
 
-        public DPArchive(string _path, string relativePathBase=null, bool innerArchive = false)
+        public DPArchive(string _path, string relativePathBase = null, bool innerArchive = false)
         {
             self = this;
             uid = DPIDManager.GetNewID();
@@ -170,7 +170,7 @@ namespace DAZ_Installer
             productName = Path.GetFileNameWithoutExtension(path);
 
             if (isInnerArchive)
-            DPProcessor.workingArchive.contents.Add(this);
+                DPProcessor.workingArchive.contents.Add(this);
 
             DPArchives.Add(path, this);
         }
@@ -187,7 +187,8 @@ namespace DAZ_Installer
             }
         }
 
-        ~DPArchive (){
+        ~DPArchive()
+        {
             DPIDManager.RemoveID(uid);
             DPArchives.Remove(path);
         }
@@ -202,7 +203,7 @@ namespace DAZ_Installer
             // Open file.
             if (isInnerArchive) stream = File.OpenRead(extractedPath);
             else stream = File.OpenRead(path);
-            
+
             var bytes = new byte[8];
             stream.Read(bytes, 0, 8);
             stream.Close();
@@ -224,7 +225,7 @@ namespace DAZ_Installer
             {
                 return "7z";
             }
-            return "";
+            return string.Empty;
         }
         public void Extract()
         {
@@ -259,13 +260,6 @@ namespace DAZ_Installer
                     DPProcessor.Process7Z(ref self);
                 }
             }
-        }
-
-        public DPProductRecord CreateRecords()
-        {
-            var self = this;
-            var productRecord = LibraryIO.CreateNewRecord(ref self, productName, tags, DateTime.Now, type == ArchiveType.Bundle);
-            return productRecord;
         }
 
         /// <summary>
@@ -307,7 +301,8 @@ namespace DAZ_Installer
                 folderNames.Add(folder.relativePath);
             }
             var tagsArray = new HashSet<string>(fileNames.Count + folderNames.Count + 2);
-            if (!string.IsNullOrEmpty(author)) {
+            if (!string.IsNullOrEmpty(author))
+            {
                 tagsArray.Add(author);
                 tagsArray.UnionWith(folderNames);
                 tagsArray.UnionWith(fileNames);
@@ -330,7 +325,7 @@ namespace DAZ_Installer
             try
             {
                 relativePathOnly = PathHelper.GetAbsoluteUpPath(obj.path.Remove(obj.path.LastIndexOf(fileName)));
-            } 
+            }
             catch { }
             if (RecursivelyFindFolder(relativePathOnly, out DPFolder folder))
             {
@@ -339,9 +334,9 @@ namespace DAZ_Installer
             return null;
         }
 
-        public bool FolderExists (string fPath)
+        public bool FolderExists(string fPath)
         {
-            foreach ( var path in folders.Keys)
+            foreach (var path in folders.Keys)
             {
                 if (path == fPath)
                 {
@@ -358,7 +353,7 @@ namespace DAZ_Installer
             {
                 if (_folder.path == relativePath || _folder.path == PathHelper.SwitchSeperators(relativePath))
                 {
-                    folder =  _folder;
+                    folder = _folder;
                     return true;
                 }
             }
@@ -369,7 +364,8 @@ namespace DAZ_Installer
         /// <summary>
         /// This function should be called after all the files have been extracted. If no content folders have been found, this is a bundle.
         /// </summary>
-        internal ArchiveType DetermineArchiveType() {
+        internal ArchiveType DetermineArchiveType()
+        {
             foreach (var folder in folders.Values)
             {
                 if (folder.isContentFolder)
@@ -399,7 +395,7 @@ namespace DAZ_Installer
         {
             password = pass.ToCharArray();
         }
-        
+
         public string GetPassword()
         {
             return new string(password);
@@ -412,7 +408,8 @@ namespace DAZ_Installer
 
         public string GetRightVolume(string expectedVolume)
         {
-            if (volumePairs.TryGetValue(expectedVolume, out string rightVolume)) {
+            if (volumePairs.TryGetValue(expectedVolume, out string rightVolume))
+            {
                 return rightVolume;
             }
             return null;
@@ -425,7 +422,86 @@ namespace DAZ_Installer
             }
             return null;
         }
-        
+
+        internal DPProductRecord CreateRecords()
+        {
+            var tuple = ConfirmFilesExtraction();
+            string[] foundFiles = tuple.Item1;
+            string[] missingFiles = tuple.Item2;
+            string imageLocation = string.Empty;
+            var workingExtractionRecord = 
+                new DPExtractionRecord(Path.GetFileName(fileName), DPSettings.destinationPath, foundFiles, erroredFiles.ToArray(), 
+                null, ConvertDPFoldersToStringArr(folders), 0);
+
+            if (type != ArchiveType.Bundle)
+            {
+                if (DPSettings.downloadImages == SettingOptions.Yes)
+                {
+                    imageLocation = DPNetwork.DownloadImage(workingExtractionRecord.ArchiveFileName);
+                }
+                else if (DPSettings.downloadImages == SettingOptions.Prompt)
+                {
+                    // TODO: Use more reliable method! Support files!
+                    // Pre-check if the archive file name starts with "IM"
+                    if (workingExtractionRecord.ArchiveFileName.StartsWith("IM"))
+                    {
+                        var result = extractControl.extractPage.DoPromptMessage("Do you wish to download the thumbnail for this product?", "Download Thumbnail Prompt", MessageBoxButtons.YesNo);
+                        if (result == DialogResult.Yes) imageLocation = DPNetwork.DownloadImage(workingExtractionRecord.ArchiveFileName);
+                    }
+                }
+                var workingProductRecord = new DPProductRecord(productName, tags, tags[0], 
+                                            null, DateTime.Now, imageLocation, 0, 0);
+                DPDatabase.AddNewRecordEntry(workingProductRecord, workingExtractionRecord);
+                return workingProductRecord;
+            }
+            return null;
+
+        }
+
+        private static string[] ConvertDPFoldersToStringArr(Dictionary<string, DPFolder> folders)
+        {
+            string[] strFolders = new string[folders.Count];
+            string[] keys = folders.Keys.ToArray();
+            for (var i = 0; i < strFolders.Length; i++)
+            {
+                strFolders[i] = folders[keys[i]].path;
+            }
+            return strFolders;
+        }
+
+        /// <summary>
+        /// Finds files that were supposedly extracted to disk.
+        /// </summary>
+        /// <returns>An tuple where the first item are the found files, 
+        /// and the second are missing files</returns>
+        private Tuple<string[], string[]> ConfirmFilesExtraction()
+        {
+            List<string> foundFiles = new List<string>((int) fileCount);
+            List<string> missingFiles = new List<string>();
+            foreach (var file in contents)
+            {
+                if (!file.extract) missingFiles.Add(file.path);
+                else
+                {
+                    var dest = file.destinationPath;
+                    if (dest == null) continue;
+                    if (File.Exists(dest)) foundFiles.Add(file.path);
+                    else missingFiles.Add(file.path);
+                }
+            }
+
+            // Remove any occurances of errored files in missing files.
+            for (int i = missingFiles.Count - 1; i >= 0; i--)
+            {
+                if (erroredFiles.Contains(missingFiles[i]))
+                {
+                    missingFiles.RemoveAt(i);
+                }
+            }
+
+            return new (foundFiles.ToArray(), missingFiles.ToArray());
+        }
+
         // Delete?
         internal void FinalizeFolderStructure()
         {

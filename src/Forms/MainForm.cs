@@ -1,6 +1,7 @@
 ﻿// This code is licensed under the Keep It Free License V1.
 // You may find a full copy of this license at root project directory\LICENSE
 
+using DAZ_Installer.DP;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -13,15 +14,15 @@ using System.Windows.Forms;
 
 namespace DAZ_Installer
 {
-    public partial class Form1 : Form
+    public partial class MainForm : Form
     {
         public static Color initialSidePanelColor;
         public static Color darkerSidePanelColor = Color.FromArgb(50, Color.FromKnownColor(KnownColor.ForestGreen));
-        public static Form1 activeForm;
+        public static MainForm activeForm;
 
         internal static UserControl[] userControls = new UserControl[4];
         internal static UserControl visiblePage = null;
-        public Form1()
+        public MainForm()
         {
             CheckForIllegalCrossThreadCalls = false;
             InitializeComponent();
@@ -105,6 +106,11 @@ namespace DAZ_Installer
         private void settingsLbl_Click(object sender, EventArgs e)
         {
             SwitchPage(settings1);
+        }
+
+        private void Form1_FormClosing(object sender, FormClosingEventArgs e)
+        {
+            DPGlobal.HandleAppClosing();
         }
     }
 }

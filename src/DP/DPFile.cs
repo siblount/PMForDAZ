@@ -8,7 +8,7 @@ using System.IO;
 using System.IO.Compression;
 using System.Windows.Forms;
 
-namespace DAZ_Installer
+namespace DAZ_Installer.DP
 {
     internal class DPFile : IDPWorkingFile
     {
@@ -47,7 +47,8 @@ namespace DAZ_Installer
         /// Parent of current file. When setting parent to a folder, property will call addChild() and handle contents appropriately.
         /// </summary>
         public DPFolder parent
-        {   get => _parent;
+        {
+            get => _parent;
             set
             {
                 // If we were null, but now we're not...
@@ -73,11 +74,12 @@ namespace DAZ_Installer
                     var potParent = DPProcessor.workingArchive.FindParent(ref s);
                     if (potParent != null)
                     {
-                        #pragma warning disable CA2011 // Avoid infinite recursion
+#pragma warning disable CA2011 // Avoid infinite recursion
                         parent = potParent; // Recursion will handle _parent setting.
-                        
-                              // Goes to first if.
-                    } else
+
+                        // Goes to first if.
+                    }
+                    else
                     {
                         potParent = DPFolder.CreateFolderForFile(path);
                         if (potParent != null) parent = potParent; // Recursion will handle _parent setting.
@@ -91,8 +93,9 @@ namespace DAZ_Installer
                             }
                         }
                     }
-                    #pragma warning restore CA2011 // Avoid infinite recursion
-                } else if (_parent != null && value != null)
+#pragma warning restore CA2011 // Avoid infinite recursion
+                }
+                else if (_parent != null && value != null)
                 {
                     // Remove ourselves from previous parent children.
                     var s = (IDPWorkingFile)this;
@@ -119,32 +122,32 @@ namespace DAZ_Installer
         public DPArchive associatedArchive { get; set; }
         public DPFolder _parent { get; set; }
         private string listName;
-        public bool wasExtracted {get; set;} = false;
+        public bool wasExtracted { get; set; } = false;
         public string extractedPath { get; set; }
         public string ListName { get => listName; set => listName = value; }
 
         public enum ContentType
         {
-            Scene, 
-            Scene_Subset, 
-            Hierachical_Material, 
-            Preset_Hierarchical_Pose, 
-            Wearable, 
+            Scene,
+            Scene_Subset,
+            Hierachical_Material,
+            Preset_Hierarchical_Pose,
+            Wearable,
             Character,
             Figure,
             Prop,
-            Preset_Properties, 
-            Preset_Shape, 
-            Preset_Pose, 
-            Preset_Material, 
-            Preset_Shader, 
-            Preset_Camera, 
-            Preset_Light, 
-            Preset_Render_Settings, 
-            Preset_Simulation_Settings, 
-            Preset_DFormer, 
-            Preset_Layered_Image, 
-            Preset_Puppeteer, 
+            Preset_Properties,
+            Preset_Shape,
+            Preset_Pose,
+            Preset_Material,
+            Preset_Shader,
+            Preset_Camera,
+            Preset_Light,
+            Preset_Render_Settings,
+            Preset_Simulation_Settings,
+            Preset_DFormer,
+            Preset_Layered_Image,
+            Preset_Puppeteer,
             Modifier, // aka morph
             UV_Set,
             Script,
@@ -153,7 +156,7 @@ namespace DAZ_Installer
             Media,
             Document,
             Geometry,
-            DAZ_File, 
+            DAZ_File,
             Unknown
         }
 
@@ -166,7 +169,7 @@ namespace DAZ_Installer
             foreach (var eName in Enum.GetNames(typeof(ContentType)))
             {
                 var lowercasedName = eName.ToLower();
-                enumPairs[lowercasedName] = (ContentType) Enum.Parse(typeof(ContentType), eName);
+                enumPairs[lowercasedName] = (ContentType)Enum.Parse(typeof(ContentType), eName);
             }
         }
 
@@ -201,7 +204,7 @@ namespace DAZ_Installer
             // The most obvious comment ever - implied else :\
             return ContentType.Unknown;
         }
-        
+
         public static string ParseJsonValue(string jsonString, string propertyName)
         {
             // Substring via propertyName length + 6.
@@ -229,7 +232,8 @@ namespace DAZ_Installer
                     else if (propertyName.Contains("author")) author = ParseJsonValue(line, "author");
                     else if (propertyName.Contains("email")) email = ParseJsonValue(line, "email");
                     else if (propertyName.Contains("website")) website = ParseJsonValue(line, "website");
-                } catch (Exception e)
+                }
+                catch (Exception e)
                 {
                     DPCommon.WriteToLog($"Failed to add metadata for file. REASON: {e}");
                 }
@@ -240,7 +244,8 @@ namespace DAZ_Installer
         {
             return ArrayHelper.Contains(AcceptableImportFormats, ext);
         }
-        public DPFile() { 
+        public DPFile()
+        {
 
         }
 
@@ -283,16 +288,17 @@ namespace DAZ_Installer
                     inputFile.Close();
                     inputFile.Dispose();
                 }
-            } catch (Exception e)
+            }
+            catch (Exception e)
             {
                 DPCommon.WriteToLog(e);
                 // Try GZIP method.
-                
+
                 try
                 {
                     using (GZipStream stream = new GZipStream(new FileStream(workingPath, FileMode.Open), CompressionMode.Decompress))
                     {
-                        
+
                         using (StreamReader gInputFile = new StreamReader(stream))
                         {
                             // Get first 10 lines.
@@ -309,7 +315,8 @@ namespace DAZ_Installer
                     }
                     // Parse data to JSON.
 
-                } catch (Exception f)
+                }
+                catch (Exception f)
                 {
                     DPCommon.WriteToLog("GZip method failed.");
                     DPCommon.WriteToLog(f);
@@ -319,7 +326,7 @@ namespace DAZ_Installer
         }
 
         public bool IsReadable()
-        { 
+        {
             var extractPathExists = !wasExtracted && File.Exists(extractedPath);
             var destinationPathExists = wasExtracted && File.Exists(destinationPath);
             var isDazFile = DAZFormats.Contains(ext);

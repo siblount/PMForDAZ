@@ -30,7 +30,7 @@ namespace DAZ_Installer
         private void InitializeComponent()
         {
             this.components = new System.ComponentModel.Container();
-            this.textBox1 = new System.Windows.Forms.TextBox();
+            this.searchBox = new System.Windows.Forms.TextBox();
             this.titleLbl = new System.Windows.Forms.Label();
             this.thumbnails = new System.Windows.Forms.ImageList(this.components);
             this.arrows = new System.Windows.Forms.ImageList(this.components);
@@ -42,16 +42,18 @@ namespace DAZ_Installer
             this.statusStrip1.SuspendLayout();
             this.SuspendLayout();
             // 
-            // textBox1
+            // searchBox
             // 
-            this.textBox1.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
-            this.textBox1.Location = new System.Drawing.Point(442, 35);
-            this.textBox1.Name = "textBox1";
-            this.textBox1.PlaceholderText = "Search";
-            this.textBox1.RightToLeft = System.Windows.Forms.RightToLeft.No;
-            this.textBox1.Size = new System.Drawing.Size(147, 27);
-            this.textBox1.TabIndex = 0;
-            this.textBox1.WordWrap = false;
+            this.searchBox.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
+            this.searchBox.Location = new System.Drawing.Point(442, 35);
+            this.searchBox.Name = "searchBox";
+            this.searchBox.PlaceholderText = "Search";
+            this.searchBox.RightToLeft = System.Windows.Forms.RightToLeft.No;
+            this.searchBox.Size = new System.Drawing.Size(147, 27);
+            this.searchBox.TabIndex = 0;
+            this.searchBox.WordWrap = false;
+            this.searchBox.TextChanged += new System.EventHandler(this.searchBox_TextChanged);
+            this.searchBox.KeyDown += new System.Windows.Forms.KeyEventHandler(this.searchBox_KeyDown);
             // 
             // titleLbl
             // 
@@ -62,7 +64,6 @@ namespace DAZ_Installer
             this.titleLbl.Size = new System.Drawing.Size(101, 38);
             this.titleLbl.TabIndex = 1;
             this.titleLbl.Text = "Library";
-            this.titleLbl.Click += new System.EventHandler(this.titleLbl_Click);
             // 
             // thumbnails
             // 
@@ -120,7 +121,7 @@ namespace DAZ_Installer
             this.Controls.Add(this.statusStrip1);
             this.Controls.Add(this.libraryPanel1);
             this.Controls.Add(this.titleLbl);
-            this.Controls.Add(this.textBox1);
+            this.Controls.Add(this.searchBox);
             this.Name = "Library";
             this.Size = new System.Drawing.Size(617, 446);
             this.Load += new System.EventHandler(this.Library_Load);
@@ -133,7 +134,7 @@ namespace DAZ_Installer
 
         #endregion
 
-        private System.Windows.Forms.TextBox textBox1;
+        private System.Windows.Forms.TextBox searchBox;
         private System.Windows.Forms.Label titleLbl;
         private System.Windows.Forms.ImageList thumbnails;
         private System.Windows.Forms.ImageList arrows;

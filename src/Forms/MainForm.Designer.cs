@@ -1,7 +1,7 @@
 ﻿
 namespace DAZ_Installer
 {
-    partial class Form1
+    partial class MainForm
     {
         /// <summary>
         ///  Required designer variable.
@@ -203,6 +203,7 @@ namespace DAZ_Installer
             this.MinimumSize = new System.Drawing.Size(769, 497);
             this.Name = "Form1";
             this.Text = "Daz Product Installer";
+            this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.Form1_FormClosing);
             this.Load += new System.EventHandler(this.Form1_Load);
             this.tableLayoutPanel1.ResumeLayout(false);
             this.tableLayoutPanel1.PerformLayout();
