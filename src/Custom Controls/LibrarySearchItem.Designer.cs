@@ -1,4 +1,4 @@
-﻿namespace DAZ_Installer.Custom_Controls
+﻿namespace DAZ_Installer
 {
     partial class LibrarySearchItem
     {
@@ -36,7 +36,7 @@
             // 
             // titleText
             // 
-            this.titleText.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
+            this.titleText.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left)
             | System.Windows.Forms.AnchorStyles.Right)));
             this.titleText.AutoEllipsis = true;
             this.titleText.Font = new System.Drawing.Font("Segoe UI", 18F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
@@ -59,7 +59,7 @@
             // 
             // tagsLayoutPanel
             // 
-            this.tagsLayoutPanel.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
+            this.tagsLayoutPanel.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left)
             | System.Windows.Forms.AnchorStyles.Right)));
             this.tagsLayoutPanel.Location = new System.Drawing.Point(158, 55);
             this.tagsLayoutPanel.Name = "tagsLayoutPanel";

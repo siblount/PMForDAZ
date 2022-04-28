@@ -1,14 +1,10 @@
 ﻿// This code is licensed under the Keep It Free License V1.
 // You may find a full copy of this license at root project directory\LICENSE
 
+using DAZ_Installer.DP;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
-using System.Data;
-using System.Drawing;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows.Forms;
 
 namespace DAZ_Installer
@@ -22,19 +18,11 @@ namespace DAZ_Installer
         {
             InitializeComponent();
         }
-        [Browsable(true),EditorBrowsable(EditorBrowsableState.Always),Description("Holds the current library items."), Category("Items")]
+        [Browsable(true), EditorBrowsable(EditorBrowsableState.Always), Description("Holds the current library items."), Category("Items")]
 
-        internal LibraryItem[] LibraryItems
-        {
-            get => libraryItems;
-            set
-            {
-                if (value == null) libraryItems = new LibraryItem[25];
-                else libraryItems = value;
-                UpdateMainContent();
-            }
-        }
-        protected LibraryItem[] libraryItems;
+        internal List<LibraryItem> LibraryItems { get; } = new List<LibraryItem>(25);
+
+        internal LibrarySearchItem[] SearchItems { get; set; } = new LibrarySearchItem[25];
         internal int CurrentPage 
         { 
             get => pageButtonControl1.CurrentPage; 
@@ -75,21 +63,39 @@ namespace DAZ_Installer
             get => editMode;
         }
         private bool editMode;
+        internal volatile bool SearchMode = false;
 
         internal void UpdateMainContent()
         {
-            DPCommon.WriteToLog("Update main content.");
-            DPCommon.WriteToLog($"Library items: {libraryItems.Length}");
             EditMode = true;
-            mainContentPanel.Controls.Clear();
-            mainContentPanel.Controls.AddRange(libraryItems);
-            
-            foreach (var item in libraryItems)
+            if (!SearchMode)
             {
-                if (item != null)
-                item.Dock = DockStyle.Top;
-            }
+                DPCommon.WriteToLog("Update main content.");
+                DPCommon.WriteToLog($"Library items: {LibraryItems.Count}");
+                
+                mainContentPanel.Controls.Clear();
+                mainContentPanel.Controls.AddRange(LibraryItems.ToArray());
 
+                foreach (var item in LibraryItems)
+                {
+                    if (item != null)
+                        item.Dock = DockStyle.Top;
+                }
+                
+            } else
+            {
+                DPCommon.WriteToLog("Update search content.");
+                DPCommon.WriteToLog($"Search items: {SearchItems.Length}");
+
+                mainContentPanel.Controls.Clear();
+                mainContentPanel.Controls.AddRange(SearchItems);
+
+                foreach (var item in SearchItems)
+                {
+                    if (item != null)
+                        item.Dock = DockStyle.Top;
+                }
+            }
             EditMode = false;
         }
 

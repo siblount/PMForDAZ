@@ -52,6 +52,7 @@ namespace DAZ_Installer
             this.searchBox.Size = new System.Drawing.Size(147, 27);
             this.searchBox.TabIndex = 0;
             this.searchBox.WordWrap = false;
+            this.searchBox.TextChanged += new System.EventHandler(this.searchBox_TextChanged);
             this.searchBox.KeyDown += new System.Windows.Forms.KeyEventHandler(this.searchBox_KeyDown);
             // 
             // titleLbl
@@ -63,7 +64,6 @@ namespace DAZ_Installer
             this.titleLbl.Size = new System.Drawing.Size(101, 38);
             this.titleLbl.TabIndex = 1;
             this.titleLbl.Text = "Library";
-            this.titleLbl.Click += new System.EventHandler(this.titleLbl_Click);
             // 
             // thumbnails
             // 

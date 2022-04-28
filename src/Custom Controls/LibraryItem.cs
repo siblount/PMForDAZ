@@ -6,7 +6,7 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Windows.Forms;
 using System.Drawing;
-using System.IO;
+using DAZ_Installer.DP;
 
 namespace DAZ_Installer
 {
@@ -24,12 +24,6 @@ namespace DAZ_Installer
             get => label1.Text;
             set => label1.Text = value;
         }
-        [Description("Holds the folder relative path to content or appdata."), Category("Data"), Browsable(true)]
-        public string[] Folders
-        {
-            get => GetFolders();
-            set => UpdateFolders(value);
-        }
 
         [Description("Holds the image inside of the imagebox."), Category("Data"), Browsable(true)]
 
@@ -46,37 +40,7 @@ namespace DAZ_Installer
             set => UpdateTags(value);
         }
 
-        [Description("The value of the folder label visibility."), Category("Data"), Browsable(true)]
-        public bool ShowFolder
-        {
-            get => foldersLabel.Visible;
-            set {
-                foldersLabel.Visible = foldersLabel.Enabled = value;
-                if (value == true) showFoldersBtn.Image = arrowDownImage;
-                else showFoldersBtn.Image = arrowRightImage;
-            }
-        }
-
-        [Description("Holds the arrow down image."), Category("Data"), Browsable(true)]
-
-        public Image ArrowDownImage
-        {
-            get => arrowDownImage;
-            set => arrowDownImage = value;
-        }
-
-        [Description("Holds the arrow right image."), Category("Data"), Browsable(true)]
-
-        public Image ArrowRightImage
-        {
-            get => arrowRightImage;
-            set => arrowRightImage = value;
-        }
-
         internal DPProductRecord ProductRecord { get; set; }
-
-        private Image arrowDownImage;
-        private Image arrowRightImage;
 
         private readonly List<Label> labels = new List<Label>();
         public LibraryItem()
@@ -89,11 +53,6 @@ namespace DAZ_Installer
             }
         }
 
-        
-        private string[] GetFolders()
-        {
-            return foldersLabel.Text.Split("\n");
-        }
 
         private string[] GetTags()
         {
@@ -105,12 +64,6 @@ namespace DAZ_Installer
             return tags;
         }
 
-        private void UpdateFolders(string[] folders)
-        {
-            var foldersToString = string.Join("\n", folders);
-            foldersLabel.Text = foldersToString;
-            foldersLabel.Size = new Size(foldersLabel.Width, foldersLabel.PreferredHeight);
-        }
 
         private void UpdateTags(string[] tags)
         {
@@ -167,15 +120,6 @@ namespace DAZ_Installer
             if (restartLayout) tagsLayoutPanel.ResumeLayout();
         }
         
-        public void HandleFolderClick(object _, EventArgs __)
-        {
-            ShowFolder = !ShowFolder;
-        }
-
-        private void LibraryItem_Load(object sender, EventArgs e)
-        {
-            showFoldersBtn.Image = arrowRightImage;
-        }
 
         private void tagsLayoutPanel_ClientSizeChanged(object sender, EventArgs e)
         {
@@ -214,6 +158,17 @@ namespace DAZ_Installer
                 DPCommon.WriteToLog($"Failed to create tags. REASON: {ee}");
             }
             tagsLayoutPanel.ResumeLayout();
+        }
+
+        private void showFoldersBtn_Click(object sender, EventArgs e)
+        {
+            if (ProductRecord == null)
+            {
+                MessageBox.Show("Unable to show record due to product record not available.", "Unable to view", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
+            ProductRecordForm recordForm = new ProductRecordForm(ProductRecord);
+            recordForm.ShowDialog();
         }
     }
 }

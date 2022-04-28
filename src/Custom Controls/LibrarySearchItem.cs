@@ -1,4 +1,5 @@
-﻿using System;
+﻿using DAZ_Installer.DP;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
@@ -8,13 +9,23 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 
-namespace DAZ_Installer.Custom_Controls
+namespace DAZ_Installer
 {
     public partial class LibrarySearchItem : UserControl
     {
         public static Color initialColor;
         public static Color darkerColor = Color.FromArgb(60, Color.FromKnownColor(KnownColor.ForestGreen));
         protected bool initalized = false;
+
+        public LibrarySearchItem()
+        {
+            InitializeComponent();
+            if (!initalized)
+            {
+                initalized = true;
+                initialColor = titleText.BackColor;
+            }
+        }
         [Description("Title text"), Category("Data"), Browsable(true), EditorBrowsable(EditorBrowsableState.Always), DesignerSerializationVisibility(DesignerSerializationVisibility.Visible)]
         public string TitleText
         {
@@ -149,6 +160,5 @@ namespace DAZ_Installer.Custom_Controls
             }
             tagsLayoutPanel.ResumeLayout();
         }
-    }
     }
 }

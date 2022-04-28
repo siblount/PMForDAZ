@@ -8,8 +8,9 @@ using System.Windows.Forms;
 using System.IO;
 using System.IO.Compression;
 using System.Collections.Generic;
+using DAZ_Installer.External;
 
-namespace DAZ_Installer
+namespace DAZ_Installer.DP
 {
     // GOAL: Extract files through RAR. While it discovers files, add it to list.
     // Then, deeply analyze each file; determine best approach; and execute best approach (or ask).
@@ -22,7 +23,7 @@ namespace DAZ_Installer
         public static DPArchive workingArchive;
         public static List<string> doNotProcessList { get; } = new List<string>();
         public static bool countingFiles = true;
-        public static uint workingArchiveFileCount { get; set; } =  0; // can disgard.
+        public static uint workingArchiveFileCount { get; set; } = 0; // can disgard.
         public static string GetDestinationPath(string relativePath)
         {
             return Path.Combine(destinationPath, relativePath);
@@ -36,7 +37,7 @@ namespace DAZ_Installer
             var elements = parsedFile.GetAllElements();
             foreach (var element in elements)
             {
-                
+
                 if (new string(element.tagName) == "ProductName")
                 {
                     archiveFile.productName = element.attributes["VALUE"];
@@ -54,7 +55,7 @@ namespace DAZ_Installer
             {
                 Directory.CreateDirectory(TEMP_LOCATION);
             }
-            catch (Exception e){ DPCommon.WriteToLog($"Unable to crate directory. {e}"); }
+            catch (Exception e) { DPCommon.WriteToLog($"Unable to crate directory. {e}"); }
             archiveFile.Extract();
             // Determine content folders.
             foreach (var folder in archiveFile.folders.Values)
@@ -80,7 +81,7 @@ namespace DAZ_Installer
             }
 
             GC.Collect();
-            
+
 
             for (var i = 0; i < archiveFile.internalArchives.Count; i++)
             {
@@ -102,21 +103,20 @@ namespace DAZ_Installer
 
                 DPCommon.WriteToLog($"Failed to get tags: {e}");
             }
-            
+
             // Create record.
             var record = archiveFile.CreateRecords();
             // TO DO: Only add if successful extraction, and all files from temp were moved, and/or user didn't cancel operation.
             DPCommon.WriteToLog($"Archive Type: {archiveFile.type}");
             if (archiveFile.type == ArchiveType.Product)
             {
-                
                 // Add it to the library.
                 Library.self.AddNewLibraryItem(record);
             }
 
             return archiveFile;
         }
-        
+
         public static DPArchive ProcessArchive(string filePath)
         {
             if (!DPFile.initalized) DPFile.Initalize();
@@ -125,7 +125,7 @@ namespace DAZ_Installer
             {
                 Directory.CreateDirectory(TEMP_LOCATION);
             }
-            catch (Exception e) { DPCommon.WriteToLog($"Unable to crate directory. {e}"); }
+            catch (Exception e) { DPCommon.WriteToLog($"Unable to create directory. {e}"); }
 
             if (LibraryIO.previouslyInstalledArchives.Contains(Path.GetFileName(filePath)))
             {
@@ -168,7 +168,6 @@ namespace DAZ_Installer
                 archiveFile.progressCombo = null;
             }
 
-            GC.Collect();
             marqueeProgressBar[1].Text = "Analyzing file contents...";
             extractControl.extractPage.mainProcLbl.Text = marqueeProgressBar[1].Text;
             archiveFile.type = archiveFile.DetermineArchiveType();
@@ -195,7 +194,8 @@ namespace DAZ_Installer
             }
             if (!archiveFile.isInnerArchive)
             {
-                Library.self.GenerateLibraryItemsFromDisk();
+                //Library.self.GenerateLibraryItemsFromDisk();
+                Library.self.InformLibraryUpdate();
             }
             return archiveFile;
         }
@@ -280,7 +280,8 @@ namespace DAZ_Installer
                     try
                     {
                         RARHandler.Extract();
-                    } catch (IOException e)
+                    }
+                    catch (IOException e)
                     {
                         if (e.Message == "File CRC Error" || e.Message == "File could not be opened.")
                         {
@@ -304,10 +305,13 @@ namespace DAZ_Installer
                     }
                 }
 
-            } catch (Exception e) {
+            }
+            catch (Exception e)
+            {
                 // TODO: Call error tab to handle this matter. (Probably issue with Archive)
                 DPCommon.WriteToLog(e);
-            } finally
+            }
+            finally
             {
                 try
                 {
@@ -345,7 +349,7 @@ namespace DAZ_Installer
             //archive.FinalizeFolderStructure();
             // Extract files to temp location.
             var tempLocation = TEMP_LOCATION + Path.GetFileNameWithoutExtension(archive.path);
-           
+
             SafeExtractFiles(ref zipArchive, tempLocation);
 
             // TO DO: Remove any files that wasn't extracted.
@@ -366,9 +370,9 @@ namespace DAZ_Installer
             process.StartInfo.ArgumentList.Add("l");
             process.StartInfo.ArgumentList.Add("-slt");
             if (archive.isInnerArchive)
-            process.StartInfo.ArgumentList.Add(archive.extractedPath);
+                process.StartInfo.ArgumentList.Add(archive.extractedPath);
             else
-            process.StartInfo.ArgumentList.Add(archive.path);
+                process.StartInfo.ArgumentList.Add(archive.path);
 
             Serialize7ZContents(ref process);
 
@@ -389,26 +393,29 @@ namespace DAZ_Installer
                     //if (newDir.parent == null) workingArchive.rootFolders.Add(newDir);
                 }
 
-            } else
+            }
+            else
             {
                 if (DPFile.ValidImportExtension(Path.GetExtension(e.fileInfo.FileName)))
                 {
                     // File is archive.
-                    var newArchive = new DPArchive(e.fileInfo.FileName,innerArchive: true);
+                    var newArchive = new DPArchive(e.fileInfo.FileName, innerArchive: true);
                     newArchive.rootArchive = workingArchive;
-                } else
+                }
+                else
                 {
                     var newFile = new DPFile(e.fileInfo.FileName, null);
                     newFile.associatedArchive = workingArchive;
                 }
             }
-            if (countingFiles) workingArchiveFileCount++; 
+            if (countingFiles) workingArchiveFileCount++;
         }
 
         public static void HandleNewVolume(RAR sender, NewVolumeEventArgs e)
         {
             if (sender.ArchivePathName != e.VolumeName) workingArchive.ConnectVolumeDir(e.VolumeName);
-            if (DPExtractJob.workingJob.doNotProcess.Contains(Path.GetFileName(sender.ArchivePathName))) {
+            if (DPExtractJob.workingJob.doNotProcess.Contains(Path.GetFileName(sender.ArchivePathName)))
+            {
                 DPExtractJob.workingJob.doNotProcess.Add(Path.GetFileName(sender.ArchivePathName));
             }
         }
@@ -447,7 +454,8 @@ namespace DAZ_Installer
                     }
                 }
                 // If entry is a valid archive. Treat it as a DPArchive.
-                else if (DPFile.ValidImportExtension(Path.GetExtension(entry.Name))) {
+                else if (DPFile.ValidImportExtension(Path.GetExtension(entry.Name)))
+                {
                     var newArchive = new DPArchive(entry.FullName, innerArchive: true);
                     newArchive.rootArchive = workingArchive;
 
@@ -459,7 +467,7 @@ namespace DAZ_Installer
                     newFile.associatedArchive = workingArchive;
                 }
             }
-            workingArchive.fileCount = (uint) entries.Count;
+            workingArchive.fileCount = (uint)entries.Count;
         }
         /// <summary>
         /// Handles zip vulnerabilty and notifies the user of this potential issue. Returns a boolean value if errors occurred or user cancelled.
@@ -472,7 +480,7 @@ namespace DAZ_Installer
             var stop = false;
             var i = 0;
             var max = archive.Entries.Count;
-            
+
             foreach (var file in archive.Entries)
             {
                 if (stop == true) break;
@@ -483,7 +491,7 @@ namespace DAZ_Installer
                 var cleanedDest = Path.Combine(directory, Path.GetDirectoryName(file.FullName));
                 var cleanedName = Path.Combine(directory, file.FullName);
                 if (success)
-                dpFile.extractedPath = cleanedName;
+                    dpFile.extractedPath = cleanedName;
                 else
                 {
                     success = DPArchive.FindArchiveViaName(file.FullName, out DPArchive dpArchive);
@@ -493,7 +501,8 @@ namespace DAZ_Installer
                 try
                 {
                     file.ExtractToFile(cleanedName, true);
-                } catch (Exception e)
+                }
+                catch (Exception e)
                 {
                     DPCommon.WriteToLog($"Unable to extract {file.Name}. REASON: {e}");
                 }
@@ -522,7 +531,7 @@ namespace DAZ_Installer
 
             for (var i = numList.Count - 1; i > 0; i--)
             {
-                if (numList[i] - numList[i-1] != -1)
+                if (numList[i] - numList[i - 1] != -1)
                 {
                     otherArchiveNames = null;
                     return false;
@@ -543,26 +552,29 @@ namespace DAZ_Installer
                 {
                     // Add to error msg list.
                     DPCommon.WriteToLog(errorMsg);
-                } else
+                }
+                else
                 {
                     if (GetContents7z(msg, out string[] files))
                     {
                         foreach (var file in files)
                         {
-                            if (DPFile.ValidImportExtension(Path.GetExtension(file))) {
+                            if (DPFile.ValidImportExtension(Path.GetExtension(file)))
+                            {
                                 var newArchive = new DPArchive(file, innerArchive: true);
                                 newArchive.rootArchive = workingArchive;
 
                                 workingArchive.contents.Add(newArchive);
-                            } else
+                            }
+                            else
                             {
-                                var newFile = new DPFile(file,null);
+                                var newFile = new DPFile(file, null);
 
                                 newFile.associatedArchive = workingArchive;
                             }
                         }
                     }
-                    
+
                 }
             }
 
@@ -648,13 +660,15 @@ namespace DAZ_Installer
                             var filePath = element.attributes["VALUE"];
                             var pathWithoutContent = filePath.Remove(0, 7).TrimStart(PathHelper.GetSeperator(filePath));
                             workingDict[filePath] = Path.Combine(TEMP_LOCATION, pathWithoutContent);
-                        } else if (target == "Application")
+                        }
+                        else if (target == "Application")
                         {
 
                         }
                     }
                 }
-            } catch { }
+            }
+            catch { }
             return workingDict;
         }
 
@@ -770,7 +784,7 @@ namespace DAZ_Installer
                 {
                     if (content.GetType() == typeof(DPArchive))
                     {
-                        var arc = (DPArchive) content;
+                        var arc = (DPArchive)content;
                         // Add to queue.
                         workingArchive.internalArchives.Add(arc);
                     }
@@ -786,9 +800,9 @@ namespace DAZ_Installer
         {
             DPCommon.WriteToLog("Creating new progression combo, marquee style.");
             var progressStack = extractControl.progressStack;
-            var progressCombo = (Control[]) extractControl.extractPage.Invoke(new Func<Control[]>(extractControl.extractPage.createProgressComboMarquee));
-            var progressLabel = (Label) progressCombo[1];
-            var progressBar = (ProgressBar) progressCombo[2];
+            var progressCombo = extractControl.extractPage.Invoke(new Func<Control[]>(extractControl.extractPage.createProgressComboMarquee));
+            var progressLabel = (Label)progressCombo[1];
+            var progressBar = (ProgressBar)progressCombo[2];
 
             var openSlotIndex = ArrayHelper.GetNextOpenSlot(progressStack);
             if (openSlotIndex == -1)
@@ -800,7 +814,7 @@ namespace DAZ_Installer
                 progressStack[openSlotIndex] = workingArchive;
                 extractControl.controlComboStack[openSlotIndex] = progressCombo;
             }
-            
+
             return progressCombo;
         }
 
