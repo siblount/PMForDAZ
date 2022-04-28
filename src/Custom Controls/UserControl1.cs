@@ -9,6 +9,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using DAZ_Installer.DP;
 
 namespace DAZ_Installer
 {

@@ -7,7 +7,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace DAZ_Installer
+namespace DAZ_Installer.DP
 {
     // TO DO: Install ID.
     /// <summary>
@@ -41,6 +41,6 @@ namespace DAZ_Installer
             DPGlobal.dpObjects.Remove(id);
         }
 
-        
+
     }
 }

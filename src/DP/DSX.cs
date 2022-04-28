@@ -9,7 +9,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace DAZ_Installer
+namespace DAZ_Installer.DP
 {
     internal class DSXParser
     {
@@ -28,7 +28,8 @@ namespace DAZ_Installer
                 workingFile = new DSXFile();
                 asyncTask = new Task(ReadFile);
                 asyncTask.Start();
-            } catch (Exception e)
+            }
+            catch (Exception e)
             {
                 DPCommon.WriteToLog(e);
                 hasErrored = true;
@@ -98,7 +99,7 @@ namespace DAZ_Installer
 
         internal int GetTotalIndex(int localIndex)
         {
-            return (iteration * bufferSize) + localIndex;
+            return iteration * bufferSize + localIndex;
         }
 
         internal char[] GetTotalMessage(int beginning, int end)
@@ -211,7 +212,8 @@ namespace DAZ_Installer
                 }
                 if (nextLessThanIndex == -1) return null;
                 return workingElement;
-            } catch (Exception e)
+            }
+            catch (Exception e)
             {
                 DPCommon.WriteToLog(e);
             }
@@ -252,11 +254,13 @@ namespace DAZ_Installer
                 {
                     isInQuote = true;
                     continue;
-                } else if (arr[i] == '"' || arr[i] == '\"' && isInQuote)
+                }
+                else if (arr[i] == '"' || arr[i] == '\"' && isInQuote)
                 {
                     isInQuote = false;
                     continue;
-                } else if (arr[i] == '<')
+                }
+                else if (arr[i] == '<')
                 {
                     return i;
                 }
@@ -295,14 +299,16 @@ namespace DAZ_Installer
             return -1;
         }
 
-        internal DSXFile GetDSXFile() {
+        internal DSXFile GetDSXFile()
+        {
             asyncTask.Wait();
             return workingFile;
         }
 
     }
 
-    internal class DSXFile {
+    internal class DSXFile
+    {
         internal List<DSXElement> selfClosingElements = new List<DSXElement>();
         internal List<DSXElement> nonSelfClosingElements = new List<DSXElement>();
 
@@ -311,7 +317,8 @@ namespace DAZ_Installer
             if (element.isSelfClosing)
             {
                 selfClosingElements.Add(element);
-            } else
+            }
+            else
             {
                 nonSelfClosingElements.Add(element);
             }
@@ -332,12 +339,13 @@ namespace DAZ_Installer
                     var string2 = new string(tagName);
                     if (string1 == string2) return element;
                 }
-                
+
             }
             return null;
         }
     }
-    internal class DSXElement {
+    internal class DSXElement
+    {
         internal readonly Dictionary<string, string> attributes = new Dictionary<string, string>();
         internal char[] innerText = new char[] { };
         internal char[] tagName = new char[] { };
@@ -361,7 +369,8 @@ namespace DAZ_Installer
         internal void ParentChildrenWithinIndexRange()
         {
             var workingSibling = nextSibling;
-            while (workingSibling != null && IndexInRange(beginningIndex, endIndex, ref workingSibling)) {
+            while (workingSibling != null && IndexInRange(beginningIndex, endIndex, ref workingSibling))
+            {
                 workingSibling.parent = this;
                 children.Add(workingSibling);
                 workingSibling = workingSibling.nextSibling;

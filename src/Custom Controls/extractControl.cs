@@ -10,6 +10,8 @@ using System.Drawing;
 using System.IO.Compression;
 using System.Linq;
 using System.Windows.Forms;
+using DAZ_Installer.DP;
+using DAZ_Installer.External;
 
 namespace DAZ_Installer
 {

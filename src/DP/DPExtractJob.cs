@@ -11,7 +11,7 @@ using System.Threading.Tasks;
 using System.Windows.Forms;
 
 
-namespace DAZ_Installer
+namespace DAZ_Installer.DP
 {
     class DPExtractJob
     {
@@ -53,7 +53,8 @@ namespace DAZ_Installer
             {
                 workingJob.completed = false;
                 workingJob = this;
-            } else
+            }
+            else
             {
                 workingJob = this;
                 workingJob.completed = false;
@@ -62,15 +63,15 @@ namespace DAZ_Installer
 
         private void ProcessListAsync(object _arr)
         {
-            string[] arr = (string[]) _arr;
-            var progressCombo = (Control[])extractControl.extractPage.Invoke(new Func<Control[]>(extractControl.extractPage.createProgressCombo));
-            
+            string[] arr = (string[])_arr;
+            var progressCombo = extractControl.extractPage.Invoke(new Func<Control[]>(extractControl.extractPage.createProgressCombo));
+
             for (var i = 0; i < arr.Length; i++)
             {
                 if (DPProcessor.doNotProcessList.IndexOf(Path.GetFileName(arr[i])) != -1) continue;
 
                 var x = arr[i];
-                ((ProgressBar)progressCombo[2]).Value = (int)(((double)i / arr.Length) * 100);
+                ((ProgressBar)progressCombo[2]).Value = (int)((double)i / arr.Length * 100);
                 progressCombo[1].Text = $"Processing archive {i}/{arr.Length}: {Path.GetFileName(x)}...({i / arr.Length})%";
                 extractControl.extractPage.mainProcLbl.Text = progressCombo[1].Text;
                 DPProcessor.ProcessArchive(x);

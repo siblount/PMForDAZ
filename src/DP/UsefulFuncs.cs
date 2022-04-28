@@ -9,7 +9,7 @@ using System.Text;
 using System.Windows.Forms;
 using System.Threading.Tasks;
 
-namespace DAZ_Installer
+namespace DAZ_Installer.DP
 {
     internal struct DPCommon
     {
@@ -20,10 +20,12 @@ namespace DAZ_Installer
             {
                 return "";
             }
-            if (Path.HasExtension(str)) {
+            if (Path.HasExtension(str))
+            {
                 var fileName = PathHelper.GetFileName(str);
                 return str.Remove(str.LastIndexOf(fileName)).TrimEnd(PathHelper.GetSeperator(str));
-            } else
+            }
+            else
             {
                 var dirName = PathHelper.GetLastDir(str, false);
                 if (dirName == "" && PathHelper.GetAbsoluteUpPath(str) != dirName) dirName = PathHelper.GetAbsoluteUpPath(str);
@@ -31,7 +33,7 @@ namespace DAZ_Installer
                 return PathHelper.GetAbsoluteUpPath(trimmedPath);
             }
 
-            
+
         }
         public static string ConvertToUnicode(string defaultString)
         {
@@ -39,7 +41,7 @@ namespace DAZ_Installer
             byte[] bytes = new byte[defaultString.Length];
             for (int i = 0; i < defaultString.Length; ++i)
             {
-                bytes [i] = (byte)defaultString[i];
+                bytes[i] = (byte)defaultString[i];
             }
             // Convert default encoding to unicode and output it to bytes.
             byte[] unicodeBytes = Encoding.Convert(Encoding.Default, Encoding.Unicode, bytes);
@@ -89,12 +91,12 @@ namespace DAZ_Installer
             }
 
         }
-        public static void WriteToLog(object obj)
+        public static void WriteToLog(params object[] args)
         {
-            #if DEBUG
-            System.Diagnostics.Debug.WriteLine(obj);
+#if DEBUG
+            System.Diagnostics.Debug.WriteLine(string.Join(' ', args));
             // TO DO: Call log.
-            #endif
+#endif
         }
     }
 
@@ -125,6 +127,7 @@ namespace DAZ_Installer
         }
         /// <summary>
         /// Returns the first null available in given array.
+        /// Currently O(N) lookup.
         /// </summary>
         /// <param name="array">The array to search for an open slot.</param>
         /// <returns> Returns the index of the next available slot. Returns -1 if no open slot is found.</returns>
@@ -169,10 +172,7 @@ namespace DAZ_Installer
             }
             return false;
         }
-        internal static void ClearArray(object[] array)
-        {
-            for (var i = 0; i < array.Length; i++) array[i] = null;
-        }
+        internal static void ClearArray(object[] array) => Array.Clear(array);
     }
 
     internal readonly struct PathHelper
@@ -191,7 +191,7 @@ namespace DAZ_Installer
             var pNameSections = path.Split(pSeperator); // i 
             var rNameSections = relativeTo.Split(rSeperator); // j
             // We want find the last index of rNameSections 
-            var findIndex = ArrayHelper.GetIndex(pNameSections, rNameSections[rNameSections.Length-1]);
+            var findIndex = ArrayHelper.GetIndex(pNameSections, rNameSections[rNameSections.Length - 1]);
             var pathBuilder = "";
             for (int i = findIndex; i < pNameSections.Length; i++)
             {
@@ -208,7 +208,8 @@ namespace DAZ_Installer
             if (forwardSlash && !backwardSlash)
             {
                 return '\\';
-            } else return '/';
+            }
+            else return '/';
         }
 
 
@@ -218,7 +219,8 @@ namespace DAZ_Installer
             if (!isFilePath)
             {
                 return path.Split(seperator).Last();
-            } else
+            }
+            else
             {
                 var arr = path.Split(seperator);
                 if (arr.Length >= 2 && arr[^1].Contains('.'))
@@ -246,12 +248,12 @@ namespace DAZ_Installer
             }
             return strBuilder.TrimEnd(seperator);
         }
-        
+
         internal static sbyte GetNumOfLevelsAbove(string path, string relativeTo)
         {
             var relPath = GetRelativePath(path, relativeTo);
             var seperator = GetSeperator(relPath);
-            return (sbyte) relPath.Count((c) => c == seperator);
+            return (sbyte)relPath.Count((c) => c == seperator);
         }
 
         internal static string SwitchSeperators(string path)

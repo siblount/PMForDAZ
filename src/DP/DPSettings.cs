@@ -7,7 +7,7 @@ using System.IO;
 using System.Text;
 using System.Windows.Forms;
 
-namespace DAZ_Installer
+namespace DAZ_Installer.DP
 {
     public enum SettingOptions
     {
@@ -19,7 +19,7 @@ namespace DAZ_Installer
     /// </summary>
     public enum InstallOptions
     {
-       ManifestOnly, ManifestAndAuto, Automatic
+        ManifestOnly, ManifestAndAuto, Automatic
     }
     public static class DPSettings
     {
@@ -31,7 +31,7 @@ namespace DAZ_Installer
             set;
         } // todo : Ask for daz content directory if no detected daz content paths found.
         // TO DO: Use HashSet instead of list.
-        public static string[] detectedDazContentPaths; 
+        public static string[] detectedDazContentPaths;
         public static SettingOptions downloadImages { get; set; } = SettingOptions.Prompt;
         public static string thumbnailsPath { get; set; } = "Thumbnails";
         public static InstallOptions handleInstallation { get; set; } = InstallOptions.ManifestAndAuto;
@@ -39,14 +39,14 @@ namespace DAZ_Installer
         public static string[] inititalCommonContentFolderNames { get; } = new string[] { "aniBlocks", "Animals", "Architecture", "Camera Presets", "data", "DAZ Studio Tutorials", "Documentation", "Documents", "Environments", "General", "Light Presets", "Lights", "People", "Presets", "Props", "Render Presets", "Render Settings", "Runtime", "Scene Builder", "Scene Subsets", "Scenes", "Scripts", "Shader Presets", "Shaders", "Support", "Templates", "Textures", "Vehicles" };
         // TO DO: Use HashSet instead of list.
         public static string[] commonContentFolderNames { get; set; }
-        public static Dictionary<string, string> folderRedirects { get; set; } = new Dictionary<string, string>() { { "docs" , "Documentation" } };
-        public static string tempPath { get; set; } = Path.Combine(Path.GetTempPath(),"DazProductInstaller"); //
+        public static Dictionary<string, string> folderRedirects { get; set; } = new Dictionary<string, string>() { { "docs", "Documentation" } };
+        public static string tempPath { get; set; } = Path.Combine(Path.GetTempPath(), "DazProductInstaller"); //
         public static uint maxTagsToShow { get; set; } = 8; // Keep low because GDI+ slow.
         public static SettingOptions permDeleteSource { get; set; } = SettingOptions.Prompt;
         public static SettingOptions installPrevProducts { get; set; } = SettingOptions.Prompt;
         public static string databasePath { get; set; } = "Database";
         public static bool initalized { get; set; } = false;
-        
+
 
         // Constants
         const string cfnLocation = "Settings/cfn.txt"; // Content Folder Names Location
@@ -57,7 +57,8 @@ namespace DAZ_Installer
         {
             if (initalized) return;
             DPRegistry.Initalize();
-            if (GetOtherSettings(out string[] settings)) {
+            if (GetOtherSettings(out string[] settings))
+            {
                 destinationPath = settings[0];
                 downloadImages = Enum.Parse<SettingOptions>(settings[1]);
                 thumbnailsPath = settings[2];
@@ -66,12 +67,13 @@ namespace DAZ_Installer
                 tempPath = settings[5];
                 installPrevProducts = Enum.Parse<SettingOptions>(settings[6]);
                 databasePath = settings[7];
-            } else
+            }
+            else
             {
                 // Since getting other settings failed... we will use the default parameters, but some can't go unpunished.
                 if (DPRegistry.ContentDirectories.Length == 0)
                 {
-                    MessageBox.Show("Couldn't find DAZ directories located in registry. On the next prompt, please select where you want your products to be installed to. You can always change this later in the settings.", 
+                    MessageBox.Show("Couldn't find DAZ directories located in registry. On the next prompt, please select where you want your products to be installed to. You can always change this later in the settings.",
                         "No Daz content directories found in registry", MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
                     var path = Settings.settingsPage.AskForDirectory();
                     while (path == string.Empty)
@@ -79,7 +81,8 @@ namespace DAZ_Installer
                         MessageBox.Show("No directory was selected. It is required that you select a directory for products you wish to install. Please select where you want your products to be installed to. You can always change this later in the settings.", "Folder selection required", MessageBoxButtons.OK, MessageBoxIcon.Error);
                         path = Settings.settingsPage.AskForDirectory();
                     }
-                } else
+                }
+                else
                 {
                     destinationPath = DPRegistry.ContentDirectories[0];
                 }
@@ -88,7 +91,8 @@ namespace DAZ_Installer
             if (GetContentFolderNames(out string[] folders))
             {
                 commonContentFolderNames = folders;
-            } else
+            }
+            else
             {
                 commonContentFolderNames = inititalCommonContentFolderNames;
             }
@@ -109,7 +113,7 @@ namespace DAZ_Installer
             // Issue: UnauthorizedAccessException for weird reason.
             if (Directory.Exists(tempPath))
             {
-                Directory.Delete(tempPath,true);
+                Directory.Delete(tempPath, true);
                 DPCommon.WriteToLog("Deleted temp files.");
             }
         }
@@ -132,7 +136,7 @@ namespace DAZ_Installer
                 if (!contentRedirectsWriteResult)
                 {
                     stringbuilder.AppendLine("Unable to write to content folder redirects to disk.");
-                } 
+                }
                 if (!otherSettingsWriteResult)
                 {
                     stringbuilder.AppendLine("Unable to write other settings to disk.");
@@ -144,9 +148,9 @@ namespace DAZ_Installer
             return true;
         }
 
-        public static bool GetContentFolderNames(out string[] arr) 
+        public static bool GetContentFolderNames(out string[] arr)
         {
-            
+
             if (File.Exists(cfnLocation))
             {
                 try
@@ -154,19 +158,21 @@ namespace DAZ_Installer
                     var contents = File.ReadAllLines(cfnLocation);
                     arr = contents;
                     return true;
-                } catch (Exception e)
+                }
+                catch (Exception e)
                 {
                     DPCommon.WriteToLog($"Unable to get content folder names file. Reason: {e}");
                     arr = null;
                     return false;
                 }
-            } else
+            }
+            else
             {
                 arr = null;
                 return false;
             }
         }
-        public static bool WriteContentFolderNames() 
+        public static bool WriteContentFolderNames()
         {
             try
             {
@@ -174,13 +180,15 @@ namespace DAZ_Installer
                 if (commonContentFolderNames != null && commonContentFolderNames.Length > 0)
                 {
                     File.WriteAllLines(cfnLocation, commonContentFolderNames);
-                } else
+                }
+                else
                 {
                     // Default.
                     File.WriteAllLines(cfnLocation, inititalCommonContentFolderNames);
                 }
                 return true;
-            } catch (Exception e)
+            }
+            catch (Exception e)
             {
                 DPCommon.WriteToLog($"Unable to write content folder names. REASON: {e}");
                 return false;
@@ -189,8 +197,8 @@ namespace DAZ_Installer
 
         // Key: Redirectee (not in common foldr names), Value: A common folder name
         // Ex: { "Docs" : "Documentation" }
-        public static bool GetFolderRedirects(out Dictionary<string, string> dict) 
-        { 
+        public static bool GetFolderRedirects(out Dictionary<string, string> dict)
+        {
             if (File.Exists(frLocation))
             {
                 try
@@ -204,13 +212,15 @@ namespace DAZ_Installer
                     }
                     dict = workingDict;
                     return true;
-                } catch (Exception e)
+                }
+                catch (Exception e)
                 {
                     DPCommon.WriteToLog($"Unable to get folder redirects. REASON: {e}");
                     dict = null;
                     return false;
                 }
-            } else
+            }
+            else
             {
                 dict = null;
                 return false;
@@ -218,9 +228,9 @@ namespace DAZ_Installer
         }
 
 
-        public static bool WriteFolderRedirects() 
+        public static bool WriteFolderRedirects()
         {
-            
+
             List<string> dictLines = new List<string>(folderRedirects.Count);
             foreach (var key in folderRedirects.Keys)
             {
@@ -231,13 +241,14 @@ namespace DAZ_Installer
                 Directory.CreateDirectory("Settings");
                 File.WriteAllLines(frLocation, dictLines);
                 return true;
-            } catch (Exception e)
+            }
+            catch (Exception e)
             {
                 DPCommon.WriteToLog($"Unable to write folder redirects file. REASON: {e}");
                 return false;
             }
         }
-        public static bool GetOtherSettings(out string[] settings) 
+        public static bool GetOtherSettings(out string[] settings)
         {
             if (File.Exists(oLocation))
             {
@@ -246,30 +257,33 @@ namespace DAZ_Installer
                     var lines = File.ReadAllLines(oLocation);
                     settings = lines;
                     return true;
-                } catch (Exception e)
+                }
+                catch (Exception e)
                 {
                     DPCommon.WriteToLog($"Unable to get other settings. REASON: {e}");
                     settings = null;
                     return false;
                 }
-            } else
+            }
+            else
             {
                 settings = null;
                 DPCommon.WriteToLog($"Other settings not found.");
                 return false;
             }
         }
-        public static bool WriteOtherSettings() 
+        public static bool WriteOtherSettings()
         {
             Directory.CreateDirectory("Settings");
             try
             {
-                var lines = new string[] { destinationPath, downloadImages.ToString(), 
+                var lines = new string[] { destinationPath, downloadImages.ToString(),
                     thumbnailsPath, handleInstallation.ToString(), permDeleteSource.ToString(), tempPath,
                     installPrevProducts.ToString(), databasePath};
                 File.WriteAllLines(oLocation, lines);
                 return true;
-            } catch (Exception e)
+            }
+            catch (Exception e)
             {
                 DPCommon.WriteToLog($"Unable to write other settings. REASON: {e}");
                 return false;
