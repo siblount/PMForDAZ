@@ -7,11 +7,11 @@ using System.IO;
 using System.Linq;
 using System.Windows.Forms;
 
-namespace DAZ_Installer
+namespace DAZ_Installer.DP
 {
     public class DPFolder : IDPWorkingFile
     {
-        
+
         public string path { get; set; }
         public string relativePath { get; set; }
         public string destinationPath { get; set; }
@@ -19,8 +19,9 @@ namespace DAZ_Installer
         public bool extract { get; set; }
         public string extractedPath { get; set; }
         public uint uid { get; set; }
-        public DPFolder parent 
-        {   get => _parent;
+        public DPFolder parent
+        {
+            get => _parent;
             set
             {
                 // If we were null, but now we're not...
@@ -74,7 +75,8 @@ namespace DAZ_Installer
                     value.addChild(ref s);
 
                     _parent = value;
-                } else if (_parent != null && value == null)
+                }
+                else if (_parent != null && value == null)
                 {
                     // Remove ourselves from previous parent children.
                     var s = (IDPWorkingFile)this;
@@ -109,19 +111,20 @@ namespace DAZ_Installer
         public List<DPFolder> subfolders = new List<DPFolder>();
         private Dictionary<string, IDPWorkingFile> children = new Dictionary<string, IDPWorkingFile>();
         private DPFolder _parent { get; set; }
-        internal bool isContentFolder 
+        internal bool isContentFolder
         {
             get => _isContentFolder;
             set
             {
-                if ((_isContentFolder == true && value == false )|| (_isContentFolder == false && value == false))
+                if (_isContentFolder == true && value == false || _isContentFolder == false && value == false)
                 {
                     // Make children's isPartOfContentFolder false.
                     foreach (var subfolder in subfolders)
                     {
                         subfolder.isPartOfContentFolder = false;
                     }
-                } else if ((_isContentFolder == false && value == true) || (_isContentFolder == true && value == true))
+                }
+                else if (_isContentFolder == false && value == true || _isContentFolder == true && value == true)
                 {
                     // Make children's isPartOfContentFolder true.
                     foreach (var subfolder in subfolders)
@@ -135,29 +138,32 @@ namespace DAZ_Installer
         /// <summary>
         ///  Determined later in ProcessArchive().
         /// </summary>
-        internal bool isPartOfContentFolder {
-            get {
+        internal bool isPartOfContentFolder
+        {
+            get
+            {
                 if (_isPartOfContentFolder == false)
                 {
-                    var isPart = (parent != null && parent.isPartOfContentFolder == true);
+                    var isPart = parent != null && parent.isPartOfContentFolder == true;
                     _isPartOfContentFolder = isPart;
                     return _isPartOfContentFolder;
                 }
                 else return _isPartOfContentFolder;
             }
-            set { _isPartOfContentFolder = value; } 
+            set { _isPartOfContentFolder = value; }
         }
         private bool _isPartOfContentFolder = false;
         private bool _isContentFolder = false;
         public DPFolder() { }
-        public DPFolder(string _path, DPFolder __parent) {
+        public DPFolder(string _path, DPFolder __parent)
+        {
             uid = DPIDManager.GetNewID();
 
             DPGlobal.dpObjects.Add(uid, this);
             // Check if path is root.
             // GetDirectoryName returns "" if looks like filename.  
             path = PathHelper.GetDirectoryPath(_path);
-            
+
             //if (relativePathBase != null)
             //{
             //    relativePath = Path.GetRelativePath(path, relativePathBase);
@@ -167,7 +173,7 @@ namespace DAZ_Installer
             DPProcessor.workingArchive.folders.TryAdd(path, this);
 
         }
-        ~DPFolder ()
+        ~DPFolder()
         {
             DPIDManager.RemoveID(uid);
         }
@@ -191,7 +197,8 @@ namespace DAZ_Installer
                     {
                         firstFolder = new DPFolder(workingStr, null);
                         previousFolder = firstFolder;
-                    } else
+                    }
+                    else
                     {
                         var workingParent = new DPFolder(workingStr, previousFolder);
                         //if (previousFolder != null)
@@ -217,7 +224,8 @@ namespace DAZ_Installer
                     var relativePath = PathHelper.GetRelativePath(child.path, path);
                     child.relativePath = relativePath;
                 }
-            } else
+            }
+            else
             {
                 var contentFolder = GetContentFolder();
                 if (contentFolder != null)
@@ -245,7 +253,7 @@ namespace DAZ_Installer
                 return workingFolder;
             }
         }
-        
+
         /// <summary>
         /// Handles the addition of the file to children property and subfolders property (if child is a DPFolder).
         /// </summary>
@@ -297,7 +305,7 @@ namespace DAZ_Installer
             {
                 if (folder == self) continue;
                 // And make sure it only is one level up.
-                if (folder.path.Contains(_path) && (Path.GetFileName(_path) == Path.GetFileName(folder.path)) && PathHelper.GetNumOfLevelsAbove(folder.path, _path) == 1)
+                if (folder.path.Contains(_path) && Path.GetFileName(_path) == Path.GetFileName(folder.path) && PathHelper.GetNumOfLevelsAbove(folder.path, _path) == 1)
                 {
                     folderArr.Add(folder);
                 }
@@ -319,7 +327,7 @@ namespace DAZ_Installer
                     if (subfolder == this) continue;
                     var folderName = Path.GetDirectoryName(subfolder.path);
                     // TO DO: Check if it contains given name, uppercased name and lower cased name.
-                    if (DPSettings.commonContentFolderNames.Contains(folderName,StringComparer.CurrentCultureIgnoreCase) 
+                    if (DPSettings.commonContentFolderNames.Contains(folderName, StringComparer.CurrentCultureIgnoreCase)
                         || DPSettings.folderRedirects.ContainsKey(folderName) || DPSettings.folderRedirects.ContainsKey(folderName.ToLower()))
                     {
                         parentsAreContent = true;
@@ -337,6 +345,6 @@ namespace DAZ_Installer
             return selfIsContentName && !parentsAreContent;
         }
 
-        
+
     }
 }
