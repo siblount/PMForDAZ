@@ -71,11 +71,14 @@ namespace DAZ_Installer.DP
         public static event Action DatabaseUpdated;
         public static event Action<DataSet> ViewUpdated;
         public static event Action<DPProductRecord[]> LibraryQueryCompleted;
+        public static event Action<DPExtractionRecord> RecordQueryCompleted;
 
         public static event Action SearchFailed;
         public static event Action LibraryQueryFailed;
         public static event Action ViewFailed;
         public static event Action DatabaseBroke;
+        public static event Action RecordQueryFailed;
+
 
         // Private
         private static SQLiteConnection _connection = new SQLiteConnection();
@@ -115,10 +118,10 @@ namespace DAZ_Installer.DP
             _priorityTaskManager.AddToQueue(DoRegexSearchS, regex, sortMethod);
         }
 
-        public static void GetProductRecords(DPSortMethod sortMethod, uint limit = 0)
+        public static void GetProductRecords(DPSortMethod sortMethod, uint page = 1, uint limit = 0)
         {
             _priorityTaskManager.Stop();
-            _priorityTaskManager.AddToQueue(DoLibraryQuery, limit, sortMethod);
+            _priorityTaskManager.AddToQueue(DoLibraryQuery, page, limit, sortMethod);
         }
 
         public static void StopMainDatabaseOperations()
@@ -230,6 +233,14 @@ namespace DAZ_Installer.DP
         public static void RemoveAllRecordsQ() {
             _mainTaskManager.AddToQueue(RemoveAllRecords);
         }
+
+        public static void RemoveTagsQ(uint pid) {
+            _mainTaskManager.AddToQueue(DeleteTags, pid);
+        }
+
+        public static void GetExtractionRecordQ(uint eid) {
+
+        }
         #endregion
         
         #region Private methods
@@ -337,7 +348,7 @@ namespace DAZ_Installer.DP
             CreateTables();
             CreateIndexes();
             CreateTriggers();
-
+            ExecutePragmas();
             CloseConnectionQ(true);
         }
 
@@ -456,6 +467,7 @@ namespace DAZ_Installer.DP
                         BEGIN
                             UPDATE DatabaseInfo SET ""Product Record Count"" = (SELECT COUNT(*) FROM ProductRecords);
                             DELETE FROM ExtractionRecords WHERE ID = old.""Extraction Record ID"";
+                            DELETE FROM TAGS WHERE ""Product Record ID"" = old.ID;
                         END;";
             const string deleteOnExtractionRemoveTriggerCommand =
                         @"CREATE TRIGGER IF NOT EXISTS delete_on_extraction_removal
@@ -502,6 +514,26 @@ namespace DAZ_Installer.DP
             
         }
 
+        private static bool ExecutePragmas()
+        {
+
+            const string pramaCommmands = @"PRAGMA journal_mode = WAL;
+                                            PRAGMA wal_autocheckpoint=2; 
+                                            PRAGMA journal_size_limit=32768;
+                                            PRAGMA page_size=512;";
+            try {
+                using (var createCommand = new SQLiteCommand(pramaCommmands, _connection))
+                {
+                    createCommand.ExecuteNonQuery();
+                }
+            }
+            catch (Exception ex)
+            {
+                DPCommon.WriteToLog($"Failed to execute pragmas. REASON: {ex}");
+                return false;
+            }
+            return true;
+        }
         private static bool DeleteTriggers() {
             // At this point, we have priority, no need to wait.
             if (!IsReadyToExecute && IsBroken || !CanBeOpened) return false;
@@ -640,6 +672,12 @@ namespace DAZ_Installer.DP
             }
 
             InsertMultipleValuesToTable("Tags", new string[] { "Tag", "Product Record ID" }, vals, t);
+        }
+
+        private static void DeleteTags(uint pid, CancellationToken t) {
+            RemoveValuesWithCondition("Tags", 
+                    new Tuple<string, object>[] {new Tuple<string, object>("Product Record ID", pid) }
+                    , false, t);
         }
 
         private static bool InsertMultipleValuesToTable(string tableName, string[] columns, object[][] values, CancellationToken t)
@@ -939,6 +977,7 @@ namespace DAZ_Installer.DP
             if (t.IsCancellationRequested) return false;
             
             SQLiteTransaction transaction = _connection.BeginTransaction();
+            // Also deletes from tags via trigger.
             var deleteCommand = $"DELETE FROM ProductRecords; DELETE FROM ExtractionRecords;"; // Faster way is to drop the table & re-make it.
             try
             {
@@ -985,9 +1024,10 @@ namespace DAZ_Installer.DP
             command.Parameters.Add(new SQLiteParameter("@A", regex));
         }
 
-        private static void SetupSQLLibraryQuery(uint limit, DPSortMethod method, ref SQLiteCommand command)
+        private static void SetupSQLLibraryQuery(uint page, uint limit, DPSortMethod method, ref SQLiteCommand command)
         {
-            string sqlQuery = @"SELECT * FROM ProductRecords ";
+            uint beginningRowID = (page - 1) * limit;
+            string sqlQuery = $"SELECT * FROM ProductRecords WHERE ROWID >= {beginningRowID} ";
 
             switch (method)
             {
@@ -1225,7 +1265,7 @@ namespace DAZ_Installer.DP
         /// </summary>
         /// <param name="limit">The limit amount of results to return.</param>
         /// <param name="method">The sorting method to apply to query results.</param>
-        private static void DoLibraryQuery(uint limit, DPSortMethod method, CancellationToken t)
+        private static void DoLibraryQuery(uint page, uint limit, DPSortMethod method, CancellationToken t)
         {
             if (isSearching)
             {
@@ -1250,7 +1290,7 @@ namespace DAZ_Installer.DP
                 try
                 {
                     command = new SQLiteCommand(_connection);
-                    SetupSQLLibraryQuery(limit, method, ref command);
+                    SetupSQLLibraryQuery(page, limit, method, ref command);
                     var results = SearchProductRecordsViaTagsS(command, t);
                     LibraryQueryCompleted?.Invoke(results);
                     command.Dispose();
@@ -1336,10 +1376,6 @@ namespace DAZ_Installer.DP
             catch (Exception e)
             {
                 DPCommon.WriteToLog($"An unexpected error occurred attempting to get table names. REASON: {e}");
-            }
-            finally
-            {
-                
             }
             return Array.Empty<string>();
 
@@ -1473,7 +1509,46 @@ namespace DAZ_Installer.DP
             return string.Join(", ", sArgs);
         }
 
-        public static uint GetLastProductID(CancellationToken t)
+        private static void GetExtractionRecord(uint id, CancellationToken t) {
+            if (!Initalized) Initialize();
+            if (IsBroken || (!IsReadyToExecute && !CanBeOpened)) return;
+            if (!IsReadyToExecute && CanBeOpened) OpenConnection();
+            
+            WaitUntilDatabaseReady();
+            if (t.IsCancellationRequested) return;
+
+            var getCmd = $"SELECT * FROM ExtractionRecords WHERE ID = {id};";
+            try {
+                var cmd = new SQLiteCommand(getCmd, _connection);
+                using (var reader = cmd.ExecuteReader()) {
+                    while (reader.Read()) {
+                        string[] files, folders, erroredFiles, errorMessages;
+                        string archiveFileName = (string) reader["Archive Name"];
+                        string filesStr = reader["Files"] as string;
+                        string foldersStr = reader["Folders"] as string;
+                        string destinationPath = (string) reader["Destination Path"];
+                        string erroredFilesStr = reader["Errored Files"] as string;
+                        string errorMessagesStr = reader["Error Messages"] as string;
+                        uint pid = Convert.ToUInt32(reader["Product Record ID"]);
+                        
+                        files = filesStr != null ? files = filesStr.Split(", ") : Array.Empty<string>();
+                        folders = foldersStr != null ? files = foldersStr.Split(", ") : Array.Empty<string>();
+                        erroredFiles = erroredFilesStr != null ? erroredFiles = erroredFilesStr.Split(", ") : Array.Empty<string>();
+                        errorMessages = errorMessagesStr != null ? errorMessages = erroredFilesStr.Split(", ") : Array.Empty<string>();
+
+                        var record = new DPExtractionRecord(archiveFileName, destinationPath, files, erroredFiles, errorMessages, folders, pid);
+                        RecordQueryCompleted?.Invoke(record);
+                        return;
+                    }
+                }
+                DPCommon.WriteToLog("Failed to get extraction record possibly due to extraction record was deleted.");
+                RecordQueryFailed?.Invoke();
+            } catch (Exception ex) {
+                DPCommon.WriteToLog("Failed to get extraction record.");
+            }
+        }
+
+        private static uint GetLastProductID(CancellationToken t)
         {
             if (t.IsCancellationRequested) return 0;
             var c = "SELECT ID FROM ProductRecords ORDER BY ID DESC LIMIT 1;";
@@ -1489,6 +1564,8 @@ namespace DAZ_Installer.DP
             }
             return 0;
         }
+
+
 
         
         #endregion
