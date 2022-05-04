@@ -4,11 +4,13 @@
 using System;
 using System.Collections.Generic;
 using System.Windows.Forms;
+using System.Threading;
 
 namespace DAZ_Installer.DP
 {
     static class DPGlobal
     {
+        internal static int mainThreadID = 0;
         public static Dictionary<uint, IDPWorkingFile> dpObjects = new Dictionary<uint, IDPWorkingFile>();
 
         // Hold queues in case an attmept is made to extract files while an extraction process is on-going.

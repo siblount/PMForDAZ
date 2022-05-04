@@ -239,7 +239,7 @@ namespace DAZ_Installer.DP
         }
 
         public static void GetExtractionRecordQ(uint eid) {
-
+            _priorityTaskManager.AddToQueue(GetExtractionRecord, eid);
         }
         #endregion
         
@@ -1532,7 +1532,7 @@ namespace DAZ_Installer.DP
                         uint pid = Convert.ToUInt32(reader["Product Record ID"]);
                         
                         files = filesStr != null ? files = filesStr.Split(", ") : Array.Empty<string>();
-                        folders = foldersStr != null ? files = foldersStr.Split(", ") : Array.Empty<string>();
+                        folders = foldersStr != null ? folders = foldersStr.Split(", ") : Array.Empty<string>();
                         erroredFiles = erroredFilesStr != null ? erroredFiles = erroredFilesStr.Split(", ") : Array.Empty<string>();
                         errorMessages = errorMessagesStr != null ? errorMessages = erroredFilesStr.Split(", ") : Array.Empty<string>();
 

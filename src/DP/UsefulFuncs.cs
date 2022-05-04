@@ -7,12 +7,16 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Windows.Forms;
-using System.Threading.Tasks;
+using System.Threading;
 
 namespace DAZ_Installer.DP
 {
     internal struct DPCommon
     {
+        internal static bool IsOnMainThread { get => 
+                DPGlobal.mainThreadID == 
+                Thread.CurrentThread.ManagedThreadId; 
+        }
         internal static DragDropEffects dropEffect = DragDropEffects.All;
         public static string Up(string str)
         {
@@ -91,6 +95,8 @@ namespace DAZ_Installer.DP
             }
 
         }
+        
+        
         public static void WriteToLog(params object[] args)
         {
 #if DEBUG

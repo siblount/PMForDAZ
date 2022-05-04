@@ -24,10 +24,12 @@ namespace DAZ_Installer
                     MessageBox.Show(null, "Only one instance of Daz Product Installer is allowed!", "Launch cancelled", MessageBoxButtons.OK, MessageBoxIcon.Error);
                     return;
                 }
+                DP.DPGlobal.mainThreadID = Thread.CurrentThread.ManagedThreadId;
                 Application.SetHighDpiMode(HighDpiMode.SystemAware);
                 Application.EnableVisualStyles();
                 Application.SetCompatibleTextRenderingDefault(false);
                 Application.Run(new MainForm());
+                
                 mutex.ReleaseMutex();
             }
 

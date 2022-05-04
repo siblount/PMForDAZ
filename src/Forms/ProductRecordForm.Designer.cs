@@ -29,33 +29,41 @@ namespace DAZ_Installer
         /// </summary>
         private void InitializeComponent()
         {
-            this.label1 = new System.Windows.Forms.Label();
+            this.productNameLbl = new System.Windows.Forms.Label();
             this.productNameTxtBox = new System.Windows.Forms.TextBox();
             this.thumbnailBox = new System.Windows.Forms.PictureBox();
-            this.button1 = new System.Windows.Forms.Button();
-            this.label2 = new System.Windows.Forms.Label();
-            this.tagsTxtBox = new System.Windows.Forms.TextBox();
-            this.label3 = new System.Windows.Forms.Label();
+            this.browseImageBtn = new System.Windows.Forms.Button();
+            this.tagsLbl = new System.Windows.Forms.Label();
+            this.contentFoldersLbl = new System.Windows.Forms.Label();
             this.contentFoldersList = new System.Windows.Forms.ListView();
-            this.label4 = new System.Windows.Forms.Label();
+            this.columnHeader4 = new System.Windows.Forms.ColumnHeader();
+            this.filesLbl = new System.Windows.Forms.Label();
             this.filesExtractedList = new System.Windows.Forms.ListView();
+            this.columnHeader2 = new System.Windows.Forms.ColumnHeader();
             this.dateExtractedLbl = new System.Windows.Forms.Label();
             this.erroredFilesLbl = new System.Windows.Forms.Label();
             this.erroredFilesList = new System.Windows.Forms.ListView();
+            this.columnHeader3 = new System.Windows.Forms.ColumnHeader();
             this.panel1 = new System.Windows.Forms.Panel();
+            this.errorMsgsLbl = new System.Windows.Forms.Label();
+            this.errorMessagesList = new System.Windows.Forms.ListView();
+            this.columnHeader5 = new System.Windows.Forms.ColumnHeader();
+            this.destinationPathLbl = new System.Windows.Forms.Label();
+            this.tagsView = new System.Windows.Forms.ListView();
+            this.columnHeader1 = new System.Windows.Forms.ColumnHeader();
             this.button2 = new System.Windows.Forms.Button();
             ((System.ComponentModel.ISupportInitialize)(this.thumbnailBox)).BeginInit();
             this.panel1.SuspendLayout();
             this.SuspendLayout();
             // 
-            // label1
+            // productNameLbl
             // 
-            this.label1.AutoSize = true;
-            this.label1.Location = new System.Drawing.Point(13, 30);
-            this.label1.Name = "label1";
-            this.label1.Size = new System.Drawing.Size(107, 20);
-            this.label1.TabIndex = 0;
-            this.label1.Text = "Product Name:";
+            this.productNameLbl.AutoSize = true;
+            this.productNameLbl.Location = new System.Drawing.Point(13, 30);
+            this.productNameLbl.Name = "productNameLbl";
+            this.productNameLbl.Size = new System.Drawing.Size(107, 20);
+            this.productNameLbl.TabIndex = 0;
+            this.productNameLbl.Text = "Product Name:";
             // 
             // productNameTxtBox
             // 
@@ -74,69 +82,79 @@ namespace DAZ_Installer
             this.thumbnailBox.TabIndex = 2;
             this.thumbnailBox.TabStop = false;
             // 
-            // button1
+            // browseImageBtn
             // 
-            this.button1.Location = new System.Drawing.Point(390, 185);
-            this.button1.Name = "button1";
-            this.button1.Size = new System.Drawing.Size(226, 29);
-            this.button1.TabIndex = 3;
-            this.button1.Text = "Browse Image";
-            this.button1.UseVisualStyleBackColor = true;
+            this.browseImageBtn.Location = new System.Drawing.Point(390, 185);
+            this.browseImageBtn.Name = "browseImageBtn";
+            this.browseImageBtn.Size = new System.Drawing.Size(226, 29);
+            this.browseImageBtn.TabIndex = 3;
+            this.browseImageBtn.Text = "Browse Image";
+            this.browseImageBtn.UseVisualStyleBackColor = true;
+            this.browseImageBtn.Click += new System.EventHandler(this.browseImageBtn_Click);
             // 
-            // label2
+            // tagsLbl
             // 
-            this.label2.AutoSize = true;
-            this.label2.Location = new System.Drawing.Point(13, 70);
-            this.label2.Name = "label2";
-            this.label2.Size = new System.Drawing.Size(41, 20);
-            this.label2.TabIndex = 4;
-            this.label2.Text = "Tags:";
+            this.tagsLbl.AutoSize = true;
+            this.tagsLbl.Location = new System.Drawing.Point(13, 70);
+            this.tagsLbl.Name = "tagsLbl";
+            this.tagsLbl.Size = new System.Drawing.Size(41, 20);
+            this.tagsLbl.TabIndex = 4;
+            this.tagsLbl.Text = "Tags:";
             // 
-            // tagsTxtBox
+            // contentFoldersLbl
             // 
-            this.tagsTxtBox.Location = new System.Drawing.Point(60, 67);
-            this.tagsTxtBox.Name = "tagsTxtBox";
-            this.tagsTxtBox.Size = new System.Drawing.Size(297, 27);
-            this.tagsTxtBox.TabIndex = 5;
-            // 
-            // label3
-            // 
-            this.label3.AutoSize = true;
-            this.label3.Location = new System.Drawing.Point(13, 107);
-            this.label3.Name = "label3";
-            this.label3.Size = new System.Drawing.Size(116, 20);
-            this.label3.TabIndex = 6;
-            this.label3.Text = "Content Folders:";
+            this.contentFoldersLbl.AutoSize = true;
+            this.contentFoldersLbl.Location = new System.Drawing.Point(13, 168);
+            this.contentFoldersLbl.Name = "contentFoldersLbl";
+            this.contentFoldersLbl.Size = new System.Drawing.Size(116, 20);
+            this.contentFoldersLbl.TabIndex = 6;
+            this.contentFoldersLbl.Text = "Content Folders:";
             // 
             // contentFoldersList
             // 
-            this.contentFoldersList.Location = new System.Drawing.Point(13, 130);
+            this.contentFoldersList.Columns.AddRange(new System.Windows.Forms.ColumnHeader[] {
+            this.columnHeader4});
+            this.contentFoldersList.HeaderStyle = System.Windows.Forms.ColumnHeaderStyle.None;
+            this.contentFoldersList.Location = new System.Drawing.Point(13, 191);
             this.contentFoldersList.Name = "contentFoldersList";
             this.contentFoldersList.Size = new System.Drawing.Size(344, 84);
             this.contentFoldersList.TabIndex = 7;
             this.contentFoldersList.UseCompatibleStateImageBehavior = false;
+            this.contentFoldersList.View = System.Windows.Forms.View.Details;
             // 
-            // label4
+            // columnHeader4
             // 
-            this.label4.AutoSize = true;
-            this.label4.Location = new System.Drawing.Point(13, 217);
-            this.label4.Name = "label4";
-            this.label4.Size = new System.Drawing.Size(107, 20);
-            this.label4.TabIndex = 8;
-            this.label4.Text = "Files Extracted:";
+            this.columnHeader4.Width = 320;
+            // 
+            // filesLbl
+            // 
+            this.filesLbl.AutoSize = true;
+            this.filesLbl.Location = new System.Drawing.Point(12, 278);
+            this.filesLbl.Name = "filesLbl";
+            this.filesLbl.Size = new System.Drawing.Size(41, 20);
+            this.filesLbl.TabIndex = 8;
+            this.filesLbl.Text = "Files:";
             // 
             // filesExtractedList
             // 
-            this.filesExtractedList.Location = new System.Drawing.Point(13, 240);
+            this.filesExtractedList.Columns.AddRange(new System.Windows.Forms.ColumnHeader[] {
+            this.columnHeader2});
+            this.filesExtractedList.HeaderStyle = System.Windows.Forms.ColumnHeaderStyle.None;
+            this.filesExtractedList.Location = new System.Drawing.Point(13, 301);
             this.filesExtractedList.Name = "filesExtractedList";
             this.filesExtractedList.Size = new System.Drawing.Size(603, 85);
             this.filesExtractedList.TabIndex = 9;
             this.filesExtractedList.UseCompatibleStateImageBehavior = false;
+            this.filesExtractedList.View = System.Windows.Forms.View.Details;
+            // 
+            // columnHeader2
+            // 
+            this.columnHeader2.Width = 600;
             // 
             // dateExtractedLbl
             // 
             this.dateExtractedLbl.AutoSize = true;
-            this.dateExtractedLbl.Location = new System.Drawing.Point(15, 439);
+            this.dateExtractedLbl.Location = new System.Drawing.Point(15, 625);
             this.dateExtractedLbl.Name = "dateExtractedLbl";
             this.dateExtractedLbl.Size = new System.Drawing.Size(114, 20);
             this.dateExtractedLbl.TabIndex = 10;
@@ -145,7 +163,7 @@ namespace DAZ_Installer
             // erroredFilesLbl
             // 
             this.erroredFilesLbl.AutoSize = true;
-            this.erroredFilesLbl.Location = new System.Drawing.Point(13, 328);
+            this.erroredFilesLbl.Location = new System.Drawing.Point(12, 389);
             this.erroredFilesLbl.Name = "erroredFilesLbl";
             this.erroredFilesLbl.Size = new System.Drawing.Size(94, 20);
             this.erroredFilesLbl.TabIndex = 11;
@@ -153,38 +171,100 @@ namespace DAZ_Installer
             // 
             // erroredFilesList
             // 
-            this.erroredFilesList.Location = new System.Drawing.Point(13, 351);
+            this.erroredFilesList.Columns.AddRange(new System.Windows.Forms.ColumnHeader[] {
+            this.columnHeader3});
+            this.erroredFilesList.HeaderStyle = System.Windows.Forms.ColumnHeaderStyle.None;
+            this.erroredFilesList.Location = new System.Drawing.Point(13, 412);
             this.erroredFilesList.Name = "erroredFilesList";
             this.erroredFilesList.Size = new System.Drawing.Size(603, 85);
             this.erroredFilesList.TabIndex = 12;
             this.erroredFilesList.UseCompatibleStateImageBehavior = false;
+            this.erroredFilesList.View = System.Windows.Forms.View.Details;
+            // 
+            // columnHeader3
+            // 
+            this.columnHeader3.Width = 600;
             // 
             // panel1
             // 
+            this.panel1.AutoScroll = true;
             this.panel1.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
+            this.panel1.Controls.Add(this.errorMsgsLbl);
+            this.panel1.Controls.Add(this.errorMessagesList);
+            this.panel1.Controls.Add(this.destinationPathLbl);
+            this.panel1.Controls.Add(this.tagsView);
             this.panel1.Controls.Add(this.erroredFilesLbl);
             this.panel1.Controls.Add(this.erroredFilesList);
             this.panel1.Controls.Add(this.filesExtractedList);
             this.panel1.Controls.Add(this.dateExtractedLbl);
-            this.panel1.Controls.Add(this.label4);
-            this.panel1.Controls.Add(this.label3);
+            this.panel1.Controls.Add(this.filesLbl);
+            this.panel1.Controls.Add(this.contentFoldersLbl);
             this.panel1.Controls.Add(this.contentFoldersList);
-            this.panel1.Controls.Add(this.tagsTxtBox);
-            this.panel1.Controls.Add(this.label2);
-            this.panel1.Controls.Add(this.button1);
+            this.panel1.Controls.Add(this.tagsLbl);
+            this.panel1.Controls.Add(this.browseImageBtn);
             this.panel1.Controls.Add(this.productNameTxtBox);
-            this.panel1.Controls.Add(this.label1);
+            this.panel1.Controls.Add(this.productNameLbl);
             this.panel1.Controls.Add(this.thumbnailBox);
             this.panel1.Dock = System.Windows.Forms.DockStyle.Top;
             this.panel1.Location = new System.Drawing.Point(0, 0);
             this.panel1.Name = "panel1";
-            this.panel1.Size = new System.Drawing.Size(628, 492);
+            this.panel1.Size = new System.Drawing.Size(628, 524);
             this.panel1.TabIndex = 13;
+            // 
+            // errorMsgsLbl
+            // 
+            this.errorMsgsLbl.AutoSize = true;
+            this.errorMsgsLbl.Location = new System.Drawing.Point(13, 500);
+            this.errorMsgsLbl.Name = "errorMsgsLbl";
+            this.errorMsgsLbl.Size = new System.Drawing.Size(112, 20);
+            this.errorMsgsLbl.TabIndex = 15;
+            this.errorMsgsLbl.Text = "Error Messages:";
+            // 
+            // errorMessagesList
+            // 
+            this.errorMessagesList.Columns.AddRange(new System.Windows.Forms.ColumnHeader[] {
+            this.columnHeader5});
+            this.errorMessagesList.HeaderStyle = System.Windows.Forms.ColumnHeaderStyle.None;
+            this.errorMessagesList.Location = new System.Drawing.Point(14, 523);
+            this.errorMessagesList.Name = "errorMessagesList";
+            this.errorMessagesList.Size = new System.Drawing.Size(603, 85);
+            this.errorMessagesList.TabIndex = 16;
+            this.errorMessagesList.UseCompatibleStateImageBehavior = false;
+            this.errorMessagesList.View = System.Windows.Forms.View.Details;
+            // 
+            // columnHeader5
+            // 
+            this.columnHeader5.Width = 600;
+            // 
+            // destinationPathLbl
+            // 
+            this.destinationPathLbl.AutoSize = true;
+            this.destinationPathLbl.Location = new System.Drawing.Point(15, 669);
+            this.destinationPathLbl.Name = "destinationPathLbl";
+            this.destinationPathLbl.Size = new System.Drawing.Size(124, 20);
+            this.destinationPathLbl.TabIndex = 14;
+            this.destinationPathLbl.Text = "Destination Path: ";
+            // 
+            // tagsView
+            // 
+            this.tagsView.Columns.AddRange(new System.Windows.Forms.ColumnHeader[] {
+            this.columnHeader1});
+            this.tagsView.HeaderStyle = System.Windows.Forms.ColumnHeaderStyle.None;
+            this.tagsView.Location = new System.Drawing.Point(60, 70);
+            this.tagsView.Name = "tagsView";
+            this.tagsView.Size = new System.Drawing.Size(297, 84);
+            this.tagsView.TabIndex = 13;
+            this.tagsView.UseCompatibleStateImageBehavior = false;
+            this.tagsView.View = System.Windows.Forms.View.Details;
+            // 
+            // columnHeader1
+            // 
+            this.columnHeader1.Width = 280;
             // 
             // button2
             // 
             this.button2.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
-            this.button2.Location = new System.Drawing.Point(488, 504);
+            this.button2.Location = new System.Drawing.Point(488, 535);
             this.button2.Name = "button2";
             this.button2.Size = new System.Drawing.Size(128, 29);
             this.button2.TabIndex = 14;
@@ -195,7 +275,7 @@ namespace DAZ_Installer
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 20F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(628, 544);
+            this.ClientSize = new System.Drawing.Size(628, 575);
             this.Controls.Add(this.button2);
             this.Controls.Add(this.panel1);
             this.Name = "ProductRecordForm";
@@ -209,20 +289,28 @@ namespace DAZ_Installer
 
         #endregion
 
-        private System.Windows.Forms.Label label1;
+        private System.Windows.Forms.Label productNameLbl;
         private System.Windows.Forms.TextBox productNameTxtBox;
         private System.Windows.Forms.PictureBox thumbnailBox;
-        private System.Windows.Forms.Button button1;
-        private System.Windows.Forms.Label label2;
-        private System.Windows.Forms.TextBox tagsTxtBox;
-        private System.Windows.Forms.Label label3;
+        private System.Windows.Forms.Button browseImageBtn;
+        private System.Windows.Forms.Label tagsLbl;
+        private System.Windows.Forms.Label contentFoldersLbl;
         private System.Windows.Forms.ListView contentFoldersList;
-        private System.Windows.Forms.Label label4;
+        private System.Windows.Forms.Label filesLbl;
         private System.Windows.Forms.ListView filesExtractedList;
         private System.Windows.Forms.Label dateExtractedLbl;
         private System.Windows.Forms.Label erroredFilesLbl;
         private System.Windows.Forms.ListView erroredFilesList;
         private System.Windows.Forms.Panel panel1;
         private System.Windows.Forms.Button button2;
+        private System.Windows.Forms.ListView tagsView;
+        private System.Windows.Forms.ColumnHeader columnHeader4;
+        private System.Windows.Forms.ColumnHeader columnHeader2;
+        private System.Windows.Forms.ColumnHeader columnHeader3;
+        private System.Windows.Forms.ColumnHeader columnHeader1;
+        private System.Windows.Forms.Label errorMsgsLbl;
+        private System.Windows.Forms.ListView errorMessagesList;
+        private System.Windows.Forms.ColumnHeader columnHeader5;
+        private System.Windows.Forms.Label destinationPathLbl;
     }
 }
