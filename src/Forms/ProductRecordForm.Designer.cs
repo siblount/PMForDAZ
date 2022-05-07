@@ -208,7 +208,7 @@ namespace DAZ_Installer
             this.panel1.Dock = System.Windows.Forms.DockStyle.Top;
             this.panel1.Location = new System.Drawing.Point(0, 0);
             this.panel1.Name = "panel1";
-            this.panel1.Size = new System.Drawing.Size(628, 524);
+            this.panel1.Size = new System.Drawing.Size(644, 524);
             this.panel1.TabIndex = 13;
             // 
             // errorMsgsLbl
@@ -264,7 +264,7 @@ namespace DAZ_Installer
             // button2
             // 
             this.button2.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
-            this.button2.Location = new System.Drawing.Point(488, 535);
+            this.button2.Location = new System.Drawing.Point(504, 535);
             this.button2.Name = "button2";
             this.button2.Size = new System.Drawing.Size(128, 29);
             this.button2.TabIndex = 14;
@@ -275,9 +275,12 @@ namespace DAZ_Installer
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 20F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(628, 575);
+            this.ClientSize = new System.Drawing.Size(644, 575);
             this.Controls.Add(this.button2);
             this.Controls.Add(this.panel1);
+            this.MaximizeBox = false;
+            this.MaximumSize = new System.Drawing.Size(662, 622);
+            this.MinimizeBox = false;
             this.Name = "ProductRecordForm";
             this.Text = "Product Record Form";
             ((System.ComponentModel.ISupportInitialize)(this.thumbnailBox)).EndInit();

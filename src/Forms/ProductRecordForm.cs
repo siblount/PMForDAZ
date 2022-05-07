@@ -63,6 +63,7 @@ namespace DAZ_Installer
             filesExtractedList.EndUpdate();
             erroredFilesList.EndUpdate();
             errorMessagesList.EndUpdate();
+            destinationPathLbl.Text += record.DestinationPath;
         }
 
         private void browseImageBtn_Click(object sender, EventArgs e)
