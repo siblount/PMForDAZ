@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "ImportFileRecordsToDatabase": {
+      "commandName": "Project",
+      "workingDirectory": "D:\\Visual Studio Projs\\DAZ_Installer\\bin\\x64\\Release\\net6.0-windows\\Records"
+    }
+  }
+}
