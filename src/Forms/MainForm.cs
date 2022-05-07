@@ -110,7 +110,7 @@ namespace DAZ_Installer
 
         private void Form1_FormClosing(object sender, FormClosingEventArgs e)
         {
-            DPGlobal.HandleAppClosing();
+            DPGlobal.HandleAppClosing(e);
         }
     }
 }

@@ -258,7 +258,9 @@ namespace DAZ_Installer.DP
             parent = __parent;
             if (path != null | path != "")
             {
-                ext = Path.GetExtension(path).Substring(1);
+                // _ext can have length of 0, ex: LICENSE
+                var _ext = Path.GetExtension(path);
+                ext = _ext.Length != 0 ? _ext.Substring(1) : string.Empty;
             }
             ListName = DPProcessor.workingArchive.fileName + '\\' + path;
             DPFiles.TryAdd(path, this);

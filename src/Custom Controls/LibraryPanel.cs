@@ -22,7 +22,7 @@ namespace DAZ_Installer
 
         internal List<LibraryItem> LibraryItems { get; } = new List<LibraryItem>(25);
 
-        internal LibrarySearchItem[] SearchItems { get; set; } = new LibrarySearchItem[25];
+        internal List<LibraryItem> SearchItems { get; set; } = new List<LibraryItem>(25);
         internal int CurrentPage 
         { 
             get => pageButtonControl1.CurrentPage; 
@@ -85,10 +85,10 @@ namespace DAZ_Installer
             } else
             {
                 DPCommon.WriteToLog("Update search content.");
-                DPCommon.WriteToLog($"Search items: {SearchItems.Length}");
+                DPCommon.WriteToLog($"Search items: {SearchItems.Count}");
 
                 mainContentPanel.Controls.Clear();
-                mainContentPanel.Controls.AddRange(SearchItems);
+                mainContentPanel.Controls.AddRange(SearchItems.ToArray());
 
                 foreach (var item in SearchItems)
                 {

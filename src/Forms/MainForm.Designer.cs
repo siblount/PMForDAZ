@@ -193,7 +193,7 @@ namespace DAZ_Installer
             this.settings1.Size = new System.Drawing.Size(617, 450);
             this.settings1.TabIndex = 2;
             // 
-            // Form1
+            // MainForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 20F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
@@ -201,7 +201,7 @@ namespace DAZ_Installer
             this.Controls.Add(this.mainPanel);
             this.Controls.Add(this.tableLayoutPanel1);
             this.MinimumSize = new System.Drawing.Size(769, 497);
-            this.Name = "Form1";
+            this.Name = "MainForm";
             this.Text = "Daz Product Installer";
             this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.Form1_FormClosing);
             this.Load += new System.EventHandler(this.Form1_Load);

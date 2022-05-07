@@ -7,6 +7,7 @@ using System.ComponentModel.DataAnnotations;
 using System.ComponentModel;
 using System.Linq;
 using System.Windows.Forms;
+using static DAZ_Installer.DP.DPCommon;
 
 namespace DAZ_Installer
 {
@@ -110,6 +111,13 @@ namespace DAZ_Installer
 
         public void UpdateControl()
         {
+            bool isOnMainThread = IsOnMainThread;
+            if (!isOnMainThread || (IsHandleCreated && InvokeRequired))
+            {
+                Invoke(UpdateControl);
+                return;
+            }
+            else if (!isOnMainThread && !IsHandleCreated) return;
             // If 
             // Only update if the currentPage is out of the current current range.
             // Get min page if teleport = currentPage - (currentPage % 7)
