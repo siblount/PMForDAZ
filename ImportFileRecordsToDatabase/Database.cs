@@ -225,7 +225,23 @@ internal static class Database
 
         return true;
 
+    }
 
+    public static void Close()
+    {
+        var pragmaCheckpoint = "PRAGMA wal_checkpoint(TRUNCATE);";
+        try
+        {
+            using (var cmd = new SQLiteCommand(pragmaCheckpoint, Connection))
+            {
+                cmd.ExecuteNonQuery();
+            }
+        }
+        catch (Exception ex) { }
+        finally
+        {
+            Connection.Close();
+        }
     }
 }
 

@@ -201,6 +201,6 @@ public class Program
         }
         //productRecords.ForEach(rec => AddToValues(rec));
         Print("All done!");
-
+        Database.Close();
     }
 }
