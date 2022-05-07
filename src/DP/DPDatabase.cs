@@ -271,6 +271,7 @@ namespace DAZ_Installer.DP
                 }
                 CloseConnection(CancellationToken.None);
                 DatabaseUpdated?.Invoke();
+                DP.DPGlobal.AppClosing += OnAppClose;
                 Initalized = true;
                 tableNames = GetTables(CancellationToken.None);
             } catch (Exception ex)
@@ -402,7 +403,7 @@ namespace DAZ_Installer.DP
             const string createTagsCommand = @"
                 CREATE TABLE ""Tags""(
                 ""Tag""   TEXT NOT NULL,
-                ""Product Record ID""	TEXT NOT NULL
+                ""Product Record ID""	INTEGER NOT NULL
             )";
             try
             {
@@ -436,18 +437,36 @@ namespace DAZ_Installer.DP
 	            ""Product Record ID""
             );";
 
-            const string createArchiveNameToEIDCommand = @"
-            CREATE INDEX ""idx_ArchiveNameToEID"" ON ""ExtractionRecords"" (
-                ""Archive Name"",
-	            ""ID""
-            )";
+            const string createPIDtoTagCommand = @"
+            CREATE INDEX ""idx_PIDtoTag"" ON ""Tags"" (
+                ""Product Record ID"" ASC,
+                ""Tag""	            
+            );";
+
+            const string createProductNameToPIDCommand = @"
+            CREATE INDEX ""idx_ProductNameToPID"" ON ""ProductRecords"" (
+                ""Product Name"" ASC,
+                ""ID""	            
+            );";
+
+            const string createDateCreatedToPIDCommand = @"
+            CREATE INDEX ""idx_DateCreatedToPID"" ON ""ProductRecords"" (
+                ""Date Created"" ASC,
+                ""ID""	            
+            );";
 
             try
             {
-                var createCommand = new SQLiteCommand(createTagToPIDCommand, _connection);
-                createCommand.ExecuteNonQuery();
-                createCommand = new SQLiteCommand(createArchiveNameToEIDCommand, _connection);
-                createCommand.ExecuteNonQuery();
+                using (var cmdObj = new SQLiteCommand(createTagToPIDCommand, _connection))
+                {
+                    cmdObj.ExecuteNonQuery();
+                    cmdObj.CommandText = createPIDtoTagCommand;
+                    cmdObj.ExecuteNonQuery();
+                    cmdObj.CommandText = createProductNameToPIDCommand;
+                    cmdObj.ExecuteNonQuery();
+                    cmdObj.CommandText = createDateCreatedToPIDCommand;
+                    cmdObj.ExecuteNonQuery();
+                }
             } catch (Exception ex)
             {
                 DPCommon.WriteToLog($"An error occurred creating indexes. REASON: {ex}");
@@ -1565,8 +1584,46 @@ namespace DAZ_Installer.DP
             return 0;
         }
 
+        private static void TruncateJournal()
+        {
+            if (!Initalized) Initialize();
+            OpenConnection();
+            var pragmaCheckpoint = "PRAGMA wal_checkpoint(TRUNCATE);";
+            try
+            {
+                using (var cmd = new SQLiteCommand(pragmaCheckpoint, _connection))
+                {
+                    cmd.ExecuteNonQuery();
+                }
+            }
+            catch (Exception ex) { }
+            finally
+            {
+                _connection.Shutdown();
+                _connection.Close();
+            }
+            _connection.Dispose();
 
+            // Now check if -wal and -shm are available.
+            var shmFile = Path.GetFullPath(_expectedDatabasePath + "-shm");
+            var walFile = Path.GetFullPath(_expectedDatabasePath + "-wal");
 
+            // TODO: Doesn't delete.
+            try
+            {
+                if (File.Exists(shmFile)) File.Delete(shmFile);
+                if (File.Exists(walFile)) File.Delete(walFile);
+            } catch (Exception ex) { }
+            
+        }
+
+        // Prep for app closure.
+        private static void OnAppClose(object e)
+        {
+            _mainTaskManager.Stop();
+            _priorityTaskManager.Stop();
+            TruncateJournal();
+        }
         
         #endregion
     }
