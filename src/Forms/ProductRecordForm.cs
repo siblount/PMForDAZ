@@ -43,7 +43,7 @@ namespace DAZ_Installer
             {
                 thumbnailBox.Image = Library.self.AddReferenceImage(record.ThumbnailPath);
             }
-            dateExtractedLbl.Text += record.Time.ToString();
+            dateExtractedLbl.Text += record.Time.ToLocalTime().ToString();
         }
 
         public void InitializeExtractionRecordInfo(DPExtractionRecord record)
