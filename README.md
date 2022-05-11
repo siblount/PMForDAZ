@@ -27,7 +27,7 @@ Currently, the application can:
   - ✅ Search products you've downloaded.
 
 The application cannot at this stage:
-  - ❌ Handle 7z files (partially implemented).
+  - ❌ Handle 7z files.
   - ❌ Detect product IDs from DAZ consistently.
   - ❌ Fetch thubmnails consistently - error prone.
   - ❌ Merge "part" archives into a single record.
