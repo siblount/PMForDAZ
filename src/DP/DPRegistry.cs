@@ -14,11 +14,12 @@ namespace DAZ_Installer.DP
     /// </summary>
     internal static class DPRegistry
     {
-        internal static string[] ContentDirectories { get; set; } = new string[0];
+        internal static string[] ContentDirectories { get; set; }
         internal static string DazAppPath { get; set; } = "";
         internal static bool foundRegistry = false;
         internal static bool initalized = false;
-        internal static void Initalize()
+
+        static DPRegistry()
         {
             var DazStudioKey = Registry.CurrentUser.OpenSubKey(@"SOFTWARE\DAZ\Studio4");
             if (DazStudioKey != null)

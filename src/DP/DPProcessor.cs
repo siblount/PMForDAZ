@@ -20,19 +20,19 @@ namespace DAZ_Installer.DP
         // SecureString - System.Security
         public static string TEMP_LOCATION = Path.Combine(DPSettings.tempPath, @"DazProductInstaller\");
         public static string destinationPath = @"D:\dazinstallertest\";
-        public static DPArchive workingArchive;
+        public static DPAbstractArchive workingArchive;
+        public static HashSet<string> previouslyInstalledArchiveNames { get; } = new HashSet<string>();
         public static List<string> doNotProcessList { get; } = new List<string>();
-        public static bool countingFiles = true;
         public static uint workingArchiveFileCount { get; set; } = 0; // can disgard.
         public static string GetDestinationPath(string relativePath)
         {
             return Path.Combine(destinationPath, relativePath);
         }
 
-        private static void HandleSupplementary(ref DPArchive archiveFile)
+        private static void HandleSupplementary(ref DPAbstractArchive archiveFile)
         {
-            DPFile supplement = archiveFile.supplementFile;
-            var manifestParser = new DSXParser(supplement.extractedPath);
+            DPFile supplement = archiveFile.SupplementFile;
+            var manifestParser = new DSXParser(supplement.ExtractedPath);
             var parsedFile = manifestParser.GetDSXFile();
             var elements = parsedFile.GetAllElements();
             foreach (var element in elements)
@@ -40,16 +40,14 @@ namespace DAZ_Installer.DP
 
                 if (new string(element.tagName) == "ProductName")
                 {
-                    archiveFile.productName = element.attributes["VALUE"];
+                    archiveFile.ProductInfo.ProductName = element.attributes["VALUE"];
                     return;
                 }
             }
         }
 
-        public static DPArchive ProcessArchive(ref DPArchive archiveFile)
+        public static DPAbstractArchive ProcessArchive(ref DPAbstractArchive archiveFile)
         {
-            if (!DPFile.initalized) DPFile.Initalize();
-
             TEMP_LOCATION = Path.Combine(DPSettings.tempPath, @"DazProductInstaller\");
             try
             {
@@ -58,39 +56,33 @@ namespace DAZ_Installer.DP
             catch (Exception e) { DPCommon.WriteToLog($"Unable to crate directory. {e}"); }
             archiveFile.Extract();
             // Determine content folders.
-            foreach (var folder in archiveFile.folders.Values)
+            foreach (var folder in archiveFile.Folders.Values)
             {
                 folder.isContentFolder = folder.DetermineIfContentFolder();
             }
             // Scan for manifest and supplement.dsx
-            archiveFile.manifestFile = archiveFile.FindFileViaName("Manifest.dsx") as DPFile; // null if not found
-            archiveFile.supplementFile = archiveFile.FindFileViaName("Supplement.dsx") as DPFile; // null if not found
+            archiveFile.ManifestFile = archiveFile.FindFileViaName("Manifest.dsx") as DPFile; // null if not found
+            archiveFile.SupplementFile = archiveFile.FindFileViaName("Supplement.dsx") as DPFile; // null if not found
 
             archiveFile.UpdateFilePaths();
 
             HandleMoveOperations(ref archiveFile);
-            if (archiveFile.supplementFile != null) HandleSupplementary(ref archiveFile);
+            if (archiveFile.SupplementFile != null) HandleSupplementary(ref archiveFile);
 
             DPCommon.WriteToLog("We are done");
 
             // Release some memory.
-            if (archiveFile.progressCombo != null)
+
+            archiveFile.ProgressCombo?.Remove();
+
+            for (var i = 0; i < archiveFile.InternalArchives.Count; i++)
             {
-                extractControl.extractPage.DeleteProgressionCombo(archiveFile.progressCombo);
-                archiveFile.progressCombo = null;
-            }
-
-            GC.Collect();
-
-
-            for (var i = 0; i < archiveFile.internalArchives.Count; i++)
-            {
-                var arc = archiveFile.internalArchives[i];
+                var arc = archiveFile.InternalArchives[i];
                 ProcessArchive(ref arc);
             }
 
 
-            archiveFile.type = archiveFile.DetermineArchiveType();
+            archiveFile.Type = archiveFile.DetermineArchiveType();
             DPCommon.WriteToLog("Analyzing files...");
             // Parse files.
             archiveFile.QuickAnalyzeFiles();
@@ -107,8 +99,8 @@ namespace DAZ_Installer.DP
             // Create record.
             var record = archiveFile.CreateRecords();
             // TO DO: Only add if successful extraction, and all files from temp were moved, and/or user didn't cancel operation.
-            DPCommon.WriteToLog($"Archive Type: {archiveFile.type}");
-            if (archiveFile.type == ArchiveType.Product)
+            DPCommon.WriteToLog($"Archive Type: {archiveFile.Type}");
+            if (archiveFile.Type == ArchiveType.Product)
             {
                 // Add it to the library.
                 Library.self.AddNewLibraryItem(record);
@@ -117,9 +109,10 @@ namespace DAZ_Installer.DP
             return archiveFile;
         }
 
-        public static DPArchive ProcessArchive(string filePath)
+        public static DPAbstractArchive ProcessArchive(string filePath)
         {
-            if (!DPFile.initalized) DPFile.Initalize();
+
+            // Update our temp location in case user changed the settings.
             TEMP_LOCATION = Path.Combine(DPSettings.tempPath, @"DazProductInstaller\");
             try
             {
@@ -141,36 +134,34 @@ namespace DAZ_Installer.DP
                 }
             }
             // Create new DPFile.
-            var archiveFile = new DPArchive(filePath, TEMP_LOCATION);
+            var archiveFile = DPAbstractArchive.CreateNewArchive(filePath, false, TEMP_LOCATION);
             archiveFile.Extract();
 
             // Determine content folders.
-            foreach (var folder in archiveFile.folders.Values)
+            foreach (var folder in archiveFile.Folders.Values)
             {
                 folder.isContentFolder = folder.DetermineIfContentFolder();
             }
             // Scan for manifest and supplement.dsx
-            archiveFile.manifestFile = archiveFile.FindFileViaName("Manifest.dsx") as DPFile;
-            archiveFile.supplementFile = archiveFile.FindFileViaName("Supplement.dsx") as DPFile;
+            archiveFile.ManifestFile = archiveFile.FindFileViaName("Manifest.dsx") as DPFile;
+            archiveFile.SupplementFile = archiveFile.FindFileViaName("Supplement.dsx") as DPFile;
 
             archiveFile.UpdateFilePaths();
-            var marqueeProgressBar = ShowMarqueeCombo();
-            marqueeProgressBar[1].Text = "Moving files...";
+
+            // TIDO: Ensure that archive progress combo is not null.
+            archiveFile.ProgressCombo.ChangeProgressBarStyle(true);
+            archiveFile.ProgressCombo.ProgressBarLbl.Text = "Moving files...";
             HandleMoveOperations(ref archiveFile);
-            if (archiveFile.supplementFile != null) HandleSupplementary(ref archiveFile);
+            if (archiveFile.SupplementFile != null) HandleSupplementary(ref archiveFile);
 
             DPCommon.WriteToLog("We are done");
 
             // Release some memory.
-            if (archiveFile.progressCombo != null)
-            {
-                extractControl.extractPage.DeleteProgressionCombo(archiveFile.progressCombo);
-                archiveFile.progressCombo = null;
-            }
+            archiveFile.ProgressCombo?.Remove();
 
             marqueeProgressBar[1].Text = "Analyzing file contents...";
             extractControl.extractPage.mainProcLbl.Text = marqueeProgressBar[1].Text;
-            archiveFile.type = archiveFile.DetermineArchiveType();
+            archiveFile.Type = archiveFile.DetermineArchiveType();
             DPCommon.WriteToLog("Analyzing files...");
             archiveFile.QuickAnalyzeFiles();
             marqueeProgressBar[1].Text = "Creating library item...";
@@ -178,21 +169,21 @@ namespace DAZ_Installer.DP
             archiveFile.GetTags();
             RemoveAnalysisProgressCombo(marqueeProgressBar);
 
-            for (var i = 0; i < archiveFile.internalArchives.Count; i++)
+            for (var i = 0; i < archiveFile.InternalArchives.Count; i++)
             {
-                var arc = archiveFile.internalArchives[i];
+                var arc = archiveFile.InternalArchives[i];
                 ProcessArchive(ref arc);
             }
 
-            DPCommon.WriteToLog($"Archive Type: {archiveFile.type}");
+            DPCommon.WriteToLog($"Archive Type: {archiveFile.Type}");
             // Create records and save it to disk.
             var record = archiveFile.CreateRecords();
-            if (archiveFile.type == ArchiveType.Product)
+            if (archiveFile.Type == ArchiveType.Product)
             {
                 // Add it to the library.
                 Library.self.AddNewLibraryItem(record);
             }
-            if (!archiveFile.isInnerArchive)
+            if (!archiveFile.IsInnerArchive)
             {
                 //Library.self.GenerateLibraryItemsFromDisk();
                 Library.self.InformLibraryUpdate();
@@ -200,155 +191,23 @@ namespace DAZ_Installer.DP
             return archiveFile;
         }
 
-        public static void ProcessRAR(ref DPArchive archive)
-        {
-            workingArchive = archive;
-            countingFiles = true;
-            // Get referenced extractPage to get extractControl instance.
-            extractControl extractPage = extractControl.extractPage;
-            RAR RARHandler = null;
-            try
-            {
-                if (archive.isInnerArchive) RARHandler = new RAR(archive.extractedPath);
-                else RARHandler = new RAR(archive.path);
-                // Add event listeners.
-                RARHandler.NewVolume += new RAR.NewVolumeHandler(HandleNewVolume);
-                RARHandler.MissingVolume += new RAR.MissingVolumeHandler(extractPage.HandleMissingVolume);
-                RARHandler.PasswordRequired += new RAR.PasswordRequiredHandler(extractPage.HandlePasswordProtected);
-                RARHandler.NewFile += new RAR.NewFileHandler(HandleNewFile);
-
-                RARHandler.Open(RAR.OpenMode.List);
-
-                // STOP and prompt if volume & volume is not the first volume
-                if ((RARHandler.arcData.Flags & 0x0100) == 0 && (RARHandler.arcData.Flags & 0x0001) != 0)
-                {
-                    extractPage.DoPromptMessage("Archive is not the first volume. Archive will not be processed.", "Cannot process second volume", MessageBoxButtons.OK);
-                    throw new IOException("Archive wasn't first volume.");
-                }
-                // Use this function to trigger NewFileHandler.
-                while (RARHandler.ReadHeader())
-                {
-                    try
-                    {
-                        RARHandler.Test();
-                    }
-                    catch (IOException e)
-                    {
-                        if (e.Message == "File CRC Error" || e.Message == "File could not be opened.")
-                        {
-                            // Check archive to see if the archive is a volume archive.
-                            var archiveIsVolume = (RARHandler.arcData.Flags & 0x01) == 1;
-                            // Check file data to see if it continues on next volume.
-                            var fileContinuesNext = RARHandler.CurrentFile.ContinuedOnNext;
-                            var fileEncrypted = RARHandler.CurrentFile.encrypted;
-                            if ((!archiveIsVolume || !fileContinuesNext) && !fileEncrypted)
-                            {
-                                // TODO: Call error tab to handle this matter.
-                                throw new FileFormatException("File CRC error.");
-                            }
-                        }
-                        else
-                        {
-                            // TODO: Call error tab to handle this matter.
-                            throw new FileFormatException("Another error occurred.");
-                        }
-                    }
-                }
-
-                countingFiles = false;
-                // Close file.
-                RARHandler.Close();
-                RARHandler.Dispose();
-
-                // Reopen and extract.
-                if (archive.isInnerArchive) RARHandler = new RAR(archive.extractedPath);
-                else RARHandler = new RAR(archive.path);
-
-                // Destination Path
-                RARHandler.DestinationPath = TEMP_LOCATION + Path.GetFileNameWithoutExtension(archive.path);
-                // Create path and see if it exists.
-                Directory.CreateDirectory(RARHandler.DestinationPath);
-
-                RARHandler.Open(RAR.OpenMode.Extract);
-                // Create events.
-                RARHandler.MissingVolume += new RAR.MissingVolumeHandler(RARHandleVolumes);
-                RARHandler.PasswordRequired += new RAR.PasswordRequiredHandler(RARHandlePassword);
-                RARHandler.ExtractionProgress += new RAR.ExtractionProgressHandler(extractPage.HandleProgressionRAR);
-                while (RARHandler.ReadHeader())
-                {
-                    // TO DO : Get DPFile and extract to destination and see if it's being extracted.
-                    try
-                    {
-                        RARHandler.Extract();
-                    }
-                    catch (IOException e)
-                    {
-                        if (e.Message == "File CRC Error" || e.Message == "File could not be opened.")
-                        {
-                            // Check archive to see if the archive is a volume archive.
-                            var archiveIsVolume = (RARHandler.arcData.Flags & 0x01) == 1;
-                            // Check file data to see if it continues on next volume.
-                            var fileContinuesNext = RARHandler.CurrentFile.ContinuedOnNext;
-                            var fileEncrypted = RARHandler.CurrentFile.encrypted;
-                            if ((!archiveIsVolume || !fileContinuesNext) && !fileEncrypted)
-                            {
-                                // TODO: Call error tab to handle this matter.
-                                throw new FileFormatException("File CRC error.");
-                            }
-                        }
-                        else
-                        {
-                            // TODO: Call error tab to handle this matter.
-                            DPCommon.WriteToLog(e);
-                            throw new FileFormatException("Another error occurred.");
-                        }
-                    }
-                }
-
-            }
-            catch (Exception e)
-            {
-                // TODO: Call error tab to handle this matter. (Probably issue with Archive)
-                DPCommon.WriteToLog(e);
-            }
-            finally
-            {
-                try
-                {
-                    RARHandler.Close();
-                    RARHandler.Dispose();
-                }
-                catch { }
-            }
-            //workingArchive.FinalizeFolderStructure();
-            extractPage.AddToList(ref workingArchive);
-
-            // Add files to hierachy.
-            extractPage.AddToHierachy(ref workingArchive);
-
-
-            // TO DO: Highlight files in red for files that failed to extract.
-            // Do this in extractPage.
-
-        }
-
-        public static void ProcessZIP(ref DPArchive archive)
+        public static void ProcessZIP(ref DPAbstractArchive archive)
         {
             workingArchive = archive;
 
             ZipArchive zipArchive;
-            if (archive.isInnerArchive) zipArchive = ZipFile.OpenRead(archive.extractedPath);
-            else zipArchive = ZipFile.OpenRead(archive.path);
+            if (archive.IsInnerArchive) zipArchive = ZipFile.OpenRead(archive.ExtractedPath);
+            else zipArchive = ZipFile.OpenRead(archive.Path);
 
             // Serialize contents.
             SerializeZIPFiles(zipArchive.Entries);
 
             // Add files to list & hierachy.
-            extractControl.extractPage.AddToList(ref archive);
-            extractControl.extractPage.AddToHierachy(ref archive);
+            extractControl.extractPage.AddToList(archive);
+            extractControl.extractPage.AddToHierachy(archive);
             //archive.FinalizeFolderStructure();
             // Extract files to temp location.
-            var tempLocation = TEMP_LOCATION + Path.GetFileNameWithoutExtension(archive.path);
+            var tempLocation = TEMP_LOCATION + Path.GetFileNameWithoutExtension(archive.Path);
 
             SafeExtractFiles(ref zipArchive, tempLocation);
 
@@ -357,7 +216,7 @@ namespace DAZ_Installer.DP
 
         }
 
-        public static void Process7Z(ref DPArchive archive)
+        public static void Process7Z(ref DPAbstractArchive archive)
         {
             // Call our 7za.exe app.
             // Should be 7za.exe
@@ -369,10 +228,10 @@ namespace DAZ_Installer.DP
 
             process.StartInfo.ArgumentList.Add("l");
             process.StartInfo.ArgumentList.Add("-slt");
-            if (archive.isInnerArchive)
-                process.StartInfo.ArgumentList.Add(archive.extractedPath);
+            if (archive.IsInnerArchive)
+                process.StartInfo.ArgumentList.Add(archive.ExtractedPath);
             else
-                process.StartInfo.ArgumentList.Add(archive.path);
+                process.StartInfo.ArgumentList.Add(archive.Path);
 
             Serialize7ZContents(ref process);
 
@@ -380,64 +239,6 @@ namespace DAZ_Installer.DP
         }
 
         // Called before actually extracted.
-        #region RAR Handling
-        public static void HandleNewFile(RAR sender, NewFileEventArgs e)
-        {
-            DPCommon.WriteToLog(e.fileInfo.FileName);
-            if (e.fileInfo.IsDirectory)
-            {
-                if (!workingArchive.FolderExists(e.fileInfo.FileName))
-                {
-                    new DPFolder(e.fileInfo.FileName, null);
-                    //newDir.parent = workingArchive.FindParent(ref IDP);
-                    //if (newDir.parent == null) workingArchive.rootFolders.Add(newDir);
-                }
-
-            }
-            else
-            {
-                if (DPFile.ValidImportExtension(Path.GetExtension(e.fileInfo.FileName)))
-                {
-                    // File is archive.
-                    var newArchive = new DPArchive(e.fileInfo.FileName, innerArchive: true);
-                    newArchive.rootArchive = workingArchive;
-                }
-                else
-                {
-                    var newFile = new DPFile(e.fileInfo.FileName, null);
-                    newFile.associatedArchive = workingArchive;
-                }
-            }
-            if (countingFiles) workingArchiveFileCount++;
-        }
-
-        public static void HandleNewVolume(RAR sender, NewVolumeEventArgs e)
-        {
-            if (sender.ArchivePathName != e.VolumeName) workingArchive.ConnectVolumeDir(e.VolumeName);
-            if (DPExtractJob.workingJob.doNotProcess.Contains(Path.GetFileName(sender.ArchivePathName)))
-            {
-                DPExtractJob.workingJob.doNotProcess.Add(Path.GetFileName(sender.ArchivePathName));
-            }
-        }
-
-        public static void RARHandlePassword(RAR sender, PasswordRequiredEventArgs e)
-        {
-            var password = workingArchive.GetPassword();
-            if (string.IsNullOrEmpty(password))
-            {
-                extractControl.extractPage.HandlePasswordProtected(sender, e);
-                return;
-            }
-            e.Password = workingArchive.GetPassword();
-            e.ContinueOperation = !workingArchive.cancelledOperation;
-            workingArchive.secondPasswordPromptHasSeen = true;
-        }
-
-        public static void RARHandleVolumes(RAR _, MissingVolumeEventArgs e)
-        {
-            e.VolumeName = workingArchive.GetRightVolume(e.VolumeName);
-        }
-        #endregion
         #region ZIP Handling
 
         public static void SerializeZIPFiles(IReadOnlyCollection<ZipArchiveEntry> entries)
@@ -453,21 +254,21 @@ namespace DAZ_Installer.DP
                         new DPFolder(entry.FullName, null);
                     }
                 }
-                // If entry is a valid archive. Treat it as a DPArchive.
+                // If entry is a valid archive. Treat it as a DPAbstractArchive.
                 else if (DPFile.ValidImportExtension(Path.GetExtension(entry.Name)))
                 {
-                    var newArchive = new DPArchive(entry.FullName, innerArchive: true);
-                    newArchive.rootArchive = workingArchive;
+                    var newArchive = new DPAbstractArchive(entry.FullName, innerArchive: true);
+                    newArchive.ParentArchive = workingArchive;
 
-                    workingArchive.contents.Add(newArchive);
+                    workingArchive.Contents.Add(newArchive);
                 }
                 else
                 {
                     var newFile = new DPFile(entry.FullName, null);
-                    newFile.associatedArchive = workingArchive;
+                    newFile.AssociatedArchive = workingArchive;
                 }
             }
-            workingArchive.fileCount = (uint)entries.Count;
+            workingArchive.FileCount = (uint)entries.Count;
         }
         /// <summary>
         /// Handles zip vulnerabilty and notifies the user of this potential issue. Returns a boolean value if errors occurred or user cancelled.
@@ -491,11 +292,11 @@ namespace DAZ_Installer.DP
                 var cleanedDest = Path.Combine(directory, Path.GetDirectoryName(file.FullName));
                 var cleanedName = Path.Combine(directory, file.FullName);
                 if (success)
-                    dpFile.extractedPath = cleanedName;
+                    dpFile.ExtractedPath = cleanedName;
                 else
                 {
-                    success = DPArchive.FindArchiveViaName(file.FullName, out DPArchive dpArchive);
-                    if (success) dpArchive.extractedPath = cleanedName;
+                    success = DPAbstractArchive.FindArchiveViaName(file.FullName, out DPAbstractArchive dpArchive);
+                    if (success) dpArchive.ExtractedPath = cleanedName;
                 }
                 Directory.CreateDirectory(cleanedDest);
                 try
@@ -513,10 +314,10 @@ namespace DAZ_Installer.DP
         }
         #endregion
         #region 7Z Handling
-        internal static bool GetMultiParts(ref DPArchive archive, out string[] otherArchiveNames)
+        internal static bool GetMultiParts(ref DPAbstractArchive archive, out string[] otherArchiveNames)
         {
             // Since the inital call did not throw an error, we can assume that there are valid multipart names.
-            var similarFiles = Directory.GetFiles(Path.GetDirectoryName(archive.extractedPath), Path.GetFileNameWithoutExtension(archive.extractedPath));
+            var similarFiles = Directory.GetFiles(Path.GetDirectoryName(archive.ExtractedPath), Path.GetFileNameWithoutExtension(archive.ExtractedPath));
             var numList = new List<int>(similarFiles.Length);
             var possibleArchiveNames = new List<string>(similarFiles.Length);
             foreach (var file in similarFiles)
@@ -561,16 +362,16 @@ namespace DAZ_Installer.DP
                         {
                             if (DPFile.ValidImportExtension(Path.GetExtension(file)))
                             {
-                                var newArchive = new DPArchive(file, innerArchive: true);
-                                newArchive.rootArchive = workingArchive;
+                                var newArchive = new DPAbstractArchive(file, true);
+                                newArchive.ParentArchive = workingArchive;
 
-                                workingArchive.contents.Add(newArchive);
+                                workingArchive.Contents.Add(newArchive);
                             }
                             else
                             {
                                 var newFile = new DPFile(file, null);
 
-                                newFile.associatedArchive = workingArchive;
+                                newFile.AssociatedArchive = workingArchive;
                             }
                         }
                     }
@@ -639,9 +440,9 @@ namespace DAZ_Installer.DP
         /// </summary>
         /// <param name="manifest">A DPFile that is a manifest.</param>
         /// <returns>Returns a dictionary containing files to extract and their destination. Key is the file path in the archive, and value is the destination.</returns>
-        public static Dictionary<string, string> HandleManifest(ref DPFile manifest, ref DPArchive archive)
+        public static Dictionary<string, string> HandleManifest(ref DPFile manifest, ref DPAbstractArchive archive)
         {
-            var manifestParser = new DSXParser(manifest.extractedPath);
+            var manifestParser = new DSXParser(manifest.ExtractedPath);
             var parsedFile = manifestParser.GetDSXFile();
             var elements = parsedFile.GetAllElements();
 
@@ -672,49 +473,41 @@ namespace DAZ_Installer.DP
             return workingDict;
         }
 
-        public static void HandleMoveOperations(ref DPArchive archive)
+        public static void HandleMoveOperations(ref DPAbstractArchive archive)
         {
             // Handle Manifest first.
-            if (archive.manifestFile != null)
+            if (archive.ManifestFile != null)
             {
                 if (DPSettings.handleInstallation == InstallOptions.ManifestAndAuto ||
                     DPSettings.handleInstallation == InstallOptions.ManifestOnly)
                 {
-                    var manifest = archive.manifestFile;
+                    var manifest = archive.ManifestFile;
                     Dictionary<string, string> manifestDestinations = HandleManifest(ref manifest, ref archive);
 
-                    foreach (var file in archive.contents)
+                    foreach (var file in archive.Contents)
                     {
-                        if (manifestDestinations.ContainsKey(file.path))
+                        if (manifestDestinations.ContainsKey(file.Path))
                         {
                             bool wasSuccessful = true;
                             try
                             {
-                                file.destinationPath = manifestDestinations[archive.path];
+                                file.DestinationPath = manifestDestinations[archive.Path];
                                 // TO DO: Add directories if does not exist.
-                                Directory.CreateDirectory(Path.GetDirectoryName(file.destinationPath));
-                                File.Move(file.extractedPath, file.destinationPath, true);
+                                Directory.CreateDirectory(Path.GetDirectoryName(file.DestinationPath));
+                                File.Move(file.ExtractedPath, file.DestinationPath, true);
                             }
                             catch
                             {
                                 wasSuccessful = false;
                             }
 
-                            if (file.GetType() == typeof(DPFile))
-                            {
-                                ((DPFile)file).errored = wasSuccessful;
-                            }
-                            else if (file.GetType() == typeof(DPArchive))
-                            {
-                                ((DPArchive)file).errored = wasSuccessful;
-                            }
-                            file.wasExtracted = wasSuccessful;
+                            file.errored = file.WasExtracted = wasSuccessful;
                         }
                         else
                         {
                             if (DPSettings.handleInstallation == InstallOptions.ManifestOnly)
                             {
-                                file.extract = false;
+                                file.WillExtract = false;
                             }
                         }
                     }
@@ -729,7 +522,7 @@ namespace DAZ_Installer.DP
             if (DPSettings.handleInstallation == InstallOptions.Automatic || DPSettings.handleInstallation == InstallOptions.ManifestAndAuto)
             {
                 // Get contents where file was not extracted.
-                var folders = archive.folders.Values.ToArray();
+                var folders = archive.Folders.Values.ToArray();
                 foreach (var folder in folders)
                 {
                     // TO DO: Check if folder is a subfolder of a folder that is a content folder.
@@ -741,24 +534,24 @@ namespace DAZ_Installer.DP
                         foreach (var child in folder.GetFiles())
                         {
                             // Get destination path.
-                            var dPath = Path.Combine(DPSettings.destinationPath, child.relativePath);
+                            var dPath = Path.Combine(DPSettings.destinationPath, child.RelativePath);
                             // Update child destination path.
-                            child.destinationPath = dPath;
+                            child.DestinationPath = dPath;
                             var successfulMove = true;
                             try
                             {
-                                child.extract = true;
+                                child.WillExtract = true;
                                 // Move.
-                                Directory.CreateDirectory(Path.GetDirectoryName(child.destinationPath));
+                                Directory.CreateDirectory(Path.GetDirectoryName(child.DestinationPath));
 
-                                File.Move(child.extractedPath, child.destinationPath);
+                                File.Move(child.ExtractedPath, child.DestinationPath);
                             }
                             catch (Exception e)
                             {
                                 successfulMove = false;
                                 DPCommon.WriteToLog($"Unable to move file. REASON: {e}");
                             }
-                            child.wasExtracted = successfulMove;
+                            child.WasExtracted = successfulMove;
                         }
                     }
                 }
@@ -769,24 +562,24 @@ namespace DAZ_Installer.DP
                     // Add all archives to the inner archives to process for later processing.
                     foreach (var file in folder.GetFiles())
                     {
-                        if (file.GetType() == typeof(DPArchive))
+                        if (file.GetType() == typeof(DPAbstractArchive))
                         {
-                            var arc = (DPArchive)file;
+                            var arc = (DPAbstractArchive)file;
                             // Add to queue.
-                            workingArchive.internalArchives.Add(arc);
+                            workingArchive.InternalArchives.Add(arc);
                         }
                     }
                 }
 
                 // Hunt down all files in root content.
 
-                foreach (var content in archive.rootContents)
+                foreach (var content in archive.RootContents)
                 {
-                    if (content.GetType() == typeof(DPArchive))
+                    if (content.GetType() == typeof(DPAbstractArchive))
                     {
-                        var arc = (DPArchive)content;
+                        var arc = (DPAbstractArchive)content;
                         // Add to queue.
-                        workingArchive.internalArchives.Add(arc);
+                        workingArchive.InternalArchives.Add(arc);
                     }
                 }
                 // Force cleanup.

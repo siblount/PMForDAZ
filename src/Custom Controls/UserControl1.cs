@@ -47,7 +47,7 @@ namespace DAZ_Installer
         {
             var eControl = extractControl.extractPage;
             // Clear everything from extract page.
-            eControl.ResetExtractPage();
+            DPProgressCombo.RemoveAll();
             // Goto next page.
             MainForm.SwitchPage(eControl);
 
