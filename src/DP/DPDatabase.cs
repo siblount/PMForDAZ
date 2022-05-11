@@ -65,6 +65,7 @@ namespace DAZ_Installer.DP
 
         public static uint ProductRecordCount { get; private set; } = 0;
         public static uint ExtractionRecordCount { get; private set; } = 0;
+        public static HashSet<string> ArchiveFileNames { get; private set; } = new HashSet<string>();
 
         // Events
         public static event Action<DPProductRecord[]> SearchUpdated;
@@ -72,12 +73,14 @@ namespace DAZ_Installer.DP
         public static event Action<DataSet> ViewUpdated;
         public static event Action<DPProductRecord[]> LibraryQueryCompleted;
         public static event Action<DPExtractionRecord> RecordQueryCompleted;
+        public static event Action MainQueryCompleted;
 
         public static event Action SearchFailed;
         public static event Action LibraryQueryFailed;
         public static event Action ViewFailed;
         public static event Action DatabaseBroke;
         public static event Action RecordQueryFailed;
+        public static event Action MainQueryFailed;
 
 
         // Private
@@ -240,6 +243,10 @@ namespace DAZ_Installer.DP
 
         public static void GetExtractionRecordQ(uint eid) {
             _priorityTaskManager.AddToQueue(GetExtractionRecord, eid);
+        }
+
+        public static void GetInstalledArchiveNamesQ() {
+            _priorityTaskManager.AddToQueue(GetArchiveFileNameList);
         }
         #endregion
         
@@ -1326,49 +1333,6 @@ namespace DAZ_Installer.DP
                 if (!t.IsCancellationRequested) isSearching = false;
             }
         }
-        //private static void DoLibraryQuery(uint limit, DPSortMethod method, CancellationToken t)
-        //{
-        //    // User initialized another search while an old search hasn't finished completing.
-        //    if (isSearching)
-        //    {
-        //        _searchTaskManager.Stop();
-        //    }
-        //    isSearching = true;
-        //    try
-        //    {
-        //        SpinWait.SpinUntil(() => nonSearchTaskIsAboutToExecute == 0, 60 * 10000);
-        //    }
-        //    catch (Exception e)
-        //    {
-        //        DPCommon.WriteToLog("Search timed out due to previous tasks.");
-        //        _searchTaskManager.Stop();
-        //    }
-        //    if (!Initalized) Initialize();
-        //    if (IsBroken)
-        //    {
-        //        DPCommon.WriteToLog("Search cannot proceed due to database being broken.");
-        //        LibraryQueryCompleted?.Invoke(Array.Empty<DPProductRecord>());
-        //    }
-        //    OpenConnection();
-        //    DPProductRecord[] results;
-
-        //    try
-        //    {
-        //        var command = new SQLiteCommand(_connection);
-        //        SetupSQLLibraryQuery(limit, method, ref command);
-        //        results = SearchProductRecordsViaTagsS(command, t);
-        //        LibraryQueryCompleted?.Invoke(results);
-
-        //    }
-        //    catch (Exception e)
-        //    {
-        //        DPCommon.WriteToLog("An error occurred with the search function.");
-        //        results = Array.Empty<DPProductRecord>();
-        //        LibraryQueryCompleted?.Invoke(results);
-        //    }
-
-        //    if (!t.IsCancellationRequested) isSearching = false;
-        //}
 
         private static string[] GetTables(CancellationToken cancellationToken)
         {
@@ -1564,6 +1528,41 @@ namespace DAZ_Installer.DP
                 RecordQueryFailed?.Invoke();
             } catch (Exception ex) {
                 DPCommon.WriteToLog("Failed to get extraction record.");
+            }
+        }
+
+        private static void GetArchiveFileNameList(CancellationToken t) {
+            if (isSearching)
+            {
+                _priorityTaskManager.Stop();
+            }
+            if (!Initalized) Initialize();
+            if (IsBroken)
+            {
+                DPCommon.WriteToLog("Search cannot proceed due to database being broken.");
+                SearchFailed?.Invoke();
+            }
+            isSearching = true;
+            
+            HashSet<string> names;
+            var getCmd = @"SELECT ""Archive Name"" FROM ExtractionRecords;";
+            var constring = "Data Source = " + Path.GetFullPath(_expectedDatabasePath) + ";Read Only=True";
+            try {
+                using (var _connection = new SQLiteConnection(constring)) {
+                    using (var cmd = new SQLiteCommand(getCmd, _connection)) {
+                        using (var reader = cmd.ExecuteReader()) {
+                            names = new HashSet<string>(reader.StepCount);
+                            while (reader.Read()) {
+                                names.Add(reader.GetString(0));
+                            }
+                        }
+                    }
+                } 
+                MainQueryCompleted?.Invoke();
+                ArchiveFileNames = names;
+            } catch (Exception ex) {
+                DPCommon.WriteToLog("Failed to get archive file name list.");
+                MainQueryFailed?.Invoke();
             }
         }
 
