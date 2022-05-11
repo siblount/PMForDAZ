@@ -1,4 +1,5 @@
 using System.Windows.Forms;
+using System.Text.RegularExpressions;
 using System.Linq;
 using System.Collections.Generic;
 using IOPath = System.IO.Path;
@@ -89,10 +90,20 @@ namespace DAZ_Installer.DP {
         /// </summary>
         public List<DPFolder> RootFolders { get; } = new List<DPFolder>();
         /// <summary>
-        /// A list of all file contents in this archive.
+        /// A map of all of the contents (DPAbstractFiles) in this archive.
         /// </summary>
-        public List<DPAbstractFile> Contents { get; } = new List<DPAbstractFile>();
-        public List<DPAbstractFile> RootContents { get; } = new List<DPAbstractFile>();
+        /// <typeparam name="string">The file name from the extract method.</typeparam>
+        /// <typeparam name="DPAbstractFile">The file content in this archive.</typeparam>
+        /// <returns></returns>
+        public Dictionary<string, DPAbstractFile> Contents { get; } = new Dictionary<string, DPAbstractFile>();
+        
+        /// <summary>
+        /// A map of the root contents/ the contents at root level (DPAbstractFiles) of this archive.
+        /// </summary>
+        /// <typeparam name="string">The file name from the extract method.</typeparam>
+        /// <typeparam name="DPAbstractFile">The file content in this archive.</typeparam>
+        /// <returns></returns>
+        public Dictionary<string, DPAbstractFile> RootContents { get; } = new Dictionary<string, DPAbstractFile>();
         /// <summary>
         /// A boolean to determine if the processor can read the contents of the archive without extracting to disk.
         /// </summary>
@@ -107,6 +118,8 @@ namespace DAZ_Installer.DP {
 
         protected Mode mode { get; set; } = Mode.Extract;
 
+        private static Regex productNameRegex = new Regex(@"(\w+)", RegexOptions.Compiled);
+
         /// <summary>
         /// Peeks the archive contents if possible and will extract the archive contents to the destination path. 
         /// </summary>
@@ -117,6 +130,11 @@ namespace DAZ_Installer.DP {
         /// properties. Otherwise, no operation will be done.
         /// </summary>
         internal abstract void Peek();
+        
+        /// <summary>
+        /// This function updates the 
+        /// </summary>
+        internal abstract void UpdateData();
         
         /// <summary>
         ///  Checks whether or not the given ext is what is expected. Checks file headers.
@@ -189,34 +207,14 @@ namespace DAZ_Installer.DP {
         /// <summary>
         /// Finds files that were supposedly extracted to disk.
         /// </summary>
-        /// <returns>An tuple where the first item are the found files, 
-        /// and the second are missing files</returns>
-        private Tuple<string[], string[]> ConfirmFilesExtraction()
+        /// <returns>The file paths of successful extracted files.</returns>
+        private string[] GetSuccessfulFiles()
         {
-            List<string> foundFiles = new List<string>((int) FileCount);
-            List<string> missingFiles = new List<string>();
-            foreach (var file in Contents)
-            {
-                if (!file.WillExtract) missingFiles.Add(file.Path);
-                else
-                {
-                    var dest = file.DestinationPath;
-                    if (dest == null) continue;
-                    if (File.Exists(dest)) foundFiles.Add(file.Path);
-                    else missingFiles.Add(file.Path);
-                }
+            List<string> foundFiles = new List<string>(Contents.Count);
+            foreach (var file in Contents.Values) {
+                if (file.WasExtracted) foundFiles.Add(file.Path);
             }
-
-            // Remove any occurances of errored files in missing files.
-            for (int i = missingFiles.Count - 1; i >= 0; i--)
-            {
-                if (ErroredFiles.Contains(missingFiles[i]))
-                {
-                    missingFiles.RemoveAt(i);
-                }
-            }
-
-            return new (foundFiles.ToArray(), missingFiles.ToArray());
+            return foundFiles.ToArray();
         }
 
         internal static bool FindArchiveViaName(string path, out DPAbstractArchive archive)
@@ -230,12 +228,9 @@ namespace DAZ_Installer.DP {
 
         internal DPProductRecord CreateRecords()
         {
-            var tuple = ConfirmFilesExtraction();
-            string[] foundFiles = tuple.Item1;
-            string[] missingFiles = tuple.Item2;
             string imageLocation = string.Empty;
             var workingExtractionRecord = 
-                new DPExtractionRecord(System.IO.Path.GetFileName(FileName), DPSettings.destinationPath, foundFiles, ErroredFiles.ToArray(), 
+                new DPExtractionRecord(System.IO.Path.GetFileName(FileName), DPSettings.destinationPath, GetSuccessfulFiles(), ErroredFiles.ToArray(), 
                 null, ConvertDPFoldersToStringArr(Folders), 0);
 
             if (Type != ArchiveType.Bundle)
@@ -262,7 +257,8 @@ namespace DAZ_Installer.DP {
             return null;
         }
 
-        internal DPAbstractFile FindFileViaName(string name)
+        [Obsolete("Will be updated soon.")]
+        internal DPAbstractFile? FindFileViaName(string name)
         {
             foreach (var file in Contents)
             {
@@ -301,59 +297,42 @@ namespace DAZ_Installer.DP {
             return ArchiveType.Unknown;
         }
 
-
-        /// <summary>
-        /// Updates the extracted path for each DPAbstractFile. Should be called after all files are extracted.
-        /// </summary>
-        internal void UpdateFilePaths()
-        {
-            foreach (var content in Contents)
-            {
-                content.ExtractedPath = System.IO.Path.Combine(DPProcessor.TEMP_LOCATION, System.IO.Path.GetFileNameWithoutExtension(Path), content.Path);
-            }
-        }
-
         public void GetTags()
         {
             // First is always author.
             // Next is folder names.
-            var author = "";
-            var id = "";
+            var productNameTokens = SplitProductName();
             var fileNames = new HashSet<string>(Contents.Count);
             var folderNames = new HashSet<string>(Folders.Count);
-            foreach (var content in Contents)
+
+            foreach (var content in Contents.Values)
             {
-                var fileNameWOExt = System.IO.Path.GetFileNameWithoutExtension(content.Path);
+                var fileNameWOExt = IOPath.GetFileNameWithoutExtension(content.Path);
                 fileNames.Add(fileNameWOExt);
-                if (content.GetType() != typeof(DPFile)) continue;
-                var dpfile = (DPFile)content;
-                if (author == string.Empty)
+                if (content is DPAbstractArchive) continue;
+
+                var dpfile = (DPFile) content;
+                if (ProductInfo.Author.Length == 0)
                 {
-                    if (!string.IsNullOrEmpty(dpfile.author)) author = dpfile.author;
+                    if (!string.IsNullOrEmpty(dpfile.author)) ProductInfo.Author = dpfile.author;
                 }
-                if (id != string.Empty)
+                if (ProductInfo.SKU.Length == 0)
                 {
-                    if (!string.IsNullOrEmpty(dpfile.id)) id = dpfile.id;
+                    if (!string.IsNullOrEmpty(dpfile.id)) ProductInfo.SKU = dpfile.id;
                 }
             }
             foreach (var folder in Folders.Values)
             {
                 folderNames.Add(folder.RelativePath);
             }
-            var tagsArray = new HashSet<string>(fileNames.Count + folderNames.Count + 2);
-            if (!string.IsNullOrEmpty(author))
-            {
-                tagsArray.Add(author);
-                tagsArray.UnionWith(folderNames);
-                tagsArray.UnionWith(fileNames);
-                if (!string.IsNullOrEmpty(id)) tagsArray.Add(id);
+            var tagsArray = new HashSet<string>(fileNames.Count + folderNames.Count + 3);
+
+            if (ProductInfo.Author.Length != 0) tagsArray.Add(ProductInfo.Author);
+            tagsArray.UnionWith(folderNames);
+            tagsArray.UnionWith(fileNames);
+            if (ProductInfo.SKU.Length != 0) tagsArray.Add(ProductInfo.SKU);
             }
-            else
-            {
-                tagsArray.UnionWith(folderNames);
-                tagsArray.UnionWith(fileNames);
-                if (!string.IsNullOrEmpty(id)) tagsArray.Add(id);
-            }
+
             ProductInfo.Tags = tagsArray;
 
         }
@@ -399,6 +378,16 @@ namespace DAZ_Installer.DP {
             }
             folder = null;
             return false;
+        }
+
+
+        internal string[] SplitProductName() {
+            var matches = productNameRegex.Matches(ProductInfo.ProductName);
+            List<string> tokens = new List<string>(matches.Count);
+            foreach (Match match in matches) {
+                tokens.Add(match.Value);
+            }
+            return tokens.ToArray();
         }
 
         internal void QuickAnalyzeFiles()

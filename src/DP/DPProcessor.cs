@@ -148,7 +148,7 @@ namespace DAZ_Installer.DP
 
             archiveFile.UpdateFilePaths();
 
-            // TIDO: Ensure that archive progress combo is not null.
+            // TODO: Ensure that archive progress combo is not null.
             archiveFile.ProgressCombo.ChangeProgressBarStyle(true);
             archiveFile.ProgressCombo.ProgressBarLbl.Text = "Moving files...";
             HandleMoveOperations(ref archiveFile);

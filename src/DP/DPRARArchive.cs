@@ -250,6 +250,8 @@ namespace DAZ_Installer.DP
                     DPCommon.WriteToLog($"An unexpected error occured while processing for RAR Archive. REASON: {e}");
                 }
             }
+
+            UpdateFilePaths();
             // extractPage.AddToList(workingArchive);
 
             // // Add files to hierachy.
@@ -302,26 +304,34 @@ namespace DAZ_Installer.DP
 
         }
 
+        private bool UpdateDPFileData(DPFile file) {
+            file.WasExtracted = true;
+            file.ExtractedPath = IOPath.Combine(DPProcessor.TEMP_LOCATION, 
+                                IOPath.GetFileNameWithoutExtension(Path), Path);
+        }
+
         private bool ExtractFile(RAR handler) {
+            string fileName = handler.CurrentFile.FileName;
+            DPFile file = null;
             try {
                 handler.Extract();
+                if (DPFile.FindFileInDPFiles(fileName, out file)) {
+                    UpdateDPFileData(file);
+                }
             } catch (IOException e) {
                 if (e.Message == "File CRC Error" || e.Message == "File could not be opened.") {
                     var flags = (RAR.ArchiveFlags) handler.arcData.Flags;
                     var isVolume = flags.HasFlag(RAR.ArchiveFlags.Volume);
                     var continuesNext = handler.CurrentFile.ContinuedOnNext;
                     var isEncrypted = handler.CurrentFile.encrypted;
-                    
+
                     if ((!isVolume || !continuesNext) && !isEncrypted)
                     {
-                        return false;
-                        // TODO: Call error tab to handle this matter.
-                        throw new FileFormatException("File CRC error.");
+                        DPCommon.WriteToLog("File CRC error.");
                     } else {
-                        return false;
-                        // TODO: Call error tab to handle this matter.
-                        throw new FileFormatException("Another error occurred.");
+                        DPCommon.WriteToLog("An unexpected error occured when extracting a rar file.");
                     }
+                    return false;
                 }
             }
             return true;
