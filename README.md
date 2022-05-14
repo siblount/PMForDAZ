@@ -74,6 +74,7 @@ The application cannot at this stage:
   - Password Input Dialog - `PasswordInput.cs` - Special dialog for password-protected archives. 
   - Product Record Form - `ProductRecordForm.cs` - Form for displaying the record in the database (and later editing).
   - Database View - `DatabaseView.cs` - Form for displaying all contents in the database.
+
 `src\Libs` - Currently only consists of rar.dll - used for handling RAR files.
 
 `ImportFileRecordsToDatabase` - small program to transfer file system records to the database. Though, this is really only for me.
