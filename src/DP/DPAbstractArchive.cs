@@ -80,8 +80,10 @@ namespace DAZ_Installer.DP {
         internal DPProductInfo ProductInfo { get; init; } = new DPProductInfo();
 
         /// <summary>
-        /// A list of all of the folders parented to this archive.
+        /// A map of all of the folders parented to this archive.
         /// </summary>
+        /// <typeparam name="string">The `Path` of the Folder.</typeparam>
+        /// <typeparam name="DPFolder">The folder.</typeparam>
 
         public Dictionary<string, DPFolder> Folders { get; } = new Dictionary<string, DPFolder>();
 
@@ -90,25 +92,24 @@ namespace DAZ_Installer.DP {
         /// </summary>
         public List<DPFolder> RootFolders { get; } = new List<DPFolder>();
         /// <summary>
-        /// A map of all of the contents (DPAbstractFiles) in this archive.
+        /// A list of all of the contents (DPAbstractFiles) in this archive.
         /// </summary>
-        /// <typeparam name="string">The file name from the extract method.</typeparam>
         /// <typeparam name="DPAbstractFile">The file content in this archive.</typeparam>
-        /// <returns></returns>
-        public Dictionary<string, DPAbstractFile> Contents { get; } = new Dictionary<string, DPAbstractFile>();
+        public List<DPAbstractFile> Contents { get; } = new List<DPAbstractFile>();
         
         /// <summary>
-        /// A map of the root contents/ the contents at root level (DPAbstractFiles) of this archive.
+        /// A list of the root contents/ the contents at root level (DPAbstractFiles) of this archive.
         /// </summary>
-        /// <typeparam name="string">The file name from the extract method.</typeparam>
         /// <typeparam name="DPAbstractFile">The file content in this archive.</typeparam>
-        /// <returns></returns>
-        public Dictionary<string, DPAbstractFile> RootContents { get; } = new Dictionary<string, DPAbstractFile>();
+        public List<DPAbstractFile> RootContents { get; } = new List<DPAbstractFile>();
         /// <summary>
         /// A boolean to determine if the processor can read the contents of the archive without extracting to disk.
         /// </summary>
         internal virtual bool CanPeek { get; init; } = false;
-        internal uint FileCount { get; set; } = 0;
+        /// <summary>
+        /// The true uncompressed size of the archive contents in bytes.
+        /// </summary>
+        internal ulong TrueArchiveSize { get; set; } = 0;
 
         /// <summary>
         /// The progress combo that is visible on the extraction page. This is typically null when the file is firsted discovered
@@ -130,11 +131,6 @@ namespace DAZ_Installer.DP {
         /// properties. Otherwise, no operation will be done.
         /// </summary>
         internal abstract void Peek();
-        
-        /// <summary>
-        /// This function updates the 
-        /// </summary>
-        internal abstract void UpdateData();
         
         /// <summary>
         ///  Checks whether or not the given ext is what is expected. Checks file headers.
@@ -211,7 +207,7 @@ namespace DAZ_Installer.DP {
         private string[] GetSuccessfulFiles()
         {
             List<string> foundFiles = new List<string>(Contents.Count);
-            foreach (var file in Contents.Values) {
+            foreach (var file in Contents) {
                 if (file.WasExtracted) foundFiles.Add(file.Path);
             }
             return foundFiles.ToArray();
@@ -257,7 +253,6 @@ namespace DAZ_Installer.DP {
             return null;
         }
 
-        [Obsolete("Will be updated soon.")]
         internal DPAbstractFile? FindFileViaName(string name)
         {
             foreach (var file in Contents)
@@ -305,7 +300,7 @@ namespace DAZ_Installer.DP {
             var fileNames = new HashSet<string>(Contents.Count);
             var folderNames = new HashSet<string>(Folders.Count);
 
-            foreach (var content in Contents.Values)
+            foreach (var content in Contents)
             {
                 var fileNameWOExt = IOPath.GetFileNameWithoutExtension(content.Path);
                 fileNames.Add(fileNameWOExt);
@@ -331,11 +326,11 @@ namespace DAZ_Installer.DP {
             tagsArray.UnionWith(folderNames);
             tagsArray.UnionWith(fileNames);
             if (ProductInfo.SKU.Length != 0) tagsArray.Add(ProductInfo.SKU);
-            }
 
             ProductInfo.Tags = tagsArray;
-
+        
         }
+
         public DPFolder FindParent(DPAbstractFile obj)
         {
             var fileName = PathHelper.GetFileName(obj.Path);
@@ -353,17 +348,7 @@ namespace DAZ_Installer.DP {
             return null;
         }
 
-        public bool FolderExists(string fPath)
-        {
-            foreach (var path in Folders.Keys)
-            {
-                if (path == fPath)
-                {
-                    return true;
-                }
-            }
-            return false;
-        }
+        public bool FolderExists(string fPath) => Folders.ContainsKey(fPath);
 
         public bool RecursivelyFindFolder(string relativePath, out DPFolder folder)
         {
