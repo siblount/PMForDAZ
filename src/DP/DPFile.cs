@@ -4,9 +4,10 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.RegularExpressions;
 using System.IO;
+using IOPath = System.IO.Path;
 using System.IO.Compression;
-using System.Windows.Forms;
 
 namespace DAZ_Installer.DP
 {
@@ -15,7 +16,7 @@ namespace DAZ_Installer.DP
 
         // Public static members
         private static Dictionary<string, ContentType> enumPairs { get; } = new Dictionary<string, ContentType>(Enum.GetValues(typeof(ContentType)).Length);
-        public static readonly HashSet<string> DAZFormats = new HashSet<string>() { "duf", "dsa", "dse", "daz", "dsf", "duf", "dsb", "dson", "ds", "dsb", "djl", "dsx", "dsi", "dcb", "dbm", "dbc", "dbl", "dso", "dsd", "dsv" };
+        public static readonly HashSet<string> DAZFormats = new HashSet<string>() { "duf", "dsa", "dse", "daz", "dsf", "dsb", "dson", "ds", "dsb", "djl", "dsx", "dsi", "dcb", "dbm", "dbc", "dbl", "dso", "dsd", "dsv" };
         public static readonly HashSet<string> GeometryFormats = new HashSet<string>() { "dae", "bvh", "fbx", "obj", "dso", "abc", "mdd", "mi", "u3d" };
         public static readonly HashSet<string> MediaFormats = new HashSet<string>() { "png", "jpg", "hdr", "hdri", "bmp", "gif", "webp", "eps", "raw", "tiff", "tif", "psd", "xcf", "jpeg", "cr2", "svg", "apng", "avif" };
         public static readonly HashSet<string> DocumentFormats = new HashSet<string>() { "txt", "pdf", "doc", "docx", "odt", "html", "ppt", "pptx", "xlsx", "xlsm", "xlsb", "rtf" };
@@ -25,15 +26,13 @@ namespace DAZ_Installer.DP
 
         // Used for identification
         // TO DO: Add struct for metadata.
-        public ContentType contentType;
-        public string author;
-        public string website;
-        public string email;
-        public string id;
+
+        internal List<string> Tags { get; set; }
         /// <summary>
         /// Parent of current file. When setting parent to a folder, property will call addChild() and handle contents appropriately.
         /// </summary>
-        public string ListName { get; set; }
+        internal string ListName { get; set; }
+        
 
         // TO DO : Add get tags func.
         // TO DO: Add static function to search for a property.
@@ -43,6 +42,34 @@ namespace DAZ_Installer.DP
                 var lowercasedName = eName.ToLower();
                 enumPairs[lowercasedName] = (ContentType)Enum.Parse(typeof(ContentType), eName);
             }
+        }
+
+        public DPFile(string _path, DPFolder __parent) : base(_path)
+        {
+            WillExtract = true;
+            Parent = __parent;
+            if (Path != null | Path != "")
+            {
+                // _ext can have length of 0, ex: LICENSE
+                var _ext = IOPath.GetExtension(Path);
+                Ext = _ext.Length != 0 ? _ext.Substring(1) : string.Empty;
+            }
+            ListName = DPProcessor.workingArchive.FileName + '\\' + Path;
+            DPFiles.TryAdd(Path, this);
+            DPProcessor.workingArchive.Contents.Add(this);
+
+            InitializeTagsList();
+        }
+
+        internal static DPFile CreateNewFile(string path, DPFolder? parent) {
+            var ext = IOPath.GetExtension(path).ToLower();
+            if (ext.IndexOf('.') != -1) ext = ext.Substring(1);
+            if (ext == "dsf" || ext == "duf") {
+                return new DPDazFile(path, parent);
+            } else if (ext == "dsx") {
+                return new DPDSXFile(path, parent);
+            }
+            return new DPFile(path, parent);
         }
 
 
@@ -78,149 +105,18 @@ namespace DAZ_Installer.DP
             // The most obvious comment ever - implied else :\
             return ContentType.Unknown;
         }
+        
 
-        public static string ParseJsonValue(string jsonString, string propertyName)
-        {
-            // Substring via propertyName length + 6.
-            var startSearchIndex = jsonString.IndexOf('"', jsonString.IndexOf(":"));
-            var lastQuoteIndex = jsonString.LastIndexOf('"');
-            if (startSearchIndex == -1 || lastQuoteIndex == startSearchIndex) return string.Empty;
-            var propertyValue = jsonString.Substring(startSearchIndex + 1, lastQuoteIndex - startSearchIndex - 1);
+        public static bool ValidImportExtension(string ext) => AcceptableImportFormats.Contains(ext);
 
-            return propertyValue;
-
-        }
-
-        // Not accurate but it's okay.
-        public static string GetPropertyName(string msg) => msg.Remove(msg.IndexOf(':')).Trim('"').TrimStart();
-        public void UpdateContentInfo(string[] contents)
-        {
-            foreach (var line in contents[1..9])
-            {
-                if (line is null) continue;
-                try
-                {
-                    var propertyName = GetPropertyName(line);
-                    if (propertyName.Contains("id")) id = ParseJsonValue(line, "id");
-                    else if (propertyName.Contains("type")) contentType = GetContentType(ParseJsonValue(line, "type"), this);
-                    else if (propertyName.Contains("author")) author = ParseJsonValue(line, "author");
-                    else if (propertyName.Contains("email")) email = ParseJsonValue(line, "email");
-                    else if (propertyName.Contains("website")) website = ParseJsonValue(line, "website");
-                }
-                catch (Exception e)
-                {
-                    DPCommon.WriteToLog($"Failed to add metadata for file. REASON: {e}");
-                }
-            }
-        }
-
-        public static bool ValidImportExtension(string ext)
-        {
-            return ArrayHelper.Contains(AcceptableImportFormats, ext);
-        }
-        public DPFile()
-        {
-
-        }
-
-        public DPFile(string _path, DPFolder __parent)
-        {
-            UID = DPIDManager.GetNewID();
-            WillExtract = true;
-            Path = _path;
-            Parent = __parent;
-            if (Path != null | Path != "")
-            {
-                // _ext can have length of 0, ex: LICENSE
-                var _ext = System.IO.Path.GetExtension(Path);
-                Ext = _ext.Length != 0 ? _ext.Substring(1) : string.Empty;
-            }
-            ListName = DPProcessor.workingArchive.FileName + '\\' + Path;
-            DPFiles.TryAdd(Path, this);
-            DPProcessor.workingArchive.Contents.Add(this);
-        }
-        ~DPFile()
-        {
-            DPFiles.Remove(Path);
-        }
-
-        public async void QuickReadFileAsync()
-        {
-            // TO DO: Use GZIP file header check.
-            var workingPath = DestinationPath != null ? DestinationPath : ExtractedPath;
-            try
-            {
-                using (StreamReader inputFile = new StreamReader(workingPath))
-                {
-                    // Get first 10 lines.
-                    var tenLines = new string[10];
-                    for (var i = 0; i < 10; i++)
-                    {
-                        tenLines[i] = await inputFile.ReadLineAsync();
-                    }
-                    UpdateContentInfo(tenLines);
-                    inputFile.Close();
-                    inputFile.Dispose();
-                }
-            }
-            catch (Exception e)
-            {
-                DPCommon.WriteToLog(e);
-                // Try GZIP method.
-
-                try
-                {
-                    using (GZipStream stream = new GZipStream(new FileStream(workingPath, FileMode.Open), CompressionMode.Decompress))
-                    {
-
-                        using (StreamReader gInputFile = new StreamReader(stream))
-                        {
-                            // Get first 10 lines.
-                            var tenLines = new string[10];
-                            for (var i = 0; i < 10; i++)
-                            {
-                                tenLines[i] = await gInputFile.ReadLineAsync();
-                            }
-                            gInputFile.Dispose();
-                            UpdateContentInfo(tenLines);
-                        }
-                        stream.Close();
-                        stream.Dispose();
-                    }
-                    // Parse data to JSON.
-
-                }
-                catch (Exception f)
-                {
-                    DPCommon.WriteToLog("GZip method failed.");
-                    DPCommon.WriteToLog(f);
-                    ///errored = true;
-                }
-            }
-        }
-
-        public bool IsReadable()
-        {
-            var extractPathExists = !WasExtracted && File.Exists(ExtractedPath);
-            var destinationPathExists = WasExtracted && File.Exists(DestinationPath);
-            var isDazFile = DAZFormats.Contains(Ext);
-            if (!isDazFile) return false;
-            var canRead = false;
-            try
-            {
-                if (extractPathExists)
-                    File.Open(ExtractedPath, FileMode.Open, FileAccess.Read).Dispose();
-                else if (destinationPathExists)
-                    File.Open(DestinationPath, FileMode.Open, FileAccess.Read).Dispose();
-                else return false;
-                canRead = true;
-            }
-            catch
-            {
-                DPCommon.WriteToLog("not readable");
-                return false;
-            }
-            return canRead;
+        /// <summary>
+        /// Adds the file name to the tags name.
+        /// </summary>
+        protected void InitializeTagsList() {
+            var fileName = IOPath.GetFileName(Path);
+            var tokens = fileName.Split(' ');
+            Tags = new List<string>(tokens.Length);
+            Tags.AddRange(tokens);
         }
 
         public static bool FindFileInDPFiles(string path, out DPFile file)
@@ -230,6 +126,12 @@ namespace DAZ_Installer.DP
             file = null;
             return false;
         }
+
+        ~DPFile()
+        {
+            DPFiles.Remove(Path);
+        }
+
 
     }
 

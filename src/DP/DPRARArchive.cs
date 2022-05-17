@@ -2,13 +2,12 @@
 // You may find a full copy of this license at root project directory\LICENSE
 
 using System;
-using System.Linq;
+using System.Text;
 using System.Collections.Generic;
 using System.Windows.Forms;
 using DAZ_Installer.External;
 using IOPath = System.IO.Path;
 using System.IO;
-using DAZ_Installer.DP;
 
 namespace DAZ_Installer.DP
 {
@@ -28,11 +27,10 @@ namespace DAZ_Installer.DP
         public bool passwordFailed = false;
         public bool cancelledOperation = false;
         public bool secondPasswordPromptHasSeen = false;
-        public Control[] progressCombo;
         private List<string> lastVolumes { get; } = new List<string>();
         private Dictionary<string, string> volumePairs = new Dictionary<string, string>(); // First key is the OLD nonworking one, Second key is the working one.
 
-        internal override bool CanPeek { get => true; }
+        internal override bool CanReadWithoutExtracting { get => false; }
         protected char[] password;
 
         protected char internalDictSeperator = '\\';
@@ -141,15 +139,14 @@ namespace DAZ_Installer.DP
                 {
                     // File is archive.
                     var newArchive = CreateNewArchive(e.fileInfo.FileName, true, RelativePath);
-                    newArchive.ParentArchive = DPProcessor.workingArchive;
+                    newArchive.ParentArchive = this;
                 }
                 else
                 {
                     var newFile = new DPFile(e.fileInfo.FileName, null);
-                    newFile.AssociatedArchive = DPProcessor.workingArchive;
+                    newFile.AssociatedArchive = this;
                 }
             }
-            if (countingFiles) DPProcessor.workingArchiveFileCount++;
         }
 
 
@@ -220,8 +217,32 @@ namespace DAZ_Installer.DP
             DPCommon.WriteToLog(RootFolders);
         }
 
+        internal override void ReadContentFiles()
+        {
+            // At this point, the files should have been extracted.
+            foreach (var file in DazFiles) {
+                // We only want daz files that successfully extracted.
+                if (!file.WasExtracted) continue;
+                try {
+                    using (var reader = new StreamReader(file.ExtractedPath, Encoding.UTF8, true)) {
+                        file.ReadContents(reader);
+                    }
+                } catch {}
+            }
+        }
 
+        internal override void ReadMetaFiles()
+        {
+            RAR handler = new RAR(IsInnerArchive ? ExtractedPath : Path);
+            foreach (var file in DSXFiles) {
+                // Extract the file and update the product info and content info structs.
+                if (ExtractFile(handler)) {
+                    file.CheckContents();
+                }
+            }
+        }
         internal override void Extract() {
+            mode = Mode.Extract;
             using (var RARHandler = new RAR(IsInnerArchive ? ExtractedPath : Path)) {
                 RARHandler.NewFile += HandleNewFile;
                 RARHandler.PasswordRequired += HandlePasswordProtected;
@@ -229,6 +250,7 @@ namespace DAZ_Installer.DP
                 RARHandler.NewVolume += HandleNewVolume;
                 RARHandler.ExtractionProgress += HandleProgression;
                 try {
+                    // TODO: Update destination path.
                     RARHandler.Open(RAR.OpenMode.Extract);
                     var flags = (RAR.ArchiveFlags) RARHandler.arcData.Flags;
                     var isFirstVolume = flags.HasFlag(RAR.ArchiveFlags.FirstVolume);
@@ -250,8 +272,6 @@ namespace DAZ_Installer.DP
                     DPCommon.WriteToLog($"An unexpected error occured while processing for RAR Archive. REASON: {e}");
                 }
             }
-
-            UpdateFilePaths();
             // extractPage.AddToList(workingArchive);
 
             // // Add files to hierachy.
@@ -262,13 +282,14 @@ namespace DAZ_Installer.DP
         }
         internal override void Peek()
         {
+            mode = Mode.Peek;
             using (var RARHandler = new RAR(IsInnerArchive ? ExtractedPath : Path)) {
                 RARHandler.PasswordRequired += HandlePasswordProtected;
                 RARHandler.MissingVolume += HandleMissingVolume;
                 RARHandler.ExtractionProgress += HandleProgression;
 
                 try {
-                    RARHandler.DestinationPath = TEMP_LOCATION + IOPath.GetFileNameWithoutExtension(Path);
+                    RARHandler.DestinationPath = IOPath.Combine(DPProcessor.TempLocation, IOPath.GetFileNameWithoutExtension(Path));
                     
                     // Create path and see if it exists.
                     Directory.CreateDirectory(RARHandler.DestinationPath);
@@ -291,6 +312,7 @@ namespace DAZ_Installer.DP
 
                     RARHandler.Close();
                 } catch (Exception e) {
+                    errored = true;
                     DPCommon.WriteToLog($"An unexpected error occured while processing for RAR Archive. REASON: {e}");
                 }
             }
@@ -304,21 +326,30 @@ namespace DAZ_Installer.DP
 
         }
 
-        private bool UpdateDPFileData(DPFile file) {
-            file.WasExtracted = true;
-            file.ExtractedPath = IOPath.Combine(DPProcessor.TEMP_LOCATION, 
-                                IOPath.GetFileNameWithoutExtension(Path), Path);
-        }
-
         private bool ExtractFile(RAR handler) {
             string fileName = handler.CurrentFile.FileName;
             DPFile file = null;
             try {
-                handler.Extract();
                 if (DPFile.FindFileInDPFiles(fileName, out file)) {
-                    UpdateDPFileData(file);
+                    if (mode == Mode.Peek)
+                        handler.DestinationPath = IOPath.Combine(DPProcessor.TempLocation, 
+                            IOPath.GetFileNameWithoutExtension(Path));
+                    else handler.DestinationPath = IOPath.Combine(DPProcessor.DestinationPath, 
+                        IOPath.GetDirectoryName(RelativePath));
+                    
+                    // Create folders for the destination path if needed.
+                    try {
+                        Directory.CreateDirectory(IOPath.GetDirectoryName(handler.DestinationPath));
+                    } catch {}
+                    handler.Extract();
+
+                    // Only update if we didn't error.
+                    file.ExtractedPath = IOPath.Combine(handler.DestinationPath, IOPath.GetFileName(Path));
+                    file.WasExtracted = true;
                 }
             } catch (IOException e) {
+                // We errored :(.
+                if (file != null) file.errored = true;
                 if (e.Message == "File CRC Error" || e.Message == "File could not be opened.") {
                     var flags = (RAR.ArchiveFlags) handler.arcData.Flags;
                     var isVolume = flags.HasFlag(RAR.ArchiveFlags.Volume);
@@ -339,6 +370,8 @@ namespace DAZ_Installer.DP
 
         private bool TestFile(RAR handler) {
             try {
+                // I'm not sure if UnpackedSize returns negative if the file is partial.
+                TrueArchiveSize += (ulong) Math.Max((long) 0, handler.CurrentFile.UnpackedSize);
                 handler.Test();
             } catch (IOException e) {
                 if (e.Message == "File CRC Error" || e.Message == "File could not be opened.") {
@@ -361,6 +394,5 @@ namespace DAZ_Installer.DP
             }
             return true;
         }
-
     }
 }

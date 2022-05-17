@@ -20,8 +20,7 @@ namespace DAZ_Installer.DP
         {
             get => (Parent?.isPartOfContentFolder ?? false) || (Parent?.isContentFolder ?? false);
         }
-        internal DPFolder() { }
-        internal DPFolder(string path, DPFolder parent)
+        internal DPFolder(string path, DPFolder parent) : base(path)
         {
             UID = DPIDManager.GetNewID();
             // Check if path is root.

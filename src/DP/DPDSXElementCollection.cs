@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 
 namespace DAZ_Installer.DP {
@@ -47,7 +48,7 @@ namespace DAZ_Installer.DP {
             if (selfClosingElements.ContainsKey(tagName)) {
                 return new List<DPDSXElement>(selfClosingElements[tagName]).ToArray();
             }
-            return null;
+            return Array.Empty<DPDSXElement>();
         }
     }
 }

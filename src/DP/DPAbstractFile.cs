@@ -1,21 +1,27 @@
 using System.Windows.Forms;
+using IOPath = System.IO.Path;
 
 namespace DAZ_Installer.DP {
     internal abstract class DPAbstractFile {
         /// <summary>
-        /// The full path of the file (or folder) in the file system.
+        /// The full path of the file (or folder) in the archive space.
+        /// However, if the derived type is a <c>DPArchive</c>, the path can be the path
+        /// in the file system space or archive space. If the archive has <c>IsInnerArchive</c> set to
+        /// true, then the path is the path of the archive. Otherwise, it is the path in
+        /// file system space.
         /// </summary>
         internal string Path { get; set; }
         /// <summary>
-        /// The full relative path of the file (or folder) RELATIVE TO TEMP_LOCATION in the file system.
+        /// The full relative path of the file (or folder) relative to the determined content folder (if any). 
+        /// If no content folder is detected, it is practically the same as Path.
         /// </summary>
         internal string RelativePath { get; set; }
         /// <summary>
         /// The full directory path at which the file will be go to in the file system.
         /// </summary>
-        internal string DestinationPath { get; set; }
+        internal string TargetPath { get; set; }
         /// <summary>
-        /// The extension of the file without the dot. ext can be empty.
+        /// The extension of the file in lowercase characters and without the dot. ext can be empty.
         /// </summary>
         internal string Ext { get; set; }
         /// <summary>
@@ -109,6 +115,11 @@ namespace DAZ_Installer.DP {
                 DPProcessor.workingArchive.RootContents.Add(this);
                 _parent = newParent;
             }
+        }
+
+        internal DPAbstractFile(string _path) {
+            UID = DPIDManager.GetNewID();
+            Path = _path;
         }
         
         
