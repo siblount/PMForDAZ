@@ -46,13 +46,12 @@ namespace DAZ_Installer.DP
 
         public DPFile(string _path, DPFolder __parent) : base(_path)
         {
-            WillExtract = true;
+            WillExtract = false;
             Parent = __parent;
             if (Path != null | Path != "")
             {
                 // _ext can have length of 0, ex: LICENSE
-                var _ext = IOPath.GetExtension(Path);
-                Ext = _ext.Length != 0 ? _ext.Substring(1) : string.Empty;
+                Ext = GetExtension(Path);
             }
             ListName = DPProcessor.workingArchive.FileName + '\\' + Path;
             DPFiles.TryAdd(Path, this);
@@ -62,8 +61,7 @@ namespace DAZ_Installer.DP
         }
 
         internal static DPFile CreateNewFile(string path, DPFolder? parent) {
-            var ext = IOPath.GetExtension(path).ToLower();
-            if (ext.IndexOf('.') != -1) ext = ext.Substring(1);
+            var ext = GetExtension(path);
             if (ext == "dsf" || ext == "duf") {
                 return new DPDazFile(path, parent);
             } else if (ext == "dsx") {

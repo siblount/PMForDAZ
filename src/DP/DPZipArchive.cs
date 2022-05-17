@@ -27,8 +27,7 @@ namespace DAZ_Installer.DP {
                 }
                 if (arc != null && arc.WillExtract) 
                     ExtractFile(file, arc);
-                i++;
-                HandleProgressionZIP(archive, i, max);
+                HandleProgressionZIP(archive, ++i, max);
             }
             HandleProgressionZIP(archive, max, max);
         }
@@ -41,8 +40,8 @@ namespace DAZ_Installer.DP {
                     // It is a folder.
                     if (!FolderExists(entry.FullName)) new DPFolder(entry.FullName, null);
                 }
-                else if (DPFile.ValidImportExtension(IOPath.GetExtension(entry.Name))) {
-                    var newArchive = DPAbstractArchive.CreateNewArchive(entry.FullName, true);
+                else if (DPFile.ValidImportExtension(GetExtension(entry.Name))) {
+                    var newArchive = CreateNewArchive(entry.FullName, true);
                     newArchive.ParentArchive = this;
                     Contents.Add(newArchive);
                 } else {
@@ -122,11 +121,12 @@ namespace DAZ_Installer.DP {
 
         public void HandleProgressionZIP(ZipArchive sender, int i, int max)
         {
+            i = Math.Min(i, max);
+            if (ProgressCombo == null) ProgressCombo = new DPProgressCombo();
             var percentComplete = (float)i / max;
-            var progressCombo = new DPProgressCombo();
             var progress = (int)Math.Floor(percentComplete * 100);
-            progressCombo.UpdateText($"Extracting files...({progress}%)");
-            progressCombo.ProgressBar.Value = progress;
+            ProgressCombo.UpdateText($"Extracting files...({progress}%)");
+            ProgressCombo.ProgressBar.Value = progress;
         }
 
     }

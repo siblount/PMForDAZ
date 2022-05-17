@@ -27,14 +27,17 @@ namespace DAZ_Installer.DP
 
         public static DPAbstractArchive ProcessInnerArchive(DPAbstractArchive archiveFile)
         {
+            workingArchive = archiveFile;
             TempLocation = Path.Combine(DPSettings.tempPath, @"DazProductInstaller\");
             try
             {
                 Directory.CreateDirectory(TempLocation);
             }
             catch (Exception e) { DPCommon.WriteToLog($"Unable to create temp directory. {e}"); }
-            if (archiveFile.CanReadWithoutExtracting) archiveFile.Peek();
+            archiveFile.Peek();
 
+            extractControl.extractPage.AddToList(archiveFile);
+            extractControl.extractPage.AddToHierachy(archiveFile);
             // Check if we have enough room.
             if (!DestinationHasEnoughSpace())
             {
@@ -48,6 +51,8 @@ namespace DAZ_Installer.DP
 
             PrepareOperations(archiveFile);
             DetermineContentFolders(archiveFile);
+
+            DetermineFilesToExtract(archiveFile);
 
             // archiveFile.UpdateFilePaths();
             archiveFile.Extract();
@@ -84,6 +89,7 @@ namespace DAZ_Installer.DP
                 Library.self.AddNewLibraryItem(record);
             }
 
+
             return archiveFile;
         }
 
@@ -92,7 +98,6 @@ namespace DAZ_Installer.DP
             // We use these variables in case the user changes the settings in mist of an extraction process.
             TempLocation = Path.Combine(DPSettings.tempPath, @"DazProductInstaller\");
             DestinationPath = DPSettings.destinationPath;
-
             try
             {
                 Directory.CreateDirectory(TempLocation);
@@ -114,7 +119,10 @@ namespace DAZ_Installer.DP
             }
             // Create new archive.
             var archiveFile = DPAbstractArchive.CreateNewArchive(filePath, false, TempLocation);
-            if (archiveFile.CanReadWithoutExtracting) archiveFile.Peek();
+            workingArchive = archiveFile;
+            archiveFile.Peek();
+            extractControl.extractPage.AddToList(archiveFile);
+            extractControl.extractPage.AddToHierachy(archiveFile);
 
             // Check if we have enough room.
             if (!DestinationHasEnoughSpace())
@@ -129,14 +137,11 @@ namespace DAZ_Installer.DP
 
             PrepareOperations(archiveFile);
             DetermineContentFolders(archiveFile);
-
-            archiveFile.Extract();
-
+            UpdateRelativePaths(archiveFile);
             // TODO: Ensure that archive progress combo is not null.
-            archiveFile.ProgressCombo.ChangeProgressBarStyle(true);
-            archiveFile.ProgressCombo.ProgressBarLbl.Text = "Moving files...";
             DetermineFilesToExtract(archiveFile);
 
+            archiveFile.Extract();
             DPCommon.WriteToLog("We are done");
 
             archiveFile.ProgressCombo?.Remove();
@@ -168,7 +173,24 @@ namespace DAZ_Installer.DP
                 Library.self.AddNewLibraryItem(record);
             }
             Library.self.InformLibraryUpdate();
+            analyzeCombo?.Remove();
             return archiveFile;
+        }
+
+        private static void UpdateRelativePaths(DPAbstractArchive archive)
+        {
+            if (archive.RootFolders.Count == 0)
+            {
+                foreach (var content in archive.Contents)
+                {
+                    content.RelativePath = content.Path;
+                }
+            }
+            foreach (var folder in archive.RootFolders)
+            {
+                folder.UpdateChildrenRelativePaths();
+            }
+            
         }
 
         public static void DetermineFilesToExtract(DPAbstractArchive archive)
@@ -238,6 +260,8 @@ namespace DAZ_Installer.DP
                         if (file is DPAbstractArchive)
                         {
                             var arc = (DPAbstractArchive)file;
+                            arc.WillExtract = true;
+                            arc.TargetPath = Path.Combine(DPSettings.destinationPath, arc.RelativePath);
                             // Add to queue.
                             workingArchive.InternalArchives.Add(arc);
                         }
@@ -251,6 +275,8 @@ namespace DAZ_Installer.DP
                     if (content is DPAbstractArchive)
                     {
                         var arc = (DPAbstractArchive)content;
+                        arc.WillExtract = true;
+                        arc.TargetPath = Path.Combine(DPSettings.destinationPath, arc.RelativePath);
                         // Add to queue.
                         workingArchive.InternalArchives.Add(arc);
                     }

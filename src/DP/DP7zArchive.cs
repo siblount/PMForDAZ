@@ -45,8 +45,7 @@ namespace DAZ_Installer.DP {
                     {
                         foreach (var file in files)
                         {
-                            var ext = IOPath.GetExtension(file).ToLower();
-                            if (ext.Length != 0) ext = ext.Substring(1);
+                            var ext = GetExtension(file);
                             if (DPFile.ValidImportExtension(ext))
                             {
                                 var newArchive = CreateNewArchive(file, true, RelativePath);
@@ -152,7 +151,7 @@ namespace DAZ_Installer.DP {
             var possibleArchiveNames = new List<string>(similarFiles.Length);
             foreach (var file in similarFiles)
             {
-                var ext = IOPath.GetExtension(file).Substring(1); // 0001
+                var ext = GetExtension(file); // 0001
                 if (int.TryParse(ext, out int num))
                 {
                     numList.Add(num);

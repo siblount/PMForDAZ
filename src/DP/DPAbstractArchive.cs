@@ -211,7 +211,7 @@ namespace DAZ_Installer.DP {
         }
 
         internal static DPAbstractArchive CreateNewArchive(string fileName, bool innerArchive = false, string? relativePathBase = null) {
-            string ext = IOPath.GetExtension(fileName);
+            string ext = GetExtension(fileName);
             switch (DetermineArchiveFormat(ext)) {
                 case ArchiveFormat.RAR:
                     return new DPRARArchive(fileName, innerArchive, relativePathBase);
@@ -392,7 +392,8 @@ namespace DAZ_Installer.DP {
         {
             IsInnerArchive = innerArchive; // Order matters.
             // Make a file but we don't want to check anything.
-            Parent = null;
+            if (IsInnerArchive) Parent = null;
+            else _parent = null;
             
             if (Path != null || Path != string.Empty)
             {
@@ -406,7 +407,7 @@ namespace DAZ_Installer.DP {
             {
                 ListName = DPProcessor.workingArchive.FileName + '\\' + Path;
             }
-            Ext = IOPath.GetExtension(Path).Substring(1).ToLower();
+            Ext = GetExtension(Path);
             HierachyName = IOPath.GetFileName(Path);
             ProductInfo = new DPProductInfo(IOPath.GetFileNameWithoutExtension(Path));
 

@@ -135,7 +135,7 @@ namespace DAZ_Installer.DP
             }
             else
             {
-                if (DPFile.ValidImportExtension(IOPath.GetExtension(e.fileInfo.FileName)))
+                if (DPFile.ValidImportExtension(GetExtension(e.fileInfo.FileName)))
                 {
                     // File is archive.
                     var newArchive = CreateNewArchive(e.fileInfo.FileName, true, RelativePath);
@@ -243,11 +243,9 @@ namespace DAZ_Installer.DP
         }
         internal override void Extract() {
             mode = Mode.Extract;
+            ProgressCombo ??= new DPProgressCombo();
             using (var RARHandler = new RAR(IsInnerArchive ? ExtractedPath : Path)) {
-                RARHandler.NewFile += HandleNewFile;
                 RARHandler.PasswordRequired += HandlePasswordProtected;
-                RARHandler.MissingVolume += HandleMissingVolume;
-                RARHandler.NewVolume += HandleNewVolume;
                 RARHandler.ExtractionProgress += HandleProgression;
                 try {
                     // TODO: Update destination path.
@@ -263,7 +261,10 @@ namespace DAZ_Installer.DP
                     
                     while (RARHandler.ReadHeader()) {
                         if (ExtractFile(RARHandler)) {
-                            // TODO: Something.
+                            // TODO: Something
+                        } else
+                        {
+                            RARHandler.Skip();
                         }
                     }
 
@@ -272,6 +273,7 @@ namespace DAZ_Installer.DP
                     DPCommon.WriteToLog($"An unexpected error occured while processing for RAR Archive. REASON: {e}");
                 }
             }
+            ProgressCombo?.Remove();
             // extractPage.AddToList(workingArchive);
 
             // // Add files to hierachy.
@@ -287,6 +289,7 @@ namespace DAZ_Installer.DP
                 RARHandler.PasswordRequired += HandlePasswordProtected;
                 RARHandler.MissingVolume += HandleMissingVolume;
                 RARHandler.ExtractionProgress += HandleProgression;
+                RARHandler.NewFile += HandleNewFile;
 
                 try {
                     RARHandler.DestinationPath = IOPath.Combine(DPProcessor.TempLocation, IOPath.GetFileNameWithoutExtension(Path));
@@ -328,25 +331,35 @@ namespace DAZ_Installer.DP
 
         private bool ExtractFile(RAR handler) {
             string fileName = handler.CurrentFile.FileName;
-            DPFile file = null;
+            DPAbstractFile file = null;
             try {
-                if (DPFile.FindFileInDPFiles(fileName, out file)) {
+                if (DPFile.FindFileInDPFiles(fileName, out DPFile file1)) file = file1;
+                if (file == null) file = Contents.Find(a => a.Path == fileName);
+                if (file != null)
+                {
                     if (mode == Mode.Peek)
-                        handler.DestinationPath = IOPath.Combine(DPProcessor.TempLocation, 
+                        handler.DestinationPath = IOPath.Combine(DPProcessor.TempLocation,
                             IOPath.GetFileNameWithoutExtension(Path));
-                    else handler.DestinationPath = IOPath.Combine(DPProcessor.DestinationPath, 
-                        IOPath.GetDirectoryName(RelativePath));
-                    
+                    else
+                    {
+                        if (!file.WillExtract) return false;
+                        handler.DestinationPath = IOPath.Combine(DPProcessor.DestinationPath,
+                        IOPath.GetDirectoryName(file.RelativePath));
+                    }
+
                     // Create folders for the destination path if needed.
-                    try {
+                    try
+                    {
                         Directory.CreateDirectory(IOPath.GetDirectoryName(handler.DestinationPath));
-                    } catch {}
+                    }
+                    catch { }
                     handler.Extract();
 
                     // Only update if we didn't error.
                     file.ExtractedPath = IOPath.Combine(handler.DestinationPath, IOPath.GetFileName(Path));
                     file.WasExtracted = true;
                 }
+                else return false;
             } catch (IOException e) {
                 // We errored :(.
                 if (file != null) file.errored = true;

@@ -1,4 +1,3 @@
-using System;
 using System.Windows.Forms;
 using System.Drawing;
 using System.Collections.Generic;
@@ -6,21 +5,22 @@ using System.Collections.Generic;
 namespace DAZ_Installer.DP {
     internal class DPProgressCombo {
         internal static Stack<DPProgressCombo> ProgressCombos = new Stack<DPProgressCombo>(3);
-        internal TableLayoutPanel Panel {get; init; }
-        internal Label ProgressBarLbl { get; init; }
-        internal ProgressBar ProgressBar { get; init; }
+        internal TableLayoutPanel Panel {get; private set; }
+        internal Label ProgressBarLbl { get; private set; }
+        internal ProgressBar ProgressBar { get; private set; }
 
         internal bool IsMarqueueProgressBar { get => ProgressBar.Style == ProgressBarStyle.Marquee; }
 
         internal DPProgressCombo() {
             extractControl.extractPage.Invoke(CreateProgressCombo);
-            extractControl.extractPage.Invoke(extractControl.extractPage.AddNewProgressCombo);
+            extractControl.extractPage.Invoke(extractControl.extractPage.AddNewProgressCombo, this);
             ProgressCombos.Push(this);
         }
 
         private void CreateProgressCombo() {
             
             // Panel
+            Panel = new TableLayoutPanel();
             Panel.Dock = DockStyle.Fill;
             Panel.ColumnCount = 1;
             Panel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
@@ -28,6 +28,7 @@ namespace DAZ_Installer.DP {
             Panel.RowStyles.Add(new ColumnStyle(SizeType.AutoSize));
             Panel.RowStyles.Add(new ColumnStyle(SizeType.AutoSize));
 
+            ProgressBarLbl = new Label();
             ProgressBarLbl.Text = "Processing ...";
             ProgressBarLbl.Dock = DockStyle.Fill;
             ProgressBarLbl.AutoEllipsis = true;
@@ -35,6 +36,7 @@ namespace DAZ_Installer.DP {
             ProgressBarLbl.MinimumSize = new Size(0, 25);
             Panel.Controls.Add(ProgressBarLbl, 0, 0);
 
+            ProgressBar = new ProgressBar();
             ProgressBar.Value = 50;
             ProgressBar.Dock = DockStyle.Fill;
             ProgressBar.MinimumSize = new Size(0, 18);

@@ -1,3 +1,4 @@
+using System;
 using System.Windows.Forms;
 using IOPath = System.IO.Path;
 
@@ -81,7 +82,9 @@ namespace DAZ_Installer.DP {
                 _parent = newParent;
             } else if (_parent == null && newParent == null) {
                 // Try to find a parent.
-                var potParent = DPProcessor.workingArchive.FindParent(this);
+
+                var potParent = DPProcessor.workingArchive == null ? null :
+                    DPProcessor.workingArchive.FindParent(this);
 
                 // If we found a parent, then update it. This function will be called again.
                 if (potParent != null) {
@@ -115,6 +118,15 @@ namespace DAZ_Installer.DP {
                 DPProcessor.workingArchive.RootContents.Add(this);
                 _parent = newParent;
             }
+        }
+
+        internal static string GetExtension(ReadOnlySpan<char> name)
+        {
+            var ext = IOPath.GetExtension(name);
+            if (ext.Length > 0) ext = ext.Slice(1);
+            Span<char> lowerExt = new char[ext.Length];
+            ext.ToLower(lowerExt, System.Globalization.CultureInfo.CurrentCulture);
+            return ext.ToString();
         }
 
         internal DPAbstractFile(string _path) {
