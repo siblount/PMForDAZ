@@ -23,9 +23,11 @@ Currently, the application can:
   - ✅ Supports WIN-ZIP, RAR formats
   - ✅ Create extraction & product records.
   - ✅ Choose your preferences (ie: install locations, temp location, product handling, etc).
+  - ✅ Hold records of installation files (database).
+  - ✅ Search products you've downloaded.
 
 The application cannot at this stage:
-  - ❌ Handle 7z files (partially implemented).
+  - ❌ Handle 7z files.
   - ❌ Detect product IDs from DAZ consistently.
   - ❌ Fetch thubmnails consistently - error prone.
   - ❌ Merge "part" archives into a single record.
@@ -38,10 +40,15 @@ The application cannot at this stage:
 `Assets` - Location for all Images used for product such as (rar logo, application logo, etc). <br>
 
 `src\Custom Controls` - where "pages"/.NET custom controls are located. This is where most visual logic & user-event logic happens. 
-  - Library Page - `Library.cs` & `Library.designer.cs`
-  - Extract Page - `extractControl.cs` & `extractControl.designer.cs` * will be renamed *
-  - Home Page - `userControl1.cs`
+  - Library Page - `Library.cs`
+  - Extract Page - `extractControl.cs` * will be renamed *
+  - Home Page - `userControl1.cs` * will be renamed *
   - Settings Page - `Settings.cs`
+  - LibraryItem - `LibraryItem.cs`
+  - LibraryPanel - `LibraryPanel.cs`
+  - PageButtonControl - `PageButtonControl.cs`
+  - QueueControl - `QueueControl.cs`
+
 `src\DP` - custom classes for handling various tasks - this is where most of the application logic is held.
   - `DPSettings` - Handles loading, saving, and re-generating of user settings - internal static class.
   - `DPRegistry` - Handles registry operations - typically only used to find DAZ registry values.
@@ -50,16 +57,27 @@ The application cannot at this stage:
   - `DPFolder` - **major POI** - Data class for folders. Holds the children files & archives, etc.
   - `DPProcessor` - **major POI** - Static class that handles the discovery, extraction, and movement of archives/products.
   - `DPExtractJob` - Holds user requested extract list and processes it on a new thread only when the previous job has finished.
-  - and many more
+  - `DSX` - Parses .dsx files.
+  - `IDPWorkingFile` - Interface for `DPFile`, `DPFolder`, and `DPArchive`.
+  - `LibraryIO` - **DEPRECATED** will be removed soon.
+  - `UsefulFuncs` - `DPCommon`, `ArrayHelper`, and `PathHelper` are in this file.
+  - `DPTaskManager` - class for ensuring async tasks are sequential.
+  - And more.
+
 `src\External` - Executables and source code not created by me or this community
   - `RAR.cs` - dependency for `DPProcessor`.
   - `7za.exe` - will be dependency for 7z operations. 
+  - `SQLRegexFunction` - will be removed.
+
 `src\Forms` - Similar to Custom Controls but is a .NET Form; handles visual & user-event logic for new dialog/application windows.
-  - Main Form - `Form1.cs`
-  - Password Input Dialog - `PasswordInput.cs`
-  - Product Record Form - `ProductRecordForm.cs`
-  - etc
+  - Main Form - `MainForm.cs` - The main form of this application.
+  - Password Input Dialog - `PasswordInput.cs` - Special dialog for password-protected archives. 
+  - Product Record Form - `ProductRecordForm.cs` - Form for displaying the record in the database (and later editing).
+  - Database View - `DatabaseView.cs` - Form for displaying all contents in the database.
+
 `src\Libs` - Currently only consists of rar.dll - used for handling RAR files.
+
+`ImportFileRecordsToDatabase` - small program to transfer file system records to the database. Though, this is really only for me.
 
 ## How to get started?
 
