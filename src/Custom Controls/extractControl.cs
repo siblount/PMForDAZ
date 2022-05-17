@@ -74,40 +74,6 @@ namespace DAZ_Installer
             extractPage = this;
         }
 
-        private string getUniqueControlName(string baseName)
-        {
-            var tableControls = DPCommon.RecursivelyGetControls(mainTableLayoutPanel);
-            string lastMatch = null;
-            foreach (var control in tableControls)
-            {
-                if (control.Name.Contains(baseName))
-                {
-                    lastMatch = control.Name;
-                }
-            }
-            if (lastMatch == null)
-            {
-                return baseName;
-            }
-            else
-            {
-                // Check to see if a number is appended at the end.
-                var numsOnlyString = lastMatch[baseName.Length..];
-                if (int.TryParse(numsOnlyString, out int suffixNum))
-                {
-                    return baseName + (suffixNum + 1);
-                }
-                else
-                {
-                    if (lastMatch == baseName)
-                    {
-                        return baseName + "1";
-                    }
-                    return baseName;
-                }
-            }
-        }
-
         internal void AddToList(DPAbstractArchive archive)
         {
             fileListView.BeginUpdate();
