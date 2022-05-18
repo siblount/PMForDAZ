@@ -14,8 +14,8 @@ namespace DAZ_Installer.DP {
         internal bool IsMarqueueProgressBar { get => ProgressBar.Style == ProgressBarStyle.Marquee; }
 
         internal DPProgressCombo() {
-            extractControl.extractPage.Invoke(CreateProgressCombo);
-            extractControl.extractPage.Invoke(extractControl.extractPage.AddNewProgressCombo, this);
+            Extract.ExtractPage.Invoke(CreateProgressCombo);
+            Extract.ExtractPage.Invoke(Extract.ExtractPage.AddNewProgressCombo, this);
             ProgressCombos.Push(this);
         }
 
@@ -51,8 +51,8 @@ namespace DAZ_Installer.DP {
 
         internal void ChangeProgressBarStyle(bool marqueue) {
             if (IsMarqueueProgressBar == marqueue) return;
-            if (extractControl.extractPage.InvokeRequired) {
-                extractControl.extractPage.Invoke(ChangeProgressBarStyle, marqueue);
+            if (Extract.ExtractPage.InvokeRequired) {
+                Extract.ExtractPage.Invoke(ChangeProgressBarStyle, marqueue);
                 return;
             }
 
@@ -69,18 +69,18 @@ namespace DAZ_Installer.DP {
         }
 
         internal static void RemoveAll() {
-            extractControl.extractPage.Invoke(extractControl.extractPage.ResetExtractPage);
+            Extract.ExtractPage.Invoke(Extract.ExtractPage.ResetExtractPage);
             ProgressCombos.Clear();
         }
 
         internal void Remove() {
             ProgressCombos.TryPop(out _);
-            extractControl.extractPage.DeleteProgressionCombo(this);
+            Extract.ExtractPage.DeleteProgressionCombo(this);
         }
 
         internal void UpdateText(string text) {
             ProgressBarLbl.Text = 
-            extractControl.extractPage.mainProcLbl.Text =
+            Extract.ExtractPage.mainProcLbl.Text =
             text;
         }
 

@@ -36,8 +36,8 @@ namespace DAZ_Installer
             this.libraryLbl = new System.Windows.Forms.Label();
             this.settingsLbl = new System.Windows.Forms.Label();
             this.mainPanel = new System.Windows.Forms.Panel();
-            this.homePage1 = new DAZ_Installer.homePage();
-            this.extractControl1 = new DAZ_Installer.extractControl();
+            this.homePage1 = new DAZ_Installer.Home();
+            this.extractControl1 = new DAZ_Installer.Extract();
             this.library1 = new DAZ_Installer.Library();
             this.settings1 = new DAZ_Installer.Settings();
             this.openFileDialog = new System.Windows.Forms.OpenFileDialog();
@@ -225,11 +225,11 @@ namespace DAZ_Installer
         private System.Windows.Forms.PictureBox pictureBox1;
         private System.Windows.Forms.Label homeLabel;
         private System.Windows.Forms.Panel mainPanel;
-        private homePage homePage1;
+        private Home homePage1;
         private System.Windows.Forms.Label extractLbl;
         private System.Windows.Forms.Label libraryLbl;
         private System.Windows.Forms.Label settingsLbl;
-        public extractControl extractControl1;
+        public Extract extractControl1;
         private Library library1;
         private Settings settings1;
         internal System.Windows.Forms.OpenFileDialog openFileDialog;

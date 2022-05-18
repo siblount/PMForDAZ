@@ -301,7 +301,7 @@ namespace DAZ_Installer.DP {
                     // Pre-check if the archive file name starts with "IM"
                     if (workingExtractionRecord.ArchiveFileName.StartsWith("IM"))
                     {
-                        var result = extractControl.extractPage.DoPromptMessage("Do you wish to download the thumbnail for this product?", "Download Thumbnail Prompt", MessageBoxButtons.YesNo);
+                        var result = DAZ_Installer.Extract.ExtractPage.DoPromptMessage("Do you wish to download the thumbnail for this product?", "Download Thumbnail Prompt", MessageBoxButtons.YesNo);
                         if (result == DialogResult.Yes) imageLocation = DPNetwork.DownloadImage(workingExtractionRecord.ArchiveFileName);
                     }
                 }

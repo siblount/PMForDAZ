@@ -1,7 +1,7 @@
 ﻿
 namespace DAZ_Installer
 {
-    partial class extractControl
+    partial class Extract
     {
         /// <summary> 
         /// Required designer variable.
@@ -30,7 +30,7 @@ namespace DAZ_Installer
         private void InitializeComponent()
         {
             this.components = new System.ComponentModel.Container();
-            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(extractControl));
+            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(Extract));
             this.mainTableLayoutPanel = new System.Windows.Forms.TableLayoutPanel();
             this.tabControl1 = new System.Windows.Forms.TabControl();
             this.fileListPage = new System.Windows.Forms.TabPage();

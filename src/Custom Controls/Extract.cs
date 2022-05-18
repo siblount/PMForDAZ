@@ -6,22 +6,18 @@ using System.Diagnostics;
 using System.Collections.Generic;
 using System.IO;
 using System.ComponentModel;
-using System.Drawing;
-using System.IO.Compression;
-using System.Linq;
 using System.Windows.Forms;
 using DAZ_Installer.DP;
-using DAZ_Installer.External;
 
 namespace DAZ_Installer
 {
 
-    public partial class extractControl : UserControl
+    public partial class Extract : UserControl
     {
         /// <summary> 
         /// Returns the integer of the first available slot in List<object>. Returns -1 if not available. 
         /// </summary>
-        public static extractControl extractPage;
+        public static Extract ExtractPage;
         internal static Dictionary<ListViewItem, DPAbstractFile> associatedListItems = new(4096);
         internal static Dictionary<TreeNode, DPAbstractFile> associatedTreeNodes = new(4096);
 
@@ -68,10 +64,10 @@ namespace DAZ_Installer
             return MessageBox.Show(message, title, buttons, MessageBoxIcon.Hand);
         }
 
-        public extractControl()
+        public Extract()
         {
             InitializeComponent();
-            extractPage = this;
+            ExtractPage = this;
         }
 
         internal void AddToList(DPAbstractArchive archive)

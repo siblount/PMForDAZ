@@ -13,11 +13,11 @@ using DAZ_Installer.DP;
 
 namespace DAZ_Installer
 {
-    public partial class homePage : UserControl
+    public partial class Home : UserControl
     {
         public static Color initialHomePanelColor;
-        public static homePage HomePage;
-        public homePage()
+        public static Home HomePage;
+        public Home()
         {
             InitializeComponent();
             HomePage = this;
@@ -45,7 +45,7 @@ namespace DAZ_Installer
 
         internal void button1_Click(object sender, EventArgs e)
         {
-            var eControl = extractControl.extractPage;
+            var eControl = Extract.ExtractPage;
             // Clear everything from extract page.
             DPProgressCombo.RemoveAll();
             // Goto next page.
