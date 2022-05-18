@@ -71,7 +71,7 @@ namespace DAZ_Installer.DP
 
                 var x = arr[i];
                 progressCombo.ProgressBar.Value = (int)((double)i / arr.Length * 100);
-                progressCombo.UpdateText($"Processing archive {i}/{arr.Length}: {Path.GetFileName(x)}...({(float) i / arr.Length})%");
+                progressCombo.UpdateText($"Processing archive {i}/{arr.Length}: {Path.GetFileName(x)}...({progressCombo.ProgressBar.Value})%");
                 DPProcessor.ProcessArchive(x);
             }
             progressCombo.UpdateText($"Finished processing archives");
