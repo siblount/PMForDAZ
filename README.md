@@ -41,8 +41,8 @@ The application cannot at this stage:
 
 `src\Custom Controls` - where "pages"/.NET custom controls are located. This is where most visual logic & user-event logic happens. 
   - Library Page - `Library.cs`
-  - Extract Page - `extractControl.cs` * will be renamed *
-  - Home Page - `userControl1.cs` * will be renamed *
+  - Extract Page - `Extract.cs`
+  - Home Page - `Home.cs`
   - Settings Page - `Settings.cs`
   - LibraryItem - `LibraryItem.cs`
   - LibraryPanel - `LibraryPanel.cs`
@@ -52,14 +52,26 @@ The application cannot at this stage:
 `src\DP` - custom classes for handling various tasks - this is where most of the application logic is held.
   - `DPSettings` - Handles loading, saving, and re-generating of user settings - internal static class.
   - `DPRegistry` - Handles registry operations - typically only used to find DAZ registry values.
-  - `DPFile` - **major POI** - Data class for all found items in archives excluding file types that is a supported archive type.
-  - `DPArchive` - **major POI** - Data class for all supported archive types.
-  - `DPFolder` - **major POI** - Data class for folders. Holds the children files & archives, etc.
-  - `DPProcessor` - **major POI** - Static class that handles the discovery, extraction, and movement of archives/products.
+  - `DPAbstractFile` - **major POI** - Abstract class for all elements found in archives (including archives).
+  - `DPAbstractArchive` - **major POI** - Abstract class for all supported archive files. Extends `DPAbstractFile`.
+  - `DPFile` - **major POI** - Data class for all files that are not supported archive files. Extends `DPAbstractFile`.
+  - `DPDazFile` - **major POI** - Class for reading .dsf and .duf files and getting meta data for tag creation. Extends `DPFile`.
+  - `DPDSXFile` - **major POI** - Class for reading .dsx files which are typically Supplement and Manifest files. Extends `DPFile`.
+  - `DPRARArchive` - **major POI** - Class specifically for processing RAR archives. Extends `DPAbstractArchive`.
+  - `DP7zArchive` - **major POI** - Class specifically for processing 7z archives. Extends `DPAbstractArchive`. Not complete.
+  - `DPZipArchive` - **major POI** - Class specifically for processing WinZip archives. Extends `DPAbstractArchive`.
+  - `DPFolder` - **major POI** - Data class for folders. Holds the children files & archives, etc. DOES NOT EXTEND ANYTHING.
+  - `DPProcessor` - **major POI** - Static class that determines what files get extracted & where, interacts with user, and more.
   - `DPExtractJob` - Holds user requested extract list and processes it on a new thread only when the previous job has finished.
-  - `DSX` - Parses .dsx files.
-  - `IDPWorkingFile` - Interface for `DPFile`, `DPFolder`, and `DPArchive`.
-  - `LibraryIO` - **DEPRECATED** will be removed soon.
+  - `DPDSXParser` - Reads and parses .dsx files.
+  - `DPDSXElement` - A data class for XML-like element. Contains attributes of the element.
+  - `DPDSXElementCollection` - A collection of `DPDSXElement`s.
+  - `DPProductInfo` - A struct for `DPAbstractArchive` that contians a summary of the collected information from all `DPContentInfo`s.
+  - `DPContentInfo` - A struct for `DPFile` that contains information about the file. `DPDSXFile` uses this more.
+  - `DPSortMethod` - Enum for sorting for the library
+  - `DPProgressCombo` - A class for adding progress bars and updating progress bar text on the extract page.
+  - `DPCache` - A special collection for cache collection. Used by `DPDatabase`.
+  - `ContentType` - Enum for classifying the type of the file.
   - `UsefulFuncs` - `DPCommon`, `ArrayHelper`, and `PathHelper` are in this file.
   - `DPTaskManager` - class for ensuring async tasks are sequential.
   - And more.
@@ -67,7 +79,6 @@ The application cannot at this stage:
 `src\External` - Executables and source code not created by me or this community
   - `RAR.cs` - dependency for `DPProcessor`.
   - `7za.exe` - will be dependency for 7z operations. 
-  - `SQLRegexFunction` - will be removed.
 
 `src\Forms` - Similar to Custom Controls but is a .NET Form; handles visual & user-event logic for new dialog/application windows.
   - Main Form - `MainForm.cs` - The main form of this application.

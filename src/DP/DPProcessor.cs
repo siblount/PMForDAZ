@@ -6,7 +6,6 @@ using System.Linq;
 using System.Windows.Forms;
 using System.IO;
 using System.Collections.Generic;
-using DAZ_Installer.External;
 
 namespace DAZ_Installer.DP
 {
@@ -34,8 +33,8 @@ namespace DAZ_Installer.DP
             catch (Exception e) { DPCommon.WriteToLog($"Unable to create temp directory. {e}"); }
             archiveFile.Peek();
             // TO DO: Highlight files in red for files that failed to extract.
-            extractControl.extractPage.AddToList(archiveFile);
-            extractControl.extractPage.AddToHierachy(archiveFile);
+            Extract.ExtractPage.AddToList(archiveFile);
+            Extract.ExtractPage.AddToHierachy(archiveFile);
             // Check if we have enough room.
             if (!DestinationHasEnoughSpace())
             {
@@ -122,8 +121,8 @@ namespace DAZ_Installer.DP
             workingArchive = archiveFile;
             archiveFile.Peek();
             // TO DO: Highlight files in red for files that failed to extract.
-            extractControl.extractPage.AddToList(archiveFile);
-            extractControl.extractPage.AddToHierachy(archiveFile);
+            Extract.ExtractPage.AddToList(archiveFile);
+            Extract.ExtractPage.AddToHierachy(archiveFile);
 
             // Check if we have enough room.
             if (!DestinationHasEnoughSpace())
