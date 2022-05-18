@@ -11,7 +11,6 @@ namespace DAZ_Installer.DP
     static class DPGlobal
     {
         internal static int mainThreadID = 0;
-        public static Dictionary<uint, IDPWorkingFile> dpObjects = new Dictionary<uint, IDPWorkingFile>();
         public static bool appClosing { get; set; } = false;
         public static event Action<FormClosingEventArgs> AppClosing;
 

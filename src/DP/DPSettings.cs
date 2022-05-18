@@ -56,7 +56,6 @@ namespace DAZ_Installer.DP
         public static void Initalize()
         {
             if (initalized) return;
-            DPRegistry.Initalize();
             if (GetOtherSettings(out string[] settings))
             {
                 destinationPath = settings[0];

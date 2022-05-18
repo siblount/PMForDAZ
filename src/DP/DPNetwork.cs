@@ -24,7 +24,7 @@ namespace DAZ_Installer.DP
                     var web = new HtmlWeb();
                     var htmlDoc = web.Load(link);
                     var imgNode = htmlDoc.DocumentNode.SelectSingleNode("/html/body/div[1]/div/div[2]/div[2]/div/div/div/p[1]/a/img");
-                    //if (imgNode != null) 
+                    if (imgNode == null) return null;
                     var imgLink = imgNode.GetAttributeValue("src", ""); // imgNode is null WHEN PAGE IS NOT FOUND.
                     var equalSignIndex = imgLink.IndexOf("media") + 6; // +6 = media (5) + equal sign (1)
                     var gcdnLink = WebUtility.UrlDecode(imgLink.Substring(equalSignIndex));

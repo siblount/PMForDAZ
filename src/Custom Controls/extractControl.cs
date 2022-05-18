@@ -21,11 +21,9 @@ namespace DAZ_Installer
         /// <summary> 
         /// Returns the integer of the first available slot in List<object>. Returns -1 if not available. 
         /// </summary>
-        internal static object[] progressStack { get; set; } =  new object[4];
-        internal static Control[][] controlComboStack { get; set; } =  new Control[3][];
         public static extractControl extractPage;
-        public static Dictionary<ListViewItem, IDPWorkingFile> associatedListItems = new Dictionary<ListViewItem, IDPWorkingFile>(65536);
-        public static Dictionary<TreeNode, IDPWorkingFile> associatedTreeNodes = new Dictionary<TreeNode, IDPWorkingFile>(65536);
+        internal static Dictionary<ListViewItem, DPAbstractFile> associatedListItems = new(4096);
+        internal static Dictionary<TreeNode, DPAbstractFile> associatedTreeNodes = new(4096);
 
         public void resetMainTable()
         {
@@ -76,47 +74,13 @@ namespace DAZ_Installer
             extractPage = this;
         }
 
-        private string getUniqueControlName(string baseName)
-        {
-            var tableControls = DPCommon.RecursivelyGetControls(mainTableLayoutPanel);
-            string lastMatch = null;
-            foreach (var control in tableControls)
-            {
-                if (control.Name.Contains(baseName))
-                {
-                    lastMatch = control.Name;
-                }
-            }
-            if (lastMatch == null)
-            {
-                return baseName;
-            }
-            else
-            {
-                // Check to see if a number is appended at the end.
-                var numsOnlyString = lastMatch[baseName.Length..];
-                if (int.TryParse(numsOnlyString, out int suffixNum))
-                {
-                    return baseName + (suffixNum + 1);
-                }
-                else
-                {
-                    if (lastMatch == baseName)
-                    {
-                        return baseName + "1";
-                    }
-                    return baseName;
-                }
-            }
-        }
-
-        internal void AddToList(ref DPArchive archive)
+        internal void AddToList(DPAbstractArchive archive)
         {
             fileListView.BeginUpdate();
-            foreach (var content in archive.contents)
+            foreach (var content in archive.Contents)
             {
-                var item = fileListView.Items.Add($"{archive.fileName}\\{content.path}");
-                content.associatedListItem = item;
+                var item = fileListView.Items.Add($"{archive.FileName}\\{content.Path}");
+                content.AssociatedListItem = item;
                 associatedListItems.Add(item, content);
             }
             fileListView.Columns[0].AutoResize(ColumnHeaderAutoResizeStyle.ColumnContent);
@@ -125,7 +89,7 @@ namespace DAZ_Installer
 
         private void ProcessChildNodes(DPFolder folder, ref TreeNode parentNode)
         {
-            var fileName = Path.GetFileName(folder.path);
+            var fileName = Path.GetFileName(folder.Path);
             TreeNode folder1 = null;
             // We don't need associations for folders.
             if (InvokeRequired)
@@ -140,19 +104,19 @@ namespace DAZ_Installer
             // Add the DPFiles.
             foreach (var file in folder.GetFiles())
             {
-                fileName = Path.GetFileName(file.path);
+                fileName = Path.GetFileName(file.Path);
                 // TO DO: Add condition if file is a DPArchive & extract == true
                 if (InvokeRequired)
                 {
                     var node = (TreeNode) Invoke(new Func<string, TreeNode>(folder1.Nodes.Add), fileName);
-                    file.associatedTreeNode = node;
-                    AddIcon(node, file.ext);
+                    file.AssociatedTreeNode = node;
+                    AddIcon(node, file.Ext);
                 }
                 else
                 {
                     var node = folder1.Nodes.Add(fileName);
-                    file.associatedTreeNode = node;
-                    AddIcon(node, file.ext);
+                    file.AssociatedTreeNode = node;
+                    AddIcon(node, file.Ext);
                 }
             }
             foreach (var subfolder in folder.subfolders)
@@ -161,46 +125,46 @@ namespace DAZ_Installer
             }
         }
 
-        internal void AddToHierachy(ref DPArchive workingArchive)
+        internal void AddToHierachy(DPAbstractArchive workingArchive)
         {
             fileHierachyTree.BeginUpdate();
             // Add root node for DPArchive.
-            var fileName = workingArchive.hierachyName;
+            var fileName = workingArchive.HierachyName;
             TreeNode rootNode = null;
             if (InvokeRequired)
             {
                 var func = new Func<string, TreeNode>(fileHierachyTree.Nodes.Add);
                 rootNode = (TreeNode) Invoke(func,fileName);
-                workingArchive.associatedTreeNode = rootNode;
-                AddIcon(rootNode, workingArchive.ext);
+                workingArchive.AssociatedTreeNode = rootNode;
+                AddIcon(rootNode, workingArchive.Ext);
 
             } else
             {
                 rootNode = fileHierachyTree.Nodes.Add(fileName);
-                workingArchive.associatedTreeNode = rootNode;
-                AddIcon(rootNode, workingArchive.ext);
+                workingArchive.AssociatedTreeNode = rootNode;
+                AddIcon(rootNode, workingArchive.Ext);
             }
 
 
             // Add any files that aren't in any folder.
-            foreach (var file in workingArchive.rootContents)
+            foreach (var file in workingArchive.RootContents)
             {
-                fileName = Path.GetFileName(file.path);
+                fileName = Path.GetFileName(file.Path);
                 if (InvokeRequired)
                 {
                     var node = (TreeNode) Invoke(new Func<string, TreeNode>(rootNode.Nodes.Add), fileName);
-                    file.associatedTreeNode = node;
-                    AddIcon(node, file.ext);
+                    file.AssociatedTreeNode = node;
+                    AddIcon(node, file.Ext);
                 } else
                 {
                     var node = rootNode.Nodes.Add(fileName);
-                    file.associatedTreeNode = node;
-                    AddIcon(node, file.ext);
+                    file.AssociatedTreeNode = node;
+                    AddIcon(node, file.Ext);
                 }
             }
 
             // Recursively add files & folder within each folder.
-            foreach (var folder in workingArchive.rootFolders)
+            foreach (var folder in workingArchive.RootFolders)
             {
                 ProcessChildNodes(folder, ref rootNode);
             }
@@ -244,330 +208,58 @@ namespace DAZ_Installer
             fileHierachyTree.Nodes.Clear();
             associatedListItems.Clear();
             associatedTreeNodes.Clear();
-            progressStack = new object[3];
-            controlComboStack = new Control[3][];
-        }
-        public string ShowFileDialog(string filter, string defaultExt, string defaultLocation = null)
-        {
-            if (InvokeRequired)
-            {
-                return (string) Invoke(new Func<string, string, string, string>(ShowFileDialog),filter, defaultExt, defaultLocation);
-            }
-            openFileDialog1.Filter = filter;
-            openFileDialog1.DefaultExt = defaultExt;
-            if (defaultLocation != null)
-            {
-                openFileDialog1.InitialDirectory = defaultLocation;
-            }
-            var result = openFileDialog1.ShowDialog();
-            if (result == DialogResult.OK)
-            {
-                return openFileDialog1.FileName;
-            }
-            return null;
         }
         /// <summary>
         /// Creates a progress bar and adds it to the table. [0] - TableLayout, [1] - label, [2] - ProgressBar
         /// </summary>
         /// <returns>An array of controls</returns>
-        public Control[] createProgressCombo()
-        {
-            DPCommon.WriteToLog(InvokeRequired);
+        /// 
+        internal void AddNewProgressCombo(DPProgressCombo combo) {
             mainTableLayoutPanel.SuspendLayout();
             if (mainTableLayoutPanel.Controls.Count != 0)
             {
                 mainTableLayoutPanel.RowCount += 1;
                 mainTableLayoutPanel.RowStyles.Add(new RowStyle(SizeType.AutoSize));
             }
-            // Create a table layout of 2 rows, 1 column, autosize.
-            TableLayoutPanel workingPanel = new TableLayoutPanel();
-            mainTableLayoutPanel.Controls.Add(workingPanel);
-            workingPanel.SuspendLayout();
-            workingPanel.ColumnCount = 1;
-            workingPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
-            //this.mainTableLayoutPanel.Controls.Add(this.innerTableLayoutPanel1, 0, 0);
-            workingPanel.Dock = DockStyle.Fill;
-            workingPanel.Name = getUniqueControlName("innerTableLayoutPanel");
-            workingPanel.RowCount = 2;
-            workingPanel.RowStyles.Add(new ColumnStyle(SizeType.AutoSize));
-            workingPanel.RowStyles.Add(new ColumnStyle(SizeType.AutoSize));
-
-
-            // Create Label
-            Label workingLabel = new Label();
-            workingLabel.Text = "Processing ...";
-            workingLabel.Dock = DockStyle.Fill;
-            workingLabel.AutoEllipsis = true;
-            workingLabel.TextAlign = ContentAlignment.BottomLeft;
-            workingLabel.MinimumSize = new Size(0, 25);
-            workingLabel.Name = getUniqueControlName("label");
-            workingPanel.Controls.Add(workingLabel, 0, 0);
-
-            // Create new progress bar.
-            ProgressBar progressBar = new ProgressBar();
-            progressBar.Value = 50;
-            progressBar.Dock = DockStyle.Fill;
-            progressBar.Name = getUniqueControlName("progressBar");
-            progressBar.MinimumSize = new Size(0, 18);
-            workingPanel.Controls.Add(progressBar, 0, 1);
-            workingPanel.ResumeLayout();
-            mainTableLayoutPanel.ResumeLayout(true);
+            mainTableLayoutPanel.Controls.Add(combo.Panel);
             updateMainTableRowSizing();
-
-            // Return a list of controls in order.
-            // [0] - TableLayout, [1] - Label, [2] - ProgressBar
-            return new Control[] { workingPanel, workingLabel, progressBar };
-        }
-        /// <summary>
-        /// Creates a progress bar and adds it to the table. ProgressBar is marquee style. [0] - TableLayout, [1] - label, [2] - ProgressBar
-        /// </summary>
-        /// <returns>An array of controls</returns>
-        public Control[] createProgressComboMarquee()
-        {
-            DPCommon.WriteToLog(InvokeRequired);
-            mainTableLayoutPanel.SuspendLayout();
-            if (mainTableLayoutPanel.Controls.Count != 0)
-            {
-                mainTableLayoutPanel.RowCount += 1;
-                mainTableLayoutPanel.RowStyles.Add(new RowStyle(SizeType.AutoSize));
-            }
-            // Create a table layout of 2 rows, 1 column, autosize.
-            TableLayoutPanel workingPanel = new TableLayoutPanel();
-            mainTableLayoutPanel.Controls.Add(workingPanel);
-            workingPanel.SuspendLayout();
-            workingPanel.ColumnCount = 1;
-            workingPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
-            //this.mainTableLayoutPanel.Controls.Add(this.innerTableLayoutPanel1, 0, 0);
-            workingPanel.Dock = DockStyle.Fill;
-            workingPanel.Name = getUniqueControlName("innerTableLayoutPanel");
-            workingPanel.RowCount = 2;
-            workingPanel.RowStyles.Add(new ColumnStyle(SizeType.AutoSize));
-            workingPanel.RowStyles.Add(new ColumnStyle(SizeType.AutoSize));
-
-
-            // Create Label
-            Label workingLabel = new Label();
-            workingLabel.Text = "Processing ...";
-            workingLabel.Dock = DockStyle.Fill;
-            workingLabel.AutoEllipsis = true;
-            workingLabel.TextAlign = ContentAlignment.BottomLeft;
-            workingLabel.MinimumSize = new Size(0, 25);
-            workingLabel.Name = getUniqueControlName("label");
-            workingPanel.Controls.Add(workingLabel, 0, 0);
-
-            // Create new progress bar.
-            ProgressBar progressBar = new ProgressBar();
-            progressBar.Value = 10;
-            progressBar.Dock = DockStyle.Fill;
-            progressBar.Name = getUniqueControlName("progressBar");
-            progressBar.MarqueeAnimationSpeed /= 5;
-            progressBar.Style = ProgressBarStyle.Marquee;
-            progressBar.MinimumSize = new Size(0, 18);
-            workingPanel.Controls.Add(progressBar, 0, 1);
-            workingPanel.ResumeLayout();
             mainTableLayoutPanel.ResumeLayout(true);
-            updateMainTableRowSizing();
-
-            // Return a list of controls in order.
-            // [0] - TableLayout, [1] - Label, [2] - ProgressBar
-            return new Control[] { workingPanel, workingLabel, progressBar };
         }
 
         private void mainProcLbl_Click(object sender, EventArgs e)
         {
-            createProgressCombo();
+            
         }
 
         #region Handle DPPrecssor Events
-        public void HandlePasswordProtected(RAR sender, PasswordRequiredEventArgs e)
-        {
-            // Create enter password dialog.
-            var passDlg = (PasswordInput) Invoke(new Func<PasswordInput>(CreatePasswordInput));
-            passDlg.archiveName = Path.GetFileName(sender.ArchivePathName);
-            if (sender.CurrentFile == null)
-            {
-                passDlg.message = $"{Path.GetFileName(DPProcessor.workingArchive.path)} is encrypted. Please enter password to decrypt archive.";
-            } else
-            {
-                if ((sender.arcData.Flags & 0x0080) != 0)
-                {
-                    passDlg.message = "Password was incorrect. Please re-enter password to decrypt archive.";
-                }
-            }
-            passDlg.ShowDialog();
-
-
-            if (passDlg.password != null)
-            {
-                e.Password = passDlg.password;
-                e.ContinueOperation = true;
-            }
-            else
-            {
-                e.ContinueOperation = false;
-                DPProcessor.workingArchive.cancelledOperation = true;
-            }
-        }
-
-        public PasswordInput CreatePasswordInput()
-        {
-            return new PasswordInput();
-        }
-
-
-        public void HandleMissingVolume(RAR sender, MissingVolumeEventArgs e)
-        {
-            // Ask user for missing volume.
-            var result = DoPromptMessage($"{sender.CurrentFile.FileName} is missing volume : {e.VolumeName}. Do you know where this file is? ", "Missing volume", MessageBoxButtons.YesNo);
-            if (result == DialogResult.Yes)
-            {
-                string fileName = ShowFileDialog("RAR files (*.rar)|*.rar", "rar");
-                if (fileName != null)
-                {
-                    e.VolumeName = fileName;
-                    e.ContinueOperation = true;
-                }
-                else
-                {
-                    e.ContinueOperation = false;
-                }
-            }
-            else
-            {
-                e.ContinueOperation = false;
-            }
-        }
-
-        public void DeleteProgressionCombo(Control[] combo)
+        internal void DeleteProgressionCombo(DPProgressCombo combo)
         {
             if (InvokeRequired)
             {
-                Invoke(new Action<Control[]>(DeleteProgressionCombo), new object[] { combo });
+                Invoke(DeleteProgressionCombo, combo);
                 return;
             }
-            // Check if combo box is in array.
-            var index = ArrayHelper.GetIndex(controlComboStack, combo);
-            if (index != -1)
-            {
-                if (progressStack[index] != null) progressStack[index] = null;
-                // Call main table that we are going to make some big changes.
-                mainTableLayoutPanel.SuspendLayout();
-                mainTableLayoutPanel.Controls.Remove(controlComboStack[index][0]);
-                // Reset row count. 
-                if (mainTableLayoutPanel.Controls.Count == 0) mainTableLayoutPanel.RowCount = 1;
-                else mainTableLayoutPanel.RowCount = mainTableLayoutPanel.Controls.Count;
 
-                mainTableLayoutPanel.RowStyles.Clear();
-                for (var i = 0; i < mainTableLayoutPanel.RowCount; i++) mainTableLayoutPanel.RowStyles.Add(new RowStyle());
-                mainTableLayoutPanel.ResumeLayout(false);
-                updateMainTableRowSizing();
-
-                //Dispose.
-                foreach (var control in controlComboStack[index])
-                {
-                    control.Dispose();
-                }
-
-                // OH GARBAGE COLLECTOR!!!
-                //var generation = GC.GetGeneration(controlComboStack[index]);
-                //GC.Collect(generation, GCCollectionMode.Forced, true, false);
-
-            } else
-            {
-                throw new ArgumentNullException("Combo was not found in array.");
-            }
-        }
-
-        public void HandleProgressionRAR(RAR sender, ExtractionProgressEventArgs e)
-        {
-            Control[] progressCombo;
-            Label progressLabel;
-            ProgressBar progressBar;
-            var index = ArrayHelper.GetIndex(progressStack, sender);
-
-            // If already exists, update controls.
-            if (index != -1)
-            {
-                progressCombo = controlComboStack[index];
-                progressLabel = (Label)progressCombo[1];
-                progressBar = (ProgressBar)progressCombo[2];
-            }
-            else
-            {
-                DPCommon.WriteToLog("Creating new progression combo.");
-                progressCombo = (Control[]) Invoke(new Func<Control[]>(createProgressCombo));
-                progressLabel = (Label)progressCombo[1];
-                progressBar = (ProgressBar)progressCombo[2];
-
-                var openSlotIndex = ArrayHelper.GetNextOpenSlot(progressStack);
-                if (openSlotIndex == -1)
-                {
-                    throw new IndexOutOfRangeException("Attempted to add more than 4 to array.");
-                }
-                else
-                {
-                    progressStack[openSlotIndex] = sender;
-                    controlComboStack[openSlotIndex] = progressCombo;
-                }
-                DPProcessor.workingArchive.progressCombo = progressCombo;
-            }
-            var progress = (int)Math.Floor(e.PercentComplete);
-
-            progressLabel.Text = $"Extracting {e.FileName}..({progress}%)";
-            mainProcLbl.Text = progressLabel.Text;
-            progressBar.Value = progress;
+            mainTableLayoutPanel.SuspendLayout();
+            mainTableLayoutPanel.Controls.Remove(combo.Panel);
+            mainTableLayoutPanel.RowCount = Math.Max(1, mainTableLayoutPanel.Controls.Count);
+            mainTableLayoutPanel.RowStyles.Clear();
+            for (var i = 0; i < mainTableLayoutPanel.RowCount; i++) 
+                mainTableLayoutPanel.RowStyles.Add(new RowStyle());
+            mainTableLayoutPanel.ResumeLayout();
+            updateMainTableRowSizing();
         }
         
-        public void HandleProgressionZIP(ref ZipArchive sender, int i, int max)
-        {
-            var percentComplete = (float)i / max;
-            Control[] progressCombo;
-            Label progressLabel;
-            ProgressBar progressBar;
-            var index = ArrayHelper.GetIndex(progressStack, sender);
-
-            // If already exists, update controls.
-            if (index != -1)
-            {
-                progressCombo = controlComboStack[index];
-                progressLabel = (Label)progressCombo[1];
-                progressBar = (ProgressBar)progressCombo[2];
-            }
-            else
-            {
-                DPCommon.WriteToLog("Creating new progression combo.");
-                progressCombo = (Control[])Invoke(new Func<Control[]>(createProgressCombo));
-                progressLabel = (Label)progressCombo[1];
-                progressBar = (ProgressBar)progressCombo[2];
-
-                var openSlotIndex = ArrayHelper.GetNextOpenSlot(progressStack);
-                if (openSlotIndex == -1)
-                {
-                    throw new IndexOutOfRangeException("Attempted to add more than 3 to array.");
-                }
-                else
-                {
-                    progressStack[openSlotIndex] = sender;
-                    controlComboStack[openSlotIndex] = progressCombo;
-                }
-                DPProcessor.workingArchive.progressCombo = progressCombo;
-            }
-            var progress = (int)Math.Floor(percentComplete * 100);
-
-            progressLabel.Text = $"Extracting files...({progress}%)";
-            mainProcLbl.Text = progressLabel.Text;
-            progressBar.Value = progress;
-        }
         #endregion
 
         #region Context Strip Events
         private void selectInHierachyToolStripMenuItem_Click(object sender, EventArgs e)
         {
             // Get the associated file with listviewitem.
-            associatedListItems.TryGetValue(fileListView.SelectedItems[0], out IDPWorkingFile file);
+            associatedListItems.TryGetValue(fileListView.SelectedItems[0], out DPAbstractFile file);
             if (file != null)
             {
-                fileHierachyTree.SelectedNode = file.associatedTreeNode;
+                fileHierachyTree.SelectedNode = file.AssociatedTreeNode;
             }
             // Switch tab.
             tabControl1.SelectTab(fileHierachyPage);

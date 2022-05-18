@@ -22,6 +22,7 @@ namespace DAZ_Installer
 
         internal static UserControl[] userControls = new UserControl[4];
         internal static UserControl visiblePage = null;
+
         public MainForm()
         {
             CheckForIllegalCrossThreadCalls = false;
@@ -112,5 +113,36 @@ namespace DAZ_Installer
         {
             DPGlobal.HandleAppClosing(e);
         }
+
+        internal string? ShowMissingVolumePrompt(string msg, string filter, string ext, string? defaultLocation) {
+            var result = MessageBox.Show(msg, "Missing volumes", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+            if (result == DialogResult.Yes) {
+                return ShowFileDialog(filter, ext, defaultLocation);
+            }
+            return null;
+
+        }
+
+        public string? ShowFileDialog(string filter, string defaultExt, string defaultLocation = null)
+        {
+            if (InvokeRequired)
+            {
+                return (string) Invoke(ShowFileDialog,filter, defaultExt, defaultLocation);
+            }
+            openFileDialog.Filter = filter;
+            openFileDialog.DefaultExt = defaultExt;
+            if (defaultLocation != null)
+            {
+                openFileDialog.InitialDirectory = defaultLocation;
+            }
+            var result = openFileDialog.ShowDialog();
+            if (result == DialogResult.OK)
+            {
+                return openFileDialog.FileName;
+            }
+            return null;
+        }
+
+
     }
 }

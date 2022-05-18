@@ -45,14 +45,13 @@ namespace DAZ_Installer
             this.fileHierachyTree = new System.Windows.Forms.TreeView();
             this.archiveFolderIcons = new System.Windows.Forms.ImageList(this.components);
             this.queuePage = new System.Windows.Forms.TabPage();
+            this.queueControl1 = new DAZ_Installer.Custom_Controls.QueueControl();
             this.panel1 = new System.Windows.Forms.Panel();
             this.mainProcLbl = new System.Windows.Forms.Label();
-            this.openFileDialog1 = new System.Windows.Forms.OpenFileDialog();
             this.fileHierachyContextStrip = new System.Windows.Forms.ContextMenuStrip(this.components);
             this.inspectToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.selectInFileListToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.openInExplorerToolStripMenuItem1 = new System.Windows.Forms.ToolStripMenuItem();
-            this.queueControl1 = new DAZ_Installer.Custom_Controls.QueueControl();
             this.tabControl1.SuspendLayout();
             this.fileListPage.SuspendLayout();
             this.fileListContextStrip.SuspendLayout();
@@ -132,20 +131,20 @@ namespace DAZ_Installer
             this.fileListContextStrip.Name = "contextMenuStrip1";
             this.fileListContextStrip.RenderMode = System.Windows.Forms.ToolStripRenderMode.Professional;
             this.fileListContextStrip.ShowImageMargin = false;
-            this.fileListContextStrip.Size = new System.Drawing.Size(172, 100);
+            this.fileListContextStrip.Size = new System.Drawing.Size(186, 128);
             this.fileListContextStrip.Opening += new System.ComponentModel.CancelEventHandler(this.fileListContextStrip_Opening);
             // 
             // inspectFileListMenuItem
             // 
             this.inspectFileListMenuItem.Name = "inspectFileListMenuItem";
-            this.inspectFileListMenuItem.Size = new System.Drawing.Size(171, 24);
+            this.inspectFileListMenuItem.Size = new System.Drawing.Size(185, 24);
             this.inspectFileListMenuItem.Text = "Inspect";
             this.inspectFileListMenuItem.Visible = false;
             // 
             // selectInHierachyToolStripMenuItem
             // 
             this.selectInHierachyToolStripMenuItem.Name = "selectInHierachyToolStripMenuItem";
-            this.selectInHierachyToolStripMenuItem.Size = new System.Drawing.Size(171, 24);
+            this.selectInHierachyToolStripMenuItem.Size = new System.Drawing.Size(185, 24);
             this.selectInHierachyToolStripMenuItem.Text = "Select in Hierachy";
             this.selectInHierachyToolStripMenuItem.Visible = false;
             this.selectInHierachyToolStripMenuItem.Click += new System.EventHandler(this.selectInHierachyToolStripMenuItem_Click);
@@ -153,7 +152,7 @@ namespace DAZ_Installer
             // openInExplorerToolStripMenuItem
             // 
             this.openInExplorerToolStripMenuItem.Name = "openInExplorerToolStripMenuItem";
-            this.openInExplorerToolStripMenuItem.Size = new System.Drawing.Size(171, 24);
+            this.openInExplorerToolStripMenuItem.Size = new System.Drawing.Size(185, 24);
             this.openInExplorerToolStripMenuItem.Text = "Open in Explorer";
             this.openInExplorerToolStripMenuItem.Visible = false;
             // 
@@ -161,7 +160,7 @@ namespace DAZ_Installer
             // 
             this.noFilesSelectedToolStripMenuItem.Enabled = false;
             this.noFilesSelectedToolStripMenuItem.Name = "noFilesSelectedToolStripMenuItem";
-            this.noFilesSelectedToolStripMenuItem.Size = new System.Drawing.Size(171, 24);
+            this.noFilesSelectedToolStripMenuItem.Size = new System.Drawing.Size(185, 24);
             this.noFilesSelectedToolStripMenuItem.Text = "No Files Selected";
             // 
             // fileHierachyPage
@@ -177,7 +176,6 @@ namespace DAZ_Installer
             // 
             // fileHierachyTree
             // 
-            this.fileHierachyTree.Cursor = System.Windows.Forms.Cursors.Default;
             this.fileHierachyTree.Dock = System.Windows.Forms.DockStyle.Fill;
             this.fileHierachyTree.Indent = 21;
             this.fileHierachyTree.Location = new System.Drawing.Point(3, 3);
@@ -206,6 +204,14 @@ namespace DAZ_Installer
             this.queuePage.Text = "Queue";
             this.queuePage.UseVisualStyleBackColor = true;
             // 
+            // queueControl1
+            // 
+            this.queueControl1.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.queueControl1.Location = new System.Drawing.Point(3, 3);
+            this.queueControl1.Name = "queueControl1";
+            this.queueControl1.Size = new System.Drawing.Size(556, 122);
+            this.queueControl1.TabIndex = 0;
+            // 
             // panel1
             // 
             this.panel1.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
@@ -228,13 +234,6 @@ namespace DAZ_Installer
             this.mainProcLbl.Text = "Nothing to extract.";
             this.mainProcLbl.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
             this.mainProcLbl.Click += new System.EventHandler(this.mainProcLbl_Click);
-            // 
-            // openFileDialog1
-            // 
-            this.openFileDialog1.DefaultExt = "rar";
-            this.openFileDialog1.Filter = "RAR files (*.rar)|*.rar|ZIP files (*.zip)|*.zip|7z files (*.7z)|*.7z|All files (*" +
-    ".*)|*.*";
-            this.openFileDialog1.SupportMultiDottedExtensions = true;
             // 
             // fileHierachyContextStrip
             // 
@@ -263,14 +262,6 @@ namespace DAZ_Installer
             this.openInExplorerToolStripMenuItem1.Name = "openInExplorerToolStripMenuItem1";
             this.openInExplorerToolStripMenuItem1.Size = new System.Drawing.Size(189, 24);
             this.openInExplorerToolStripMenuItem1.Text = "Open in Explorer";
-            // 
-            // queueControl1
-            // 
-            this.queueControl1.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.queueControl1.Location = new System.Drawing.Point(3, 3);
-            this.queueControl1.Name = "queueControl1";
-            this.queueControl1.Size = new System.Drawing.Size(556, 122);
-            this.queueControl1.TabIndex = 0;
             // 
             // extractControl
             // 
@@ -302,7 +293,6 @@ namespace DAZ_Installer
         private System.Windows.Forms.TabPage fileHierachyPage;
         private System.Windows.Forms.Panel panel1;
         internal System.Windows.Forms.Label mainProcLbl;
-        private System.Windows.Forms.OpenFileDialog openFileDialog1;
         private System.Windows.Forms.ListView fileListView;
         private System.Windows.Forms.TreeView fileHierachyTree;
         private System.Windows.Forms.ColumnHeader filePathColumn;

@@ -40,6 +40,7 @@ namespace DAZ_Installer
             this.extractControl1 = new DAZ_Installer.extractControl();
             this.library1 = new DAZ_Installer.Library();
             this.settings1 = new DAZ_Installer.Settings();
+            this.openFileDialog = new System.Windows.Forms.OpenFileDialog();
             this.tableLayoutPanel1.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.pictureBox1)).BeginInit();
             this.mainPanel.SuspendLayout();
@@ -193,6 +194,11 @@ namespace DAZ_Installer
             this.settings1.Size = new System.Drawing.Size(617, 450);
             this.settings1.TabIndex = 2;
             // 
+            // openFileDialog
+            // 
+            this.openFileDialog.FileName = "openFileDialog1";
+            this.openFileDialog.SupportMultiDottedExtensions = true;
+            // 
             // MainForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 20F);
@@ -226,6 +232,7 @@ namespace DAZ_Installer
         public extractControl extractControl1;
         private Library library1;
         private Settings settings1;
+        internal System.Windows.Forms.OpenFileDialog openFileDialog;
     }
 }
 

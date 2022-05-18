@@ -47,7 +47,7 @@ namespace DAZ_Installer
         {
             var eControl = extractControl.extractPage;
             // Clear everything from extract page.
-            eControl.ResetExtractPage();
+            DPProgressCombo.RemoveAll();
             // Goto next page.
             MainForm.SwitchPage(eControl);
 
@@ -78,7 +78,9 @@ namespace DAZ_Installer
             foreach (var path in tmp)
             {
                 var fileInfo = new FileInfo(path);
-                if (fileInfo.Exists && DPFile.ValidImportExtension(fileInfo.Extension))
+                var ext = fileInfo.Extension;
+                ext = ext.IndexOf('.') != -1 ? ext.Substring(1) : ext;
+                if (fileInfo.Exists && DPFile.ValidImportExtension(ext))
                 {
                     // Add to list.
                     listView1.Items.Add(path);

@@ -55,7 +55,7 @@ namespace DAZ_Installer.External
             Extract = 1
         }
 
-        private enum RarError : uint
+        internal enum RarError : uint
         {
             EndOfArchive = 10,
             InsufficientMemory = 11,
@@ -74,21 +74,21 @@ namespace DAZ_Installer.External
             BadPassword = 24
         }
 
-        private enum Operation : uint
+        internal enum Operation : uint
         {
             Skip = 0,
             Test = 1,
             Extract = 2
         }
 
-        private enum VolumeMessage : uint
+        internal enum VolumeMessage : uint
         {
             Ask = 0,
             Notify = 1
         }
 
         [Flags]
-        private enum ArchiveFlags : uint
+        internal enum ArchiveFlags : uint
         {
             Volume = 0x1,                                       // Volume attribute (archive volume)
             CommentPresent = 0x2,                       // Archive comment present
@@ -101,7 +101,7 @@ namespace DAZ_Installer.External
             FirstVolume = 0x100                         // 0x0100  - First volume (set only by RAR 3.0 and later)
         }
 
-        private enum CallbackMessages : uint
+        internal enum CallbackMessages : uint
         {
             VolumeChange = 0,
             ProcessData = 1,
