@@ -41,8 +41,8 @@ The application cannot at this stage:
 
 `src\Custom Controls` - where "pages"/.NET custom controls are located. This is where most visual logic & user-event logic happens. 
   - Library Page - `Library.cs`
-  - Extract Page - `extractControl.cs` * will be renamed *
-  - Home Page - `userControl1.cs` * will be renamed *
+  - Extract Page - `Extract.cs`
+  - Home Page - `Home.cs`
   - Settings Page - `Settings.cs`
   - LibraryItem - `LibraryItem.cs`
   - LibraryPanel - `LibraryPanel.cs`
