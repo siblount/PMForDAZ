@@ -6,7 +6,6 @@ using System.Linq;
 using System.Windows.Forms;
 using System.IO;
 using System.Collections.Generic;
-using DAZ_Installer.External;
 
 namespace DAZ_Installer.DP
 {
