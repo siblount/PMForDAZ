@@ -9,6 +9,7 @@ using System.Linq;
 using System.Threading;
 using System.Data.SQLite;
 using System.IO;
+using DAZ_Installer.External;
 
 namespace DAZ_Installer.DP
 {
@@ -1026,7 +1027,7 @@ namespace DAZ_Installer.DP
         
         private static void SetupSQLRegexQuery(string regex, DPSortMethod method, ref SQLiteCommand command)
         {
-            string sqlQuery = @"SELECT * FROM ProductRecords WHERE (SELECT ""Product Record ID"" FROM Tags WHERE ID REGEX @A";
+            string sqlQuery = @"SELECT * FROM ProductRecords WHERE ID IN (SELECT ""Product Record ID"" FROM Tags WHERE Tag REGEXP @A";
 
             switch (method)
             {
@@ -1258,7 +1259,9 @@ namespace DAZ_Installer.DP
             var constring = "Data Source = " + Path.GetFullPath(_expectedDatabasePath) + ";Read Only=True";
             using (var _connection = new SQLiteConnection(constring))
             {
+                var attribute = (SQLiteFunctionAttribute)typeof(SQLRegexFunction).GetCustomAttributes(typeof(SQLiteFunctionAttribute), true)[0];
                 _connection.Open();
+                _connection.BindFunction(attribute, new SQLRegexFunction());
                 SpinWait.SpinUntil(() => _connection.State != ConnectionState.Connecting
                                         || _connection.State != ConnectionState.Executing
                                         || _connection.State != ConnectionState.Fetching);

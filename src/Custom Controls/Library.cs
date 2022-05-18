@@ -325,7 +325,7 @@ namespace DAZ_Installer
             if (e.KeyCode == Keys.Enter)
             {
                 if (searchBox.Text.Length != 0)
-                    DPDatabase.Search(searchBox.Text);
+                    DPDatabase.RegexSearch(searchBox.Text);
             }
         }
 
