@@ -34,16 +34,12 @@ namespace DAZ_Installer.DP
         protected char[] password;
 
         protected char internalDictSeperator = '\\';
-        /// <summary>
-        /// Parent of folder. Handles child parent relations.
-        /// </summary>
-        private bool countingFiles = false;
-
 
         public DPRARArchive(string _path,  bool innerArchive = false, string? relativePathBase = null) : base(_path, innerArchive, relativePathBase)
         {
 
         }
+        #region Event Methods
 
         public void HandleProgression(RAR sender, ExtractionProgressEventArgs e) {
             var progress = (int)Math.Floor(e.PercentComplete);
@@ -73,8 +69,6 @@ namespace DAZ_Installer.DP
                 cancelledOperation = true;
             }
         }
-
-        
 
         public void RARHandlePassword(RAR sender, PasswordRequiredEventArgs e)
         {
@@ -138,7 +132,7 @@ namespace DAZ_Installer.DP
                 if (DPFile.ValidImportExtension(GetExtension(e.fileInfo.FileName)))
                 {
                     // File is archive.
-                    var newArchive = CreateNewArchive(e.fileInfo.FileName, true, RelativePath);
+                    var newArchive = CreateNewArchive(e.fileInfo.FileName, true, null);
                     newArchive.ParentArchive = this;
                 }
                 else
@@ -184,38 +178,8 @@ namespace DAZ_Installer.DP
             }
             return null;
         }
-
-        
-
-        
-        // Delete?
-        internal void FinalizeFolderStructure()
-        {
-            RootFolders.Clear();
-            foreach (var folder in Folders.Values)
-            {
-                folder.Parent = null;
-                folder.subfolders.Clear();
-            }
-            foreach (var folder in Folders.Values)
-            {
-                //folder.parent = null;
-                // Find all folders that contain path.
-                var childFolders = DPFolder.FindChildFolders(folder.Path, folder);
-
-                // Now appropriately add child folders.
-                foreach (var child in childFolders)
-                {
-                    child.Parent = folder;
-                    folder.subfolders.Add(child);
-                }
-
-                // Now find parent for this folder.
-                var idp = (DPAbstractFile)folder;
-                folder.Parent = FindParent( idp);
-            }
-            DPCommon.WriteToLog(RootFolders);
-        }
+        #endregion
+        #region Override Methods
 
         internal override void ReadContentFiles()
         {
@@ -233,11 +197,15 @@ namespace DAZ_Installer.DP
 
         internal override void ReadMetaFiles()
         {
-            RAR handler = new RAR(IsInnerArchive ? ExtractedPath : Path);
-            foreach (var file in DSXFiles) {
-                // Extract the file and update the product info and content info structs.
-                if (ExtractFile(handler)) {
-                    file.CheckContents();
+            using (RAR handler = new RAR(IsInnerArchive ? ExtractedPath : Path))
+            {
+                foreach (var file in DSXFiles)
+                {
+                    // Extract the file and update the product info and content info structs.
+                    if (ExtractFile(handler))
+                    {
+                        file.CheckContents();
+                    }
                 }
             }
         }
@@ -274,13 +242,6 @@ namespace DAZ_Installer.DP
                 }
             }
             ProgressCombo?.Remove();
-            // extractPage.AddToList(workingArchive);
-
-            // // Add files to hierachy.
-            // extractPage.AddToHierachy(workingArchive);
-
-            // TO DO: Highlight files in red for files that failed to extract.
-            // Do this in extractPage.
         }
         internal override void Peek()
         {
@@ -319,15 +280,10 @@ namespace DAZ_Installer.DP
                     DPCommon.WriteToLog($"An unexpected error occured while processing for RAR Archive. REASON: {e}");
                 }
             }
-            extractControl.extractPage.AddToList(this);
-
-            // Add files to hierachy.
-            extractControl.extractPage.AddToHierachy(this);
-
-            // TO DO: Highlight files in red for files that failed to extract.
-            // Do this in extractPage.
-
         }
+
+        internal override void ReleaseArchiveHandles() { }
+        #endregion
 
         private bool ExtractFile(RAR handler) {
             string fileName = handler.CurrentFile.FileName;
@@ -335,28 +291,19 @@ namespace DAZ_Installer.DP
             try {
                 if (DPFile.FindFileInDPFiles(fileName, out DPFile file1)) file = file1;
                 if (file == null) file = Contents.Find(a => a.Path == fileName);
-                if (file != null)
+                if (file != null && file.WillExtract)
                 {
-                    if (mode == Mode.Peek)
-                        handler.DestinationPath = IOPath.Combine(DPProcessor.TempLocation,
-                            IOPath.GetFileNameWithoutExtension(Path));
-                    else
-                    {
-                        if (!file.WillExtract) return false;
-                        handler.DestinationPath = IOPath.Combine(DPProcessor.DestinationPath,
-                        IOPath.GetDirectoryName(file.RelativePath));
-                    }
-
+                    handler.DestinationPath = IOPath.GetDirectoryName(file.TargetPath);
                     // Create folders for the destination path if needed.
                     try
                     {
-                        Directory.CreateDirectory(IOPath.GetDirectoryName(handler.DestinationPath));
+                        Directory.CreateDirectory(handler.DestinationPath);
                     }
                     catch { }
-                    handler.Extract();
+                    handler.Extract(file.TargetPath);
 
                     // Only update if we didn't error.
-                    file.ExtractedPath = IOPath.Combine(handler.DestinationPath, IOPath.GetFileName(Path));
+                    file.ExtractedPath = file.TargetPath;
                     file.WasExtracted = true;
                 }
                 else return false;

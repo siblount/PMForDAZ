@@ -134,7 +134,37 @@ namespace DAZ_Installer.DP {
         protected Mode mode { get; set; } = Mode.Extract;
 
         internal static Regex ProductNameRegex = new Regex(@"([^+|-|_|\s]+)", RegexOptions.Compiled);
+        internal DPAbstractArchive(string _path, bool innerArchive = false, string? relativePathBase = null) : base(_path)
+        {
+            IsInnerArchive = innerArchive; // Order matters.
+            // Make a file but we don't want to check anything.
+            if (IsInnerArchive) Parent = null;
+            else _parent = null;
+            FileName = IOPath.GetFileName(_path);
+            if (relativePathBase != null)
+            {
+                RelativePath = IOPath.GetRelativePath(relativePathBase, Path);
+            }
+            else RelativePath = FileName;
+            if (DPProcessor.workingArchive != this && DPProcessor.workingArchive != null)
+            {
+                ListName = DPProcessor.workingArchive.FileName + '\\' + Path;
+            }
+            Ext = GetExtension(Path);
+            HierachyName = IOPath.GetFileName(Path);
+            ProductInfo = new DPProductInfo(IOPath.GetFileNameWithoutExtension(Path));
 
+            if (IsInnerArchive)
+                DPProcessor.workingArchive.Contents.Add(this);
+
+            Archives.Add(Path, this);
+        }
+
+        ~DPAbstractArchive()
+        {
+            Archives.Remove(Path ??= string.Empty);
+        }
+        #region Abstract methods
         /// <summary>
         /// Peeks the archive contents if possible and will extract the archive contents to the destination path. 
         /// </summary>
@@ -155,12 +185,17 @@ namespace DAZ_Installer.DP {
         /// Reads files that have the extension .dsf and .duf after it has been extracted. 
         /// </summary>
         internal abstract void ReadContentFiles();
-        
+        /// <summary>
+        /// Calls the derived archive class to dispose of the file handle.
+        /// </summary>
+        internal abstract void ReleaseArchiveHandles();
+        #endregion
+        #region Internal Methods
         /// <summary>
         ///  Checks whether or not the given ext is what is expected. Checks file headers.
         /// </summary>
         /// <returns>Returns an extension of the appropriate archive extraction method. Otherwise, null.</returns>
-        
+
         internal static ArchiveFormat CheckArchiveLegitmacy(DPAbstractArchive archive) {
             FileStream stream;
             // Open file.
@@ -245,7 +280,6 @@ namespace DAZ_Installer.DP {
             return false;
         }
 
-
         internal DPProductRecord CreateRecords()
         {
             string imageLocation = string.Empty;
@@ -317,7 +351,7 @@ namespace DAZ_Installer.DP {
             return ArchiveType.Unknown;
         }
 
-        public void GetTags()
+        internal void GetTags()
         {
             // First is always author.
             // Next is folder names.
@@ -333,7 +367,7 @@ namespace DAZ_Installer.DP {
         
         }
 
-        private int GetEstimateTagCount() {
+        internal int GetEstimateTagCount() {
             int count = 0;
             foreach (var content in Contents) {
                 if (content is DPFile) {
@@ -344,7 +378,7 @@ namespace DAZ_Installer.DP {
             return count;
         }
 
-        public DPFolder FindParent(DPAbstractFile obj)
+        internal DPFolder FindParent(DPAbstractFile obj)
         {
             var fileName = PathHelper.GetFileName(obj.Path);
             if (fileName == string.Empty) fileName = IOPath.GetFileName(obj.Path.TrimEnd(PathHelper.GetSeperator(obj.Path)));
@@ -361,9 +395,9 @@ namespace DAZ_Installer.DP {
             return null;
         }
 
-        public bool FolderExists(string fPath) => Folders.ContainsKey(fPath);
+        internal bool FolderExists(string fPath) => Folders.ContainsKey(fPath);
 
-        public bool RecursivelyFindFolder(string relativePath, out DPFolder folder)
+        internal bool RecursivelyFindFolder(string relativePath, out DPFolder folder)
         {
 
             foreach (var _folder in Folders.Values)
@@ -387,39 +421,7 @@ namespace DAZ_Installer.DP {
             }
             return tokens.ToArray();
         }
-
-        internal DPAbstractArchive(string _path, bool innerArchive = false, string? relativePathBase = null) : base(_path)
-        {
-            IsInnerArchive = innerArchive; // Order matters.
-            // Make a file but we don't want to check anything.
-            if (IsInnerArchive) Parent = null;
-            else _parent = null;
-            
-            if (Path != null || Path != string.Empty)
-            {
-                FileName = IOPath.GetFileName(Path);
-            }
-            if (relativePathBase != null)
-            {
-                RelativePath = IOPath.GetRelativePath(relativePathBase, Path);
-            }
-            if (DPProcessor.workingArchive != this && DPProcessor.workingArchive != null)
-            {
-                ListName = DPProcessor.workingArchive.FileName + '\\' + Path;
-            }
-            Ext = GetExtension(Path);
-            HierachyName = IOPath.GetFileName(Path);
-            ProductInfo = new DPProductInfo(IOPath.GetFileNameWithoutExtension(Path));
-
-            if (IsInnerArchive)
-                DPProcessor.workingArchive.Contents.Add(this);
-
-            Archives.Add(Path, this);
-        }
-
-        ~DPAbstractArchive()
-        {
-            Archives.Remove(Path ??= string.Empty);
-        }
+        #endregion
+        
     }
 }

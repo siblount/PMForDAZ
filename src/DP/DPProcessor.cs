@@ -3,10 +3,8 @@
 
 using System;
 using System.Linq;
-using System.Diagnostics;
 using System.Windows.Forms;
 using System.IO;
-using System.IO.Compression;
 using System.Collections.Generic;
 using DAZ_Installer.External;
 
@@ -23,19 +21,19 @@ namespace DAZ_Installer.DP
         public static DPAbstractArchive workingArchive;
         public static HashSet<string> previouslyInstalledArchiveNames { get; } = new HashSet<string>();
         public static List<string> doNotProcessList { get; } = new List<string>();
-        public static uint workingArchiveFileCount { get; set; } = 0; // can disgard.
+        public static uint workingArchiveFileCount { get; set; } = 0; // can disgard. 
+        public static SettingOptions OverwriteFiles = SettingOptions.Yes;
 
         public static DPAbstractArchive ProcessInnerArchive(DPAbstractArchive archiveFile)
         {
             workingArchive = archiveFile;
-            TempLocation = Path.Combine(DPSettings.tempPath, @"DazProductInstaller\");
             try
             {
                 Directory.CreateDirectory(TempLocation);
             }
             catch (Exception e) { DPCommon.WriteToLog($"Unable to create temp directory. {e}"); }
             archiveFile.Peek();
-
+            // TO DO: Highlight files in red for files that failed to extract.
             extractControl.extractPage.AddToList(archiveFile);
             extractControl.extractPage.AddToHierachy(archiveFile);
             // Check if we have enough room.
@@ -51,6 +49,7 @@ namespace DAZ_Installer.DP
 
             PrepareOperations(archiveFile);
             DetermineContentFolders(archiveFile);
+            UpdateRelativePaths(archiveFile);
 
             DetermineFilesToExtract(archiveFile);
 
@@ -71,11 +70,12 @@ namespace DAZ_Installer.DP
             try {
                 archiveFile.GetTags();
             } catch { DPCommon.WriteToLog("Failed to get tags."); }
+            analyzeCombo?.Remove();
 
             for (var i = 0; i < archiveFile.InternalArchives.Count; i++)
             {
                 var arc = archiveFile.InternalArchives[i];
-                ProcessInnerArchive(arc);
+                if (arc.WasExtracted) ProcessInnerArchive(arc);
             }
 
             // Create record.
@@ -118,9 +118,10 @@ namespace DAZ_Installer.DP
                 }
             }
             // Create new archive.
-            var archiveFile = DPAbstractArchive.CreateNewArchive(filePath, false, TempLocation);
+            var archiveFile = DPAbstractArchive.CreateNewArchive(filePath, false);
             workingArchive = archiveFile;
             archiveFile.Peek();
+            // TO DO: Highlight files in red for files that failed to extract.
             extractControl.extractPage.AddToList(archiveFile);
             extractControl.extractPage.AddToHierachy(archiveFile);
 
@@ -156,11 +157,11 @@ namespace DAZ_Installer.DP
             try {
                 archiveFile.GetTags();
             } catch { DPCommon.WriteToLog("Failed to get tags."); }
-
+            analyzeCombo?.Remove();
             for (var i = 0; i < archiveFile.InternalArchives.Count; i++)
             {
                 var arc = archiveFile.InternalArchives[i];
-                ProcessInnerArchive(arc);
+                if (arc.WasExtracted) ProcessInnerArchive(arc);
             }
 
             DPCommon.WriteToLog($"Archive Type: {archiveFile.Type}");
@@ -173,20 +174,17 @@ namespace DAZ_Installer.DP
                 Library.self.AddNewLibraryItem(record);
             }
             Library.self.InformLibraryUpdate();
-            analyzeCombo?.Remove();
+            
             return archiveFile;
         }
 
         private static void UpdateRelativePaths(DPAbstractArchive archive)
         {
-            if (archive.RootFolders.Count == 0)
+            foreach (var content in archive.RootContents)
             {
-                foreach (var content in archive.Contents)
-                {
-                    content.RelativePath = content.Path;
-                }
+                content.RelativePath = content.Path;
             }
-            foreach (var folder in archive.RootFolders)
+            foreach (var folder in archive.Folders.Values)
             {
                 folder.UpdateChildrenRelativePaths();
             }
@@ -196,7 +194,7 @@ namespace DAZ_Installer.DP
         public static void DetermineFilesToExtract(DPAbstractArchive archive)
         {
             // Handle Manifest first.
-            if (archive.ManifestFile != null)
+            if (archive.ManifestFile != null && archive.ManifestFile.WasExtracted)
             {
                 if (DPSettings.handleInstallation == InstallOptions.ManifestAndAuto ||
                     DPSettings.handleInstallation == InstallOptions.ManifestOnly)
@@ -210,7 +208,7 @@ namespace DAZ_Installer.DP
                         {
                             try
                             {
-                                file.TargetPath = Path.Combine(DestinationPath, manifestDestinations[archive.Path]);
+                                file.TargetPath = Path.Combine(DestinationPath, manifestDestinations[file.Path]);
                                 file.WillExtract = true;
                                 // TO DO: Add directories if does not exist.
                                 Directory.CreateDirectory(Path.GetDirectoryName(file.TargetPath));
@@ -243,7 +241,7 @@ namespace DAZ_Installer.DP
                         foreach (var child in folder.GetFiles())
                         {
                             // Get destination path.
-                            var dPath = Path.Combine(DPSettings.destinationPath, child.RelativePath);
+                            var dPath = Path.Combine(DestinationPath, child.RelativePath);
                             // Update child destination path.
                             child.TargetPath = dPath;
                             child.WillExtract = true;
@@ -261,7 +259,7 @@ namespace DAZ_Installer.DP
                         {
                             var arc = (DPAbstractArchive)file;
                             arc.WillExtract = true;
-                            arc.TargetPath = Path.Combine(DPSettings.destinationPath, arc.RelativePath);
+                            arc.TargetPath = Path.Combine(TempLocation, arc.RelativePath);
                             // Add to queue.
                             workingArchive.InternalArchives.Add(arc);
                         }
@@ -276,7 +274,7 @@ namespace DAZ_Installer.DP
                     {
                         var arc = (DPAbstractArchive)content;
                         arc.WillExtract = true;
-                        arc.TargetPath = Path.Combine(DPSettings.destinationPath, arc.RelativePath);
+                        arc.TargetPath = Path.Combine(TempLocation, arc.RelativePath);
                         // Add to queue.
                         workingArchive.InternalArchives.Add(arc);
                     }
@@ -286,7 +284,7 @@ namespace DAZ_Installer.DP
         }
 
         private static bool DestinationHasEnoughSpace() {
-            var destinationDrive = new DriveInfo(Path.GetPathRoot(DPSettings.destinationPath));
+            var destinationDrive = new DriveInfo(Path.GetPathRoot(DestinationPath));
             return (ulong) destinationDrive.AvailableFreeSpace > workingArchive.TrueArchiveSize;
         }
 

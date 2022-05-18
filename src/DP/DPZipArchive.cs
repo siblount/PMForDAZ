@@ -14,6 +14,14 @@ namespace DAZ_Installer.DP {
             
         }
 
+        ~DPZipArchive()
+        {
+            // Release the handle of the zip archive if it isn't null.
+            archive?.Dispose();
+        }
+
+        #region Override Methods
+
         internal override void Extract()
         {
             mode = Mode.Extract;
@@ -38,7 +46,12 @@ namespace DAZ_Installer.DP {
             foreach (var entry in archive.Entries) {
                 if (string.IsNullOrEmpty(entry.Name)) {
                     // It is a folder.
-                    if (!FolderExists(entry.FullName)) new DPFolder(entry.FullName, null);
+                    if (!FolderExists(entry.FullName))
+                    {
+                        var folder = new DPFolder(entry.FullName, null);
+                        folder.AssociatedArchive = this;
+                    }
+
                 }
                 else if (DPFile.ValidImportExtension(GetExtension(entry.Name))) {
                     var newArchive = CreateNewArchive(entry.FullName, true);
@@ -83,12 +96,20 @@ namespace DAZ_Installer.DP {
         {
             foreach (var file in DSXFiles) {
                 var entry = archive.GetEntry(file.Path);
+                if (entry == null) continue;
                 ExtractFile(entry, file);
                 if (file.WasExtracted) {
                     file.CheckContents();
                 }
             }
         }
+
+        internal override void ReleaseArchiveHandles()
+        {
+            archive?.Dispose();
+        }
+
+        #endregion
 
         internal int GetExpectedFilesToExtract() {
             int count = 0;
@@ -99,21 +120,20 @@ namespace DAZ_Installer.DP {
         }
 
         private void ExtractFile(ZipArchiveEntry entry, DPAbstractFile file) {
-            string expectedPath = string.Empty;
-            if (file is DPAbstractArchive) {
-                expectedPath = IOPath.Combine(DPProcessor.TempLocation, 
-                                    IOPath.GetFileNameWithoutExtension(Path), entry.Name);
-            } else {
-                expectedPath = IOPath.Combine(DPProcessor.DestinationPath, 
-                                    file.RelativePath);
-            }
+            string expectedPath = file.TargetPath ?? IOPath.Combine(DPProcessor.TempLocation, entry.Name);
             try {
                 try {
-                    Directory.CreateDirectory(expectedPath);
+                    Directory.CreateDirectory(IOPath.GetDirectoryName(expectedPath));
                 } catch {}
-                entry.ExtractToFile(expectedPath);
+                entry.ExtractToFile(expectedPath, DPProcessor.OverwriteFiles == SettingOptions.Yes);
                 file.WasExtracted = true;
                 file.ExtractedPath = expectedPath;
+            } catch (IOException e)
+            {
+                if (e.Message.StartsWith("The file ") && e.Message.EndsWith("already exists"))
+                {
+                    DPCommon.WriteToLog("The extracted file already existed but user chose not to overwrite files.");
+                }
             } catch (Exception e) {
                 DPCommon.WriteToLog($"Unable to extract file: {entry.FullName}. Reason: {e}");
             }

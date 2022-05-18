@@ -101,16 +101,13 @@ namespace DAZ_Installer.DP
 
         internal DPFolder GetContentFolder()
         {
-            if (Parent == null && (!Parent.isPartOfContentFolder || !Parent.isContentFolder)) return null;
-            else
+            if (Parent == null) return null;
+            DPFolder workingFolder = this;
+            while (workingFolder != null && workingFolder.isContentFolder == false)
             {
-                DPFolder workingFolder = this;
-                while (workingFolder != null && workingFolder.isContentFolder == false)
-                {
-                    workingFolder = workingFolder.Parent;
-                }
-                return workingFolder;
+                workingFolder = workingFolder.Parent;
             }
+            return workingFolder;
         }
 
         /// <summary>

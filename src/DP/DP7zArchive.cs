@@ -27,6 +27,7 @@ namespace DAZ_Installer.DP {
             else
                 process.StartInfo.ArgumentList.Add(Path);
         }
+        #region Override Methods
 
         internal override void Peek()
         {
@@ -72,6 +73,12 @@ namespace DAZ_Installer.DP {
         {
             throw new System.NotImplementedException();
         }
+
+        internal override void ReleaseArchiveHandles()
+        {
+            
+        }
+        #endregion
 
         private Process Setup7ZProcess() {
             Process process = new Process();

@@ -187,17 +187,18 @@ namespace DAZ_Installer.DP
         /// Returns the relative path of the given path.
         /// </summary>
         /// <param name="path"></param> - The absolute path (or partial path) to compare.
-        /// <param name="relativeTo"></param> - The absolute path (usually bigger) than path.
+        /// <param name="relativeTo"></param> - The absolute path of the path to compare to minus the sublevel..
         /// <returns>The relative path of the given path.</returns>
         internal static string GetRelativePath(ReadOnlySpan<char> path, ReadOnlySpan<char> relativeTo)
         {
             char rSeperator = GetSeperator(relativeTo);
             char pSeperator = GetSeperator(path);
-            var str = path.ToString();
-            var pNameSections = str.Split(pSeperator); // i 
-            var rNameSections = str.Split(rSeperator); // j
+            var pNameSections = path.ToString().Split(pSeperator); // i 
+            var rNameSections = relativeTo.ToString().Split(rSeperator); // j
             // We want find the last index of rNameSections 
+
             var findIndex = ArrayHelper.GetIndex(pNameSections, rNameSections[rNameSections.Length - 1]);
+            if (findIndex == -1) return path.ToString();
             StringBuilder pathBuilder = new StringBuilder(path.Length);
             for (int i = findIndex; i < pNameSections.Length; i++)
             {
