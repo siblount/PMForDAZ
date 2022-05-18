@@ -4,8 +4,6 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
@@ -19,6 +17,7 @@ namespace DAZ_Installer.DP
         internal bool completed { get; set; } = false;
         internal HashSet<string> doNotProcess { get; } = new HashSet<string>();
         internal static DPExtractJob workingJob { get; set; }
+        internal static DPTaskManager extractJobs = new DPTaskManager();
         internal static List<DPExtractJob> jobs { get; } = new List<DPExtractJob>(3);
         internal HashSet<string> filesToNotProcess { get; } = new HashSet<string>();
         // TODO: Check if a product is already in list.
@@ -64,21 +63,19 @@ namespace DAZ_Installer.DP
         private void ProcessListAsync(object _arr)
         {
             string[] arr = (string[])_arr;
-            var progressCombo = extractControl.extractPage.Invoke(new Func<Control[]>(extractControl.extractPage.createProgressCombo));
+            var progressCombo = new DPProgressCombo();
 
             for (var i = 0; i < arr.Length; i++)
             {
                 if (DPProcessor.doNotProcessList.IndexOf(Path.GetFileName(arr[i])) != -1) continue;
 
                 var x = arr[i];
-                ((ProgressBar)progressCombo[2]).Value = (int)((double)i / arr.Length * 100);
-                progressCombo[1].Text = $"Processing archive {i}/{arr.Length}: {Path.GetFileName(x)}...({i / arr.Length})%";
-                extractControl.extractPage.mainProcLbl.Text = progressCombo[1].Text;
+                progressCombo.ProgressBar.Value = (int)((double)i / arr.Length * 100);
+                progressCombo.UpdateText($"Processing archive {i}/{arr.Length}: {Path.GetFileName(x)}...({progressCombo.ProgressBar.Value})%");
                 DPProcessor.ProcessArchive(x);
             }
-            progressCombo[1].Text = $"Finished processing archives";
-            ((ProgressBar)progressCombo[2]).Value = 100;
-            extractControl.extractPage.mainProcLbl.Text = progressCombo[1].Text;
+            progressCombo.UpdateText($"Finished processing archives");
+            progressCombo.ProgressBar.Value = 100;
             GC.Collect();
             workingJob.completed = true;
             jobs.Remove(this);

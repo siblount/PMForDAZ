@@ -187,26 +187,27 @@ namespace DAZ_Installer.DP
         /// Returns the relative path of the given path.
         /// </summary>
         /// <param name="path"></param> - The absolute path (or partial path) to compare.
-        /// <param name="relativeTo"></param> - The absolute path (usually bigger) than path.
+        /// <param name="relativeTo"></param> - The absolute path of the path to compare to minus the sublevel..
         /// <returns>The relative path of the given path.</returns>
-        internal static string GetRelativePath(string path, string relativeTo)
+        internal static string GetRelativePath(ReadOnlySpan<char> path, ReadOnlySpan<char> relativeTo)
         {
             char rSeperator = GetSeperator(relativeTo);
             char pSeperator = GetSeperator(path);
-
-            var pNameSections = path.Split(pSeperator); // i 
-            var rNameSections = relativeTo.Split(rSeperator); // j
+            var pNameSections = path.ToString().Split(pSeperator); // i 
+            var rNameSections = relativeTo.ToString().Split(rSeperator); // j
             // We want find the last index of rNameSections 
+
             var findIndex = ArrayHelper.GetIndex(pNameSections, rNameSections[rNameSections.Length - 1]);
-            var pathBuilder = "";
+            if (findIndex == -1) return path.ToString();
+            StringBuilder pathBuilder = new StringBuilder(path.Length);
             for (int i = findIndex; i < pNameSections.Length; i++)
             {
-                pathBuilder += pNameSections[i] + rSeperator;
+                pathBuilder.Append(pNameSections[i] + rSeperator);
             }
-            return pathBuilder.TrimEnd(rSeperator);
+            return pathBuilder.Length == 0 ? string.Empty : pathBuilder.ToString().TrimEnd(rSeperator);
         }
 
-        internal static char GetSeperator(string path)
+        internal static char GetSeperator(ReadOnlySpan<char> path)
         {
             var forwardSlash = path.LastIndexOf('\\') != -1;
             var backwardSlash = path.LastIndexOf('/') != -1;

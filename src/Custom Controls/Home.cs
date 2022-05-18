@@ -13,11 +13,11 @@ using DAZ_Installer.DP;
 
 namespace DAZ_Installer
 {
-    public partial class homePage : UserControl
+    public partial class Home : UserControl
     {
         public static Color initialHomePanelColor;
-        public static homePage HomePage;
-        public homePage()
+        public static Home HomePage;
+        public Home()
         {
             InitializeComponent();
             HomePage = this;
@@ -45,9 +45,9 @@ namespace DAZ_Installer
 
         internal void button1_Click(object sender, EventArgs e)
         {
-            var eControl = extractControl.extractPage;
+            var eControl = Extract.ExtractPage;
             // Clear everything from extract page.
-            eControl.ResetExtractPage();
+            DPProgressCombo.RemoveAll();
             // Goto next page.
             MainForm.SwitchPage(eControl);
 
@@ -78,7 +78,9 @@ namespace DAZ_Installer
             foreach (var path in tmp)
             {
                 var fileInfo = new FileInfo(path);
-                if (fileInfo.Exists && DPFile.ValidImportExtension(fileInfo.Extension))
+                var ext = fileInfo.Extension;
+                ext = ext.IndexOf('.') != -1 ? ext.Substring(1) : ext;
+                if (fileInfo.Exists && DPFile.ValidImportExtension(ext))
                 {
                     // Add to list.
                     listView1.Items.Add(path);

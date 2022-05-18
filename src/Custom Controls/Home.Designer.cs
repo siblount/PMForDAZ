@@ -1,7 +1,7 @@
 ﻿
 namespace DAZ_Installer
 {
-    partial class homePage
+    partial class Home
     {
         /// <summary> 
         /// Required designer variable.

@@ -3,182 +3,41 @@
 
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
-using System.Windows.Forms;
-
+using IOPath = System.IO.Path;
 namespace DAZ_Installer.DP
 {
-    public class DPFolder : IDPWorkingFile
+    internal class DPFolder : DPAbstractFile
     {
 
-        public string path { get; set; }
-        public string relativePath { get; set; }
-        public string destinationPath { get; set; }
-        public string ext { get; set; }
-        public bool extract { get; set; }
-        public string extractedPath { get; set; }
-        public uint uid { get; set; }
-        public DPFolder parent
-        {
-            get => _parent;
-            set
-            {
-                // If we were null, but now we're not...
-                if (_parent == null && value != null)
-                {
-                    // Remove ourselves from root folders.
-                    try
-                    {
-                        DPProcessor.workingArchive.rootFolders.Remove(this);
-                    }
-                    catch { }
-
-                    // Call the DPFolder's addchild function to add ourselves to the children list.
-                    var s = (IDPWorkingFile)this;
-                    value.addChild(ref s);
-
-                    _parent = value;
-                }
-                else if (_parent == null && value == null)
-                {
-                    // Find parent.
-                    var s = (IDPWorkingFile)this;
-                    var potParent = DPProcessor.workingArchive.FindParent(ref s);
-                    if (potParent != null)
-                    {
-                        parent = potParent; // Recursion will handle _parent setting.
-                        // Goes to first if.
-                    }
-                    else
-                    {
-                        potParent = CreateFolderForFile(path);
-                        if (potParent != null) parent = potParent; // Recursion will handle _parent setting.
-                        // Goes to first if.
-                        else
-                        {
-                            _parent = null;
-                            if (!DPProcessor.workingArchive.rootFolders.Contains(this))
-                            {
-                                DPProcessor.workingArchive.rootFolders.Add(this);
-                            }
-                        }
-                    }
-                }
-                else if (_parent != null && value != null)
-                {
-                    // Remove ourselves from previous parent children.
-                    var s = (IDPWorkingFile)this;
-                    _parent.removeChild(ref s);
-
-                    // Add ourselves to new parent children.
-                    value.addChild(ref s);
-
-                    _parent = value;
-                }
-                else if (_parent != null && value == null)
-                {
-                    // Remove ourselves from previous parent children.
-                    var s = (IDPWorkingFile)this;
-                    _parent.removeChild(ref s);
-
-                    DPProcessor.workingArchive.rootFolders.Add(this);
-                    _parent = value;
-
-                }
-            }
-            //set
-            //{
-            //    try
-            //    {
-            //        if (value == null)
-            //        {
-            //            if (!DPProcessor.workingArchive.rootFolders.Contains(this))
-            //                DPProcessor.workingArchive.rootFolders.Add(this);
-            //        }
-            //        else DPProcessor.workingArchive.rootFolders.Remove(this);
-            //    }
-            //    catch { }
-            //    _parent = value;
-            //    //DPProcessor.workingArchive.folders.Remove(path);
-            //}
-        }
-        public bool wasExtracted { get; set; } = false;
-        public ListViewItem associatedListItem { get; set; }
-        public TreeNode associatedTreeNode { get; set; }
-
-
-        public List<DPFolder> subfolders = new List<DPFolder>();
-        private Dictionary<string, IDPWorkingFile> children = new Dictionary<string, IDPWorkingFile>();
-        private DPFolder _parent { get; set; }
-        internal bool isContentFolder
-        {
-            get => _isContentFolder;
-            set
-            {
-                if (_isContentFolder == true && value == false || _isContentFolder == false && value == false)
-                {
-                    // Make children's isPartOfContentFolder false.
-                    foreach (var subfolder in subfolders)
-                    {
-                        subfolder.isPartOfContentFolder = false;
-                    }
-                }
-                else if (_isContentFolder == false && value == true || _isContentFolder == true && value == true)
-                {
-                    // Make children's isPartOfContentFolder true.
-                    foreach (var subfolder in subfolders)
-                    {
-                        subfolder.isPartOfContentFolder = true;
-                    }
-                }
-                _isContentFolder = value;
-            }
-        }
+        internal List<DPFolder> subfolders = new List<DPFolder>();
+        private Dictionary<string, DPAbstractFile> children = new Dictionary<string, DPAbstractFile>();
+        internal bool isContentFolder { get; set;}
         /// <summary>
         ///  Determined later in ProcessArchive().
         /// </summary>
         internal bool isPartOfContentFolder
         {
-            get
-            {
-                if (_isPartOfContentFolder == false)
-                {
-                    var isPart = parent != null && parent.isPartOfContentFolder == true;
-                    _isPartOfContentFolder = isPart;
-                    return _isPartOfContentFolder;
-                }
-                else return _isPartOfContentFolder;
-            }
-            set { _isPartOfContentFolder = value; }
+            get => (Parent?.isPartOfContentFolder ?? false) || (Parent?.isContentFolder ?? false);
         }
-        private bool _isPartOfContentFolder = false;
-        private bool _isContentFolder = false;
-        public DPFolder() { }
-        public DPFolder(string _path, DPFolder __parent)
+        internal DPFolder(string path, DPFolder parent) : base(path)
         {
-            uid = DPIDManager.GetNewID();
-
-            DPGlobal.dpObjects.Add(uid, this);
+            UID = DPIDManager.GetNewID();
             // Check if path is root.
             // GetDirectoryName returns "" if looks like filename.  
-            path = PathHelper.GetDirectoryPath(_path);
+            Path = PathHelper.GetDirectoryPath(path);
 
             //if (relativePathBase != null)
             //{
             //    relativePath = Path.GetRelativePath(path, relativePathBase);
             //}
-            parent = __parent;
-            extract = true;
-            DPProcessor.workingArchive.folders.TryAdd(path, this);
+            Parent = parent;
+            WillExtract = true;
+            DPProcessor.workingArchive.Folders.TryAdd(Path, this);
 
         }
-        ~DPFolder()
-        {
-            DPIDManager.RemoveID(uid);
-        }
 
-        public static DPFolder CreateFolderForFile(string dpFilePath)
+        internal static DPFolder CreateFolderForFile(string dpFilePath)
         {
             var workingStr = DPCommon.Up(dpFilePath);
             DPFolder firstFolder = null;
@@ -203,7 +62,7 @@ namespace DAZ_Installer.DP
                         var workingParent = new DPFolder(workingStr, previousFolder);
                         //if (previousFolder != null)
                         //{
-                        //    var IDPFolder = (IDPWorkingFile) previousFolder;
+                        //    var IDPFolder = (DPAbstractFile) previousFolder;
                         //    workingParent.addChild(ref IDPFolder);
                         //}
                         previousFolder = workingParent;
@@ -221,8 +80,8 @@ namespace DAZ_Installer.DP
             {
                 foreach (var child in children.Values)
                 {
-                    var relativePath = PathHelper.GetRelativePath(child.path, path);
-                    child.relativePath = relativePath;
+                    var relativePath = PathHelper.GetRelativePath(child.Path, Path);
+                    child.RelativePath = relativePath;
                 }
             }
             else
@@ -232,8 +91,8 @@ namespace DAZ_Installer.DP
                 {
                     foreach (var child in children.Values)
                     {
-                        var relativePath = PathHelper.GetRelativePath(child.path, contentFolder.path);
-                        child.relativePath = relativePath;
+                        var relativePath = PathHelper.GetRelativePath(child.Path, contentFolder.Path);
+                        child.RelativePath = relativePath;
                     }
                 }
             }
@@ -242,23 +101,20 @@ namespace DAZ_Installer.DP
 
         internal DPFolder GetContentFolder()
         {
-            if (parent == null && (!parent.isPartOfContentFolder || !parent.isContentFolder)) return null;
-            else
+            if (Parent == null) return null;
+            DPFolder workingFolder = this;
+            while (workingFolder != null && workingFolder.isContentFolder == false)
             {
-                DPFolder workingFolder = this;
-                while (workingFolder != null && workingFolder.isContentFolder == false)
-                {
-                    workingFolder = workingFolder.parent;
-                }
-                return workingFolder;
+                workingFolder = workingFolder.Parent;
             }
+            return workingFolder;
         }
 
         /// <summary>
         /// Handles the addition of the file to children property and subfolders property (if child is a DPFolder).
         /// </summary>
         /// <param name="child">DPFolder, DPArchive, DPFile</param>
-        public void addChild(ref IDPWorkingFile child)
+        internal void addChild(DPAbstractFile child)
         {
             if (child.GetType() == typeof(DPFolder))
             {
@@ -266,10 +122,10 @@ namespace DAZ_Installer.DP
                 subfolders.Add(dpFolder);
                 return;
             }
-            children.TryAdd(child.path, child);
+            children.TryAdd(child.Path, child);
         }
 
-        public void removeChild(ref IDPWorkingFile child)
+        internal void removeChild(DPAbstractFile child)
         {
             if (child.GetType() == typeof(DPFolder))
             {
@@ -277,17 +133,17 @@ namespace DAZ_Installer.DP
                 subfolders.Remove(dpFolder);
                 return;
             }
-            children.Remove(child.path);
+            children.Remove(child.Path);
         }
 
-        public IDPWorkingFile[] GetFiles()
+        internal DPAbstractFile[] GetFiles()
         {
             return children.Values.ToArray();
         }
 
-        public DPFolder FindFolder(string _path)
+        internal DPFolder FindFolder(string _path)
         {
-            if (path == _path) return this;
+            if (Path == _path) return this;
             else
             {
                 foreach (var folder in subfolders)
@@ -298,14 +154,15 @@ namespace DAZ_Installer.DP
             }
             return null;
         }
-        public static DPFolder[] FindChildFolders(string _path, DPFolder self)
+        internal static DPFolder[] FindChildFolders(string _path, DPFolder self)
         {
             var folderArr = new List<DPFolder>();
-            foreach (var folder in DPProcessor.workingArchive.folders.Values)
+            foreach (var folder in DPProcessor.workingArchive.Folders.Values)
             {
                 if (folder == self) continue;
                 // And make sure it only is one level up.
-                if (folder.path.Contains(_path) && Path.GetFileName(_path) == Path.GetFileName(folder.path) && PathHelper.GetNumOfLevelsAbove(folder.path, _path) == 1)
+                if (folder.Path.Contains(_path) && IOPath.GetFileName(_path) == IOPath.GetFileName(folder.Path) 
+                                                && PathHelper.GetNumOfLevelsAbove(folder.Path, _path) == 1)
                 {
                     folderArr.Add(folder);
                 }
@@ -315,17 +172,17 @@ namespace DAZ_Installer.DP
         internal bool DetermineIfContentFolder()
         {
             // First, check if parent is a folder.
-            string selfFolderName = PathHelper.GetLastDir(path, false);
+            string selfFolderName = PathHelper.GetLastDir(Path, false);
             bool selfIsContentName = DPSettings.commonContentFolderNames.Contains(selfFolderName)
                         || DPSettings.folderRedirects.ContainsKey(selfFolderName);
             bool parentsAreContent = false;
-            if (parent != null && parent.GetType() == typeof(DPFolder))
+            if (Parent != null && Parent.GetType() == typeof(DPFolder))
             {
-                if (parent.isContentFolder) return false;
-                foreach (var subfolder in parent.subfolders)
+                if (Parent.isContentFolder) return false;
+                foreach (var subfolder in Parent.subfolders)
                 {
                     if (subfolder == this) continue;
-                    var folderName = Path.GetDirectoryName(subfolder.path);
+                    var folderName = IOPath.GetDirectoryName(subfolder.Path);
                     // TO DO: Check if it contains given name, uppercased name and lower cased name.
                     if (DPSettings.commonContentFolderNames.Contains(folderName, StringComparer.CurrentCultureIgnoreCase)
                         || DPSettings.folderRedirects.ContainsKey(folderName) || DPSettings.folderRedirects.ContainsKey(folderName.ToLower()))
@@ -343,6 +200,60 @@ namespace DAZ_Installer.DP
             }
 
             return selfIsContentName && !parentsAreContent;
+        }
+        /// <summary>
+        /// <inheritdoc/>
+        /// <p> This function removes and updates the root folders list instead of root contents list. </p>
+        /// </summary>
+        /// <param name="newParent">The new parent for this folder.</param>
+
+        internal override void UpdateParent(DPFolder? newParent) {
+            // If we were null, but now we're not...
+            if (_parent == null && newParent != null) {
+                // Remove ourselves from root folders list of the working archive.
+                try {
+                    DPProcessor.workingArchive.RootFolders.Remove(this);
+                } catch {}
+
+                // Call the folder's addChild() to add ourselves to the children list.
+                newParent.addChild(this);
+                _parent = newParent;
+            } else if (_parent == null && newParent == null) {
+                // Try to find a parent.
+                var potParent = DPProcessor.workingArchive.FindParent(this);
+
+                // If we found a parent, then update it. This function will be called again.
+                if (potParent != null) {
+                    Parent = potParent;
+                } else {
+                    // Otherwise, create a folder for us.
+                    potParent = CreateFolderForFile(Path);
+                    
+                    // If we have successfully created a folder for us, then update it. This function will be called again.
+                    if (potParent != null) Parent = potParent;
+                    else { // Otherwise, we are supposed to be at root.
+                        _parent = null;
+                        if (!DPProcessor.workingArchive.RootFolders.Contains(this)) {
+                            DPProcessor.workingArchive.RootFolders.Add(this);
+                        }
+                    }
+                }
+            } else if (_parent != null && newParent != null) {
+                // Remove ourselves from previous parent children.
+                _parent.removeChild(this);
+
+                // Add ourselves to new parent's children.
+                newParent.addChild(this);
+
+                _parent = newParent;
+            } else if (_parent != null && newParent == null) {
+                // Remove ourselves from previous parent's children.
+                _parent.removeChild(this);
+
+                // Add ourselves to the archive's root content list.
+                DPProcessor.workingArchive.RootFolders.Add(this);
+                _parent = newParent;
+            }
         }
 
 
