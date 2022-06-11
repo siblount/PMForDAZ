@@ -32,6 +32,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Compile Remove="DP\DPDatabase_Public.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="HtmlAgilityPack" Version="1.11.42" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
     <PackageReference Include="System.Data.SQLite" Version="1.0.115.5" />
@@ -60,6 +64,10 @@
   <ItemGroup>
     <Folder Include="Properties\DataSources\" />
     <Folder Include="Tools\OldRecordsToDatabase\obj\Debug\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="DP\DPDatabase_Public.cs" />
   </ItemGroup>
 
   <ItemGroup>
