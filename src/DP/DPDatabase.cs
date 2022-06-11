@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.Text;
 using System.Linq;
 using System.Threading;
+using System.Threading.Tasks;
 using System.Data.SQLite;
 using System.IO;
 using DAZ_Installer.External;
@@ -38,29 +39,7 @@ namespace DAZ_Installer.DP
         // Public
         public static bool DatabaseExists { get; private set; } = false;
         public static bool Initalized { get; private set; } = false;
-        public static bool Initalizing = false;
         public static string[] tableNames;
-
-        // Database State
-        public static bool IsReadyToExecute => _connection.State == ConnectionState.Open;
-        public static bool IsBroken => _connection.State == ConnectionState.Broken;
-        public static bool CanBeOpened
-        {
-            get
-            {
-                if (_connection == null) return true;
-                switch (_connection.State)
-                {
-                    case ConnectionState.Executing:
-                    case ConnectionState.Connecting:
-                    case ConnectionState.Fetching:
-                    case ConnectionState.Broken:
-                        return false;
-                    default:
-                        return true;
-                }
-            }
-        }
 
         public static uint ProductRecordCount { get; private set; } = 0;
         public static uint ExtractionRecordCount { get; private set; } = 0;
@@ -80,12 +59,8 @@ namespace DAZ_Installer.DP
         public static event Action DatabaseBroke;
         public static event Action RecordQueryFailed;
         public static event Action MainQueryFailed;
-
-
-        // Private
-        private static SQLiteConnection _connection = new SQLiteConnection();
         
-        private static string _expectedDatabasePath { get; set; } = Path.Join(DPSettings.databasePath, "db.db");
+        private static string _expectedDatabasePath { get => Path.Join(DPSettings.databasePath, "db.db"); }
         private static string _connectionString { get; set; } = string.Empty;
 
         // Main task manager...
@@ -109,12 +84,7 @@ namespace DAZ_Installer.DP
         #region Private methods
         private static void Initialize()
         {
-            if (Initalizing)
-            {
-                SpinWait.SpinUntil(() => Initalized, 30 * 1000);
-                return;
-            }
-            Initalizing = true;
+            
             try
             {
                 // Check if database exists.
@@ -128,77 +98,62 @@ namespace DAZ_Installer.DP
                     // Update database info.
                     InsertDefaultValuesToTable("DatabaseInfo", CancellationToken.None);
                 }
-                else
-                {
-                    UpdateConnectionString();
-                }
-                CloseConnection(CancellationToken.None);
                 DatabaseUpdated?.Invoke();
-                DP.DPGlobal.AppClosing += OnAppClose;
+                DPGlobal.AppClosing += OnAppClose;
                 Initalized = true;
                 tableNames = GetTables(CancellationToken.None);
             } catch (Exception ex)
             {
                 DPCommon.WriteToLog($"An error occurred while initializing. REASON: {ex}");
-            } finally
-            {
-                Initalizing = false;
             }
             
         }
-        
         /// <summary>
-        /// Returns true if the database was ready (or broken) before the timeout. Otherwise, false.
+        /// Creates and returns a connection with the connection string setup.
         /// </summary>
-        /// <param name="timeoutMilliseconds"> The milliseconds until timeout.</param>
-        private static bool WaitUntilDatabaseReady(int timeoutMilliseconds)
+        /// <param name="readOnly"></param>
+        /// <returns></returns>
+        private static SQLiteConnection? CreateConnection(bool readOnly = false)
         {
-            try {
-                SpinWait.SpinUntil(() => IsReadyToExecute || IsBroken, timeoutMilliseconds);
+            try
+            {
+                var connection = new SQLiteConnection();
+                var builder = new SQLiteConnectionStringBuilder();
+                builder.ConnectionString = Path.GetFullPath(_expectedDatabasePath);
+                builder.Pooling = true;
+                builder.ReadOnly = readOnly;
+                connection.ConnectionString = builder.ConnectionString;
+                return connection; 
+            } catch (Exception e)
+            {
+                DPCommon.WriteToLog($"Failed to create connection. REASON: {e}");
+            }
+            return null;
+        }
+
+        /// <summary>
+        /// Attempts to open the connection and returns whether it was successful or not.
+        /// Any errors including if connection is null will return false.
+        /// </summary>
+        /// <param name="connection">The connection to open.</param>
+        /// <returns>True if the connection opened successfully, otherwise false.</returns>
+        private static bool OpenConnection(SQLiteConnection connection)
+        {
+            if (connection == null) return false;
+            try
+            {
+                connection.Open();
                 return true;
-            } catch (Exception _) {
-                return false;
-            }
-        }
-
-        private static void WaitUntilDatabaseReady()
-        {
-            SpinWait.SpinUntil(() => IsReadyToExecute);
-        }
-
-        private static void CreateConnection()
-        {
-            _connection = new SQLiteConnection();
-            _connectionString = "Data Source = " + Path.GetFullPath(_expectedDatabasePath);
-            _connection.ConnectionString = _connectionString;
-        }
-
-        private static void UpdateConnectionString()
-        {
-            if (_connection != null)
+            } catch (Exception ex)
             {
-                CreateConnection();
-                return;
+                DPCommon.WriteToLog($"Failed to open connection. REASON: {ex}");
             }
-
-            _connectionString = "Data Source = " + Path.GetFullPath(_expectedDatabasePath);
-            _connection.ConnectionString = _connectionString;  
+            return false;
         }
 
-        private static void OpenConnection()
-        {
-            // Synchronization error.
-            if (_connection?.State == ConnectionState.Closed)
-                _connection.Open();
-
-            if (_connection == null)
-            {
-                CreateConnection();
-                _connection.Open();
-            }
-
-        }
-
+        /// <summary>
+        /// Creates a new database file and sets it up for use.
+        /// </summary>
         private static void CreateDatabase()
         {
             var databasePath = Path.Combine(DPSettings.databasePath, "db.db");
@@ -207,20 +162,16 @@ namespace DAZ_Installer.DP
                 Directory.CreateDirectory(Path.GetDirectoryName(databasePath));
 
             SQLiteConnection.CreateFile(databasePath);
-            UpdateConnectionString();
             // Create tables, indexes, and triggers.
             CreateTables();
             CreateIndexes();
             CreateTriggers();
             ExecutePragmas();
-            CloseConnectionQ(true);
         }
 
         private static bool CreateTables()
         {
-            // At this point, we are being called via Initialization, no need to wait.
-            if (!IsReadyToExecute && IsBroken || !CanBeOpened) return false;
-            if (!IsReadyToExecute && CanBeOpened) OpenConnection();
+            
             const string createProductRecordsCommand = @"
             CREATE TABLE ""ProductRecords"" (
 
@@ -270,18 +221,22 @@ namespace DAZ_Installer.DP
             )";
             try
             {
-                var createCommand = new SQLiteCommand(createProductRecordsCommand, _connection);
-                createCommand.ExecuteNonQuery();
-                createCommand = new SQLiteCommand(createExtractionRecordsCommand, _connection);
-                createCommand.ExecuteNonQuery();
-                createCommand = new SQLiteCommand(createCachedSearchCommand, _connection);
-                createCommand.ExecuteNonQuery();
-                createCommand = new SQLiteCommand(createDatabaseInfoCommand, _connection);
-                createCommand.ExecuteNonQuery();
-                createCommand = new SQLiteCommand(createTagsCommand, _connection);
-                createCommand.ExecuteNonQuery();
-            } catch (Exception ex)
-            {
+                using (var connection = CreateConnection())
+                {
+                    var success = OpenConnection(connection);
+                    if (!success) return false;
+                    var createCommand = new SQLiteCommand(createProductRecordsCommand, _connection);
+                    createCommand.ExecuteNonQuery();
+                    createCommand = new SQLiteCommand(createExtractionRecordsCommand, _connection);
+                    createCommand.ExecuteNonQuery();
+                    createCommand = new SQLiteCommand(createCachedSearchCommand, _connection);
+                    createCommand.ExecuteNonQuery();
+                    createCommand = new SQLiteCommand(createDatabaseInfoCommand, _connection);
+                    createCommand.ExecuteNonQuery();
+                    createCommand = new SQLiteCommand(createTagsCommand, _connection);
+                    createCommand.ExecuteNonQuery();
+                }
+            } catch (Exception ex) {
                 DPCommon.WriteToLog($"An error occurred while attempting to create database. REASON: {ex}");
                 return false;
             }
@@ -290,10 +245,6 @@ namespace DAZ_Installer.DP
 
         private static bool CreateIndexes()
         {
-            // At this point, we are being called via Initialization, no need to wait.
-            if (!IsReadyToExecute && IsBroken || !CanBeOpened) return false;
-            if (!IsReadyToExecute && CanBeOpened) OpenConnection();
-
             const string createTagToPIDCommand = @"
             CREATE INDEX ""idx_TagToPID"" ON ""Tags"" (
                 ""Tag""   ASC,
@@ -320,15 +271,20 @@ namespace DAZ_Installer.DP
 
             try
             {
-                using (var cmdObj = new SQLiteCommand(createTagToPIDCommand, _connection))
+                using (var connection = CreateConnection())
                 {
-                    cmdObj.ExecuteNonQuery();
-                    cmdObj.CommandText = createPIDtoTagCommand;
-                    cmdObj.ExecuteNonQuery();
-                    cmdObj.CommandText = createProductNameToPIDCommand;
-                    cmdObj.ExecuteNonQuery();
-                    cmdObj.CommandText = createDateCreatedToPIDCommand;
-                    cmdObj.ExecuteNonQuery();
+                    var success = OpenConnection(connection);
+                    if (!success) return false;
+                    using (var cmdObj = new SQLiteCommand(createTagToPIDCommand, connection))
+                    {
+                        cmdObj.ExecuteNonQuery();
+                        cmdObj.CommandText = createPIDtoTagCommand;
+                        cmdObj.ExecuteNonQuery();
+                        cmdObj.CommandText = createProductNameToPIDCommand;
+                        cmdObj.ExecuteNonQuery();
+                        cmdObj.CommandText = createDateCreatedToPIDCommand;
+                        cmdObj.ExecuteNonQuery();
+                    }
                 }
             } catch (Exception ex)
             {
@@ -339,10 +295,6 @@ namespace DAZ_Installer.DP
         }
         
         private static bool CreateTriggers() {
-            // At this point, we are being called via Initialization, no need to wait.
-            if (!IsReadyToExecute && IsBroken || !CanBeOpened) return false;
-            if (!IsReadyToExecute && CanBeOpened) OpenConnection();
-
             const string deleteOnProductRemoveTriggerCommand =
                         @"CREATE TRIGGER IF NOT EXISTS delete_on_product_removal
                             AFTER DELETE ON ProductRecords FOR EACH ROW
@@ -377,15 +329,20 @@ namespace DAZ_Installer.DP
 
             try
             {
-                using (var createCommand = new SQLiteCommand(deleteOnProductRemoveTriggerCommand, _connection))
+                using (var connection = CreateConnection())
                 {
-                    createCommand.ExecuteNonQuery();
-                    createCommand.CommandText = deleteOnExtractionRemoveTriggerCommand;
-                    createCommand.ExecuteNonQuery();
-                    createCommand.CommandText = updateOnExtractionInsertionTriggerCommand;
-                    createCommand.ExecuteNonQuery();
-                    createCommand.CommandText = updateProductCountTriggerCommand;
-                    createCommand.ExecuteNonQuery();
+                    var success = OpenConnection(connection);
+                    if (!success) return false;
+                    using (var createCommand = new SQLiteCommand(deleteOnProductRemoveTriggerCommand, connection))
+                    {
+                        createCommand.ExecuteNonQuery();
+                        createCommand.CommandText = deleteOnExtractionRemoveTriggerCommand;
+                        createCommand.ExecuteNonQuery();
+                        createCommand.CommandText = updateOnExtractionInsertionTriggerCommand;
+                        createCommand.ExecuteNonQuery();
+                        createCommand.CommandText = updateProductCountTriggerCommand;
+                        createCommand.ExecuteNonQuery();
+                    }
                 }
             } catch (Exception ex)
             {
@@ -404,9 +361,14 @@ namespace DAZ_Installer.DP
                                             PRAGMA journal_size_limit=32768;
                                             PRAGMA page_size=512;";
             try {
-                using (var createCommand = new SQLiteCommand(pramaCommmands, _connection))
+                using (var connection = CreateConnection())
                 {
-                    createCommand.ExecuteNonQuery();
+                    var success = OpenConnection(connection);
+                    if (!success) return false;
+                    using (var createCommand = new SQLiteCommand(pramaCommmands, connection))
+                    {
+                        createCommand.ExecuteNonQuery();
+                    }
                 }
             }
             catch (Exception ex)
@@ -417,9 +379,6 @@ namespace DAZ_Installer.DP
             return true;
         }
         private static bool DeleteTriggers() {
-            // At this point, we have priority, no need to wait.
-            if (!IsReadyToExecute && IsBroken || !CanBeOpened) return false;
-            if (!IsReadyToExecute && CanBeOpened) OpenConnection();
 
             const string removeTriggersCommand =
                         @"DROP TRIGGER IF EXISTS delete_on_extraction_removal;
@@ -429,8 +388,13 @@ namespace DAZ_Installer.DP
 
             try
             {
-                var deleteCommand = new SQLiteCommand(removeTriggersCommand, _connection);
-                deleteCommand.ExecuteNonQuery();
+                using (var connection = CreateConnection())
+                {
+                    var success = OpenConnection(connection);
+                    if (!success) return false;
+                    using var deleteCommand = new SQLiteCommand(removeTriggersCommand, connection);
+                    deleteCommand.ExecuteNonQuery();
+                }
             } catch (Exception ex)
             {
                 DPCommon.WriteToLog($"An error occurred removing triggers. REASON: {ex}");
@@ -442,26 +406,19 @@ namespace DAZ_Installer.DP
         // TO DO: Refresh database code.
         private static void RefreshDatabase(CancellationToken t) {
             if (t.IsCancellationRequested) return;
-            
-            WaitUntilDatabaseReady();
+
             try {
-                _mainTaskManager.Stop();
-                _priorityTaskManager.Stop();
+                var task = Task.Run(_columnsCache.Clear);
+                _mainTaskManager.StopAndWait();
+                _priorityTaskManager.StopAndWait();
                 Initalized = false;
                 Initialize();
-                _columnsCache.Clear();
+                task.Wait();
             } catch (Exception e) {
                 DPCommon.WriteToLog($"An unexpected error occured while attempting to refresh the database. REASON: {e}");
             }
             
         }
-
-        private static void CloseConnection(CancellationToken t) {
-            if (t.IsCancellationRequested) return;
-            _connection.Close();
-        }
-        
-        
         
         private static void BackupDatabase(CancellationToken t) {
             return;

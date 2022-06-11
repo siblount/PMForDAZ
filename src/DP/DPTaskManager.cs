@@ -49,6 +49,19 @@ namespace DAZ_Installer.DP
             _taskFactory = new TaskFactory(_token);
             lastTask = null;
         }
+
+        public void Stop()
+        {
+            _source.Cancel();
+            Reset();
+        }
+
+        public void StopAndWait()
+        {
+            _source.Cancel();
+            lastTask?.Wait();
+            Reset();
+        }
         #region Queue methods
 
         public Task AddToQueue(Action action)
@@ -222,11 +235,7 @@ namespace DAZ_Installer.DP
         }
         #endregion
 
-        public void Stop()
-        {
-            _source.Cancel();
-            Reset();
-        }
+        
 
     }
 }
