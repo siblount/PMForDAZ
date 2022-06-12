@@ -18,51 +18,29 @@ namespace DAZ_Installer.DP
         /// Generates SQL command based on search query and returns a sorted list of products.
         /// </summary>
         /// <param name="searchQuery">The raw search query from the user.</param>
+        /// <param name="method">The sort method to perform.</param>
         /// <returns></returns>
-        private static void DoSearchS(string searchQuery, DPSortMethod method, CancellationToken t)
+        private static DPProductRecord[] DoSearchS(string searchQuery, DPSortMethod method, 
+            SQLiteConnection c, CancellationToken t)
         {
-            // User initialized another search while an old search hasn't finished completing.
-            if (isSearching)
-            {
-                _priorityTaskManager.Stop();
-            }
             if (!Initalized) Initialize();
-            if (IsBroken)
+            DPProductRecord[] results = Array.Empty<DPProductRecord>();
+            try
             {
-                DPCommon.WriteToLog("Search cannot proceed due to database being broken.");
-                SearchFailed?.Invoke();
-            }
-            isSearching = true;
-
-            var constring = "Data Source = " + Path.GetFullPath(_expectedDatabasePath) + ";Read Only=True";
-            using (var _connection = new SQLiteConnection(constring))
+                using var connection = CreateAndOpenConnection(c, true);
+                if (connection == null) return results;
+                using var command = new SQLiteCommand(connection);
+                SetupSQLSearchQuery(searchQuery, method, command);
+                results = SearchProductRecordsViaTagsS(command, t);
+                UpdateProductRecordCount(connection, t);
+                UpdateExtractionRecordCount(connection, t);
+            } catch (Exception ex)
             {
-                _connection.Open();
-                SpinWait.SpinUntil(() => _connection.State != ConnectionState.Connecting
-                                        || _connection.State != ConnectionState.Executing
-                                        || _connection.State != ConnectionState.Fetching);
-                if (_connection.State == ConnectionState.Broken) return;
-                SQLiteCommand command = null;
-                try
-                {
-                    command = new SQLiteCommand(_connection);
-                    SetupSQLSearchQuery(searchQuery, method, ref command);
-                    var results = SearchProductRecordsViaTagsS(command, t);
-                    SearchUpdated?.Invoke(results);
-                    command.Dispose();
-                    UpdateProductRecordCount(_connection, t);
-                    UpdateExtractionRecordCount(_connection, t);
-
-                }
-                catch (Exception e)
-                {
-                    command?.Dispose();
-                    DPCommon.WriteToLog("An error occurred with the search function.");
-                    SearchFailed?.Invoke();
-                }
+                DPCommon.WriteToLog($"An error occurred doing a regular search. REASON: {ex}");
             }
 
             if (!t.IsCancellationRequested) isSearching = false;
+            return results;
         }
 
         /// <summary>
@@ -70,105 +48,65 @@ namespace DAZ_Installer.DP
         /// </summary>
         /// <param name="regex">The regex to perform from the user.</param>
         /// <returns></returns>
-        private static void DoRegexSearchS(string regex, DPSortMethod method, CancellationToken t)
+        private static DPProductRecord[] DoRegexSearchS(string regex, DPSortMethod method, 
+            SQLiteConnection c, CancellationToken t)
         {
-            if (isSearching)
+            var results = Array.Empty<DPProductRecord>();
+            try
             {
-                _priorityTaskManager.Stop();
-            }
-            if (!Initalized) Initialize();
-            if (IsBroken)
-            {
-                DPCommon.WriteToLog("Search cannot proceed due to database being broken.");
-                SearchFailed?.Invoke();
-            }
-            isSearching = true;
-
-            var constring = "Data Source = " + Path.GetFullPath(_expectedDatabasePath) + ";Read Only=True";
-            using (var _connection = new SQLiteConnection(constring))
-            {
-                var attribute = (SQLiteFunctionAttribute)typeof(SQLRegexFunction).GetCustomAttributes(typeof(SQLiteFunctionAttribute), true)[0];
-                _connection.Open();
-                _connection.BindFunction(attribute, new SQLRegexFunction());
-                SpinWait.SpinUntil(() => _connection.State != ConnectionState.Connecting
-                                        || _connection.State != ConnectionState.Executing
-                                        || _connection.State != ConnectionState.Fetching);
-                if (_connection.State == ConnectionState.Broken) return;
-                SQLiteCommand command = null;
-                try
+                using (var connection = CreateAndOpenConnection(c, true))
                 {
-                    command = new SQLiteCommand(_connection);
-                    SetupSQLRegexQuery(regex, method, ref command);
-                    var results = SearchProductRecordsViaTagsS(command, t);
-                    SearchUpdated?.Invoke(results);
+                    if (connection == null) return results;
+
+                    var attribute = (SQLiteFunctionAttribute)typeof(SQLRegexFunction).GetCustomAttributes(typeof(SQLiteFunctionAttribute), true)[0];
+                    connection.BindFunction(attribute, new SQLRegexFunction());
+                    SpinWait.SpinUntil(() => connection.State != ConnectionState.Connecting
+                                            || connection.State != ConnectionState.Executing
+                                            || connection.State != ConnectionState.Fetching);
+                    if (connection.State == ConnectionState.Broken) return results;
+                    using var command = new SQLiteCommand(connection);
+                    SetupSQLRegexQuery(regex, method, command);
+                    results = SearchProductRecordsViaTagsS(command, t);
                     command.Dispose();
-                    UpdateProductRecordCount(_connection, t);
-                    UpdateExtractionRecordCount(_connection, t);
+                    UpdateProductRecordCount(connection, t);
+                    UpdateExtractionRecordCount(connection, t);
                 }
-                catch (Exception e)
-                {
-                    command?.Dispose();
-                    DPCommon.WriteToLog("An error occurred with the search function.");
-                    SearchFailed?.Invoke();
-                }
+            } catch (Exception e)
+            {
+                DPCommon.WriteToLog($"An error occurred with the regex search function. REASON: {e}");
             }
-
-            if (!t.IsCancellationRequested) isSearching = false;
+            return results;
         }
         /// <summary>
         /// Does an query for the library and emits the LibraryQueryCompleted event.
         /// </summary>
         /// <param name="limit">The limit amount of results to return.</param>
         /// <param name="method">The sorting method to apply to query results.</param>
-        private static void DoLibraryQuery(uint page, uint limit, DPSortMethod method, CancellationToken t)
+        private static DPProductRecord[] DoLibraryQuery(uint page, uint limit, DPSortMethod method, 
+            SQLiteConnection c, CancellationToken t)
         {
-            if (isSearching)
+            var results = Array.Empty<DPProductRecord>();
+            try
             {
-                _priorityTaskManager.Stop();
-            }
-            if (!Initalized) Initialize();
-            if (IsBroken)
-            {
-                DPCommon.WriteToLog("Search cannot proceed due to database being broken.");
-                SearchFailed?.Invoke();
-            }
-            isSearching = true;
-
-            var constring = "Data Source = " + Path.GetFullPath(_expectedDatabasePath) + ";Read Only=True";
-            using (var _connection = new SQLiteConnection(constring))
-            {
-                _connection.Open();
-                SpinWait.SpinUntil(() => _connection.State != ConnectionState.Connecting
-                                        || _connection.State != ConnectionState.Executing
-                                        || _connection.State != ConnectionState.Fetching);
-                if (_connection.State == ConnectionState.Broken) return;
-                SQLiteCommand command = null;
-                try
+                using (var _connection = CreateAndOpenConnection(c, true))
                 {
-                    command = new SQLiteCommand(_connection);
-                    SetupSQLLibraryQuery(page, limit, method, ref command);
-                    var results = SearchProductRecordsViaTagsS(command, t);
-                    LibraryQueryCompleted?.Invoke(results);
-                    command.Dispose();
+                    if (_connection == null) return results;
+                    using var command = new SQLiteCommand(_connection);
+                    SetupSQLLibraryQuery(page, limit, method, command);
+                    results = SearchProductRecordsViaTagsS(command, t);
                     UpdateProductRecordCount(_connection, t);
                     UpdateExtractionRecordCount(_connection, t);
-
                 }
-                catch (Exception e)
-                {
-                    command?.Dispose();
-                    DPCommon.WriteToLog("An error occurred with the search function.");
-                    LibraryQueryFailed?.Invoke();
-                }
+            } catch (Exception ex)
+            {
+                DPCommon.WriteToLog($"An error occurred with the search function. {ex}");
                 if (!t.IsCancellationRequested) isSearching = false;
             }
-
-
-
+            return results;
         }
 
 
-        private static void SetupSQLRegexQuery(string regex, DPSortMethod method, ref SQLiteCommand command)
+        private static void SetupSQLRegexQuery(string regex, DPSortMethod method, SQLiteCommand command)
         {
             string sqlQuery = @"SELECT * FROM ProductRecords WHERE ID IN (SELECT ""Product Record ID"" FROM Tags WHERE Tag REGEXP @A";
 
@@ -192,7 +130,7 @@ namespace DAZ_Installer.DP
             command.Parameters.Add(new SQLiteParameter("@A", regex));
         }
 
-        private static void SetupSQLLibraryQuery(uint page, uint limit, DPSortMethod method, ref SQLiteCommand command)
+        private static void SetupSQLLibraryQuery(uint page, uint limit, DPSortMethod method, SQLiteCommand command)
         {
             uint beginningRowID = (page - 1) * limit;
             string sqlQuery = $"SELECT * FROM ProductRecords WHERE ROWID >= {beginningRowID} ";
@@ -211,7 +149,7 @@ namespace DAZ_Installer.DP
 
             command.CommandText = sqlQuery;
         }
-        private static void SetupSQLSearchQuery(string userQuery, DPSortMethod method, ref SQLiteCommand command)
+        private static void SetupSQLSearchQuery(string userQuery, DPSortMethod method, SQLiteCommand command)
         {
             string[] tokens = userQuery.Split(' ');
             string sqlQuery = @"SELECT * FROM ProductRecords WHERE ID IN (SELECT ""Product Record ID"" FROM Tags WHERE Tag IN (";
@@ -221,7 +159,7 @@ namespace DAZ_Installer.DP
                 sb.Append(i == tokens.Length - 1 ? "@A" + i :
                                                     "@A" + i + ", ");
             }
-            sqlQuery += sb.ToString().Trim();
+            sqlQuery += sb.ToString();
 
             switch (method)
             {
