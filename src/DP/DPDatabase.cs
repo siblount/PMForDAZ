@@ -19,22 +19,22 @@ namespace DAZ_Installer.DP
     /// Database will be run on a different thread aside from the main thread.
     /// </summary>
     public static partial class DPDatabase
-        // SELECT * FROM ProductRecords WHERE ID IN(SELECT "Product Record ID" FROM TAGS WHERE Tag IN ("Run"))
-        // Internal methods with suffix 'Q' are methods that can be queued to the TaskScheduler. 
-        // Some can be executed immediately, such as RefreshDatabase.
-        
-        // Private methods with suffix 'S' are methods that are used for priority search calls.
-        // Any method without this suffix will stop at the beginning of the method call and wait until the search has 
-        // been completed before completing task.
-        
-        // All applicable methods that has the CancellationToken as the last parameter will stop before, during an expensive operation.
-        // When this occurs, these methods should return false, empty array of type, empty string, -1.
-        
-        // DO NOT THROW ERRORS! IT IS SIGNIFICANTLY SLOW!
-        // RETURN A BOOL DETERMINING IF IT WAS SUCCESSFUL OR NOT. AND IF YOU NEED TO RETURN A VALUE USE OUT PARAM OR REF PARAM!
+    // SELECT * FROM ProductRecords WHERE ID IN(SELECT "Product Record ID" FROM TAGS WHERE Tag IN ("Run"))
+    // Internal methods with suffix 'Q' are methods that can be queued to the TaskScheduler. 
+    // Some can be executed immediately, such as RefreshDatabase.
 
-        // TODO: Backup Database.
-        // TODO: Tool to use backup database.
+    // Private methods with suffix 'S' are methods that are used for priority search calls.
+    // Any method without this suffix will stop at the beginning of the method call and wait until the search has 
+    // been completed before completing task.
+
+    // All applicable methods that has the CancellationToken as the last parameter will stop before, during an expensive operation.
+    // When this occurs, these methods should return false, empty array of type, empty string, -1.
+
+    // DO NOT THROW ERRORS! IT IS SIGNIFICANTLY SLOW!
+    // RETURN A BOOL DETERMINING IF IT WAS SUCCESSFUL OR NOT. AND IF YOU NEED TO RETURN A VALUE USE OUT PARAM OR REF PARAM!
+
+    // TODO: Backup Database.
+    // TODO: Tool to use backup database.
     {   // TODO : Hold last transcations.
         // Public
         public static bool DatabaseExists { get; private set; } = false;
@@ -46,20 +46,13 @@ namespace DAZ_Installer.DP
         public static HashSet<string> ArchiveFileNames { get; private set; } = new HashSet<string>();
 
         // Events
-        public static event Action<DPProductRecord[]> SearchUpdated;
+        public static event Action<DPProductRecord[], uint> SearchUpdated;
         public static event Action DatabaseUpdated;
-        public static event Action<DataSet> ViewUpdated;
-        public static event Action<DPProductRecord[]> LibraryQueryCompleted;
-        public static event Action<DPExtractionRecord> RecordQueryCompleted;
-        public static event Action MainQueryCompleted;
+        public static event Action<DataSet, uint> ViewUpdated;
+        public static event Action<DPProductRecord[], uint> LibraryQueryCompleted;
+        public static event Action<DPExtractionRecord, uint> RecordQueryCompleted;
+        public static event Action<uint> MainQueryCompleted;
 
-        public static event Action SearchFailed;
-        public static event Action LibraryQueryFailed;
-        public static event Action ViewFailed;
-        public static event Action DatabaseBroke;
-        public static event Action RecordQueryFailed;
-        public static event Action MainQueryFailed;
-        
         private static string _expectedDatabasePath { get => Path.Join(DPSettings.databasePath, "db.db"); }
         private static string _connectionString { get; set; } = string.Empty;
 
@@ -70,25 +63,39 @@ namespace DAZ_Installer.DP
         private static DPTaskManager _priorityTaskManager = new DPTaskManager();
 
         // Task state.
-        private static bool isSearching = false;
-        
         private const byte DATABASE_VERSION = 2;
-        
+        private static bool _initializing = false;
 
         // Cache :D
         // TODO: Limit cache to 5.
         // Might remove to keep low-memory profile.
         private readonly static DPCache<string, string[]> _columnsCache = new();
 
-        
+        static DPDatabase() => Initialize();
+
         #region Private methods
-        private static void Initialize()
+        /// <summary>
+        /// Initalize creates a new database if one is not found at the expected database path.
+        /// An issue may occur where multiple threads may attempt to initalize the database. If 
+        /// there are any errors that occur, Initalize() will return false indicating it failed
+        /// to initalize. Otherwise, it will return true indicating it initalized successfully.
+        /// </summary>
+        /// <returns>True if initalization was successful, otherwise false.</returns>
+        private static bool Initialize()
         {
-            
+            // If another thread is initalizing, wait for it to initalize or wait 10 secs max.
+            try
+            {
+                if (_initializing)
+                    SpinWait.SpinUntil(() => _initializing = false, 10000);
+                // Timeout throws an error, if we timed out intialized failed.
+            } catch { return false; }
+
+            if (Initalized) return true;
+            _initializing = true;
             try
             {
                 // Check if database exists.
-                _expectedDatabasePath = Path.Join(DPSettings.databasePath, "db.db");
                 DatabaseExists = File.Exists(_expectedDatabasePath);
                 // TODO: Check if const database version is higher than the one in the database.
                 if (!DatabaseExists)
@@ -96,25 +103,34 @@ namespace DAZ_Installer.DP
                     // Create the database.
                     CreateDatabase();
                     // Update database info.
-                    InsertDefaultValuesToTable("DatabaseInfo", CancellationToken.None);
+                    InsertDefaultValuesToTable("DatabaseInfo", null, CancellationToken.None);
                 }
                 DatabaseUpdated?.Invoke();
                 DPGlobal.AppClosing += OnAppClose;
                 Initalized = true;
-                tableNames = GetTables(CancellationToken.None);
+                tableNames = GetTables(null, CancellationToken.None);
             } catch (Exception ex)
             {
                 DPCommon.WriteToLog($"An error occurred while initializing. REASON: {ex}");
+                _initializing = false;
+                return false;
             }
-            
+            _initializing = false;
+            return true;
         }
         /// <summary>
         /// Creates and returns a connection with the connection string setup.
         /// </summary>
-        /// <param name="readOnly"></param>
-        /// <returns></returns>
+        /// <param name="readOnly">Determines if the connection should be a read-only
+        /// connection or not.</param>
+        /// <returns>An SQLiteConnection if successfully created otherwise null.</returns>
         private static SQLiteConnection? CreateConnection(bool readOnly = false)
         {
+            if (!Initalized)
+            {
+                var success = Initialize();
+                if (!success) return null;
+            }
             try
             {
                 var connection = new SQLiteConnection();
@@ -132,6 +148,23 @@ namespace DAZ_Installer.DP
         }
 
         /// <summary>
+        /// Creates, opens, and returns a SQLite Connection. If connection is null, a
+        /// connection will be created for you. If the connection fails to open or be
+        /// created, it will return null.
+        /// </summary>
+        /// <param name="connection">An existing connection to open.</param>
+        /// <param name="readOnly">Determine if the new connection should be read only.</param>
+        /// <returns>The connection passed if it isn't null and was successfully opened. 
+        /// Otherwise, a new connection is passed if it was successfully opened. Otherwise,
+        /// null is returned.</returns>
+        private static SQLiteConnection? CreateAndOpenConnection(SQLiteConnection? connection, bool readOnly = false)
+        {
+            var c = connection ?? CreateConnection(readOnly);
+            var success = OpenConnection(c);
+            return success ? c : null;
+        }
+
+        /// <summary>
         /// Attempts to open the connection and returns whether it was successful or not.
         /// Any errors including if connection is null will return false.
         /// </summary>
@@ -139,7 +172,7 @@ namespace DAZ_Installer.DP
         /// <returns>True if the connection opened successfully, otherwise false.</returns>
         private static bool OpenConnection(SQLiteConnection connection)
         {
-            if (connection == null) return false;
+            if (connection == null || connection.State != ConnectionState.Closed) return false;
             try
             {
                 connection.Open();
@@ -156,12 +189,11 @@ namespace DAZ_Installer.DP
         /// </summary>
         private static void CreateDatabase()
         {
-            var databasePath = Path.Combine(DPSettings.databasePath, "db.db");
             
-            if (!Directory.Exists(databasePath))
-                Directory.CreateDirectory(Path.GetDirectoryName(databasePath));
+            if (!Directory.Exists(_expectedDatabasePath))
+                Directory.CreateDirectory(Path.GetDirectoryName(_expectedDatabasePath));
 
-            SQLiteConnection.CreateFile(databasePath);
+            SQLiteConnection.CreateFile(_expectedDatabasePath);
             // Create tables, indexes, and triggers.
             CreateTables();
             CreateIndexes();
@@ -225,15 +257,15 @@ namespace DAZ_Installer.DP
                 {
                     var success = OpenConnection(connection);
                     if (!success) return false;
-                    var createCommand = new SQLiteCommand(createProductRecordsCommand, _connection);
+                    var createCommand = new SQLiteCommand(createProductRecordsCommand, connection);
                     createCommand.ExecuteNonQuery();
-                    createCommand = new SQLiteCommand(createExtractionRecordsCommand, _connection);
+                    createCommand.CommandText = createExtractionRecordsCommand;
                     createCommand.ExecuteNonQuery();
-                    createCommand = new SQLiteCommand(createCachedSearchCommand, _connection);
+                    createCommand.CommandText = createCachedSearchCommand;
                     createCommand.ExecuteNonQuery();
-                    createCommand = new SQLiteCommand(createDatabaseInfoCommand, _connection);
+                    createCommand.CommandText = createDatabaseInfoCommand;
                     createCommand.ExecuteNonQuery();
-                    createCommand = new SQLiteCommand(createTagsCommand, _connection);
+                    createCommand.CommandText = createTagsCommand;
                     createCommand.ExecuteNonQuery();
                 }
             } catch (Exception ex) {
