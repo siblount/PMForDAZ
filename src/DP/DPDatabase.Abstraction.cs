@@ -158,15 +158,15 @@ namespace DAZ_Installer.DP
 
         }
 
-        private static void GetExtractionRecord(uint id, SQLiteConnection c, CancellationToken t)
+        private static DPExtractionRecord? GetExtractionRecord(uint id, SQLiteConnection c, CancellationToken t)
         {
-            if (t.IsCancellationRequested) return;
+            if (t.IsCancellationRequested) return null;
 
             var getCmd = $"SELECT * FROM ExtractionRecords WHERE ID = {id};";
             try
             {
                 using var connection = CreateAndOpenConnection(c, true);
-                if (connection == null) return;
+                if (connection == null) return null;
                 var cmd = new SQLiteCommand(getCmd, connection);
                 using (var reader = cmd.ExecuteReader())
                 {
@@ -186,35 +186,34 @@ namespace DAZ_Installer.DP
                         erroredFiles = erroredFilesStr != null ? erroredFiles = erroredFilesStr.Split(", ") : Array.Empty<string>();
                         errorMessages = errorMessagesStr != null ? errorMessages = erroredFilesStr.Split(", ") : Array.Empty<string>();
 
-                        var record = new DPExtractionRecord(archiveFileName, destinationPath, files, erroredFiles, errorMessages, folders, pid);
-                        RecordQueryCompleted?.Invoke(record);
-                        return;
+                        var record = new DPExtractionRecord(archiveFileName, destinationPath, files, 
+                            erroredFiles, errorMessages, folders, pid);
+                        return record;
                     }
                 }
                 DPCommon.WriteToLog("Failed to get extraction record possibly due to extraction record was deleted.");
-                RecordQueryFailed?.Invoke();
             }
             catch (Exception ex)
             {
                 DPCommon.WriteToLog($"Failed to get extraction record. REASON: {ex}");
             }
+            return null;
         }
 
-        private static void GetArchiveFileNameList(SQLiteConnection c, CancellationToken t)
+        private static HashSet<string> GetArchiveFileNameList(SQLiteConnection c, CancellationToken t)
         {
-            HashSet<string> names;
+            HashSet<string> names = null;
             var getCmd = @"SELECT ""Archive Name"" FROM ExtractionRecords;";
-            var constring = "Data Source = " + Path.GetFullPath(_expectedDatabasePath) + ";Read Only=True";
             try
             {
                 using (var _connection = CreateAndOpenConnection(c, true))
                 {
-                    if (_connection == null) return;
+                    if (_connection == null) return names;
                     using (var cmd = new SQLiteCommand(getCmd, _connection))
                     {
                         using (var reader = cmd.ExecuteReader())
                         {
-                            names = new HashSet<string>(reader.StepCount);
+                            names = new HashSet<string>();
                             while (reader.Read())
                             {
                                 names.Add(reader.GetString(0));
@@ -222,14 +221,14 @@ namespace DAZ_Installer.DP
                         }
                     }
                 }
-                MainQueryCompleted?.Invoke();
                 ArchiveFileNames = names;
+
             }
             catch (Exception ex)
             {
                 DPCommon.WriteToLog($"Failed to get archive file name list. REASON: {ex}");
-                MainQueryFailed?.Invoke();
             }
+            return names;
         }
 
         private static uint GetLastProductID(SQLiteConnection conn, CancellationToken t)
@@ -253,10 +252,10 @@ namespace DAZ_Installer.DP
             return 0;
         }
 
-        private static void GetAllValuesFromTable(string tableName, SQLiteConnection c, 
+        private static DataSet? GetAllValuesFromTable(string tableName, SQLiteConnection c, 
             CancellationToken token)
         {
-            if (token.IsCancellationRequested) return;
+            if (token.IsCancellationRequested) return null;
             try
             {
                 using (var connection = CreateAndOpenConnection(c, true))
@@ -266,11 +265,13 @@ namespace DAZ_Installer.DP
                     SQLiteDataAdapter adapter = new SQLiteDataAdapter(sqlCommand);
                     DataSet dataset = new DataSet(tableName);
                     adapter.Fill(dataset);
-                    ViewUpdated?.Invoke(dataset);
+                    return dataset;
                 }
             }
-            catch { }
-
+            catch (Exception ex){
+                DPCommon.WriteToLog($"Failed to get all values from table. REASON: {ex}");
+            }
+            return null;
         }
         #endregion
         #region Writes
@@ -691,9 +692,7 @@ namespace DAZ_Installer.DP
         private static bool UpdateValues(string tableName, string[] columns, object[] newValues, 
             SQLiteConnection c, CancellationToken t)
         {
-            if (!Initalized) Initialize();
             if (t.IsCancellationRequested) return false;
-
             try
             {
                 using var connection = CreateAndOpenConnection(c);
@@ -735,8 +734,6 @@ namespace DAZ_Installer.DP
         #region etc
         private static void TruncateJournal()
         {
-            if (!Initalized) Initialize();
-
             var pragmaCheckpoint = "PRAGMA wal_checkpoint(TRUNCATE);";
             try
             {
@@ -745,7 +742,7 @@ namespace DAZ_Installer.DP
                 using var cmd = new SQLiteCommand(pragmaCheckpoint, connection);
                 cmd.ExecuteNonQuery();
             }
-            catch (Exception ex) { }
+            catch { }
 
             // Now check if -wal and -shm are available.
             var shmFile = Path.GetFullPath(_expectedDatabasePath + "-shm");

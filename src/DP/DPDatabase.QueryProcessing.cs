@@ -23,7 +23,6 @@ namespace DAZ_Installer.DP
         private static DPProductRecord[] DoSearchS(string searchQuery, DPSortMethod method, 
             SQLiteConnection c, CancellationToken t)
         {
-            if (!Initalized) Initialize();
             DPProductRecord[] results = Array.Empty<DPProductRecord>();
             try
             {
@@ -38,8 +37,6 @@ namespace DAZ_Installer.DP
             {
                 DPCommon.WriteToLog($"An error occurred doing a regular search. REASON: {ex}");
             }
-
-            if (!t.IsCancellationRequested) isSearching = false;
             return results;
         }
 
@@ -100,7 +97,6 @@ namespace DAZ_Installer.DP
             } catch (Exception ex)
             {
                 DPCommon.WriteToLog($"An error occurred with the search function. {ex}");
-                if (!t.IsCancellationRequested) isSearching = false;
             }
             return results;
         }
