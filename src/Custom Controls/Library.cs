@@ -56,8 +56,6 @@ namespace DAZ_Installer
         {
             Task.Run(LoadLibraryItemImages)
                 .ContinueWith(t => LoadLibraryItems());
-            DPDatabase.SearchUpdated += OnSearchUpdate;
-            DPDatabase.LibraryQueryCompleted += OnLibraryQueryUpdate;
         }
 
         // Called only when visible. Can be loaded but but visible.
@@ -86,7 +84,7 @@ namespace DAZ_Installer
             // TODO: Remove while loop.
             // Shouldn't sleep anymore since its chained with ContinueWith.
 
-            DPDatabase.GetProductRecords(DPSortMethod.None, (uint) libraryPanel1.CurrentPage, 25);
+            DPDatabase.GetProductRecords(DPSortMethod.None, (uint) libraryPanel1.CurrentPage, 25, 0, OnLibraryQueryUpdate);
 
             // Invoke or BeginInvoke cannot be called on a control until the window handle has been created.'
             DPCommon.WriteToLog("Loaded library items.");
@@ -258,7 +256,7 @@ namespace DAZ_Installer
             // if (page == libraryPanel1.PreviousPage) return;
             
             if (!searchMode) {
-                DPDatabase.GetProductRecords(DPSortMethod.None, (uint) page, 25);
+                DPDatabase.GetProductRecords(DPSortMethod.None, (uint) page, 25, callback: OnLibraryQueryUpdate);
             } else {
                 TryPageUpdate();
             }
@@ -328,7 +326,7 @@ namespace DAZ_Installer
             {
                 if (searchBox.Text.Length != 0) {
                     lastSearchID = (uint) Random.Shared.Next(1,int.MaxValue);
-                    DPDatabase.RegexSearch(searchBox.Text);
+                    DPDatabase.RegexSearch(searchBox.Text, callback: OnSearchUpdate);
                 }
             }
         }
@@ -339,16 +337,15 @@ namespace DAZ_Installer
             TryPageUpdate();
         }
 
-        private void OnSearchUpdate(DPProductRecord[] searchResults, uint callerID)
+        private void OnSearchUpdate(DPProductRecord[] searchResults)
         {
             SearchRecords = searchResults;
             if (!searchMode) SwitchModes(true);
             else TryPageUpdate();
         }
 
-        private void OnLibraryQueryUpdate(DPProductRecord[] productRecords, uint callerID)
+        private void OnLibraryQueryUpdate(DPProductRecord[] productRecords)
         {
-            if (callerID != 0xFF) return;
             ProductRecords = productRecords;
             if (!searchMode) TryPageUpdate();
         }
@@ -359,7 +356,7 @@ namespace DAZ_Installer
         public void InformLibraryUpdate()
         {
             if (!searchMode)
-                DPDatabase.GetProductRecords(DPSortMethod.None, (uint) libraryPanel1.CurrentPage, 25);
+                DPDatabase.GetProductRecords(DPSortMethod.None, (uint) libraryPanel1.CurrentPage, 25, callback: OnLibraryQueryUpdate);
         }
     }
 }

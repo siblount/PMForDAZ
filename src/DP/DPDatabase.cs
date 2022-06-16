@@ -54,7 +54,6 @@ namespace DAZ_Installer.DP
         public static event Action<uint> MainQueryCompleted;
 
         private static string _expectedDatabasePath { get => Path.Join(DPSettings.databasePath, "db.db"); }
-        private static string _connectionString { get; set; } = string.Empty;
 
         // Main task manager...
 
