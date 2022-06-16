@@ -54,10 +54,7 @@ namespace DAZ_Installer.DP
 
         private static DPProductRecord[] SearchProductRecordsViaTagsS(SQLiteCommand command, CancellationToken t)
         {
-            if (t.IsCancellationRequested)
-            {
-                return Array.Empty<DPProductRecord>();
-            }
+            if (t.IsCancellationRequested) return Array.Empty<DPProductRecord>();
             var reader = command.ExecuteReader();
 
             var searchResults = new List<DPProductRecord>(reader.StepCount);
@@ -69,8 +66,7 @@ namespace DAZ_Installer.DP
             // TODO : Use new product search record.
             while (reader.Read())
             {
-                if (t.IsCancellationRequested)
-                    return Array.Empty<DPProductRecord>();
+                if (t.IsCancellationRequested) return Array.Empty<DPProductRecord>();
                 // Construct product records
                 // NULL values return type DB.NULL.
                 productName = (string)reader["Product Name"];
@@ -84,7 +80,6 @@ namespace DAZ_Installer.DP
                 pid = Convert.ToUInt32(reader["ID"]);
                 searchResults.Add(
                     new DPProductRecord(productName, tags, author, sku, dateCreated, thumbnailPath, extractionID, pid));
-
             }
 
             return searchResults.ToArray();
@@ -173,10 +168,10 @@ namespace DAZ_Installer.DP
                     while (reader.Read())
                     {
                         string[] files, folders, erroredFiles, errorMessages;
-                        string archiveFileName = (string)reader["Archive Name"];
+                        string archiveFileName = reader["Archive Name"] as string;
                         string filesStr = reader["Files"] as string;
                         string foldersStr = reader["Folders"] as string;
-                        string destinationPath = (string)reader["Destination Path"];
+                        string destinationPath = reader["Destination Path"] as string;
                         string erroredFilesStr = reader["Errored Files"] as string;
                         string errorMessagesStr = reader["Error Messages"] as string;
                         uint pid = Convert.ToUInt32(reader["Product Record ID"]);
@@ -186,8 +181,8 @@ namespace DAZ_Installer.DP
                         erroredFiles = erroredFilesStr != null ? erroredFiles = erroredFilesStr.Split(", ") : Array.Empty<string>();
                         errorMessages = errorMessagesStr != null ? errorMessages = erroredFilesStr.Split(", ") : Array.Empty<string>();
 
-                        var record = new DPExtractionRecord(archiveFileName, destinationPath, files, 
-                            erroredFiles, errorMessages, folders, pid);
+                        var record = new DPExtractionRecord(archiveFileName, destinationPath, files, erroredFiles, errorMessages, folders, pid);
+                        // RecordQueryCompleted?.Invoke(record);
                         return record;
                     }
                 }
@@ -200,10 +195,11 @@ namespace DAZ_Installer.DP
             return null;
         }
 
-        private static HashSet<string> GetArchiveFileNameList(SQLiteConnection c, CancellationToken t)
+        private static HashSet<string>? GetArchiveFileNameList(SQLiteConnection c, CancellationToken t)
         {
             HashSet<string> names = null;
             var getCmd = @"SELECT ""Archive Name"" FROM ExtractionRecords;";
+            var constring = "Data Source = " + Path.GetFullPath(_expectedDatabasePath) + ";Read Only=True";
             try
             {
                 using (var _connection = CreateAndOpenConnection(c, true))
@@ -213,7 +209,7 @@ namespace DAZ_Installer.DP
                     {
                         using (var reader = cmd.ExecuteReader())
                         {
-                            names = new HashSet<string>();
+                            names = new HashSet<string>(reader.StepCount);
                             while (reader.Read())
                             {
                                 names.Add(reader.GetString(0));
@@ -221,8 +217,8 @@ namespace DAZ_Installer.DP
                         }
                     }
                 }
+                // MainQueryCompleted?.Invoke();
                 ArchiveFileNames = names;
-
             }
             catch (Exception ex)
             {
@@ -255,7 +251,8 @@ namespace DAZ_Installer.DP
         private static DataSet? GetAllValuesFromTable(string tableName, SQLiteConnection c, 
             CancellationToken token)
         {
-            if (token.IsCancellationRequested) return null;
+            DataSet dataset = null;
+            if (token.IsCancellationRequested) return dataset;
             try
             {
                 using (var connection = CreateAndOpenConnection(c, true))
@@ -263,15 +260,13 @@ namespace DAZ_Installer.DP
                     var getCommand = $"SELECT * FROM {tableName}";
                     var sqlCommand = new SQLiteCommand(getCommand, connection);
                     SQLiteDataAdapter adapter = new SQLiteDataAdapter(sqlCommand);
-                    DataSet dataset = new DataSet(tableName);
+                    dataset = new DataSet(tableName);
                     adapter.Fill(dataset);
-                    return dataset;
+                    //ViewUpdated?.Invoke(dataset);
                 }
             }
-            catch (Exception ex){
-                DPCommon.WriteToLog($"Failed to get all values from table. REASON: {ex}");
-            }
-            return null;
+            catch { }
+            return dataset;
         }
         #endregion
         #region Writes
@@ -281,7 +276,9 @@ namespace DAZ_Installer.DP
             if (t.IsCancellationRequested) return false;
 
             // Also deletes from tags via trigger.
-            var deleteCommand = $"DELETE FROM ProductRecords; DELETE FROM ExtractionRecords;"; // Faster way is to drop the table & re-make it.
+            // Faster way is to drop the table & re-make it.
+            // TODO: Drop table and remake it.
+            var deleteCommand = $"DELETE FROM ProductRecords; DELETE FROM ExtractionRecords;"; 
             try
             {
                 using (var connection = CreateAndOpenConnection(c))
@@ -600,7 +597,7 @@ namespace DAZ_Installer.DP
             SQLiteConnection c, CancellationToken t)
         {
             if (t.IsCancellationRequested) return false;
-
+            
             try
             {
                 using var connection = CreateAndOpenConnection(c);
@@ -693,6 +690,7 @@ namespace DAZ_Installer.DP
             SQLiteConnection c, CancellationToken t)
         {
             if (t.IsCancellationRequested) return false;
+
             try
             {
                 using var connection = CreateAndOpenConnection(c);
@@ -742,7 +740,7 @@ namespace DAZ_Installer.DP
                 using var cmd = new SQLiteCommand(pragmaCheckpoint, connection);
                 cmd.ExecuteNonQuery();
             }
-            catch { }
+            catch (Exception ex) { }
 
             // Now check if -wal and -shm are available.
             var shmFile = Path.GetFullPath(_expectedDatabasePath + "-shm");

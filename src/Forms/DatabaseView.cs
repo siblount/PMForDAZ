@@ -27,7 +27,7 @@ namespace DAZ_Installer.Forms
 
         public void ShowEverything(DataSet dataSet)
         {
-            if (dataset != null) dataSet.Dispose();
+            dataSet?.Dispose();
             dataset = dataSet;
             // This is called away from the UI thread. We have to invoke, otherwise, 
             // external null pointer exception occurs.
@@ -39,8 +39,6 @@ namespace DAZ_Installer.Forms
 
         private void DatabaseView_Load(object sender, EventArgs e)
         {
-
-            DP.DPDatabase.ViewUpdated += ShowEverything;
             if (DP.DPDatabase.tableNames != null)
             {
                 tableNames.Items.AddRange(DP.DPDatabase.tableNames);
@@ -51,7 +49,7 @@ namespace DAZ_Installer.Forms
         private void changeTableBtn_Click(object sender, EventArgs e)
         {
             if (tableNames.Text.Trim().Length != 0)
-                DP.DPDatabase.ViewTableQ(tableNames.Text);
+                DP.DPDatabase.ViewTableQ(tableNames.Text, 0, ShowEverything);
         }
     }
 }

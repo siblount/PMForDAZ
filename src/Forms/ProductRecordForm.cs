@@ -27,9 +27,8 @@ namespace DAZ_Installer
         public ProductRecordForm(DPProductRecord productRecord) : this()
         {
             InitializeProductRecordInfo(productRecord);
-            DPDatabase.RecordQueryCompleted += InitializeExtractionRecordInfo;
             if (productRecord.EID != 0)
-                DPDatabase.GetExtractionRecordQ(productRecord.EID);
+                DPDatabase.GetExtractionRecordQ(productRecord.EID, 0, InitializeExtractionRecordInfo);
         }
 
         public void InitializeProductRecordInfo(DPProductRecord record)

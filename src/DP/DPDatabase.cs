@@ -135,7 +135,7 @@ namespace DAZ_Installer.DP
             {
                 var connection = new SQLiteConnection();
                 var builder = new SQLiteConnectionStringBuilder();
-                builder.ConnectionString = Path.GetFullPath(_expectedDatabasePath);
+                builder.DataSource = Path.GetFullPath(_expectedDatabasePath);
                 builder.Pooling = true;
                 builder.ReadOnly = readOnly;
                 connection.ConnectionString = builder.ConnectionString;
