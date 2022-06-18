@@ -15,7 +15,12 @@ namespace DAZ_Installer.DP
     public static partial class DPDatabase
     {
         #region Reads
-        private static void UpdateProductRecordCount(SQLiteConnection connection, CancellationToken t)
+        /// <summary>
+        /// Updates the <c>ProductRecordCount</c> property.
+        /// </summary>
+        /// <param name="connection">A connection to reuse, if any.</param>
+        /// <param name="t">Cancel token. Required, cannot be null. Use CancellationToken.None instead (though not recommended).</param>
+        private static void UpdateProductRecordCount(SQLiteConnection? connection, CancellationToken t)
         {
             const string getCmd = @"SELECT ""Product Record Count"" FROM DatabaseInfo;";
             if (t.IsCancellationRequested) return;
@@ -34,7 +39,12 @@ namespace DAZ_Installer.DP
             DPCommon.WriteToLog("Product Record Count: ", ProductRecordCount);
         }
 
-        private static void UpdateExtractionRecordCount(SQLiteConnection connection, CancellationToken t)
+        /// <summary>
+        /// Updates the <c>ExtractionRecordCount</c> property.
+        /// </summary>
+        /// <param name="connection">A connection to reuse, if any.</param>
+        /// <param name="t">Cancel token. Required, cannot be null. Use CancellationToken.None instead (though not recommended).</param>
+        private static void UpdateExtractionRecordCount(SQLiteConnection? connection, CancellationToken t)
         {
             const string getCmd = @"SELECT ""Extraction Record Count"" FROM DatabaseInfo;";
             try
@@ -51,13 +61,19 @@ namespace DAZ_Installer.DP
             DPCommon.WriteToLog("Extraction Record Count: ", ExtractionRecordCount);
 
         }
-
+        /// <summary>
+        /// Executes the reader to search for product records via tags. This only executes the reader and returns an array
+        /// of product records.
+        /// </summary>
+        /// <param name="command">The command that is ready to execute. Cannot be null.</param>
+        /// <param name="t">Cancel token. Required, cannot be null. Use CancellationToken.None instead (though not recommended).</param>
+        /// <returns>An array of product records found from search.</returns>
         private static DPProductRecord[] SearchProductRecordsViaTagsS(SQLiteCommand command, CancellationToken t)
         {
             if (t.IsCancellationRequested) return Array.Empty<DPProductRecord>();
             var reader = command.ExecuteReader();
 
-            var searchResults = new List<DPProductRecord>(reader.StepCount);
+            var searchResults = new List<DPProductRecord>(25);
             string productName, author, thumbnailPath, sku;
             string[] tags;
             DateTime dateCreated;
@@ -85,7 +101,13 @@ namespace DAZ_Installer.DP
             return searchResults.ToArray();
         }
 
-        private static string[] GetColumns(string tableName, SQLiteConnection c, 
+        /// <summary>
+        /// Returns an array of columns for the table name specified.
+        /// </summary>
+        /// <param name="tableName">The table to get columns from.</param>
+        /// <param name="c">The SQLiteConnection to use, if any.</param>
+        /// <param name="t">Cancel token. Required, cannot be null. Use CancellationToken.None instead (though not recommended).</param>
+        private static string[] GetColumns(string tableName, SQLiteConnection? c, 
             CancellationToken t)
         {
             if (t.IsCancellationRequested || tableName.Length == 0) return Array.Empty<string>();
@@ -123,8 +145,12 @@ namespace DAZ_Installer.DP
             return Array.Empty<string>();
         }
 
-
-        private static string[] GetTables(SQLiteConnection c, CancellationToken cancellationToken)
+        /// <summary>
+        /// Returns all an array of all of the tables in the database.
+        /// </summary>
+        /// <param name="c">The SQLiteConnection to use, if any.</param>
+        /// <param name="cancellationToken">Cancel token. Required, cannot be null. Use CancellationToken.None instead (though not recommended).</param>
+        private static string[] GetTables(SQLiteConnection? c, CancellationToken cancellationToken)
         {
             if (cancellationToken.IsCancellationRequested) return Array.Empty<string>();
             var tables = new List<string>();
@@ -152,8 +178,14 @@ namespace DAZ_Installer.DP
             return Array.Empty<string>();
 
         }
-
-        private static DPExtractionRecord? GetExtractionRecord(uint id, SQLiteConnection c, CancellationToken t)
+        /// <summary>
+        /// Attempts to get the extraction record via the extraction record's ID in the database. May return null if it does not exist
+        /// or there was an error parsing the data from the database.
+        /// </summary>
+        /// <param name="id">The extraction record ID to fetch from database.</param>
+        /// <param name="c">The SQLiteConnection to use, if any.</param>
+        /// <param name="t">Cancel token. Required, cannot be null. Use CancellationToken.None instead (though not recommended).</param>
+        private static DPExtractionRecord? GetExtractionRecord(uint id, SQLiteConnection? c, CancellationToken t)
         {
             if (t.IsCancellationRequested) return null;
 
@@ -195,7 +227,15 @@ namespace DAZ_Installer.DP
             return null;
         }
 
-        private static HashSet<string>? GetArchiveFileNameList(SQLiteConnection c, CancellationToken t)
+        /// <summary>
+        /// Returns a unique list of archive file names that have been successfully extracted. It returns a hashset
+        /// which may be null if it fails to create & open a connection, and execute the reader. Otherwise, it may
+        /// return an empty hashset indicating there was nothing there.
+        /// </summary>
+        /// <param name="c">The SQLiteCOnnection to use, if any.</param>
+        /// <param name="t">Cancel token. Required, cannot be null. Use CancellationToken.None instead (though not recommended).</param>
+        /// <returns>A hashset containing successfully extracted archive file names.</returns>
+        private static HashSet<string>? GetArchiveFileNameList(SQLiteConnection? c, CancellationToken t)
         {
             HashSet<string> names = null;
             var getCmd = @"SELECT ""Archive Name"" FROM ExtractionRecords;";
@@ -227,7 +267,14 @@ namespace DAZ_Installer.DP
             return names;
         }
 
-        private static uint GetLastProductID(SQLiteConnection conn, CancellationToken t)
+        /// <summary>
+        /// Returns the last product ID which indicates the latest product record added to the database.
+        /// It may return 0 if an error occurred (or if there are no product records in the database).
+        /// </summary>
+        /// <param name="conn">The SQLiteConnection to use, if any.</param>
+        /// <param name="t">Cancel token. Required, cannot be null. Use CancellationToken.None instead (though not recommended).</param>
+        /// <returns>The last product record ID in the database.</returns>
+        private static uint GetLastProductID(SQLiteConnection? conn, CancellationToken t)
         {
             if (t.IsCancellationRequested) return 0;
             var c = "SELECT ID FROM ProductRecords ORDER BY ID DESC LIMIT 1;";
@@ -247,8 +294,16 @@ namespace DAZ_Installer.DP
             }
             return 0;
         }
-
-        private static DataSet? GetAllValuesFromTable(string tableName, SQLiteConnection c, 
+        /// <summary>
+        /// Returns all the rows from a table in the database. This may return an empty dataset
+        /// if there was an error connecting to the database. Additionally, the dataset may be 
+        /// empty indicating there was an issue internally or that there was nothing in the table.
+        /// </summary>
+        /// <param name="tableName">The table to get all rows from.</param>
+        /// <param name="c">The SQLiteConnection to use, if any.</param>
+        /// <param name="token">Cancel token. Required, cannot be null. Use CancellationToken.None instead (though not recommended).</param>
+        /// <returns>A dataset containing all of the values from the table specified. May return null.</returns>
+        private static DataSet? GetAllValuesFromTable(string tableName, SQLiteConnection? c, 
             CancellationToken token)
         {
             DataSet dataset = null;
@@ -271,7 +326,15 @@ namespace DAZ_Installer.DP
         #endregion
         #region Writes
         #region Remove
-        private static bool RemoveAllRecords(SQLiteConnection c, CancellationToken t)
+        /// <summary>
+        /// Removes all extraction and product records from the database. It temporary disables the triggers to
+        /// remove all records safely. In the event of an internal failure, you should make sure the triggers are
+        /// re-enabled by calling <c>CreateTriggers()</c>.
+        /// </summary>
+        /// <param name="c">The SQLiteConnection to use, if any.</param>
+        /// <param name="t">Cancel token. Required, cannot be null. Use CancellationToken.None instead (though not recommended).</param>
+        /// <returns>Whether the removal was a success (true) or not (false).</returns>
+        private static bool RemoveAllRecords(SQLiteConnection? c, CancellationToken t)
         {
             if (t.IsCancellationRequested) return false;
 
@@ -313,14 +376,21 @@ namespace DAZ_Installer.DP
             return true;
         }
 
-
-        private static bool RemoveProductRecordsViaTag(string[] values, SQLiteConnection c,
+        /// <summary>
+        /// Removes product records that have a tag specified in the <paramref name="tags"/> array. In other words, it removes
+        /// any product records that contains a tag in <paramref name="tags"/>. For example, if you wanted to remove all product records
+        /// that either has a "Environment" tag or "Clothes" tag, tags should contain these values. 
+        /// <param name="tags">A list of tags that will be used to determine if a product record should be removed.</param>
+        /// <param name="c">The SQLiteConnection to use, if any.</param>
+        /// <param name="t">Cancel token. Required, cannot be null. Use CancellationToken.None instead (though not recommended).</param>
+        /// <returns>Whether the removal was a success (true) or not (false).</returns>
+        private static bool RemoveProductRecordsViaTag(string[] tags, SQLiteConnection? c,
             CancellationToken t)
         {
             if (t.IsCancellationRequested) return false;
-            if (values.Length == 0) return true;
+            if (tags.Length == 0) return true;
 
-            string args = ConvertParamsToString(values);
+            string args = ConvertParamsToString(tags);
             string idsCommand = $"SELECT \"Product Record ID\" FROM Tags WHERE Tag IN ({args})";
             string deleteCommand = $"DELETE FROM ProductRecords WHERE ID IN ({idsCommand});";
             try
@@ -350,8 +420,17 @@ namespace DAZ_Installer.DP
 
             return true;
         }
+        /// <summary>
+        /// Removes values from the table specified with the conditions specified.
+        /// </summary>
+        /// <param name="tableName">The table you wish to remove values from.</param>
+        /// <param name="conditions">An array of conditions to consider when removing rows.</param>
+        /// <param name="or">Combine conditions with an OR statement (true) or an AND statement (false).</param>
+        /// <param name="c">The SQLiteConnection to use, if any.</param>
+        /// <param name="t">Cancel token. Required, cannot be null. Use CancellationToken.None instead (though not recommended).</param>
+        /// <returns>Whether the removal was a success (true) or not (false).</returns>
         private static bool RemoveValuesWithCondition(string tableName, Tuple<string, object>[] conditions, 
-            bool or, SQLiteConnection c, CancellationToken t)
+            bool or, SQLiteConnection? c, CancellationToken t)
         {
             // Build columns.
             string whereCommand = "";
@@ -406,7 +485,14 @@ namespace DAZ_Installer.DP
 
             return true;
         }
-        private static bool RemoveAllFromTable(string tableName, SQLiteConnection c, CancellationToken t)
+        /// <summary>
+        /// Removes all of the rows from the table specified. 
+        /// </summary>
+        /// <param name="tableName">The table to remove everything from.</param>
+        /// <param name="c">The SQLiteConnection to use, if any.</param>
+        /// <param name="t">Cancel token. Required, cannot be null. Use CancellationToken.None instead (though not recommended).</param>
+        /// <returns>Whether the removal was a success (true) or not (false).</returns>
+        private static bool RemoveAllFromTable(string tableName, SQLiteConnection? c, CancellationToken t)
         {
             if (t.IsCancellationRequested) return false;
 
@@ -440,7 +526,11 @@ namespace DAZ_Installer.DP
 
             return true;
         }
-
+        /// <summary>
+        /// Removes all tags associated with the product record ID. 
+        /// </summary>
+        /// <param name="pid">The product record ID to remove tags associated with it.</param>
+        /// <param name="t">Cancel token. Required, cannot be null. Use CancellationToken.None instead (though not recommended).</param>
         private static void RemoveTags(uint pid, CancellationToken t)
         {
             RemoveValuesWithCondition("Tags",
@@ -450,7 +540,14 @@ namespace DAZ_Installer.DP
 
         #endregion
         #region Insert
-        private static void InsertTags(string[] tags, SQLiteConnection conn, CancellationToken t)
+        /// <summary>
+        /// Insert tags to the tags table, the product record ID will be automatically set (via the trigger) which will be the 
+        /// last product record ID in the database.
+        /// </summary>
+        /// <param name="tags">An array of tags to insert into the database.</param>
+        /// <param name="c">The SQLiteConnection to use, if any.</param>
+        /// <param name="t">Cancel token. Required, cannot be null. Use CancellationToken.None instead (though not recommended).</param>
+        private static void InsertTags(string[] tags, SQLiteConnection? conn, CancellationToken t)
         {
             if (t.IsCancellationRequested) return;
 
@@ -490,8 +587,21 @@ namespace DAZ_Installer.DP
             }
 
         }
+        /// <summary>
+        /// Inserts multiple values to the table using one transaction. The length of columns and the length of columns in values
+        /// must be the same. You do not have to include all of the columns for the table you wish to add values to.
+        /// However, you should include columns that are required. For example, if you wish to only add a new extraction record name,
+        /// you can set the columns {"name"} and values to {{"hello"}}. Columns may be an empty string array which will use the columns found
+        /// in the table.
+        /// </summary>
+        /// <param name="tableName">The table name to insert multiple values to.</param>
+        /// <param name="columns">The columns to insert values into. Cannot be null.</param>
+        /// <param name="values">The values to insert into the table. Cannot be null.</param>
+        /// <param name="c">The SQLiteConnection to use, if any.</param>
+        /// <param name="t">Cancel token. Required, cannot be null. Use CancellationToken.None instead (though not recommended).</param>
+        /// <returns>Whether the insertion was successful (true) or not (false).</returns>
         private static bool InsertMultipleValuesToTable(string tableName, string[] columns, object[][] values,
-            SQLiteConnection c, CancellationToken t)
+            SQLiteConnection? c, CancellationToken t)
         {
             if (t.IsCancellationRequested) return false;
 
@@ -558,8 +668,14 @@ namespace DAZ_Installer.DP
 
             return true;
         }
-
-        private static bool InsertDefaultValuesToTable(string tableName, SQLiteConnection c, 
+        /// <summary>
+        /// Inserts default values to the table specified.
+        /// </summary>
+        /// <param name="tableName">The table name to insert multiple values to.</param>
+        /// <param name="c">The SQLiteConnection to use, if any.</param>
+        /// <param name="t">Cancel token. Required, cannot be null. Use CancellationToken.None instead (though not recommended).</param>
+        /// <returns>Whether the insertion was successful (true) or not (false).</returns>
+        private static bool InsertDefaultValuesToTable(string tableName, SQLiteConnection? c, 
             CancellationToken t)
         {
             if (t.IsCancellationRequested) return false;
@@ -592,9 +708,21 @@ namespace DAZ_Installer.DP
 
             return true;
         }
-
+        /// <summary>
+        /// Inserts values to the table specified. The length of columns and the length of columns in values
+        /// must be the same. You do not have to include all of the columns for the table you wish to add values to.
+        /// However, you should include columns that are required. For example, if you wish to only add a new extraction record name,
+        /// you can set the columns {"name"} and values to {"hello"}. Columns may be an empty string array which will use the columns found
+        /// in the table.
+        /// </summary>
+        /// <param name="tableName">The table name to insert multiple values to.</param>
+        /// <param name="columns">The columns to insert values into. Cannot be null.</param>
+        /// <param name="values">The values to insert into the table. Cannot be null.</param>
+        /// <param name="c">The SQLiteConnection to use, if any.</param>
+        /// <param name="t">Cancel token. Required, cannot be null. Use CancellationToken.None instead (though not recommended).</param>
+        /// <returns>Whether the insertion was successful (true) or not (false).</returns>
         private static bool InsertValuesToTable(string tableName, string[] columns, object[] values,
-            SQLiteConnection c, CancellationToken t)
+            SQLiteConnection? c, CancellationToken t)
         {
             if (t.IsCancellationRequested) return false;
             
@@ -645,13 +773,25 @@ namespace DAZ_Installer.DP
             return true;
 
         }
+        /// <summary>
+        /// Inserts a product record and/or an extraction record into the database. 
+        /// <para>
+        /// RECORDS SHOULD NEVER BE NULL! USE .NULL_RECORD TO INDICATE A NULL RECORD!
+        /// </para>
+        /// <para> If any of the product records are equal to NULL_RECORD, they will not be
+        /// inserted into the database. </para>
+        /// </summary>
+        /// <param name="pRecord">The product record to insert. Cannot be null.</param>
+        /// <param name="eRecord">The extraction record to insert. Cannot be null.</param>
+        /// <param name="c">The SQLiteConnection to use, if any.</param>
+        /// <param name="t">Cancel token. Required, cannot be null. Use CancellationToken.None instead (though not recommended).</param>
         private static void InsertRecords(DPProductRecord pRecord, DPExtractionRecord eRecord, 
-            SQLiteConnection c, CancellationToken t)
+            SQLiteConnection? c, CancellationToken t)
         {
             // Trigger will update the product record's extraction record ID to the newly created record.
             string[] pColumns = new string[] { "Product Name", "Tags", "Author", "SKU", "Date Created", "Thumbnail Full Path", };
             string[] eColumns = new string[] { "Archive Name", "Files", "Folders", "Destination Path", "Errored Files", "Error Messages" };
-            if (t.IsCancellationRequested) return;
+            if (t.IsCancellationRequested || pRecord is null || eRecord is null) return;
 
             pRecord.Deconstruct(out var productName, out var tags, out var author, out var sku,
                                  out var time, out var thumbnailPath, out var __, out var _);
@@ -686,8 +826,20 @@ namespace DAZ_Installer.DP
         }
         #endregion
         #region Update
+        /// <summary>
+        /// Updates values from the table and columns specified. The length of columns and the length of values
+        /// must be the same. You do not have to include all of the columns for the table you wish update.
+        /// For example, if you wish to only update the extraction record name, you can set the columns {"name"} and values to {{"hello"}}. 
+        /// Columns may be an empty string array which will use the columns found in the table.
+        /// </summary>
+        /// <param name="tableName">The table name to insert multiple values to.</param>
+        /// <param name="columns">The columns to update values into. Cannot be null.</param>
+        /// <param name="newValues">The values to update into the table. Cannot be null.</param>
+        /// <param name="c">The SQLiteConnection to use, if any.</param>
+        /// <param name="t">Cancel token. Required, cannot be null. Use CancellationToken.None instead (though not recommended).</param>
+        /// <returns>Whether the insertion was successful (true) or not (false).</returns>
         private static bool UpdateValues(string tableName, string[] columns, object[] newValues, 
-            SQLiteConnection c, CancellationToken t)
+            SQLiteConnection? c, CancellationToken t)
         {
             if (t.IsCancellationRequested) return false;
 
@@ -730,6 +882,13 @@ namespace DAZ_Installer.DP
         #endregion
         #endregion
         #region etc
+        /// <summary>
+        /// If you notice, the database file (db.db) also has a .db-shm file and a .db-wal file include it.
+        /// Those are used to allow multiple read connections and a single write connection to the database.
+        /// Those files are considered to be the journal. This function asks the database to truncate/shrink the 
+        /// journal and merge it into the database file. Additionally, it attempts to delete the journal files
+        /// as well.
+        /// </summary>
         private static void TruncateJournal()
         {
             var pragmaCheckpoint = "PRAGMA wal_checkpoint(TRUNCATE);";
@@ -740,7 +899,7 @@ namespace DAZ_Installer.DP
                 using var cmd = new SQLiteCommand(pragmaCheckpoint, connection);
                 cmd.ExecuteNonQuery();
             }
-            catch (Exception ex) { }
+            catch (Exception ex) { return; } // We don't want to delete if it failed.
 
             // Now check if -wal and -shm are available.
             var shmFile = Path.GetFullPath(_expectedDatabasePath + "-shm");
@@ -755,7 +914,15 @@ namespace DAZ_Installer.DP
             catch (Exception ex) { }
 
         }
-        private static string JoinString(string seperator, params string[] values)
+        /// <summary>
+        /// Similar to string.Join() but will skip values that are null or empty (after trim).
+        /// <paramref name="values"/> can be null and will return null. Otherwise, seperator must not 
+        /// be null, otherwise an exception will be thrown.
+        /// </summary>
+        /// <param name="seperator">The seperator to add in between values in string. Cannot be null.</param>
+        /// <param name="values">The values to join.</param>
+        /// <returns>The values combined into a string seperated by the sepertor or null if values is null.</returns>
+        private static string? JoinString(string seperator, params string[] values)
         {
             if (values == null || values.Length == 0) return null;
 
@@ -771,7 +938,15 @@ namespace DAZ_Installer.DP
             builder.Remove(builder.Length - 1 - seperator.Length, seperator.Length);
             return builder.ToString();
         }
-
+        /// <summary>
+        /// Creates a string array of parameter placeholders (ex: "@A") determined by the length specified.
+        /// It also updates the <paramref name="str"> to append all of the parameters. For example, if the length is
+        /// 3, and you have a str equal "INSERT INTO foo WHERE VALUES IN (".
+        /// This function will return {"@A1", "@A2", "@A3"} and will append "@A1, @A2, @A3" to str.
+        /// </summary>
+        /// <param name="str">A referenced string of a query to add parameter placeholders. May not be null.</param>
+        /// <param name="length">The amount of parameters to create.</param>
+        /// <returns>An array of parameters generated.</returns>
         private static string[] CreateParams(ref string str, int length)
         {
             int maxDigits = (int)Math.Floor(Math.Log10(length)) + 1;
@@ -787,6 +962,16 @@ namespace DAZ_Installer.DP
             str += sb.ToString();
             return args;
         }
+        /// <summary>
+        /// Creates a string array of parameter placeholders (ex: "@A") determined by the length specified.
+        /// It also updates the <paramref name="str"> to append all of the parameters. <paramref name="start"/>
+        /// is used to indicate the number to start with for creating the parameter placeholders.
+        /// For example, if the length is 3, and start is 5, and you have a str equal "INSERT INTO foo WHERE VALUES IN (".
+        /// This function will return {"@A5", "@A6", "@A7"} and will append "@A5, @A6, @A7" to str.
+        /// </summary>
+        /// <param name="str">A referenced string of a query to add parameter placeholders. May not be null.</param>
+        /// <param name="length">The amount of parameters to create.</param>
+        /// <returns>An array of parameters generated.</returns>
 
         private static string[] CreateParams(ref string str, int length, ref int start)
         {
@@ -803,7 +988,15 @@ namespace DAZ_Installer.DP
             str += sb.ToString();
             return args;
         }
-
+        /// <summary>
+        /// Associates parameter placeholds with a value to the SQLiteCommand. You should call <c>CreateParams()</c> before
+        /// to generate the parameter list to include into <paramref name="cArgs"/> and update the command string.
+        /// For example, if the args is {"@A1", "@A2", "@A3"} and the values are {"hello", "solomon", "blount"}, then 
+        /// the args will be replaced with its values when the query is executed.
+        /// </summary>
+        /// <param name="command">The command to add parameters into. Cannot be null.</param>
+        /// <param name="cArgs">The argument placeholders to fill. Cannot be null.</param>
+        /// <param name="values">The values to replace placeholders with. Cannot be null.</param>
         private static void FillParamsToConnection(SQLiteCommand command, IReadOnlyList<string> cArgs, params object[] values)
         {
             for (var i = 0; i < cArgs.Count; i++)
@@ -811,6 +1004,13 @@ namespace DAZ_Installer.DP
                 command.Parameters.Add(new SQLiteParameter(cArgs[i], values[i]));
             }
         }
+        /// <summary>
+        /// Deprecated and should not be used.
+        /// </summary>
+        /// <see cref="CreateParams"/>
+        /// <see cref="FillParamsToConnection"/>
+        /// <param name="args">Arguments to wrap quotes over.</param>
+        /// <returns>A string ready to use for a command.</returns>
 
         private static string ConvertParamsToString(params object[] args)
         {

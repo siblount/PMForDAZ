@@ -200,6 +200,11 @@ namespace DAZ_Installer.DP
             ExecutePragmas();
         }
 
+        /// <summary>
+        /// Adds the tables required for application to properly execute into the database.
+        /// Does not check if they exist. May throw an error if the tables already exist.
+        /// </summary>
+        /// <returns>Whether creating tables was a success.</returns>
         private static bool CreateTables()
         {
             
@@ -273,7 +278,11 @@ namespace DAZ_Installer.DP
             }
             return true;
         }
-
+        /// <summary>
+        /// Adds indexes to the database to improve searching and sorting performance.
+        /// Does not check if they exist. May throw an error if the tables already exist.
+        /// </summary>
+        /// <returns>Whether creating indexes was a success.</returns>
         private static bool CreateIndexes()
         {
             const string createTagToPIDCommand = @"
@@ -324,7 +333,11 @@ namespace DAZ_Installer.DP
             }
             return true;
         }
-        
+        /// <summary>
+        /// Adds the triggers required for application to properly execute into the database.
+        /// Does not check if they exist. May throw an error if the tables already exist.
+        /// </summary>
+        /// <returns>Whether creating triggers was a success.</returns>
         private static bool CreateTriggers() {
             const string deleteOnProductRemoveTriggerCommand =
                         @"CREATE TRIGGER IF NOT EXISTS delete_on_product_removal
@@ -383,7 +396,12 @@ namespace DAZ_Installer.DP
             return true;
             
         }
-
+        /// <summary>
+        /// Changes a few settings for how the database should act. This is required
+        /// to make sure that the database allows multiple connections and use 
+        /// less journal sizes.
+        /// </summary>
+        /// <returns>Whether the execution was a success.</returns>
         private static bool ExecutePragmas()
         {
 
@@ -409,6 +427,11 @@ namespace DAZ_Installer.DP
             }
             return true;
         }
+        /// <summary>
+        /// Removes the triggers from the database.
+        /// Does not check if they exist. May throw an error if don't the tables already exist.
+        /// </summary>
+        /// <returns>Whether deleting triggers was a success.</returns>
         private static bool DeleteTriggers() {
 
             const string removeTriggersCommand =

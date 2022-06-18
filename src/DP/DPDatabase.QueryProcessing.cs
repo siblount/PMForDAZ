@@ -101,7 +101,12 @@ namespace DAZ_Installer.DP
             return results;
         }
 
-
+        /// <summary>
+        /// Creates and sets up the SQLiteCommand for a regex search query and the sorting method.
+        /// </summary>
+        /// <param name="regex">The regex to perform. Cannot be null.</param>
+        /// <param name="method">The sorting method to use for search results. Cannot be null.</param>
+        /// <param name="command">The command to set up the query for. Cannot be null.</param>
         private static void SetupSQLRegexQuery(string regex, DPSortMethod method, SQLiteCommand command)
         {
             string sqlQuery = @"SELECT * FROM ProductRecords WHERE ID IN (SELECT ""Product Record ID"" FROM Tags WHERE Tag REGEXP @A";
@@ -125,7 +130,13 @@ namespace DAZ_Installer.DP
             command.CommandText = sqlQuery;
             command.Parameters.Add(new SQLiteParameter("@A", regex));
         }
-
+        /// <summary>
+        /// Creates and sets up the SQLiteCommand for a library query (for switching pages).
+        /// </summary>
+        /// <param name="page">The page to get product records from.</param>
+        /// <param name="limit">The maximum number of items to return.</param>
+        /// <param name="method">The sorting method to use for search results. Cannot be null.</param>
+        /// <param name="command">The command to set up the query for. Cannot be null.</param>
         private static void SetupSQLLibraryQuery(uint page, uint limit, DPSortMethod method, SQLiteCommand command)
         {
             uint beginningRowID = (page - 1) * limit;
@@ -145,6 +156,12 @@ namespace DAZ_Installer.DP
 
             command.CommandText = sqlQuery;
         }
+        /// <summary>
+        /// Creates and sets up the SQLiteCommand for a user search query and the sorting method.
+        /// </summary>
+        /// <param name="userQuery">The user search query to process.</param>
+        /// <param name="method">The sorting method to use for search results. Cannot be null.</param>
+        /// <param name="command">The command to set up the query for. Cannot be null.</param>
         private static void SetupSQLSearchQuery(string userQuery, DPSortMethod method, SQLiteCommand command)
         {
             string[] tokens = userQuery.Split(' ');

@@ -10,18 +10,29 @@ using System;
 
 
 namespace DAZ_Installer.DP {
-
+    /// <summary>
+    /// Defines the archive type of an archive.
+    /// </summary>
     internal enum ArchiveType
     {
         Product, Bundle, Unknown
     }
 
+    /// <summary>
+    /// Defines the archive format of an archive.
+    /// </summary>
     internal enum ArchiveFormat {
         SevenZ, WinZip, RAR, Unknown
     }
-    
+    /// <summary>
+    /// Abstract class for all supported archive files. 
+    /// Currently the supported archive files are RAR, WinZip, and 7z (partially).
+    /// </summary>
     internal abstract class DPAbstractArchive : DPAbstractFile {
-
+        /// <summary>
+        /// The current mode of the archive file; describes whether the archie is 
+        /// peeking (seeking files) or extracting (seeking and extracting files).
+        /// </summary>
         protected enum Mode {
             Peek, Extract
         }
@@ -133,8 +144,15 @@ namespace DAZ_Installer.DP {
         /// </summary>
         internal DPProgressCombo? ProgressCombo { get; set; }
 
+        /// <summary>
+        /// Identifies what mode the archive is currently in. The default is Mode.Extract.
+        /// </summary>
         protected Mode mode { get; set; } = Mode.Extract;
 
+        /// <summary>
+        /// The regex expression used for creating a product name.
+        /// </summary>
+        /// <returns></returns>
         internal static Regex ProductNameRegex = new Regex(@"([^+|-|_|\s]+)", RegexOptions.Compiled);
         internal DPAbstractArchive(string _path, bool innerArchive = false, string? relativePathBase = null) : base(_path)
         {
