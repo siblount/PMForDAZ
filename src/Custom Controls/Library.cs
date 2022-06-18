@@ -40,27 +40,22 @@ namespace DAZ_Installer
             set => libraryPanel1.SearchMode = searchMode = value;
         }
         private bool searchMode;
+        private uint lastSearchID = 1;
         // Quick Library Info 
         public Library()
         {
             InitializeComponent();
             self = this;
             libraryPanel1.CurrentPage = 1;
-
             Initalize();
-            // Am listening...
             libraryPanel1.AddPageChangeListener(UpdatePage);
         }
 
         // Tasks could be done on main thread or (usually) on another thread.
         private void Initalize()
         {
-            DPDatabase.InitializeQ();
             Task.Run(LoadLibraryItemImages)
                 .ContinueWith(t => LoadLibraryItems());
-            DPDatabase.SearchUpdated += OnSearchUpdate;
-            DPDatabase.LibraryQueryCompleted += OnLibraryQueryUpdate;
-            
         }
 
         // Called only when visible. Can be loaded but but visible.
@@ -89,7 +84,7 @@ namespace DAZ_Installer
             // TODO: Remove while loop.
             // Shouldn't sleep anymore since its chained with ContinueWith.
 
-            DPDatabase.GetProductRecords(DPSortMethod.None, (uint) libraryPanel1.CurrentPage, 25);
+            DPDatabase.GetProductRecords(DPSortMethod.None, (uint) libraryPanel1.CurrentPage, 25, 0, OnLibraryQueryUpdate);
 
             // Invoke or BeginInvoke cannot be called on a control until the window handle has been created.'
             DPCommon.WriteToLog("Loaded library items.");
@@ -261,7 +256,7 @@ namespace DAZ_Installer
             // if (page == libraryPanel1.PreviousPage) return;
             
             if (!searchMode) {
-                DPDatabase.GetProductRecords(DPSortMethod.None, (uint) page, 25);
+                DPDatabase.GetProductRecords(DPSortMethod.None, (uint) page, 25, callback: OnLibraryQueryUpdate);
             } else {
                 TryPageUpdate();
             }
@@ -316,16 +311,23 @@ namespace DAZ_Installer
         private void toolStripStatusLabel1_Click(object sender, EventArgs e)
         {
             Forms.DatabaseView databaseView = new Forms.DatabaseView();
-            DPDatabase.CloseConnectionQ(true);
             databaseView.ShowDialog();
+        }
+
+        private void searchBox_TextChanged(object sender, EventArgs e)
+        {
+            // Switch modes if search box is empty & we were in search mode previously.
+            if (searchBox.Text.Length == 0 && searchMode) SwitchModes(false);
         }
 
         private void searchBox_KeyDown(object sender, KeyEventArgs e)
         {
             if (e.KeyCode == Keys.Enter)
             {
-                if (searchBox.Text.Length != 0)
-                    DPDatabase.Search(searchBox.Text);
+                if (searchBox.Text.Length != 0) {
+                    lastSearchID = (uint) Random.Shared.Next(1,int.MaxValue);
+                    DPDatabase.RegexSearch(searchBox.Text, callback: OnSearchUpdate);
+                }
             }
         }
 
@@ -351,18 +353,10 @@ namespace DAZ_Installer
         public void ClearLibraryItems() => libraryItems.Clear();
         public void ClearSearchItems() => searchItems.Clear();
 
-        private void searchBox_TextChanged(object sender, EventArgs e)
-        {
-            // Switch modes if search box is empty & we were in search mode previously.
-            if (searchBox.Text.Length == 0 && searchMode) SwitchModes(false);
-        }
-
         public void InformLibraryUpdate()
         {
             if (!searchMode)
-            {
-                DPDatabase.GetProductRecords(DPSortMethod.None, (uint) libraryPanel1.CurrentPage, 25);
-            }
+                DPDatabase.GetProductRecords(DPSortMethod.None, (uint) libraryPanel1.CurrentPage, 25, callback: OnLibraryQueryUpdate);
         }
     }
 }

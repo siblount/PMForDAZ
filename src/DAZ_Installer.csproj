@@ -5,7 +5,7 @@
     <TargetFramework>net6.0-windows</TargetFramework>
     <UseWindowsForms>true</UseWindowsForms>
     <Platforms>AnyCPU;x64</Platforms>
-    <IsPublishable>False</IsPublishable>
+    <IsPublishable>True</IsPublishable>
     <StartupObject>DAZ_Installer.Program</StartupObject>
     <ErrorReport>prompt</ErrorReport>
   </PropertyGroup>

@@ -2,14 +2,9 @@
 // You may find a full copy of this license at root project directory\LICENSE
 
 using System;
-using System.IO;
 using System.Collections.Generic;
-using System.ComponentModel;
-using System.Data;
+using System.IO;
 using System.Drawing;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows.Forms;
 using DAZ_Installer.DP;
 
@@ -19,6 +14,7 @@ namespace DAZ_Installer
     {
         private DPProductRecord record;
         private DPExtractionRecord extractionRecord;
+        private uint[] maxFontWidthPerListView = new uint[5];
         public ProductRecordForm()
         {
             InitializeComponent();
@@ -27,15 +23,14 @@ namespace DAZ_Installer
         public ProductRecordForm(DPProductRecord productRecord) : this()
         {
             InitializeProductRecordInfo(productRecord);
-            DPDatabase.RecordQueryCompleted += InitializeExtractionRecordInfo;
             if (productRecord.EID != 0)
-                DPDatabase.GetExtractionRecordQ(productRecord.EID);
+                DPDatabase.GetExtractionRecordQ(productRecord.EID, 0, InitializeExtractionRecordInfo);
         }
 
         public void InitializeProductRecordInfo(DPProductRecord record)
         {
             this.record = record;
-            productNameTxtBox.Text = record.ProductName;
+            productNameLbl.Text = record.ProductName;
             tagsView.BeginUpdate();
             Array.ForEach(record.Tags, tag => tagsView.Items.Add(tag));
             tagsView.EndUpdate();
@@ -44,6 +39,9 @@ namespace DAZ_Installer
                 thumbnailBox.Image = Library.self.AddReferenceImage(record.ThumbnailPath);
             }
             dateExtractedLbl.Text += record.Time.ToLocalTime().ToString();
+            CalculateMaxWidthPerListView();
+            UpdateColumnWidths();
+
         }
 
         public void InitializeExtractionRecordInfo(DPExtractionRecord record)
@@ -64,6 +62,8 @@ namespace DAZ_Installer
             erroredFilesList.EndUpdate();
             errorMessagesList.EndUpdate();
             destinationPathLbl.Text += record.DestinationPath;
+            CalculateMaxWidthPerListView();
+            UpdateColumnWidths();
         }
 
         private void browseImageBtn_Click(object sender, EventArgs e)
@@ -95,6 +95,44 @@ namespace DAZ_Installer
                     MessageBox.Show($"Unable to update image due to it not being found (or able to be accessed).", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 }
             }
+        }
+
+        private void UpdateColumnWidths()
+        {
+            tagsView.Columns[0].Width = (int)maxFontWidthPerListView[0];
+            contentFoldersList.Columns[0].Width = (int)maxFontWidthPerListView[1];
+            filesExtractedList.Columns[0].Width = (int)maxFontWidthPerListView[2];
+            erroredFilesList.Columns[0].Width = (int)maxFontWidthPerListView[3];
+            errorMessagesList.Columns[0].Width = (int)maxFontWidthPerListView[4];
+        }
+
+        private void CalculateMaxWidthPerListView()
+        {
+            maxFontWidthPerListView[0] = GetMaxWidth(tagsView.Items);
+            maxFontWidthPerListView[1] = GetMaxWidth(contentFoldersList.Items);
+            maxFontWidthPerListView[2] = GetMaxWidth(filesExtractedList.Items);
+            maxFontWidthPerListView[3] = GetMaxWidth(erroredFilesList.Items);
+            maxFontWidthPerListView[4] = GetMaxWidth(errorMessagesList.Items);
+        }
+
+        private uint GetMaxWidth(ListView.ListViewItemCollection collection)
+        {
+            uint maxWidth = 0;
+            var itemsText = new string[collection.Count];
+            for (var i = 0; i < collection.Count; i++) itemsText[i] = collection[i].Text;
+
+            Array.Sort(itemsText, (b, a) => a.Length.CompareTo(b.Length));
+            for (var i = 0; i < itemsText.Length && i < 3; i++)
+            {
+                var width = TextRenderer.MeasureText(itemsText[i], collection[0].Font).Width;
+                if (width > maxWidth) maxWidth = (uint) width;
+            }
+            return maxWidth;
+        }
+
+        private void ProductRecordForm_ResizeEnd(object sender, EventArgs e)
+        {
+
         }
     }
 }

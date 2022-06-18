@@ -5,6 +5,11 @@ using System.Windows.Forms;
 using IOPath = System.IO.Path;
 
 namespace DAZ_Installer.DP {
+    /// <summary>
+    /// Abstract class for all elements found in archives (including archives).
+    /// This means that all files, and archives (which are files) should extend
+    /// this class.
+    /// </summary>
     internal abstract class DPAbstractFile {
         /// <summary>
         /// The full path of the file (or folder) in the archive space.
@@ -122,6 +127,10 @@ namespace DAZ_Installer.DP {
             }
         }
 
+        /// <summary>
+        /// Returns the extension of a given name without the dot and lowered to all lowercase.
+        /// </summary>
+        /// <param name="name">The name to get the extension from.</param>
         internal static string GetExtension(ReadOnlySpan<char> name)
         {
             var ext = IOPath.GetExtension(name);
