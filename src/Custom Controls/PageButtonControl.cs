@@ -114,11 +114,11 @@ namespace DAZ_Installer
             bool isOnMainThread = IsOnMainThread;
             if (!isOnMainThread || (IsHandleCreated && InvokeRequired))
             {
+                if (!IsHandleCreated) return; // Stop failing to create component on designer.
                 Invoke(UpdateControl);
                 return;
             }
             else if (!isOnMainThread && !IsHandleCreated) return;
-            // If 
             // Only update if the currentPage is out of the current current range.
             // Get min page if teleport = currentPage - (currentPage % 7)
             var activeButtons = GetActiveButtons();
