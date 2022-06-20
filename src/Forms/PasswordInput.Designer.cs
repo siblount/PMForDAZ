@@ -93,6 +93,7 @@ namespace DAZ_Installer
             // 
             // submitBtn
             // 
+            this.submitBtn.DialogResult = System.Windows.Forms.DialogResult.OK;
             this.submitBtn.Dock = System.Windows.Forms.DockStyle.Fill;
             this.submitBtn.Location = new System.Drawing.Point(3, 3);
             this.submitBtn.Name = "submitBtn";
@@ -104,6 +105,7 @@ namespace DAZ_Installer
             // 
             // cancelBtn
             // 
+            this.cancelBtn.DialogResult = System.Windows.Forms.DialogResult.Cancel;
             this.cancelBtn.Dock = System.Windows.Forms.DockStyle.Fill;
             this.cancelBtn.Location = new System.Drawing.Point(3, 43);
             this.cancelBtn.Name = "cancelBtn";

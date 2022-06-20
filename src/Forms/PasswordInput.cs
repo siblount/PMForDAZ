@@ -16,8 +16,8 @@ namespace DAZ_Installer
     public partial class PasswordInput : Form
     {
         protected internal string password;
-        public string archiveName = "";
-        public string message = $"";
+        public string archiveName = string.Empty;
+        public string message = string.Empty;
         public PasswordInput()
         {
             InitializeComponent();
@@ -31,7 +31,7 @@ namespace DAZ_Installer
 
         private void PasswordInput_Load(object sender, EventArgs e)
         {
-            if (message == "")
+            if (message.Length == 0)
             {
                 mainLbl.Text = $"{archiveName} is password-protected. Please enter password to decrypt file.";
             } else
