@@ -20,9 +20,9 @@ namespace DAZ_Installer.DP
         internal static DragDropEffects dropEffect = DragDropEffects.All;
         public static string Up(string str)
         {
-            if (str == "")
+            if (str == string.Empty)
             {
-                return "";
+                return String.Empty;
             }
             if (Path.HasExtension(str))
             {

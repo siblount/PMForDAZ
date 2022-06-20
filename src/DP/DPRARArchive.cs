@@ -121,7 +121,7 @@ namespace DAZ_Installer.DP
             {
                 if (!FolderExists(e.fileInfo.FileName))
                 {
-                    new DPFolder(e.fileInfo.FileName, null);
+                    _ = new DPFolder(e.fileInfo.FileName, null);
                     //newDir.parent = workingArchive.FindParent(ref IDP);
                     //if (newDir.parent == null) workingArchive.rootFolders.Add(newDir);
                 }
