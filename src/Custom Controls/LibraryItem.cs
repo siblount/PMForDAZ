@@ -157,7 +157,7 @@ namespace DAZ_Installer
             {
                 DPCommon.WriteToLog($"Failed to create tags. REASON: {ee}");
             }
-            tagsLayoutPanel.ResumeLayout();
+            tagsLayoutPanel.ResumeLayout(); 
         }
 
         private void showFoldersBtn_Click(object sender, EventArgs e)

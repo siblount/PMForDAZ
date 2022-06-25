@@ -41,7 +41,7 @@ namespace DAZ_Installer
             // 
             this.imageBox.Location = new System.Drawing.Point(14, 14);
             this.imageBox.Name = "imageBox";
-            this.imageBox.Size = new System.Drawing.Size(125, 119);
+            this.imageBox.Size = new System.Drawing.Size(125, 125);
             this.imageBox.SizeMode = System.Windows.Forms.PictureBoxSizeMode.Zoom;
             this.imageBox.TabIndex = 0;
             this.imageBox.TabStop = false;
