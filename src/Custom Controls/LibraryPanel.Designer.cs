@@ -55,13 +55,13 @@ namespace DAZ_Installer
             this.pageButtonControl1.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right)));
             this.pageButtonControl1.AutoSize = true;
             this.pageButtonControl1.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
-            this.pageButtonControl1.CurrentPage = 1;
+            this.pageButtonControl1.CurrentPage = ((uint)(1u));
             this.pageButtonControl1.Location = new System.Drawing.Point(232, 8);
             this.pageButtonControl1.MaximumSize = new System.Drawing.Size(510, 45);
             this.pageButtonControl1.MinimumSize = new System.Drawing.Size(50, 42);
             this.pageButtonControl1.Name = "pageButtonControl1";
-            this.pageButtonControl1.PageCount = 1;
-            this.pageButtonControl1.Size = new System.Drawing.Size(132, 45);
+            this.pageButtonControl1.PageCount = ((uint)(1u));
+            this.pageButtonControl1.Size = new System.Drawing.Size(459, 45);
             this.pageButtonControl1.TabIndex = 1;
             this.pageButtonControl1.SizeChanged += new System.EventHandler(this.pageButtonControl1_SizeChanged);
             // 
@@ -97,6 +97,7 @@ namespace DAZ_Installer
             this.BackColor = System.Drawing.Color.White;
             this.Controls.Add(this.buttonsContainer);
             this.Controls.Add(this.mainContentPanel);
+            this.DoubleBuffered = true;
             this.Name = "LibraryPanel";
             this.Size = new System.Drawing.Size(578, 396);
             this.buttonsContainer.ResumeLayout(false);

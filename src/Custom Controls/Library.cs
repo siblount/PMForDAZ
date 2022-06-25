@@ -251,12 +251,12 @@ namespace DAZ_Installer
 
         // Used for handling page events.
         // TODO: Potential previous page == the same dispite mode.
-        public void UpdatePage(int page) {
+        public void UpdatePage(uint page) {
             DPCommon.WriteToLog("page update called.");
             // if (page == libraryPanel1.PreviousPage) return;
             
             if (!searchMode) {
-                DPDatabase.GetProductRecords(DPSortMethod.None, (uint) page, 25, callback: OnLibraryQueryUpdate);
+                DPDatabase.GetProductRecords(DPSortMethod.None, page, 25, callback: OnLibraryQueryUpdate);
             } else {
                 TryPageUpdate();
             }
@@ -264,9 +264,9 @@ namespace DAZ_Installer
 
         private void UpdatePageCount()
         {
-            int pageCount = searchMode ?
-                (int)Math.Ceiling(SearchRecords.Length / 25f) :
-                (int)Math.Ceiling(DPDatabase.ProductRecordCount / 25f);
+            uint pageCount = searchMode ?
+                (uint)Math.Ceiling(SearchRecords.Length / 25f) :
+                (uint)Math.Ceiling(DPDatabase.ProductRecordCount / 25f);
 
             if (pageCount != libraryPanel1.PageCount) libraryPanel1.PageCount = pageCount;
         }
