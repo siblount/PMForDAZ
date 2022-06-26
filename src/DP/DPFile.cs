@@ -21,7 +21,7 @@ namespace DAZ_Installer.DP
         public static readonly HashSet<string> MediaFormats = new HashSet<string>() { "png", "jpg", "hdr", "hdri", "bmp", "gif", "webp", "eps", "raw", "tiff", "tif", "psd", "xcf", "jpeg", "cr2", "svg", "apng", "avif" };
         public static readonly HashSet<string> DocumentFormats = new HashSet<string>() { "txt", "pdf", "doc", "docx", "odt", "html", "ppt", "pptx", "xlsx", "xlsm", "xlsb", "rtf" };
         public static readonly HashSet<string> OtherFormats = new HashSet<string>() { "exe", "lib", "dll", "bat", "cmd" };
-        public static readonly HashSet<string> AcceptableImportFormats = new HashSet<string>() { "rar", "zip", "7z" };
+        public static readonly HashSet<string> AcceptableImportFormats = new HashSet<string>() { "rar", "zip", "7z", "001" };
         public static Dictionary<string, DPFile> DPFiles = new Dictionary<string, DPFile>();
 
         // Used for identification
@@ -124,12 +124,6 @@ namespace DAZ_Installer.DP
             file = null;
             return false;
         }
-
-        ~DPFile()
-        {
-            DPFiles.Remove(Path);
-        }
-
 
     }
 
