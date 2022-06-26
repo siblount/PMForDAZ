@@ -47,6 +47,7 @@ namespace DAZ_Installer.DP
             }
             ParameterizedThreadStart x = new ParameterizedThreadStart(ProcessListAsync);
             var thread = new Thread(x);
+            thread.Name = "DP Extract Job";
             thread.Start(filesToProcess);
             if (workingJob != null)
             {
