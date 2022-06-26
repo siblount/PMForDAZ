@@ -186,7 +186,7 @@ namespace DAZ_Installer
             // 
             this.openFileDialog1.AddExtension = false;
             this.openFileDialog1.DefaultExt = "zip";
-            this.openFileDialog1.Filter = "RAR files (*.rar)|*.rar|ZIP files (*.zip)|*.zip|7z files (*.7z)|*.7z|All files (*" +
+            this.openFileDialog1.Filter = "RAR files (*.rar)|*.rar|ZIP files (*.zip)|*.zip|7z files (*.7z)|*.7z|7z part file base(*.001)|*.001|All files (*" +
     ".*)|*.*";
             this.openFileDialog1.Multiselect = true;
             this.openFileDialog1.SupportMultiDottedExtensions = true;

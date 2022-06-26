@@ -216,34 +216,33 @@ namespace DAZ_Installer.DP {
         /// </summary>
         /// <returns>Returns an extension of the appropriate archive extraction method. Otherwise, null.</returns>
 
-        internal static ArchiveFormat CheckArchiveLegitmacy(DPAbstractArchive archive) {
-            FileStream stream;
-            // Open file.
-            if (archive.IsInnerArchive) stream = File.OpenRead(archive.ExtractedPath);
-            else stream = File.OpenRead(archive.Path);
-            
-            var bytes = new byte[8];
-            stream.Read(bytes, 0, 8);
-            stream.Close();
-            // ZIP File Header
-            // 	50 4B OR 	57 69
-            if ((bytes[0] == 80 || bytes[0] == 87) && (bytes[1] == 75 || bytes[2] == 105))
+        internal static ArchiveFormat DetermineArchiveFormatPrecise(string location) {
+            try
             {
-                return ArchiveFormat.WinZip;
-            }
-            // RAR 5 consists of 8 bytes.  0x52 0x61 0x72 0x21 0x1A 0x07 0x01 0x00
-            // RAR 4.x consists of 7. 0x52 0x61 0x72 0x21 0x1A 0x07 0x00
-            // Rar!
-            if (bytes[0] == 82 && bytes[1] == 97 && bytes[2] == 114 && bytes[3] == 33)
-            {
-                return ArchiveFormat.RAR;
-            }
+                using FileStream stream = File.OpenRead(location);
+                var bytes = new byte[8];
+                stream.Read(bytes, 0, 8);
+                stream.Close();
+                // ZIP File Header
+                // 	50 4B OR 	57 69
+                if ((bytes[0] == 80 || bytes[0] == 87) && (bytes[1] == 75 || bytes[2] == 105))
+                {
+                    return ArchiveFormat.WinZip;
+                }
+                // RAR 5 consists of 8 bytes.  0x52 0x61 0x72 0x21 0x1A 0x07 0x01 0x00
+                // RAR 4.x consists of 7. 0x52 0x61 0x72 0x21 0x1A 0x07 0x00
+                // Rar!
+                if (bytes[0] == 82 && bytes[1] == 97 && bytes[2] == 114 && bytes[3] == 33)
+                {
+                    return ArchiveFormat.RAR;
+                }
 
-            if (bytes[0] == 55 && bytes[1] == 122 && bytes[2] == 188 && bytes[3] == 175)
-            {
-                return ArchiveFormat.SevenZ;
-            }
-            return ArchiveFormat.Unknown;
+                if (bytes[0] == 55 && bytes[1] == 122 && bytes[2] == 188 && bytes[3] == 175)
+                {
+                    return ArchiveFormat.SevenZ;
+                }
+                return ArchiveFormat.Unknown;
+            } catch { return ArchiveFormat.Unknown; }
         }
 
         /// <summary>
@@ -252,6 +251,8 @@ namespace DAZ_Installer.DP {
         /// <param name="path">The path of the archive.</param>
         /// <returns>A ArchiveFormat enum determining the archive format.</returns>
         internal static ArchiveFormat DetermineArchiveFormat(string ext) {
+            // ADDITONAL NOTE: This is called for determing archive files inside of an
+            // archive file.
             ext = ext.ToLower();
             switch (ext) {
                 case "7z":
@@ -261,6 +262,7 @@ namespace DAZ_Installer.DP {
                 case "zip":
                     return ArchiveFormat.WinZip;
                 default:
+                    if (ext.StartsWith("7z")) return ArchiveFormat.SevenZ;
                     return ArchiveFormat.Unknown;
             }
         }

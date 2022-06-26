@@ -3,9 +3,11 @@
 
 using System;
 using System.IO;
+using System.Collections.Generic;
 using System.ComponentModel;
 using System.Drawing;
 using System.Linq;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
@@ -73,6 +75,7 @@ namespace DAZ_Installer
         private void dragHerePanel_DragDrop(object sender, DragEventArgs e)
         {
             string[] tmp = (string[]) e.Data.GetData(DataFormats.FileDrop, false);
+            Queue<string> invalidFiles = new();
             listView1.BeginUpdate();
             // Check for string if it's valid.
             foreach (var path in tmp)
@@ -84,9 +87,24 @@ namespace DAZ_Installer
                 {
                     // Add to list.
                     listView1.Items.Add(path);
+                } else
+                {
+                    var type = DPAbstractArchive.DetermineArchiveFormatPrecise(path);
+                    if (type == ArchiveFormat.SevenZ && ext.EndsWith("001"))
+                        listView1.Items.Add(path);
+                    else invalidFiles.Enqueue(path);
                 }
             }
             listView1.EndUpdate();
+            if (invalidFiles.Count > 0)
+            {
+                var builder = new StringBuilder(50);
+                while (invalidFiles.Count != 0)
+                    builder.AppendLine(" \u2022 " + invalidFiles.Dequeue());
+                MessageBox.Show("Files that cannot be processed where removed from the list." +
+                    "\nRemoved files:\n" + builder.ToString(), "Invalid files removed", MessageBoxButtons.OK,
+                    MessageBoxIcon.Warning);
+            }
             if (listView1.Items.Count != 0 )
             {
                 dragHerePanel.Visible = false;
