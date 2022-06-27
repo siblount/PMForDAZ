@@ -31,7 +31,14 @@ namespace DAZ_Installer.DP
                 Directory.CreateDirectory(TempLocation);
             }
             catch (Exception e) { DPCommon.WriteToLog($"Unable to create temp directory. {e}"); }
-            archiveFile.Peek();
+            try
+            {
+                archiveFile.Peek();
+            } catch (Exception ex)
+            {
+                DPCommon.WriteToLog($"Unable to peek into inner archive: {Path.GetFileName(archiveFile.Path)}." +
+                    $"REASON: {ex}");
+            }
             // TO DO: Highlight files in red for files that failed to extract.
             Extract.ExtractPage.AddToList(archiveFile);
             Extract.ExtractPage.AddToHierachy(archiveFile);
@@ -92,7 +99,7 @@ namespace DAZ_Installer.DP
             return archiveFile;
         }
 
-        public static DPAbstractArchive ProcessArchive(string filePath)
+        public static DPAbstractArchive? ProcessArchive(string filePath)
         {
             // We use these variables in case the user changes the settings in mist of an extraction process.
             TempLocation = Path.Combine(DPSettings.tempPath, @"DazProductInstaller\");
@@ -118,8 +125,17 @@ namespace DAZ_Installer.DP
             }
             // Create new archive.
             var archiveFile = DPAbstractArchive.CreateNewArchive(filePath, false);
+            if (archiveFile == null) return null;
             workingArchive = archiveFile;
-            archiveFile.Peek();
+            try
+            {
+                archiveFile.Peek();
+            }
+            catch (Exception ex)
+            {
+                DPCommon.WriteToLog($"Unable to peek into inner archive: {Path.GetFileName(archiveFile.Path)}." +
+                    $"REASON: {ex}");
+            }
             // TO DO: Highlight files in red for files that failed to extract.
             Extract.ExtractPage.AddToList(archiveFile);
             Extract.ExtractPage.AddToHierachy(archiveFile);
