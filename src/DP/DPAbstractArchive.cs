@@ -262,7 +262,7 @@ namespace DAZ_Installer.DP {
                 case "zip":
                     return ArchiveFormat.WinZip;
                 default:
-                    if (ext.StartsWith("7z")) return ArchiveFormat.SevenZ;
+                    if (uint.TryParse(ext, out uint _)) return ArchiveFormat.SevenZ;
                     return ArchiveFormat.Unknown;
             }
         }
