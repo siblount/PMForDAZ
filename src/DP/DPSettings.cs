@@ -110,10 +110,14 @@ namespace DAZ_Installer.DP
         internal static void DeleteTempFiles()
         {
             // Issue: UnauthorizedAccessException for weird reason.
+            // Throws error if tempPath is the root path. Ex: F:/
             if (Directory.Exists(tempPath))
             {
-                Directory.Delete(tempPath, true);
-                DPCommon.WriteToLog("Deleted temp files.");
+                try
+                {
+                    Directory.Delete(tempPath, true);
+                    DPCommon.WriteToLog("Deleted temp files.");
+                } catch (Exception ex) { DPCommon.WriteToLog("Failed to delete temp files. REASON: {ex}"); }
             }
         }
 
