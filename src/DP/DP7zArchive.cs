@@ -57,7 +57,7 @@ namespace DAZ_Installer.DP {
             if (_processHasStarted && (!_process?.HasExited ?? false)) _process.Kill();
 
             // Setup the process to extract ALL files to the temp folder.
-            var tempFolder = IOPath.Combine(DPSettings.tempPath, IOPath.GetFileNameWithoutExtension(Path));
+            var tempFolder = IOPath.Combine(DPProcessor.TempLocation, IOPath.GetFileNameWithoutExtension(Path));
             try
             {
                 Directory.CreateDirectory(tempFolder);
