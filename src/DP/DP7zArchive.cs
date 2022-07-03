@@ -260,7 +260,7 @@ namespace DAZ_Installer.DP {
                 ProgressCombo?.UpdateText($"Moving files from archive {IOPath.GetFileName(Path)}...");
                 foreach (var file in Contents)
                 {
-                    if (!file.WasExtracted) continue;
+                    if (!file.WasExtracted || !file.WillExtract) continue;
                     var fileInfo = new FileInfo(file.ExtractedPath);
                     try
                     {
