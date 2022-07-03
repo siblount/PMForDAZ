@@ -122,7 +122,7 @@ namespace DAZ_Installer.DP {
         }
 
         private void ExtractFile(ZipArchiveEntry entry, DPAbstractFile file) {
-            string expectedPath = file.TargetPath ?? IOPath.Combine(DPProcessor.TempLocation, entry.Name);
+            string expectedPath = file.TargetPath ?? IOPath.Combine(DPProcessor.TempLocation, IOPath.GetFileNameWithoutExtension(Path), entry.Name);
             try {
                 try {
                     Directory.CreateDirectory(IOPath.GetDirectoryName(expectedPath));
