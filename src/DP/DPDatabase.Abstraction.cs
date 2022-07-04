@@ -4,7 +4,6 @@ using System;
 using System.Data;
 using System.Collections.Generic;
 using System.Text;
-using System.Linq;
 using System.Threading;
 using System.Data.SQLite;
 using System.IO;
@@ -24,13 +23,10 @@ namespace DAZ_Installer.DP
         {
             const string getCmd = @"SELECT ""Product Record Count"" FROM DatabaseInfo;";
             if (t.IsCancellationRequested) return;
-
             try
             {
                 using (var cmd = new SQLiteCommand(getCmd, connection))
-                {
                     ProductRecordCount = Convert.ToUInt32(cmd.ExecuteScalar());
-                }
             }
             catch (Exception e)
             {
@@ -50,9 +46,7 @@ namespace DAZ_Installer.DP
             try
             {
                 using (var cmd = new SQLiteCommand(getCmd, connection))
-                {
                     ExtractionRecordCount = Convert.ToUInt32(cmd.ExecuteScalar());
-                }
             }
             catch (Exception e)
             {
@@ -87,10 +81,11 @@ namespace DAZ_Installer.DP
                 // NULL values return type DB.NULL.
                 productName = (string)reader["Product Name"];
                 // TODO: Tags have returned null; investigate why.
-                tags = ((string)reader["Tags"]).Trim().Split(", "); // May return null but never does.
+                var rawTags = reader["Tags"] as string ?? string.Empty;
+                tags = rawTags.Trim().Split(", ");
                 author = reader["Author"] as string; // May return NULL
                 thumbnailPath = reader["Thumbnail Full Path"] as string; // May return NULL
-                extractionID = Convert.ToUInt32(reader["Extraction Record ID"]);
+                uint.TryParse(reader["Extraction Record ID"] as string, out extractionID);
                 dateCreated = DateTime.FromFileTimeUtc((long)reader["Date Created"]);
                 sku = reader["SKU"] as string; // May return NULL
                 pid = Convert.ToUInt32(reader["ID"]);
@@ -112,35 +107,38 @@ namespace DAZ_Installer.DP
         {
             if (t.IsCancellationRequested || tableName.Length == 0) return Array.Empty<string>();
             if (_columnsCache.ContainsKey(tableName)) return _columnsCache[tableName];
-
+            SQLiteConnection connection = null;
+            SQLiteCommand sqlCommand = null;
             try
             {
-                using (var connection = CreateAndOpenConnection(c, true))
+                connection = CreateAndOpenConnection(c, true);
+                var success = OpenConnection(connection);
+                if (!success) return Array.Empty<string>();
+
+                var randomCommand = $"SELECT * FROM {tableName} LIMIT 1;";
+                sqlCommand = new SQLiteCommand(randomCommand, connection);
+                var reader = sqlCommand.ExecuteReader();
+                var table = reader.GetSchemaTable();
+
+                List<string> columns = new List<string>();
+                foreach (DataRow row in table.Rows)
                 {
-                    var success = OpenConnection(connection);
-                    if (!success) return Array.Empty<string>();
-
-                    var randomCommand = $"SELECT * FROM {tableName} LIMIT 1;";
-                    var sqlCommand = new SQLiteCommand(randomCommand, connection);
-                    var reader = sqlCommand.ExecuteReader();
-                    var table = reader.GetSchemaTable();
-
-                    List<string> columns = new List<string>();
-                    foreach (DataRow row in table.Rows)
-                    {
-                        if (t.IsCancellationRequested) return Array.Empty<string>();
-                        columns.Add((string)row.ItemArray[0]);
-                    }
-
-                    // Cache it.
-                    _columnsCache[tableName] = columns.ToArray();
-                    return _columnsCache[tableName];
-
+                    if (t.IsCancellationRequested) return Array.Empty<string>();
+                    columns.Add((string)row.ItemArray[0]);
                 }
+
+                // Cache it.
+                _columnsCache[tableName] = columns.ToArray();
+                return _columnsCache[tableName];
             }
             catch (Exception e)
             {
                 DPCommon.WriteToLog($"An unexpected error occurred attempting to get columns for table: {tableName}. REASON: {e}");
+            } finally {
+                if (c is null) {
+                    connection?.Dispose();
+                    sqlCommand?.Dispose();
+                }
             }
             return Array.Empty<string>();
         }
@@ -154,26 +152,32 @@ namespace DAZ_Installer.DP
         {
             if (cancellationToken.IsCancellationRequested) return Array.Empty<string>();
             var tables = new List<string>();
+            SQLiteConnection connection = null;
+            SQLiteCommand sqlCommand = null;
+
             try
             {
-                using (var connection = CreateAndOpenConnection(c, true))
+                connection = CreateAndOpenConnection(c, true);
+                if (connection == null) return Array.Empty<string>();
+                var randomCommand = $"SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%'";
+                sqlCommand = new SQLiteCommand(randomCommand, connection);
+                using (var reader = sqlCommand.ExecuteReader())
                 {
-                    if (connection == null) return Array.Empty<string>();
-                    var randomCommand = $"SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%'";
-                    var sqlCommand = new SQLiteCommand(randomCommand, connection);
-                    using (var reader = sqlCommand.ExecuteReader())
-                    {
-                        while (reader.Read())
-                            tables.Add(reader.GetString(0));
-                    }
-                    UpdateProductRecordCount(connection, cancellationToken);
-                    UpdateExtractionRecordCount(connection, cancellationToken);
-                    return tables.ToArray();
+                    while (reader.Read())
+                        tables.Add(reader.GetString(0));
                 }
+                UpdateProductRecordCount(connection, cancellationToken);
+                UpdateExtractionRecordCount(connection, cancellationToken);
+                return tables.ToArray();
             }
             catch (Exception e)
             {
                 DPCommon.WriteToLog($"An unexpected error occurred attempting to get table names. REASON: {e}");
+            } finally {
+                if (c is null) {
+                    connection?.Dispose();
+                    sqlCommand?.Dispose();
+                }
             }
             return Array.Empty<string>();
 
@@ -190,11 +194,13 @@ namespace DAZ_Installer.DP
             if (t.IsCancellationRequested) return null;
 
             var getCmd = $"SELECT * FROM ExtractionRecords WHERE ID = {id};";
+            SQLiteConnection connection = null;
+            SQLiteCommand cmd = null;
             try
             {
-                using var connection = CreateAndOpenConnection(c, true);
+                connection = CreateAndOpenConnection(c, true);
                 if (connection == null) return null;
-                var cmd = new SQLiteCommand(getCmd, connection);
+                cmd = new SQLiteCommand(getCmd, connection);
                 using (var reader = cmd.ExecuteReader())
                 {
                     while (reader.Read())
@@ -223,6 +229,11 @@ namespace DAZ_Installer.DP
             catch (Exception ex)
             {
                 DPCommon.WriteToLog($"Failed to get extraction record. REASON: {ex}");
+            } finally {
+                if (c is null) {
+                    connection?.Dispose();
+                    cmd?.Dispose();
+                }
             }
             return null;
         }
@@ -237,25 +248,22 @@ namespace DAZ_Installer.DP
         /// <returns>A hashset containing successfully extracted archive file names.</returns>
         private static HashSet<string>? GetArchiveFileNameList(SQLiteConnection? c, CancellationToken t)
         {
+            SQLiteConnection _connection = null;
+            SQLiteCommand cmd = null;
+            SQLiteDataReader reader = null;
             HashSet<string> names = null;
             var getCmd = @"SELECT ""Archive Name"" FROM ExtractionRecords;";
             var constring = "Data Source = " + Path.GetFullPath(_expectedDatabasePath) + ";Read Only=True";
             try
             {
-                using (var _connection = CreateAndOpenConnection(c, true))
+                _connection = CreateAndOpenConnection(c, true);
+                if (_connection == null) return names;
+                cmd = new SQLiteCommand(getCmd, _connection);
+                reader = cmd.ExecuteReader();
+                names = new HashSet<string>(reader.StepCount);
+                while (reader.Read())
                 {
-                    if (_connection == null) return names;
-                    using (var cmd = new SQLiteCommand(getCmd, _connection))
-                    {
-                        using (var reader = cmd.ExecuteReader())
-                        {
-                            names = new HashSet<string>(reader.StepCount);
-                            while (reader.Read())
-                            {
-                                names.Add(reader.GetString(0));
-                            }
-                        }
-                    }
+                    names.Add(reader.GetString(0));
                 }
                 // MainQueryCompleted?.Invoke();
                 ArchiveFileNames = names;
@@ -263,6 +271,12 @@ namespace DAZ_Installer.DP
             catch (Exception ex)
             {
                 DPCommon.WriteToLog($"Failed to get archive file name list. REASON: {ex}");
+            } finally {
+                if (c is null) {
+                    _connection?.Dispose();
+                    cmd?.Dispose();
+                    reader?.DisposeAsync();
+                }
             }
             return names;
         }
@@ -278,15 +292,13 @@ namespace DAZ_Installer.DP
         {
             if (t.IsCancellationRequested) return 0;
             var c = "SELECT ID FROM ProductRecords ORDER BY ID DESC LIMIT 1;";
+            SQLiteConnection connection = null;
+            SQLiteCommand cmd = null;
             try
             {
-                using (var connection = CreateAndOpenConnection(conn, true))
-                {
-                    using (var cmd = new SQLiteCommand(c, connection))
-                    {
-                        return Convert.ToUInt32(cmd.ExecuteScalar());
-                    }
-                }
+                connection = CreateAndOpenConnection(conn, true);
+                cmd = new SQLiteCommand(c, connection);
+                return Convert.ToUInt32(cmd.ExecuteScalar());
             }
             catch (Exception ex)
             {
@@ -307,18 +319,18 @@ namespace DAZ_Installer.DP
             CancellationToken token)
         {
             DataSet dataset = null;
+            SQLiteConnection connection = null;
+            SQLiteCommand sqlCommand = null;
             if (token.IsCancellationRequested) return dataset;
             try
             {
-                using (var connection = CreateAndOpenConnection(c, true))
-                {
-                    var getCommand = $"SELECT * FROM {tableName}";
-                    var sqlCommand = new SQLiteCommand(getCommand, connection);
-                    SQLiteDataAdapter adapter = new SQLiteDataAdapter(sqlCommand);
-                    dataset = new DataSet(tableName);
-                    adapter.Fill(dataset);
-                    //ViewUpdated?.Invoke(dataset);
-                }
+                connection = CreateAndOpenConnection(c, true);
+                var getCommand = $"SELECT * FROM {tableName}";
+                sqlCommand = new SQLiteCommand(getCommand, connection);
+                SQLiteDataAdapter adapter = new SQLiteDataAdapter(sqlCommand);
+                dataset = new DataSet(tableName);
+                adapter.Fill(dataset);
+                //ViewUpdated?.Invoke(dataset);
             }
             catch { }
             return dataset;
@@ -341,21 +353,23 @@ namespace DAZ_Installer.DP
             // Also deletes from tags via trigger.
             // Faster way is to drop the table & re-make it.
             // TODO: Drop table and remake it.
-            var deleteCommand = $"DELETE FROM ProductRecords; DELETE FROM ExtractionRecords;"; 
+            var deleteCommand = $"DELETE FROM ProductRecords; DELETE FROM ExtractionRecords;";
+            SQLiteConnection connection = null;
+            SQLiteTransaction transaction = null;
+            SQLiteCommand sqlCommand = null;
             try
             {
-                using (var connection = CreateAndOpenConnection(c))
+                connection = CreateAndOpenConnection(c);
                 {
                     if (connection == null) return false;
-                    using var transaction = connection.BeginTransaction();
+                    transaction = connection.BeginTransaction();
                     try
                     {
                         if (DeleteTriggers())
                         {
-                            var sqlCommand = new SQLiteCommand(deleteCommand, connection, transaction);
+                            sqlCommand = new SQLiteCommand(deleteCommand, connection, transaction);
                             sqlCommand.ExecuteNonQuery();
                             transaction.Commit();
-                            transaction.Dispose();
                             CreateTriggers();
                             DatabaseUpdated?.Invoke();
                         }
@@ -371,6 +385,14 @@ namespace DAZ_Installer.DP
             {
                 DPCommon.WriteToLog($"Failed to create and begin transcation. REASON: {ex}");
                 return false;
+            } finally {
+                if (c is null)
+                {
+                    sqlCommand?.Dispose();
+                    transaction?.Dispose();
+                    connection?.Dispose();
+                }
+                    
             }
 
             return true;
@@ -393,17 +415,19 @@ namespace DAZ_Installer.DP
             string args = ConvertParamsToString(tags);
             string idsCommand = $"SELECT \"Product Record ID\" FROM Tags WHERE Tag IN ({args})";
             string deleteCommand = $"DELETE FROM ProductRecords WHERE ID IN ({idsCommand});";
+            SQLiteConnection connection = null;
+            SQLiteCommand sqlCommand = null;
+            SQLiteTransaction transaction = null;
             try
             {
-                using var connection = CreateAndOpenConnection(c);
+                connection = CreateAndOpenConnection(c);
                 if (connection == null) return false;
-                using var transaction = connection.BeginTransaction();
+                transaction = connection.BeginTransaction();
                 try
                 {
-                    var sqlCommand = new SQLiteCommand(deleteCommand, connection, transaction);
+                    sqlCommand = new SQLiteCommand(deleteCommand, connection, transaction);
                     sqlCommand.ExecuteNonQuery();
                     transaction.Commit();
-                    transaction.Dispose();
                     DatabaseUpdated?.Invoke();
                 } catch (Exception ex)
                 {
@@ -416,6 +440,12 @@ namespace DAZ_Installer.DP
             {
                 DPCommon.WriteToLog($"Failed to create connection and transaction. REASON: {ex}");
                 return false;
+            } finally {
+                if (c is null) {
+                    connection?.Dispose();
+                    sqlCommand?.Dispose();
+                    transaction?.Dispose();
+                }
             }
 
             return true;
@@ -458,17 +488,19 @@ namespace DAZ_Installer.DP
             }
 
             string deleteCommand = $"DELETE FROM {tableName} {whereCommand};";
+            SQLiteConnection connection = null;
+            SQLiteTransaction transaction = null;
+            SQLiteCommand sqlCommand = null;
             try
             {
-                using var connection = CreateAndOpenConnection(c);
+                connection = CreateAndOpenConnection(c);
                 if (connection == null) return false;
-                using var transaction = connection.BeginTransaction();
+                transaction = connection.BeginTransaction();
                 try
                 {
-                    var sqlCommand = new SQLiteCommand(deleteCommand, connection, transaction);
+                    sqlCommand = new SQLiteCommand(deleteCommand, connection, transaction);
                     sqlCommand.ExecuteNonQuery();
                     transaction.Commit();
-                    transaction.Dispose();
                     DatabaseUpdated?.Invoke();
                 } catch (Exception ex)
                 {
@@ -481,6 +513,12 @@ namespace DAZ_Installer.DP
             catch (Exception ex)
             {
                 DPCommon.WriteToLog($"Failed to create connection and transcation. REASON: {ex}");
+            } finally {
+                if (c is null) {
+                    connection?.Dispose();
+                    transaction?.Dispose();
+                    sqlCommand?.Dispose();
+                }
             }
 
             return true;
@@ -498,17 +536,19 @@ namespace DAZ_Installer.DP
 
             
             var deleteCommand = $"DELETE FROM {tableName};"; // Faster way is to drop the table & re-make it.
+            SQLiteConnection connection = null;
+            SQLiteTransaction transaction = null;
+            SQLiteCommand sqlCommand = null;
             try
             {
-                using var connection = CreateAndOpenConnection(c);
+                connection = CreateAndOpenConnection(c);
                 if (connection == null) return false;
-                using var transaction = connection.BeginTransaction();
+                transaction = connection.BeginTransaction();
                 try
                 {
-                    var sqlCommand = new SQLiteCommand(deleteCommand, connection, transaction);
+                    sqlCommand = new SQLiteCommand(deleteCommand, connection, transaction);
                     sqlCommand.ExecuteNonQuery();
                     transaction.Commit();
-                    transaction.Dispose();
                     DatabaseUpdated?.Invoke();
                 } catch (Exception ex)
                 {
@@ -522,6 +562,12 @@ namespace DAZ_Installer.DP
             {
                 DPCommon.WriteToLog($"Failed to create connection and transaction. REASON: {ex}");
                 return false;
+            } finally {
+                if (c is null) {
+                    connection?.Dispose();
+                    transaction?.Dispose();
+                    sqlCommand?.Dispose();
+                }
             }
 
             return true;
@@ -550,10 +596,10 @@ namespace DAZ_Installer.DP
         private static void InsertTags(string[] tags, SQLiteConnection? conn, CancellationToken t)
         {
             if (t.IsCancellationRequested) return;
-
+            SQLiteConnection connection = null;
             try
             {
-                using var connection = CreateAndOpenConnection(conn);
+                connection = CreateAndOpenConnection(conn);
                 if (connection == null) return;
 
                 uint pid = GetLastProductID(connection, t);
@@ -584,6 +630,8 @@ namespace DAZ_Installer.DP
             } catch (Exception ex)
             {
                 DPCommon.WriteToLog($"Failed to insert tags. REASON: {ex}");
+            } finally {
+                if (conn is null) connection?.Dispose();
             }
 
         }
@@ -604,12 +652,14 @@ namespace DAZ_Installer.DP
             SQLiteConnection? c, CancellationToken t)
         {
             if (t.IsCancellationRequested) return false;
-
+            SQLiteConnection connection = null;
+            SQLiteTransaction transaction = null;
+            SQLiteCommand sqlCommand = null;
             try
             {
-                using var connection = CreateAndOpenConnection(c);
+                connection = CreateAndOpenConnection(c);
                 if (connection == null) return false;
-                using var transaction = connection.BeginTransaction();
+                transaction = connection.BeginTransaction();
                 columns = columns?.Length == 0 ? GetColumns(tableName, connection, t) : columns;
 
                 if (values.Length == 0) return true;
@@ -647,11 +697,10 @@ namespace DAZ_Installer.DP
                 var insertCommand = $"INSERT INTO {tableName} ({columnsToAdd})\nVALUES {builder};";
                 try
                 {
-                    var sqlCommand = new SQLiteCommand(insertCommand, connection, transaction);
+                    sqlCommand = new SQLiteCommand(insertCommand, connection, transaction);
                     FillParamsToConnection(sqlCommand, args, valsFlattened);
                     sqlCommand.ExecuteNonQuery();
                     transaction.Commit();
-                    transaction.Dispose();
                     DatabaseUpdated?.Invoke();
                 }
                 catch (Exception ex)
@@ -663,6 +712,12 @@ namespace DAZ_Installer.DP
             } catch (Exception ex)
             {
                 DPCommon.WriteToLog($"An unexpected error occurred while inserting multiple values to table. REASON: {ex}");
+            } finally {
+                if (c is null) {
+                    connection?.Dispose();
+                    transaction?.Dispose();
+                    sqlCommand?.Dispose();
+                }
             }
 
 
@@ -679,18 +734,20 @@ namespace DAZ_Installer.DP
             CancellationToken t)
         {
             if (t.IsCancellationRequested) return false;
+            SQLiteConnection connection = null;
+            SQLiteTransaction transaction = null;
+            SQLiteCommand sqlCommand = null;
             try
             {
-                using var connection = CreateAndOpenConnection(c);
+                connection = CreateAndOpenConnection(c);
                 if (connection == null) return false;
-                using var transaction = connection.BeginTransaction();
+                transaction = connection.BeginTransaction();
                 var insertCommand = $"INSERT INTO {tableName} DEFAULT VALUES;";
                 try
                 {
-                    var sqlCommand = new SQLiteCommand(insertCommand, connection, transaction);
+                    sqlCommand = new SQLiteCommand(insertCommand, connection, transaction);
                     sqlCommand.ExecuteNonQuery();
                     transaction.Commit();
-                    transaction.Dispose();
                     DatabaseUpdated?.Invoke();
                 }
                 catch (Exception ex)
@@ -703,6 +760,12 @@ namespace DAZ_Installer.DP
             {
                 DPCommon.WriteToLog($"An unexpected error occurred while inserting default values. REASON: {ex}");
                 return false;
+            } finally {
+                if (c is null) {
+                    connection?.Dispose();
+                    transaction?.Dispose();
+                    sqlCommand?.Dispose();
+                }
             }
             // TODO: Append params.
 
@@ -725,12 +788,14 @@ namespace DAZ_Installer.DP
             SQLiteConnection? c, CancellationToken t)
         {
             if (t.IsCancellationRequested) return false;
-            
+            SQLiteConnection connection = null;
+            SQLiteTransaction transaction = null;
+            SQLiteCommand sqlCommand = null;
             try
             {
-                using var connection = CreateAndOpenConnection(c);
+                connection = CreateAndOpenConnection(c);
                 if (connection == null) return false;
-                using var transaction = connection.BeginTransaction();
+                transaction = connection.BeginTransaction();
 
                 columns = columns?.Length == 0 ? GetColumns(tableName, connection, t) : columns;
                 if (t.IsCancellationRequested || columns == null || columns.Length == 0) return false;
@@ -749,13 +814,11 @@ namespace DAZ_Installer.DP
                 insertCommand += ");";
                 try
                 {
-                    var sqlCommand = new SQLiteCommand(insertCommand, connection, transaction);
+                    sqlCommand = new SQLiteCommand(insertCommand, connection, transaction);
                     FillParamsToConnection(sqlCommand, args, values);
                     sqlCommand.ExecuteNonQuery();
                     transaction.Commit();
-                    transaction.Dispose();
                     DatabaseUpdated?.Invoke();
-                    sqlCommand.Dispose();
                 }
                 catch (Exception ex)
                 {
@@ -768,6 +831,12 @@ namespace DAZ_Installer.DP
             {
                 DPCommon.WriteToLog($"Failed to insert values to table. REASON: {ex}");
                 return false;
+            } finally {
+                if (c is null) {
+                    connection?.Dispose();
+                    transaction?.Dispose();
+                    sqlCommand?.Dispose();
+                }
             }
 
             return true;
@@ -792,7 +861,7 @@ namespace DAZ_Installer.DP
             string[] pColumns = new string[] { "Product Name", "Tags", "Author", "SKU", "Date Created", "Thumbnail Full Path", };
             string[] eColumns = new string[] { "Archive Name", "Files", "Folders", "Destination Path", "Errored Files", "Error Messages" };
             if (t.IsCancellationRequested || pRecord is null || eRecord is null) return;
-
+            SQLiteConnection connection = null;
             pRecord.Deconstruct(out var productName, out var tags, out var author, out var sku,
                                  out var time, out var thumbnailPath, out var __, out var _);
             eRecord.Deconstruct(out var archiveFileName, out var destPath, out var files,
@@ -801,7 +870,7 @@ namespace DAZ_Installer.DP
             // Order must match pColumns / eColumns
             try
             {
-                using var connection = CreateAndOpenConnection(c);
+                connection = CreateAndOpenConnection(c);
                 if (connection == null) return;
 
                 object[] pObjs = new object[] { productName, JoinString(", ", tags), author, sku, time.ToFileTimeUtc(), thumbnailPath };
@@ -822,6 +891,10 @@ namespace DAZ_Installer.DP
             }
             catch (Exception ex) {
                 DPCommon.WriteToLog($"An unexpected error occurred while attempting to insert records. REASON: {ex}");
+            } finally {
+                if (c is null) {
+                    connection?.Dispose();
+                }
             }
         }
         #endregion
@@ -842,12 +915,14 @@ namespace DAZ_Installer.DP
             SQLiteConnection? c, CancellationToken t)
         {
             if (t.IsCancellationRequested) return false;
-
+            SQLiteConnection connection = null;
+            SQLiteTransaction transaction = null;
+            SQLiteCommand sqlCommand = null;
             try
             {
-                using var connection = CreateAndOpenConnection(c);
+                connection = CreateAndOpenConnection(c);
                 if (connection == null) return false;
-                using var transaction = connection.BeginTransaction();
+                transaction = connection.BeginTransaction();
 
                 columns = columns?.Length == 0 ? GetColumns(tableName, connection, t) : columns;
                 if (t.IsCancellationRequested || columns == null ||
@@ -859,10 +934,9 @@ namespace DAZ_Installer.DP
                 var insertCommand = $"INSERT INTO {tableName} ({columnsToAdd})\nVALUES({valuesToAdd});";
                 try
                 {
-                    var sqlCommand = new SQLiteCommand(insertCommand, connection, transaction);
+                    sqlCommand = new SQLiteCommand(insertCommand, connection, transaction);
                     sqlCommand.ExecuteNonQuery();
                     transaction.Commit();
-                    transaction.Dispose();
                     DatabaseUpdated?.Invoke();
                 }
                 catch (Exception ex)
@@ -876,6 +950,12 @@ namespace DAZ_Installer.DP
             {
                 DPCommon.WriteToLog($"An unexpected error occurred while attempting to update values. REASON: {ex}");
                 return false;
+            } finally {
+                if (c is null) {
+                    connection?.Dispose();
+                    transaction?.Dispose();
+                    sqlCommand?.Dispose();
+                }
             }
             return true;
         }
