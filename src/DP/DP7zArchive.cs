@@ -221,6 +221,12 @@ namespace DAZ_Installer.DP {
                     _process.OutputDataReceived -= Handle7zOutput;
                     _process.ErrorDataReceived -= Handle7zErrors;
                 }
+                // Finalize the last 7z content.
+                if (e.Data is null && !_lastEntity.IsEmpty)
+                {
+                    FinalizeEntity();
+                    _lastEntity = new Entity { };
+                }
                 return;
             }
             ReadOnlySpan<char> msg = e.Data;
