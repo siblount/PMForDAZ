@@ -3,15 +3,11 @@
 
 using System;
 using System.IO;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Data;
-using System.Drawing;
-using System.Linq;
-using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using DAZ_Installer.DP;
+using DAZ_Installer.Forms;
 
 namespace DAZ_Installer
 {
@@ -29,9 +25,9 @@ namespace DAZ_Installer
 
         private void Settings_Load(object sender, EventArgs e)
         {
-            Task setupSettingsPage = new Task(LoadSettings);
-            setupSettingsPage.Start();
-            setupSettingsPage.ContinueWith((Task a) => a.Dispose());
+            Task.Run(LoadSettings);
+            loadingPanel.Visible = true;
+            loadingPanel.BringToFront();
         }
 
         // ._.
@@ -40,35 +36,17 @@ namespace DAZ_Installer
             DPCommon.WriteToLog("Loading settings...");
             // Get our settings.
             DPSettings.Initalize();
-            loadingPanel.Visible = true;
-            loadingPanel.BringToFront();
             validating = true;
-            var result1 = BeginInvoke(new Action(SetupDownloadThumbnailsSetting));
-            var result2 = BeginInvoke(new Action(SetupDestinationPathSetting));
-            var result3 = BeginInvoke(new Action(SetupFileHandling));
-            var result4 = BeginInvoke(new Action(SetupTempPath));
-            var result5 = BeginInvoke(new Action(SetupContentFolders));
-            var result6 = BeginInvoke(new Action(SetupContentRedirects));
-            var result7 = BeginInvoke(new Action(SetupDeleteSourceFiles));
-            var result8 = BeginInvoke(new Action(SetupPreviouslyInstalledProducts));
-
-            result1.AsyncWaitHandle.WaitOne();
-            result2.AsyncWaitHandle.WaitOne();
-            result3.AsyncWaitHandle.WaitOne();
-            result4.AsyncWaitHandle.WaitOne();
-            result5.AsyncWaitHandle.WaitOne();
-            result6.AsyncWaitHandle.WaitOne();
-            result7.AsyncWaitHandle.WaitOne();
-            result8.AsyncWaitHandle.WaitOne();
-
-            result1.AsyncWaitHandle.Dispose();
-            result2.AsyncWaitHandle.Dispose();
-            result3.AsyncWaitHandle.Dispose();
-            result4.AsyncWaitHandle.Dispose();
-            result5.AsyncWaitHandle.Dispose();
-            result6.AsyncWaitHandle.Dispose();
-            result7.AsyncWaitHandle.Dispose();
-            result8.AsyncWaitHandle.Dispose();
+            
+            
+            SetupDownloadThumbnailsSetting();
+            SetupDestinationPathSetting();
+            SetupFileHandling();
+            SetupTempPath();
+            SetupContentFolders();
+            SetupContentRedirects();
+            SetupDeleteSourceFiles();
+            SetupPreviouslyInstalledProducts();
 
             loadingPanel.Visible = false;
             loadingPanel.Dispose();
@@ -325,7 +303,7 @@ namespace DAZ_Installer
         {
             if (InvokeRequired)
             {
-                string result = (string) Invoke(new Func<string>(AskForDirectory));
+                string result = Invoke(new Func<string>(AskForDirectory));
                 return result;
             } else
             {
@@ -337,8 +315,48 @@ namespace DAZ_Installer
                     if (dialogResult == DialogResult.Cancel) return string.Empty;
                     return folderBrowser.SelectedPath;
                 }
-
             }
+        }
+
+        private void chooseDestPathBtn_Click(object sender, EventArgs e)
+        {
+            using var browser = new FolderBrowserDialog();
+            browser.InitialDirectory = Environment.GetFolderPath(Environment.SpecialFolder.MyComputer);
+            browser.Description = "Select folder to install products into";
+            browser.UseDescriptionForTitle = true;
+            var result = browser.ShowDialog();
+            if (result == DialogResult.OK)
+            {
+                destinationPathCombo.Items[0] = browser.SelectedPath;
+                destinationPathCombo.SelectedIndex = 0;
+                destinationPathCombo_TextChanged(null, null);
+            }
+        }
+
+        private void chooseTempPathBtn_Click(object sender, EventArgs e)
+        {
+            using var browser = new FolderBrowserDialog();
+            browser.InitialDirectory = Environment.GetFolderPath(Environment.SpecialFolder.MyComputer);
+            browser.Description = "Select folder to temporarily extract products into";
+            browser.UseDescriptionForTitle = true;
+            var result = browser.ShowDialog();
+            if (result == DialogResult.OK)
+            {
+                tempTxtBox.Text = destinationPathCombo.Text;
+                tempTxtBox_Leave(null, null);
+            }
+        }
+
+        private void modifyContentFoldersBtn_Click(object sender, EventArgs e)
+        {
+            var contentManager = new ContentFolderManager();
+            contentManager.ShowDialog();
+            contentFoldersListBox.Items.Clear();
+            foreach (var item in contentManager.ContentFolders)
+            {
+                contentFoldersListBox.Items.Add(item);
+            }
+            applySettingsBtn.Enabled = true;
         }
     }
 }

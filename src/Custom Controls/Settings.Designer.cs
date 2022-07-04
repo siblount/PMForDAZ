@@ -39,6 +39,8 @@ namespace DAZ_Installer
             this.downloadThumbnailsComboBox = new System.Windows.Forms.ComboBox();
             this.fileHandlingCombo = new System.Windows.Forms.ComboBox();
             this.panel1 = new System.Windows.Forms.Panel();
+            this.chooseTempPathBtn = new System.Windows.Forms.Button();
+            this.chooseDestPathBtn = new System.Windows.Forms.Button();
             this.installPrevProducts = new System.Windows.Forms.ComboBox();
             this.label8 = new System.Windows.Forms.Label();
             this.removeSourceFilesComboBox = new System.Windows.Forms.ComboBox();
@@ -105,7 +107,7 @@ namespace DAZ_Installer
             this.destinationPathCombo.FormattingEnabled = true;
             this.destinationPathCombo.Location = new System.Drawing.Point(214, 47);
             this.destinationPathCombo.Name = "destinationPathCombo";
-            this.destinationPathCombo.Size = new System.Drawing.Size(334, 28);
+            this.destinationPathCombo.Size = new System.Drawing.Size(294, 28);
             this.destinationPathCombo.TabIndex = 3;
             this.destinationPathCombo.TextChanged += new System.EventHandler(this.destinationPathCombo_TextChanged);
             this.destinationPathCombo.Leave += new System.EventHandler(this.destinationPathCombo_Leave);
@@ -160,6 +162,8 @@ namespace DAZ_Installer
             | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
             this.panel1.AutoScroll = true;
+            this.panel1.Controls.Add(this.chooseTempPathBtn);
+            this.panel1.Controls.Add(this.chooseDestPathBtn);
             this.panel1.Controls.Add(this.installPrevProducts);
             this.panel1.Controls.Add(this.label8);
             this.panel1.Controls.Add(this.removeSourceFilesComboBox);
@@ -182,6 +186,26 @@ namespace DAZ_Installer
             this.panel1.Name = "panel1";
             this.panel1.Size = new System.Drawing.Size(573, 581);
             this.panel1.TabIndex = 7;
+            // 
+            // chooseTempPathBtn
+            // 
+            this.chooseTempPathBtn.Location = new System.Drawing.Point(514, 79);
+            this.chooseTempPathBtn.Name = "chooseTempPathBtn";
+            this.chooseTempPathBtn.Size = new System.Drawing.Size(34, 27);
+            this.chooseTempPathBtn.TabIndex = 18;
+            this.chooseTempPathBtn.Text = "...";
+            this.chooseTempPathBtn.UseVisualStyleBackColor = true;
+            this.chooseTempPathBtn.Click += new System.EventHandler(this.chooseTempPathBtn_Click);
+            // 
+            // chooseDestPathBtn
+            // 
+            this.chooseDestPathBtn.Location = new System.Drawing.Point(514, 47);
+            this.chooseDestPathBtn.Name = "chooseDestPathBtn";
+            this.chooseDestPathBtn.Size = new System.Drawing.Size(34, 28);
+            this.chooseDestPathBtn.TabIndex = 17;
+            this.chooseDestPathBtn.Text = "...";
+            this.chooseDestPathBtn.UseVisualStyleBackColor = true;
+            this.chooseDestPathBtn.Click += new System.EventHandler(this.chooseDestPathBtn_Click);
             // 
             // installPrevProducts
             // 
@@ -241,12 +265,13 @@ namespace DAZ_Installer
             this.modifyContentFoldersBtn.TabIndex = 1;
             this.modifyContentFoldersBtn.Text = "Modify";
             this.modifyContentFoldersBtn.UseVisualStyleBackColor = true;
+            this.modifyContentFoldersBtn.Click += new System.EventHandler(this.modifyContentFoldersBtn_Click);
             // 
             // tempTxtBox
             // 
             this.tempTxtBox.Location = new System.Drawing.Point(214, 79);
             this.tempTxtBox.Name = "tempTxtBox";
-            this.tempTxtBox.Size = new System.Drawing.Size(334, 27);
+            this.tempTxtBox.Size = new System.Drawing.Size(294, 27);
             this.tempTxtBox.TabIndex = 11;
             this.tempTxtBox.KeyUp += new System.Windows.Forms.KeyEventHandler(this.tempTxtBox_KeyUp);
             this.tempTxtBox.Leave += new System.EventHandler(this.tempTxtBox_Leave);
@@ -299,6 +324,7 @@ namespace DAZ_Installer
             | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
             this.progressBar1.Location = new System.Drawing.Point(69, 272);
+            this.progressBar1.MarqueeAnimationSpeed = 25;
             this.progressBar1.Name = "progressBar1";
             this.progressBar1.Size = new System.Drawing.Size(481, 252);
             this.progressBar1.Style = System.Windows.Forms.ProgressBarStyle.Marquee;
@@ -377,5 +403,7 @@ namespace DAZ_Installer
         private System.Windows.Forms.ComboBox removeSourceFilesComboBox;
         private System.Windows.Forms.Label label8;
         private System.Windows.Forms.ComboBox installPrevProducts;
+        private System.Windows.Forms.Button chooseTempPathBtn;
+        private System.Windows.Forms.Button chooseDestPathBtn;
     }
 }
