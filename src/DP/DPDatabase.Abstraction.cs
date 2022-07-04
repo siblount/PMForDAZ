@@ -985,7 +985,10 @@ namespace DAZ_Installer.DP
             var shmFile = Path.GetFullPath(_expectedDatabasePath + "-shm");
             var walFile = Path.GetFullPath(_expectedDatabasePath + "-wal");
 
-            // TODO: Doesn't delete.
+            // This is required for the SQLiteConnection to truly release the handle on 
+            // the database file.
+            GC.Collect();
+            GC.WaitForPendingFinalizers();
             try
             {
                 if (File.Exists(shmFile)) File.Delete(shmFile);
