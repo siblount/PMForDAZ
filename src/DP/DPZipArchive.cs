@@ -28,6 +28,12 @@ namespace DAZ_Installer.DP {
         {
             mode = Mode.Extract;
             var max = GetExpectedFilesToExtract();
+            // Indicates that nothing here should be extracted.
+            if (max == 0)
+            {
+                HandleProgressionZIP(archive, 1, 1);
+                return;
+            }
             var i = 0;
             foreach (var file in archive.Entries) {
                 DPFile dpfile = null;
