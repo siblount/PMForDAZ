@@ -100,7 +100,6 @@ namespace DAZ_Installer
             this.label3.TabIndex = 4;
             this.label3.Text = "File Handling Method";
             this.label3.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
-            this.label3.Click += new System.EventHandler(this.label3_Click);
             // 
             // destinationPathCombo
             // 
@@ -133,7 +132,6 @@ namespace DAZ_Installer
             this.label1.TabIndex = 0;
             this.label1.Text = "Download thumbnails";
             this.label1.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
-            this.label1.Click += new System.EventHandler(this.label1_Click);
             // 
             // downloadThumbnailsComboBox
             // 
@@ -256,6 +254,7 @@ namespace DAZ_Installer
             this.modifyContentRedirectsBtn.TabIndex = 12;
             this.modifyContentRedirectsBtn.Text = "Modify";
             this.modifyContentRedirectsBtn.UseVisualStyleBackColor = true;
+            this.modifyContentRedirectsBtn.Click += new System.EventHandler(this.modifyContentRedirectsBtn_Click_1);
             // 
             // modifyContentFoldersBtn
             // 

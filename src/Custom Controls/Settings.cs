@@ -2,6 +2,7 @@
 // You may find a full copy of this license at root project directory\LICENSE
 
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
@@ -181,6 +182,7 @@ namespace DAZ_Installer
             DPSettings.downloadImages = Enum.Parse<SettingOptions>((string) downloadThumbnailsComboBox.SelectedItem);
             validating = true;
             // Destination Path
+            // A loop occurred when the path was G:/ but G:/ was not mounted.
             DESTCHECK:
             if (Directory.Exists(destinationPathCombo.Text.Trim())) DPSettings.destinationPath = destinationPathCombo.Text.Trim();
             else {
@@ -194,6 +196,10 @@ namespace DAZ_Installer
             }
 
             // Temp Path
+            // TODO: We don't want to delete the temp folder itself.
+            // For example: We don't want to delete D:/temp, we want to delete D:/temp/.
+            // The difference is that currently D:/temp will be deleted whereas, 
+            // D:/temp/ will not delete the temp folder but all subfolders and files in it.
             TEMPCHECK:
             if (Directory.Exists(tempTxtBox.Text.Trim())) DPSettings.tempPath = tempTxtBox.Text.Trim();
             else
@@ -210,6 +216,23 @@ namespace DAZ_Installer
             // File Handling Method
             DPSettings.handleInstallation = (InstallOptions)fileHandlingCombo.SelectedIndex;
 
+            //Content Folders
+            var contentFolders = new string[contentFoldersListBox.Items.Count];
+            for (var i = 0; i < contentFolders.Length; i++)
+            {
+                contentFolders[i] = (string) contentFoldersListBox.Items[i];
+            }
+            DPSettings.commonContentFolderNames = contentFolders;
+
+            // Alias Content Folders
+            var aliasMap = new Dictionary<string, string>(contentFolderRedirectsListBox.Items.Count);
+            foreach (string item in contentFolderRedirectsListBox.Items)
+            {
+                var tokens = item.Split(" --> ");
+                aliasMap[tokens[0]] = tokens[1];
+            }
+            DPSettings.folderRedirects = aliasMap;
+
             if (invalidReponses)
             {
                 MessageBox.Show("Some inputs were invalid and were reset to their previous state. See log for more info.", "Invalid inputs", MessageBoxButtons.OK, MessageBoxIcon.Information);
@@ -218,21 +241,6 @@ namespace DAZ_Installer
             }
             validating = false;
             return true;
-        }
-
-        private void label3_Click(object sender, EventArgs e)
-        {
-
-        }
-
-        private void modifyContentRedirectsBtn_Click(object sender, EventArgs e)
-        {
-
-        }
-
-        private void label1_Click(object sender, EventArgs e)
-        {
-
         }
 
         private void tempTxtBox_Leave(object sender, EventArgs e)
@@ -356,6 +364,21 @@ namespace DAZ_Installer
             {
                 contentFoldersListBox.Items.Add(item);
             }
+            applySettingsBtn.Enabled = true;
+        }
+
+        private void modifyContentRedirectsBtn_Click_1(object sender, EventArgs e)
+        {
+            var contentManager = new ContentFolderAliasManager();
+            contentManager.ShowDialog();
+            if (contentManager.AliasListView is null) return;
+            contentFolderRedirectsListBox.BeginUpdate();
+            contentFolderRedirectsListBox.Items.Clear();
+            for (var i = 0; i < contentManager.AliasListView.Items.Count; i++)
+            {
+                contentFolderRedirectsListBox.Items.Add(contentManager.AliasListView.Items[i].Text);
+            }
+            contentFolderRedirectsListBox.EndUpdate();
             applySettingsBtn.Enabled = true;
         }
     }

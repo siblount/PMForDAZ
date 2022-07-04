@@ -17,6 +17,7 @@ namespace DAZ_Installer.Forms
             InitializeComponent();
             ContentFolders.UnionWith(DPSettings.commonContentFolderNames);
             SetupContentFoldersList();
+            contentFoldersView.Columns[0].Width = contentFoldersView.ClientSize.Width;
         }
 
         private void SetupContentFoldersList()
