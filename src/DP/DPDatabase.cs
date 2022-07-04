@@ -4,8 +4,6 @@
 using System;
 using System.Data;
 using System.Collections.Generic;
-using System.Text;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Data.SQLite;
@@ -171,7 +169,8 @@ namespace DAZ_Installer.DP
         /// <returns>True if the connection opened successfully, otherwise false.</returns>
         private static bool OpenConnection(SQLiteConnection connection)
         {
-            if (connection == null || connection.State != ConnectionState.Closed) return false;
+            if (connection == null) return false;
+            if (connection.State != ConnectionState.Closed) return true;
             try
             {
                 connection.Open();
