@@ -13,6 +13,8 @@ namespace DAZ_Installer.DP {
     /// <summary>
     /// Defines the archive type of an archive.
     /// </summary>
+    // TODO: Add a type for Multi-Product and Multi-Bundle to help determine whether
+    // an archive should be added to the database/library
     internal enum ArchiveType
     {
         Product, Bundle, Unknown
