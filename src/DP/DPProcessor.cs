@@ -181,6 +181,8 @@ namespace DAZ_Installer.DP
 
             DPCommon.WriteToLog($"Archive Type: {archiveFile.Type}");
             // Create records and save it to disk.
+            // TODO: Add a flag to make sure records aren't created for completely
+            // failed archives (such as an "zip" archive when really it's a jpg file).
             var record = archiveFile.CreateRecords();
             // TODO: This might need to be removed.
             if (archiveFile.Type == ArchiveType.Product)
