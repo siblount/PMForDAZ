@@ -110,6 +110,8 @@ namespace DAZ_Installer.DP
         internal static void DeleteTempFiles()
         {
             // Issue: UnauthorizedAccessException for weird reason.
+            // Note: UnauthorizedAccess is called when a file has the read-only attribute.
+            // TODO: Async call to change file attributes and delete them.
             // Throws error if tempPath is the root path. Ex: F:/
             if (Directory.Exists(tempPath))
             {
