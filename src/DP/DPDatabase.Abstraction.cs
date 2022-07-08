@@ -66,7 +66,6 @@ namespace DAZ_Installer.DP
         {
             if (t.IsCancellationRequested) return Array.Empty<DPProductRecord>();
             var reader = command.ExecuteReader();
-
             var searchResults = new List<DPProductRecord>(25);
             string productName, author, thumbnailPath, sku;
             string[] tags;
@@ -83,7 +82,8 @@ namespace DAZ_Installer.DP
                 tags = rawTags.Trim().Split(", ");
                 author = reader["Author"] as string; // May return NULL
                 thumbnailPath = reader["Thumbnail Full Path"] as string; // May return NULL
-                uint.TryParse(reader["Extraction Record ID"] as string, out extractionID);
+                extractionID = Convert.ToUInt32(reader["Extraction Record ID"] is DBNull ? 
+                    0 : reader["Extraction Record ID"]);
                 dateCreated = DateTime.FromFileTimeUtc((long)reader["Date Created"]);
                 sku = reader["SKU"] as string; // May return NULL
                 pid = Convert.ToUInt32(reader["ID"]);
