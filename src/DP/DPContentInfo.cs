@@ -21,7 +21,7 @@ namespace DAZ_Installer.DP {
         /// </summary>
         internal string Email {get; set; } = string.Empty;
         /// <summary>
-        /// The ID found in the DSON user file. Default is an empty string.
+        /// The ID found in the DSX user file. Default is an empty string.
         /// </summary>
         internal string ID {get; set; } = string.Empty;
 

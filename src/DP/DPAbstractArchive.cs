@@ -382,7 +382,6 @@ namespace DAZ_Installer.DP {
             foreach (var file in DazFiles)
             {
                 var contentInfo = file.ContentInfo;
-                if (contentInfo.ID.Length != 0) tagsSet.Add(contentInfo.ID);
                 if (contentInfo.Website.Length != 0) tagsSet.Add(contentInfo.Website);
                 if (contentInfo.Email.Length != 0) tagsSet.Add(contentInfo.Email);
                 tagsSet.UnionWith(contentInfo.Authors);
