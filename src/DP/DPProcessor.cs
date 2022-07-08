@@ -36,6 +36,8 @@ namespace DAZ_Installer.DP
                 archiveFile.Peek();
             } catch (Exception ex)
             {
+                archiveFile.errored = true;
+                HandleEarlyExit(archiveFile);
                 DPCommon.WriteToLog($"Unable to peek into inner archive: {Path.GetFileName(archiveFile.Path)}." +
                     $"REASON: {ex}");
             }
@@ -47,20 +49,34 @@ namespace DAZ_Installer.DP
             {
                 // TODO: Warn user that there was not enough space and cancel.
                 DPCommon.WriteToLog("Destination did not have enough space. Operation aborted.");
+                HandleEarlyExit(archiveFile);
                 archiveFile.errored = true;
                 return archiveFile;
             }
 
             archiveFile.ManifestFile = archiveFile.FindFileViaNameContains("Manifest.dsx") as DPDSXFile; // null if not found
 
-            PrepareOperations(archiveFile);
-            DetermineContentFolders(archiveFile);
-            UpdateRelativePaths(archiveFile);
-
-            DetermineFilesToExtract(archiveFile);
-
-            // archiveFile.UpdateFilePaths();
-            archiveFile.Extract();
+            try
+            {
+                PrepareOperations(archiveFile);
+                DetermineContentFolders(archiveFile);
+                UpdateRelativePaths(archiveFile);
+                DetermineFilesToExtract(archiveFile);
+            } catch (Exception ex)
+            {
+                archiveFile.errored = true;
+                HandleEarlyExit(archiveFile);
+                DPCommon.WriteToLog($"Failed to prepare for extraction for {archiveFile.FileName} (inner archive). REASON: {ex}");
+            }
+            try
+            {
+                archiveFile.Extract();
+            } catch (Exception ex)
+            {
+                archiveFile.errored = true;
+                HandleEarlyExit(archiveFile);
+                DPCommon.WriteToLog($"Failed to extract files for {archiveFile.FileName} (inner archive). REASON: {ex}");
+            }
 
             DPCommon.WriteToLog("We are done");
 
@@ -71,7 +87,6 @@ namespace DAZ_Installer.DP
             analyzeCombo.UpdateText("Analyzing file contents...");
             archiveFile.Type = archiveFile.DetermineArchiveType();
             DPCommon.WriteToLog("Analyzing files...");
-            archiveFile.ReadContentFiles();
             analyzeCombo.UpdateText("Creating library item...");
             try {
                 archiveFile.GetTags();
@@ -133,6 +148,8 @@ namespace DAZ_Installer.DP
             }
             catch (Exception ex)
             {
+                archiveFile.errored = true;
+                HandleEarlyExit(archiveFile);
                 DPCommon.WriteToLog($"Unable to peek into inner archive: {Path.GetFileName(archiveFile.Path)}." +
                     $"REASON: {ex}");
             }
@@ -146,18 +163,33 @@ namespace DAZ_Installer.DP
                 // TODO: Warn user that there was not enough space and cancel.
                 DPCommon.WriteToLog("Destination did not have enough space. Operation aborted.");
                 archiveFile.errored = true;
+                HandleEarlyExit(archiveFile);
                 return archiveFile;
             }
 
             archiveFile.ManifestFile = archiveFile.FindFileViaNameContains("Manifest.dsx") as DPDSXFile;
-
-            PrepareOperations(archiveFile);
-            DetermineContentFolders(archiveFile);
-            UpdateRelativePaths(archiveFile);
+            try
+            {
+                PrepareOperations(archiveFile);
+                DetermineContentFolders(archiveFile);
+                UpdateRelativePaths(archiveFile);
+                DetermineFilesToExtract(archiveFile);
+            } catch (Exception ex)
+            {
+                archiveFile.errored = true;
+                HandleEarlyExit(archiveFile);
+                DPCommon.WriteToLog($"Failed to prepare for extraction for {archiveFile.FileName}. REASON: {ex}");
+            }
             // TODO: Ensure that archive progress combo is not null.
-            DetermineFilesToExtract(archiveFile);
-
-            archiveFile.Extract();
+            try
+            {
+                archiveFile.Extract();
+            } catch (Exception ex)
+            {
+                archiveFile.errored = true;
+                HandleEarlyExit(archiveFile);
+                DPCommon.WriteToLog($"Failed to extract files for {archiveFile.FileName}. REASON: {ex}");
+            }
             DPCommon.WriteToLog("We are done");
 
             archiveFile.ProgressCombo?.Remove();
@@ -167,7 +199,6 @@ namespace DAZ_Installer.DP
             analyzeCombo.UpdateText("Analyzing file contents...");
             archiveFile.Type = archiveFile.DetermineArchiveType();
             DPCommon.WriteToLog("Analyzing files...");
-            archiveFile.ReadContentFiles();
             analyzeCombo.UpdateText("Creating library item...");
             try {
                 archiveFile.GetTags();
@@ -205,7 +236,6 @@ namespace DAZ_Installer.DP
             {
                 folder.UpdateChildrenRelativePaths();
             }
-            
         }
 
         public static void DetermineFilesToExtract(DPAbstractArchive archive)
@@ -343,6 +373,16 @@ namespace DAZ_Installer.DP
             } else {
                 workingArchive.ReadMetaFiles();
             }
+        }
+
+        private static void HandleEarlyExit(DPAbstractArchive archive)
+        {
+            archive.ProgressCombo?.Remove();
+            try
+            {
+                archive.ReleaseArchiveHandles();
+            }
+            catch { }   
         }
     }
 }
