@@ -181,11 +181,6 @@ namespace DAZ_Installer.DP {
 
             Archives.Add(Path, this);
         }
-
-        ~DPAbstractArchive()
-        {
-            Archives.Remove(Path ??= string.Empty);
-        }
         #region Abstract methods
         /// <summary>
         /// Peeks the archive contents if possible and will extract the archive contents to the destination path. 
