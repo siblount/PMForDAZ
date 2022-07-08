@@ -50,7 +50,7 @@ namespace DAZ_Installer.DP
             }
             catch (Exception e)
             {
-                DPCommon.WriteToLog("An unexpected error occurred while attempting to get extraction record count.");
+                DPCommon.WriteToLog($"An unexpected error occurred while attempting to get extraction record count. REASON: {e}");
             }
             DPCommon.WriteToLog("Extraction Record Count: ", ExtractionRecordCount);
 
@@ -72,8 +72,6 @@ namespace DAZ_Installer.DP
             string[] tags;
             DateTime dateCreated;
             uint extractionID, pid;
-
-            // TODO : Use new product search record.
             while (reader.Read())
             {
                 if (t.IsCancellationRequested) return Array.Empty<DPProductRecord>();
