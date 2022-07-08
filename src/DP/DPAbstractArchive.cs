@@ -155,7 +155,7 @@ namespace DAZ_Installer.DP {
         /// The regex expression used for creating a product name.
         /// </summary>
         /// <returns></returns>
-        internal static Regex ProductNameRegex = new Regex(@"([^+|-|_|\s]+)", RegexOptions.Compiled);
+        internal static Regex ProductNameRegex = new Regex(@"([^+|\-|_|\s]+)", RegexOptions.Compiled);
         internal DPAbstractArchive(string _path, bool innerArchive = false, string? relativePathBase = null) : base(_path)
         {
             IsInnerArchive = innerArchive; // Order matters.
@@ -308,7 +308,7 @@ namespace DAZ_Installer.DP {
         {
             string imageLocation = string.Empty;
             var workingExtractionRecord = 
-                new DPExtractionRecord(System.IO.Path.GetFileName(FileName), DPSettings.destinationPath, GetSuccessfulFiles(), ErroredFiles.ToArray(), 
+                new DPExtractionRecord(IOPath.GetFileName(FileName), DPSettings.destinationPath, GetSuccessfulFiles(), ErroredFiles.ToArray(), 
                 null, ConvertDPFoldersToStringArr(Folders), 0);
 
             if (Type != ArchiveType.Bundle)
@@ -382,11 +382,20 @@ namespace DAZ_Installer.DP {
             var productNameTokens = SplitProductName();
             ReadContentFiles();
             ReadMetaFiles();
-            var tagsSet = new HashSet<string>(GetEstimateTagCount() + productNameTokens.Length);
-
+            var tagsSet = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            tagsSet.EnsureCapacity(GetEstimateTagCount() + productNameTokens.Length);
+            foreach (var file in DazFiles)
+            {
+                var contentInfo = file.ContentInfo;
+                if (contentInfo.ID.Length != 0) tagsSet.Add(contentInfo.ID);
+                if (contentInfo.Website.Length != 0) tagsSet.Add(contentInfo.Website);
+                if (contentInfo.Email.Length != 0) tagsSet.Add(contentInfo.Email);
+                tagsSet.UnionWith(contentInfo.Authors);
+            }
             tagsSet.UnionWith(ProductInfo.Authors);
+            tagsSet.UnionWith(productNameTokens);
             if (ProductInfo.SKU.Length != 0) tagsSet.Add(ProductInfo.SKU);
-
+            if (ProductInfo.ProductName.Length != 0) tagsSet.Add(ProductInfo.ProductName);
             ProductInfo.Tags = tagsSet;
         
         }
