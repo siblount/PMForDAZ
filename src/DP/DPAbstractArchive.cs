@@ -378,13 +378,23 @@ namespace DAZ_Installer.DP {
             ReadContentFiles();
             ReadMetaFiles();
             var tagsSet = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-            tagsSet.EnsureCapacity(GetEstimateTagCount() + productNameTokens.Length);
+            tagsSet.EnsureCapacity(GetEstimateTagCount() + productNameTokens.Length +
+                (Folders.Count * 2) + ((Contents.Count - InternalArchives.Count) * 2));
             foreach (var file in DazFiles)
             {
                 var contentInfo = file.ContentInfo;
                 if (contentInfo.Website.Length != 0) tagsSet.Add(contentInfo.Website);
                 if (contentInfo.Email.Length != 0) tagsSet.Add(contentInfo.Email);
                 tagsSet.UnionWith(contentInfo.Authors);
+            }
+            foreach (var content in Contents)
+            {
+                if (content is DPAbstractArchive) continue;
+                tagsSet.UnionWith(IOPath.GetFileNameWithoutExtension(content.Path).Split(' '));
+            }
+            foreach (var folder in Folders)
+            {
+                tagsSet.UnionWith(PathHelper.GetFileName(folder.Key).Split(' '));
             }
             tagsSet.UnionWith(ProductInfo.Authors);
             tagsSet.UnionWith(productNameTokens);
