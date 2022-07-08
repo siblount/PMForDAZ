@@ -24,9 +24,10 @@ namespace DAZ_Installer.DP
         public static readonly HashSet<string> AcceptableImportFormats = new HashSet<string>() { "rar", "zip", "7z", "001" };
         public static Dictionary<string, DPFile> DPFiles = new Dictionary<string, DPFile>();
 
-        // Used for identification
-        // TO DO: Add struct for metadata.
-
+        // TODO: Do something with this usage of tags.
+        /// <summary>
+        /// Currently just the file name split by whitespace.
+        /// </summary>
         internal List<string> Tags { get; set; }
         /// <summary>
         /// Parent of current file. When setting parent to a folder, property will call addChild() and handle contents appropriately.

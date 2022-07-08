@@ -299,12 +299,12 @@ namespace DAZ_Installer.DP
             }
 
         }
-
+        // TODO: Handle situations where the destination no longer exists or has no access.
         private static bool DestinationHasEnoughSpace() {
             var destinationDrive = new DriveInfo(Path.GetPathRoot(DestinationPath));
             return (ulong) destinationDrive.AvailableFreeSpace > workingArchive.TrueArchiveSize;
         }
-
+        // TODO: Handle situations where the destination no longer exists or has no access.
         private static bool TempHasEnoughSpace() {
             var tempDrive = new DriveInfo(Path.GetPathRoot(TempLocation));
             return (ulong) tempDrive.AvailableFreeSpace > workingArchive.TrueArchiveSize;
