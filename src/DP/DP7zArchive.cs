@@ -270,6 +270,7 @@ namespace DAZ_Installer.DP {
                     var fileInfo = new FileInfo(file.ExtractedPath);
                     try
                     {
+                        Directory.CreateDirectory(IOPath.GetDirectoryName(file.ExtractedPath));
                         fileInfo.MoveTo(file.TargetPath, true);
                         file.ExtractedPath = file.TargetPath;
                         file.WasExtracted = true;
