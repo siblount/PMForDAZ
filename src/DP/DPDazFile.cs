@@ -55,12 +55,12 @@ namespace DAZ_Installer.DP {
 
             var afterColString = jsonString.Slice(colIndex+1);
             var startSearchIndex = afterColString.IndexOf('"');
-            var lastQuoteIndex = jsonString.LastIndexOf('"');
+            var lastQuoteIndex = afterColString.LastIndexOf('"');
 
             if (startSearchIndex == -1 || lastQuoteIndex == startSearchIndex)
                 return string.Empty;
 
-            return new string(jsonString.Slice(startSearchIndex + 1, lastQuoteIndex - startSearchIndex - 1 - startSearchIndex));
+            return afterColString.Slice(startSearchIndex + 1, lastQuoteIndex - startSearchIndex - 1).ToString();
         }
 
         // Not accurate but it's okay.
