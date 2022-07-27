@@ -54,6 +54,8 @@ namespace DAZ_Installer
         }
         protected uint currentPage = 1;
         protected uint pageCount = 1;
+        [ThreadStatic]
+        protected bool invoked = false;
         public PageButtonControl()
         {
             InitializeComponent();
@@ -73,7 +75,7 @@ namespace DAZ_Installer
         public void UpdateControl()
         {
             bool isOnMainThread = IsOnMainThread;
-            if (!isOnMainThread || (IsHandleCreated && InvokeRequired))
+            if ((!isOnMainThread || (IsHandleCreated && InvokeRequired)) && !invoked)
             {
                 if (!IsHandleCreated) return; // Stop failing to create component on designer.
                 Invoke(UpdateControl);
