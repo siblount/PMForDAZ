@@ -4,11 +4,13 @@
 using System;
 using System.Threading;
 using System.Windows.Forms;
+using System.Diagnostics;
 
 namespace DAZ_Installer
 {
     static class Program
     {
+        public static bool IsRunByIDE => Debugger.IsAttached;
         /// <summary>
         ///  The main entry point for the application.
         /// </summary>

@@ -77,13 +77,7 @@ namespace DAZ_Installer
 
         private void LoadLibraryItems()
         {
-            // Read library items file.
-            // ReadLibraryItemsFile.
-
-            // Wait for main image loading to be true.
-            // TODO: Remove while loop.
-            // Shouldn't sleep anymore since its chained with ContinueWith.
-
+            if (Program.IsRunByIDE) return;
             DPDatabase.GetProductRecords(DPSortMethod.None, (uint) libraryPanel1.CurrentPage, 25, 0, OnLibraryQueryUpdate);
 
             // Invoke or BeginInvoke cannot be called on a control until the window handle has been created.'
