@@ -52,6 +52,8 @@ namespace DAZ_Installer
             loadingPanel.Visible = false;
             loadingPanel.Dispose();
             validating = false;
+
+            applySettingsBtn.Enabled = DPSettings.invalidSettings;
         }
 
         private void SetupContentRedirects()
