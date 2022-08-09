@@ -137,7 +137,7 @@ namespace DAZ_Installer.DP
                 }
                 else
                 {
-                    var newFile = new DPFile(e.fileInfo.FileName, null);
+                    var newFile = DPFile.CreateNewFile(e.fileInfo.FileName, null);
                     newFile.AssociatedArchive = this;
                 }
             }
@@ -146,7 +146,7 @@ namespace DAZ_Installer.DP
 
         public void ConnectVolumeDir(string dirPath)
         {
-            lastVolumes.Add(System.IO.Path.GetFileName(dirPath));
+            lastVolumes.Add(IOPath.GetFileName(dirPath));
             HierachyName = FileName + " (";
             foreach (var volume in lastVolumes)
             {
