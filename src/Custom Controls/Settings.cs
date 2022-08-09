@@ -350,7 +350,7 @@ namespace DAZ_Installer
             var result = browser.ShowDialog();
             if (result == DialogResult.OK)
             {
-                tempTxtBox.Text = destinationPathCombo.Text;
+                tempTxtBox.Text = browser.SelectedPath;
                 tempTxtBox_Leave(null, null);
             }
         }
