@@ -77,10 +77,32 @@ namespace DAZ_Installer.DP
             }
             progressCombo.UpdateText($"Finished processing archives");
             progressCombo.ProgressBar.Value = 100;
-            GC.Collect();
+            var removeFiles = () =>
+            {
+                foreach (var path in arr)
+                {
+                    try
+                    {
+                        if (File.Exists(path)) File.Delete(path);
+                    }
+                    catch (Exception ex) { DPCommon.WriteToLog($"Failed to delete source: {path}. REASON: {ex}"); }
+                }
+            };
+            switch (DPSettings.permDeleteSource)
+            {
+                case SettingOptions.Yes:
+                    removeFiles();
+                    break;
+                case SettingOptions.Prompt:
+                    var result = MessageBox.Show("Do you wish to PERMENATELY delete all of the source files regardless if it was extracted or not? This cannot be undone.", 
+                        "Delete soruce files", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+                    if (result == DialogResult.Yes) removeFiles();
+                    break;
+            }
             workingJob.completed = true;
             jobs.Remove(this);
             workingJob = null;
+            GC.Collect();
             //DoOtherJobs();
         }
     }
