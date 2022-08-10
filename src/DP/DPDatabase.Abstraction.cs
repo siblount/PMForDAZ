@@ -1016,7 +1016,7 @@ namespace DAZ_Installer.DP
                     builder.Append(values[i] + seperator);
                 }
             }
-            builder.Remove(builder.Length - 1 - seperator.Length, seperator.Length);
+            builder.Remove(builder.Length - seperator.Length, seperator.Length);
             return builder.ToString();
         }
         /// <summary>
