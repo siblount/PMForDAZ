@@ -28,7 +28,6 @@ namespace DAZ_Installer
         protected List<LibraryItem> searchItems { get => libraryPanel1.SearchItems; set => libraryPanel1.SearchItems = value; }
         protected DPProductRecord[] ProductRecords { get; set; } = new DPProductRecord[0];
         private DPProductRecord[] SearchRecords { get; set; } = new DPProductRecord[0];
-        protected Dictionary<uint, List<LibraryItem>> pages = new Dictionary<uint, List<LibraryItem>>();
         
         protected bool mainImagesLoaded = false;
 
@@ -45,23 +44,17 @@ namespace DAZ_Installer
         public Library()
         {
             InitializeComponent();
-            self = this;
-            libraryPanel1.CurrentPage = 1;
-            Initalize();
-            libraryPanel1.AddPageChangeListener(UpdatePage);
-        }
-
-        // Tasks could be done on main thread or (usually) on another thread.
-        private void Initalize()
-        {
-            Task.Run(LoadLibraryItemImages)
-                .ContinueWith(t => LoadLibraryItems());
+            self = this;  
         }
 
         // Called only when visible. Can be loaded but but visible.
         private void Library_Load(object sender, EventArgs e)
         {
 
+            libraryPanel1.CurrentPage = 1;
+            Task.Run(LoadLibraryItemImages)
+                .ContinueWith(t => LoadLibraryItems());
+            libraryPanel1.AddPageChangeListener(UpdatePage);
         }
 
         // Called on a different thread.
@@ -77,7 +70,7 @@ namespace DAZ_Installer
 
         private void LoadLibraryItems()
         {
-            if (Program.IsRunByIDE) return;
+            if (Program.IsRunByIDE && !IsHandleCreated) return;
             DPDatabase.GetProductRecords(DPSortMethod.None, (uint) libraryPanel1.CurrentPage, 25, 0, OnLibraryQueryUpdate);
 
             // Invoke or BeginInvoke cannot be called on a control until the window handle has been created.'
