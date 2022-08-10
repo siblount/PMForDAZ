@@ -78,6 +78,7 @@ namespace DAZ_Installer
             if ((!isOnMainThread || (IsHandleCreated && InvokeRequired)) && !invoked)
             {
                 if (!IsHandleCreated) return; // Stop failing to create component on designer.
+                invoked = true;
                 Invoke(UpdateControl);
                 return;
             }
