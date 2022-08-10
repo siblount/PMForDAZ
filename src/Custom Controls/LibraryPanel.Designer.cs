@@ -93,7 +93,7 @@ namespace DAZ_Installer
             // LibraryPanel
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 20F);
-            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
+            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Inherit;
             this.BackColor = System.Drawing.Color.White;
             this.Controls.Add(this.buttonsContainer);
             this.Controls.Add(this.mainContentPanel);
