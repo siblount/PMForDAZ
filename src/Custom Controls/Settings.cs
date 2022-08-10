@@ -235,6 +235,12 @@ namespace DAZ_Installer
             }
             DPSettings.folderRedirects = aliasMap;
 
+            // Permanate Delete Source
+            DPSettings.permDeleteSource = (SettingOptions)removeSourceFilesComboBox.SelectedIndex;
+
+            // Install Prev Products
+            DPSettings.installPrevProducts = (SettingOptions)installPrevProducts.SelectedIndex;
+
             if (invalidReponses)
             {
                 MessageBox.Show("Some inputs were invalid and were reset to their previous state. See log for more info.", "Invalid inputs", MessageBoxButtons.OK, MessageBoxIcon.Information);
