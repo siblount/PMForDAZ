@@ -18,10 +18,12 @@ namespace DAZ_Installer.DP
         public static string TempLocation = Path.Combine(DPSettings.tempPath, @"DazProductInstaller\");
         public static string DestinationPath = DPSettings.destinationPath;
         public static DPAbstractArchive workingArchive;
-        public static HashSet<string> previouslyInstalledArchiveNames { get; } = new HashSet<string>();
+        public static HashSet<string> previouslyInstalledArchiveNames { get; private set; } = new HashSet<string>();
         public static List<string> doNotProcessList { get; } = new List<string>();
         public static uint workingArchiveFileCount { get; set; } = 0; // can disgard. 
         public static SettingOptions OverwriteFiles = SettingOptions.Yes;
+
+        static DPProcessor() => DPDatabase.GetInstalledArchiveNamesQ(UpdateInstalledArchiveNames);
 
         public static DPAbstractArchive ProcessInnerArchive(DPAbstractArchive archiveFile)
         {
@@ -31,6 +33,20 @@ namespace DAZ_Installer.DP
                 Directory.CreateDirectory(TempLocation);
             }
             catch (Exception e) { DPCommon.WriteToLog($"Unable to create temp directory. {e}"); }
+            if (previouslyInstalledArchiveNames.Contains(Path.GetFileName(archiveFile.FileName)))
+            {
+                // ,_, 
+                switch (DPSettings.installPrevProducts)
+                {
+                    case SettingOptions.No:
+                        return null;
+                    case SettingOptions.Prompt:
+                        var result = MessageBox.Show($"It seems that \"{archiveFile.FileName}\" was already processed. " +
+                            $"Do you wish to continue processing this file?", "Archive already processed", MessageBoxButtons.YesNo, MessageBoxIcon.Information);
+                        if (result == DialogResult.No) return null;
+                        break;
+                }
+            }
             try
             {
                 archiveFile.Peek();
@@ -101,6 +117,7 @@ namespace DAZ_Installer.DP
 
             // Create record.
             var record = archiveFile.CreateRecords();
+            if (record != null) previouslyInstalledArchiveNames.Add(archiveFile.FileName);
             // TO DO: Only add if successful extraction, and all files from temp were moved, and/or user didn't cancel operation.
             DPCommon.WriteToLog($"Archive Type: {archiveFile.Type}");
             // TODO: This might need to be removed.
@@ -124,8 +141,7 @@ namespace DAZ_Installer.DP
                 Directory.CreateDirectory(TempLocation);
             }
             catch (Exception e) { DPCommon.WriteToLog($"Unable to create directory. {e}"); }
-
-            if (previouslyInstalledArchiveNames.Contains(Path.GetFileName(filePath)))
+            if (previouslyInstalledArchiveNames.Contains(Path.GetFileName(Path.GetFileName(filePath))))
             {
                 // ,_, 
                 switch (DPSettings.installPrevProducts)
@@ -133,7 +149,7 @@ namespace DAZ_Installer.DP
                     case SettingOptions.No:
                         return null;
                     case SettingOptions.Prompt:
-                        var result = MessageBox.Show($"It seems that {Path.GetFileName(filePath)} was already processed. Do you wish to continue processing this file?", "Archive already processed", MessageBoxButtons.YesNo, MessageBoxIcon.Information);
+                        var result = MessageBox.Show($"It seems that \"{Path.GetFileName(filePath)}\" was already processed. Do you wish to continue processing this file?", "Archive already processed", MessageBoxButtons.YesNo, MessageBoxIcon.Information);
                         if (result == DialogResult.No) return null;
                         break;
                 }
@@ -215,6 +231,7 @@ namespace DAZ_Installer.DP
             // TODO: Add a flag to make sure records aren't created for completely
             // failed archives (such as an "zip" archive when really it's a jpg file).
             var record = archiveFile.CreateRecords();
+            if (record != null) previouslyInstalledArchiveNames.Add(archiveFile.FileName);
             // TODO: This might need to be removed.
             if (archiveFile.Type == ArchiveType.Product)
             {
@@ -225,6 +242,9 @@ namespace DAZ_Installer.DP
             
             return archiveFile;
         }
+
+        public static void UpdateInstalledArchiveNames(HashSet<string> strings) => previouslyInstalledArchiveNames = strings;
+
 
         private static void UpdateRelativePaths(DPAbstractArchive archive)
         {
@@ -350,10 +370,13 @@ namespace DAZ_Installer.DP
 
 
         // TODO: Clear temp needs to remove as much space as possible. It will error when we have file handles.
-        private static void ClearTemp() {
+        internal static void ClearTemp() {
             try {
+                // Note: UnauthorizedAccess is called when a file has the read-only attribute.
+                // TODO: Async call to change file attributes and delete them.
                 if (Directory.Exists(TempLocation)) {
                     Directory.Delete(TempLocation, true);
+                    DPCommon.WriteToLog("Deleted temp files");
                 }
             } catch {}
         }
