@@ -54,12 +54,6 @@ namespace DAZ_Installer.DP {
         /// <value>The working archive's FileName + $"\\{Path}".</value>
         internal string ListName { get; set; }
         /// <summary>
-        /// A global static dictionary of available archives
-        /// </summary>
-        /// <typeparam name="string">The name of the archive.</typeparam>
-        /// <typeparam name="DPAbstractArchive">The archive.</typeparam>
-        internal static Dictionary<string, DPAbstractArchive> Archives { get; } = new Dictionary<string, DPAbstractArchive>(); 
-        /// <summary>
         /// A list of archives that are children of this archive.
         /// </summary>
         internal List<DPAbstractArchive> InternalArchives { get; init; } = new List<DPAbstractArchive>();
@@ -178,8 +172,6 @@ namespace DAZ_Installer.DP {
 
             if (IsInnerArchive)
                 DPProcessor.workingArchive.Contents.Add(this);
-
-            Archives.Add(Path, this);
         }
         #region Abstract methods
         /// <summary>
@@ -289,14 +281,6 @@ namespace DAZ_Installer.DP {
                 if (file.WasExtracted) foundFiles.Add(file.Path);
             }
             return foundFiles.ToArray();
-        }
-
-        internal static bool FindArchiveViaName(string path, out DPAbstractArchive archive)
-        {
-            if (Archives.TryGetValue(path, out archive)) return true;
-
-            archive = null;
-            return false;
         }
 
         internal DPProductRecord CreateRecords()
