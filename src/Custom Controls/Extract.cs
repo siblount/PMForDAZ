@@ -169,24 +169,18 @@ namespace DAZ_Installer
         }
 
         // Object to satisfy Invoke.
-        private object AddIcon(TreeNode node, string ext)
+        private void AddIcon(TreeNode node, string ext)
         {
             if (InvokeRequired)
             {
-                return Invoke(new Func<TreeNode,string,object>(AddIcon), node, ext);
+                Invoke(AddIcon, node, ext);
             }
-            if (ext == null || ext == "")
-            {
+            if (string.IsNullOrEmpty(ext))
                 node.StateImageIndex = 0;
-            }
             else if (ext.Contains("zip") || ext.Contains("7z"))
-            {
                 node.StateImageIndex = 2;
-            } else if (ext.Contains("rar"))
-            {
+            else if (ext.Contains("rar"))
                node.StateImageIndex = 1;
-            }
-            return null;
         }
         private void extractControl_Load(object sender, EventArgs e)
         {

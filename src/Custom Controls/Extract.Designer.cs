@@ -113,7 +113,7 @@ namespace DAZ_Installer
             this.fileListView.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.fileListView.MultiSelect = false;
             this.fileListView.Name = "fileListView";
-            this.fileListView.Size = new System.Drawing.Size(487, 96);
+            this.fileListView.Size = new System.Drawing.Size(485, 89);
             this.fileListView.TabIndex = 0;
             this.fileListView.UseCompatibleStateImageBehavior = false;
             this.fileListView.View = System.Windows.Forms.View.Details;
@@ -186,7 +186,7 @@ namespace DAZ_Installer
             this.fileHierachyTree.Location = new System.Drawing.Point(3, 2);
             this.fileHierachyTree.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.fileHierachyTree.Name = "fileHierachyTree";
-            this.fileHierachyTree.Size = new System.Drawing.Size(487, 96);
+            this.fileHierachyTree.Size = new System.Drawing.Size(485, 89);
             this.fileHierachyTree.StateImageList = this.archiveFolderIcons;
             this.fileHierachyTree.TabIndex = 0;
             // 
@@ -194,7 +194,7 @@ namespace DAZ_Installer
             // 
             this.archiveFolderIcons.ColorDepth = System.Windows.Forms.ColorDepth.Depth8Bit;
             this.archiveFolderIcons.ImageStream = ((System.Windows.Forms.ImageListStreamer)(resources.GetObject("archiveFolderIcons.ImageStream")));
-            this.archiveFolderIcons.TransparentColor = System.Drawing.Color.Transparent;
+            this.archiveFolderIcons.TransparentColor = System.Drawing.SystemColors.Window;
             this.archiveFolderIcons.Images.SetKeyName(0, "FolderIcon.png");
             this.archiveFolderIcons.Images.SetKeyName(1, "RARIcon.png");
             this.archiveFolderIcons.Images.SetKeyName(2, "ZIPIcon.png");
@@ -217,7 +217,7 @@ namespace DAZ_Installer
             this.queueControl1.Location = new System.Drawing.Point(3, 2);
             this.queueControl1.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.queueControl1.Name = "queueControl1";
-            this.queueControl1.Size = new System.Drawing.Size(486, 95);
+            this.queueControl1.Size = new System.Drawing.Size(485, 89);
             this.queueControl1.TabIndex = 0;
             // 
             // panel1
@@ -315,8 +315,8 @@ namespace DAZ_Installer
         private System.Windows.Forms.ToolStripMenuItem inspectToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem selectInFileListToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem openInExplorerToolStripMenuItem1;
-        private System.Windows.Forms.ImageList archiveFolderIcons;
         private System.Windows.Forms.TabPage queuePage;
         private Custom_Controls.QueueControl queueControl1;
+        internal System.Windows.Forms.ImageList archiveFolderIcons;
     }
 }
