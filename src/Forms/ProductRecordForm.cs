@@ -7,6 +7,8 @@ using System.IO;
 using System.Drawing;
 using System.Windows.Forms;
 using DAZ_Installer.DP;
+using System.Threading.Tasks;
+using DAZ_Installer.Utilities;
 
 namespace DAZ_Installer
 {
@@ -18,6 +20,7 @@ namespace DAZ_Installer
         public ProductRecordForm()
         {
             InitializeComponent();
+            fileTreeView.StateImageList = Extract.ExtractPage.archiveFolderIcons;
         }
 
         public ProductRecordForm(DPProductRecord productRecord) : this()
@@ -49,18 +52,23 @@ namespace DAZ_Installer
 
             if (record.PID != this.record.ID) return;
             extractionRecord = record;
+            NormalizeExtractionRecord();
             contentFoldersList.BeginUpdate();
             filesExtractedList.BeginUpdate();
             erroredFilesList.BeginUpdate();
             errorMessagesList.BeginUpdate();
-            Array.ForEach(record.Files, file => filesExtractedList.Items.Add(file));
-            Array.ForEach(record.Folders, folder => contentFoldersList.Items.Add(folder));
-            Array.ForEach(record.ErroredFiles, erroredFile => erroredFilesList.Items.Add(erroredFile));
-            Array.ForEach(record.ErrorMessages, errorMsg => errorMessagesList.Items.Add(errorMsg)); 
+            fileTreeView.BeginUpdate();
+            Array.ForEach(extractionRecord.Files, file => filesExtractedList.Items.Add(file));
+            Array.ForEach(extractionRecord.Folders, folder => contentFoldersList.Items.Add(folder));
+            Array.ForEach(extractionRecord.ErroredFiles, erroredFile => erroredFilesList.Items.Add(erroredFile));
+            Array.ForEach(extractionRecord.ErrorMessages, errorMsg => errorMessagesList.Items.Add(errorMsg));
+
+            BuildFileHierachy();
             contentFoldersList.EndUpdate();
             filesExtractedList.EndUpdate();
             erroredFilesList.EndUpdate();
             errorMessagesList.EndUpdate();
+            fileTreeView.EndUpdate();
             destinationPathLbl.Text += record.DestinationPath;
             CalculateMaxWidthPerListView();
             UpdateColumnWidths();
@@ -127,7 +135,99 @@ namespace DAZ_Installer
                 var width = TextRenderer.MeasureText(itemsText[i], collection[0].Font).Width;
                 if (width > maxWidth) maxWidth = (uint) width;
             }
-            return maxWidth;
+            return maxWidth + 20;
+        }
+
+        private void BuildFileHierachy()
+        {
+            var folderMap = new Dictionary<string, TreeNode>(extractionRecord.Folders.Length);
+            var treeNodes = new List<TreeNode>(extractionRecord.Files.Length + extractionRecord.Folders.Length);
+            // Initalize the map by just connecting a folder path to a tree node.
+            foreach (var folder in extractionRecord.Folders)
+            {
+                folderMap[folder] = new TreeNode(Path.GetFileName(folder));
+                treeNodes.Add(folderMap[folder]);
+                folderMap[folder].StateImageIndex = 0;
+            }
+
+            // Now make parent-child connections.
+            foreach (var folder in extractionRecord.Folders)
+            {
+                // If we are parented...
+                if (folder.IndexOf('\\') != -1)
+                {
+                    // Make the upper one our parent
+                    var upFolder = PathHelper.GetParent(folder);
+                    if (folderMap.ContainsKey(upFolder))
+                    {
+                        folderMap[upFolder].Nodes.Add(folderMap[folder]);
+                        treeNodes.Remove(folderMap[folder]);
+                    }
+                    else DPCommon.WriteToLog($"File Hierachy builder upper parent not found for {folder}.");
+                }
+                // Otherwise, we are the parent.
+            }
+
+            // Now add all the files to their folder.
+            foreach (var file in extractionRecord.Files)
+            {
+                var parent = PathHelper.GetParent(file);
+                var ext = Path.GetExtension(file);
+                var treeNode = new TreeNode(Path.GetFileName(file));
+                if (parent == null || file.IndexOf('\\') == -1) treeNodes.Add(treeNode);
+                else
+                {
+                    if (folderMap.ContainsKey(parent)) folderMap[parent].Nodes.Add(treeNode);
+                    else DPCommon.WriteToLog($"File Hierachy builder upper parent not found for {file}.");
+                }
+
+                if (string.IsNullOrEmpty(ext))
+                    treeNode.StateImageIndex = 0;
+                else if (ext.Contains("zip") || ext.Contains("7z"))
+                    treeNode.StateImageIndex = 2;
+                else if (ext.Contains("rar"))
+                    treeNode.StateImageIndex = 1;
+            }
+
+            // Color red files that errored.
+            foreach (var file in extractionRecord.ErroredFiles)
+            {
+                var parent = PathHelper.GetParent(file);
+                if (folderMap.ContainsKey(parent))
+                {
+                    foreach (TreeNode node in folderMap[parent].Nodes)
+                    {
+                        if (node.Text == parent)
+                        {
+                            node.ForeColor = Color.DarkRed;
+                            break;
+                        }
+                    }
+                }
+            }
+
+            fileTreeView.Nodes.AddRange(treeNodes.ToArray());
+        }
+
+        private void NormalizeExtractionRecord()
+        {
+            var normalizedFolders = new List<string>(extractionRecord.Folders.Length);
+            foreach (var folder in extractionRecord.Folders)
+                normalizedFolders.Add(PathHelper.NormalizePath(folder));
+
+            var normalizedFiles = new List<string>(extractionRecord.Files.Length);
+            foreach (var file in extractionRecord.Files)
+                normalizedFiles.Add(PathHelper.NormalizePath(file));
+
+            var normalizedErroredFiles = new List<string>(extractionRecord.ErroredFiles.Length);
+            foreach (var file in extractionRecord.ErroredFiles)
+                normalizedErroredFiles.Add(PathHelper.NormalizePath(file));
+
+            extractionRecord = new DPExtractionRecord(extractionRecord.ArchiveFileName, 
+                        extractionRecord.DestinationPath, 
+                        normalizedFiles.GetInnerArray(), normalizedErroredFiles.GetInnerArray(), 
+                        extractionRecord.ErrorMessages, normalizedFolders.GetInnerArray(), 
+                        extractionRecord.PID);
         }
 
         private void ProductRecordForm_ResizeEnd(object sender, EventArgs e)
