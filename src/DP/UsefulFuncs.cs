@@ -238,6 +238,13 @@ namespace DAZ_Installer.DP
             }
         }
 
+        internal static string GetParent(string path)
+        {
+            char seperator = GetSeperator(path);
+            var lastSeperatorIndex = path.LastIndexOf(seperator);
+            return lastSeperatorIndex != -1 ? path.Substring(0, lastSeperatorIndex) : path;
+        }
+
         internal static string GetFileName(string path)
         {
             char seperator = GetSeperator(path);
@@ -301,6 +308,13 @@ namespace DAZ_Installer.DP
             if (seperator == '/') return SwitchSeperators(strBuilder);
             else return strBuilder;
         }
+
+        /// <summary>
+        /// Replaces all forward slashes (/) with back slashes (\).
+        /// </summary>
+        /// <param name="path">The path to cleanize. Cannot be null.</param>
+        /// <returns></returns>
+        internal static string NormalizePath(string path) => path.Replace('/', '\\');
     }
 
 }
