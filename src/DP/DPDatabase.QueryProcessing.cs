@@ -29,7 +29,8 @@ namespace DAZ_Installer.DP
                 using var connection = CreateAndOpenConnection(c, true);
                 if (connection == null) return results;
                 using var command = new SQLiteCommand(connection);
-                SetupSQLSearchQuery(searchQuery, method, command);
+                SetupSQLSearchLikeQuery(searchQuery, true, method, command);
+                // SetupSQLSearchQuery(searchQuery, method, command);
                 results = SearchProductRecordsViaTagsS(command, t);
                 UpdateProductRecordCount(connection, t);
                 UpdateExtractionRecordCount(connection, t);
@@ -109,7 +110,7 @@ namespace DAZ_Installer.DP
         /// <param name="command">The command to set up the query for. Cannot be null.</param>
         private static void SetupSQLRegexQuery(string regex, DPSortMethod method, SQLiteCommand command)
         {
-            string sqlQuery = @"SELECT * FROM ProductRecords WHERE ID IN (SELECT ""Product Record ID"" FROM Tags WHERE Tag REGEXP @A";
+            string sqlQuery = @"SELECT DISTINCT * FROM ProductRecords WHERE ID IN (SELECT ""Product Record ID"" FROM Tags WHERE Tag REGEXP @A";
 
             switch (method)
             {
@@ -165,7 +166,7 @@ namespace DAZ_Installer.DP
         private static void SetupSQLSearchQuery(string userQuery, DPSortMethod method, SQLiteCommand command)
         {
             string[] tokens = userQuery.Split(' ');
-            string sqlQuery = @"SELECT * FROM ProductRecords WHERE ID IN (SELECT ""Product Record ID"" FROM Tags WHERE Tag IN (";
+            string sqlQuery = @"SELECT DISTINCT * FROM ProductRecords WHERE ID IN (SELECT ""Product Record ID"" FROM Tags WHERE Tag IN (";
             StringBuilder sb = new StringBuilder(((int)Math.Floor(Math.Log10(tokens.Length)) + 1) * tokens.Length + (4 * tokens.Length));
             for (int i = 0; i < tokens.Length; i++)
             {
@@ -197,6 +198,56 @@ namespace DAZ_Installer.DP
                 command.Parameters.Add(new SQLiteParameter("@A" + i, tokens[i]));
             }
 
+
+        }
+        /// <summary>
+        /// Creates and sets up the SQLiteCommand for a user search query and the sorting method. Compared to <see cref="SetupSQLSearchQuery"/>,
+        /// this function uses the LIKE search to find product records. LIKE Sql Calls are like this: "something%" by default.
+        /// The both sides boolean paratemer will make it so the wildcard is on both sides, like this: "%something%" but will be 
+        /// significantly slower due to inability to use index./>
+        /// </summary>
+        /// <param name="userQuery">The user search query to process.</param>
+        /// <param name="bothSides">Whether or not to use wildcards on both sides of search query.</param>
+        /// <param name="method">The sorting method to use for search results. Cannot be null.</param>
+        /// <param name="command">The command to set up the query for. Cannot be null.</param>
+        private static void SetupSQLSearchLikeQuery(string userQuery, bool bothSides, DPSortMethod method, SQLiteCommand command)
+        {
+            string[] tokens = userQuery.Split(' ');
+            string sqlQuery = @"SELECT DISTINCT * FROM ProductRecords WHERE ID IN (SELECT ""Product Record ID"" FROM Tags WHERE Tag LIKE ";
+            StringBuilder sb = new StringBuilder(((int)Math.Floor(Math.Log10(tokens.Length)) + 1) * tokens.Length + (15 * tokens.Length));
+            for (int i = 0; i < tokens.Length; i++)
+            {   
+                if (bothSides)
+                    sb.Append(i == tokens.Length - 1 ? "%@A%" + i :
+                                                        "%@A%" + i + "OR TAG LIKE ");
+                else
+                    sb.Append(i == tokens.Length - 1 ? "@A%" + i :
+                                                        "@A%" + i + "OR TAG LIKE ");
+            }
+            sqlQuery += sb.ToString();
+
+            switch (method)
+            {
+                case DPSortMethod.Alphabetical:
+                    sqlQuery += @" COLLATE NOCASE) ORDER BY ""Product Name"" ASC;";
+                    break;
+                case DPSortMethod.Date:
+                    sqlQuery += @" COLLATE NOCASE) ORDER BY ""Date Created"" ASC;";
+                    break;
+                case DPSortMethod.Relevance:
+                    sqlQuery += @"GROUP BY ""Product Record ID"" ORDER BY COUNT(*) DESC COLLATE NOCASE);";
+                    break;
+                default:
+                    sqlQuery += ");";
+                    break;
+            }
+
+            command.CommandText = sqlQuery;
+
+            for (int i = 0; i < tokens.Length; i++)
+            {
+                command.Parameters.Add(new SQLiteParameter("@A" + i, tokens[i]));
+            }
 
         }
     }
