@@ -251,7 +251,7 @@ namespace DAZ_Installer.DP
             );";
             const string createTagsCommand = @"
                 CREATE TABLE ""Tags""(
-                ""Tag""   TEXT NOT NULL,
+                ""Tag""   TEXT NOT NULL COLLATE NOCASE,
                 ""Product Record ID""	INTEGER NOT NULL
             )";
             try
@@ -286,14 +286,14 @@ namespace DAZ_Installer.DP
         {
             const string createTagToPIDCommand = @"
             CREATE INDEX ""idx_TagToPID"" ON ""Tags"" (
-                ""Tag""   ASC,
+                ""Tag""   COLLATE NOCASE ASC,
 	            ""Product Record ID""
             );";
 
             const string createPIDtoTagCommand = @"
             CREATE INDEX ""idx_PIDtoTag"" ON ""Tags"" (
                 ""Product Record ID"" ASC,
-                ""Tag""	            
+                ""Tag""	COLLATE NOCASE
             );";
 
             const string createProductNameToPIDCommand = @"
