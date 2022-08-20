@@ -128,11 +128,14 @@ namespace DAZ_Installer.DP {
         }
 
         private void ExtractFile(ZipArchiveEntry entry, DPAbstractFile file) {
+            bool fixedAttribute = false;
+            EXTRACT:
             string expectedPath = file.TargetPath ?? IOPath.Combine(DPProcessor.TempLocation, IOPath.GetFileNameWithoutExtension(Path), entry.Name);
             try {
                 try {
                     Directory.CreateDirectory(IOPath.GetDirectoryName(expectedPath));
                 } catch {}
+                
                 entry.ExtractToFile(expectedPath, DPProcessor.OverwriteFiles == SettingOptions.Yes);
                 file.WasExtracted = true;
                 file.ExtractedPath = expectedPath;
@@ -142,7 +145,28 @@ namespace DAZ_Installer.DP {
                 {
                     DPCommon.WriteToLog("The extracted file already existed but user chose not to overwrite files.");
                 }
-            } catch (Exception e) {
+            // Note: System.UnauthorizedAccessException can occur when zip is attempting to overwrite a hidden and/or read-only file.
+            } catch (UnauthorizedAccessException)
+            {
+                // Try setting the attributes to normal and see what happens. 
+                try
+                {
+                    var fileInfo = new FileInfo(expectedPath);
+                    if (fileInfo.Exists && !fixedAttribute)
+                    {
+                        fileInfo.Attributes = FileAttributes.Normal;
+                        fixedAttribute = true;
+                        goto EXTRACT;
+                    }
+                    else
+                        DPCommon.WriteToLog($"Failed to extract file even after file attribute change for {entry.FullName}.");
+                }
+                catch (Exception ex)
+                {
+                    DPCommon.WriteToLog($"Unable to extract file and change file attributes for {entry.FullName}. REASON: {ex}");
+                }
+            } 
+            catch (Exception e) {
                 DPCommon.WriteToLog($"Unable to extract file: {entry.FullName}. Reason: {e}");
             }
         }

@@ -271,7 +271,19 @@ namespace DAZ_Installer.DP {
                     try
                     {
                         Directory.CreateDirectory(IOPath.GetDirectoryName(file.ExtractedPath));
-                        fileInfo.MoveTo(file.TargetPath, true);
+                        try
+                        {
+                            fileInfo.MoveTo(file.TargetPath, true);
+                        } catch (UnauthorizedAccessException ex)
+                        {
+                            try
+                            {
+                                var targetInfo = new FileInfo(file.TargetPath);
+                                if (targetInfo.Exists)
+                                    targetInfo.Attributes = FileAttributes.Normal;
+                                else DPCommon.WriteToLog($"Failed to move {file.Path} to {file.ExtractedPath} due to unauthorized access and we were not overwriting anything.");
+                            } catch { throw ex; }
+                        }
                         file.ExtractedPath = file.TargetPath;
                         file.WasExtracted = true;
                     } catch (Exception ex) 
