@@ -21,9 +21,10 @@ namespace DAZ_Installer.DP {
         internal string Path { get; set; }
         /// <summary>
         /// The full relative path of the file (or folder) relative to the determined content folder (if any). 
-        /// If no content folder is detected, it is practically the same as Path.
+        /// If no content folder is detected, relative path will be null.
+        /// Currently, relative path is not set for folders.
         /// </summary>
-        internal string RelativePath { get; set; }
+        internal string? RelativePath { get; set; }
         /// <summary>
         /// The full directory path at which the file will be go to in the file system.
         /// </summary>
