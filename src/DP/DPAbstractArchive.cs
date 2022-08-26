@@ -286,9 +286,24 @@ namespace DAZ_Installer.DP {
         internal DPProductRecord CreateRecords()
         {
             string imageLocation = string.Empty;
+
+            // Extraction Record successful folder/file paths will now be relative to their content folder (if any).
+            var successfulFiles = new List<string>(Contents.Count);
+            // Folders where a file was extracted underneath it.
+            // Ex: Content/Documents/a.txt was extracted, therefore "Documents" is added.
+            var foldersExtracted = new HashSet<string>(Contents.Count);
+
+            foreach (var file in Contents.Where(f => f.WasExtracted))
+            {
+                successfulFiles.Add(file.RelativePath ?? file.Path);
+                if (file.RelativePath != null)
+                {
+                    foldersExtracted.Add(IOPath.GetDirectoryName(file.RelativePath));
+                }
+            }
             var workingExtractionRecord = 
-                new DPExtractionRecord(IOPath.GetFileName(FileName), DPSettings.destinationPath, GetSuccessfulFiles(), ErroredFiles.ToArray(), 
-                null, ConvertDPFoldersToStringArr(Folders), 0);
+                new DPExtractionRecord(IOPath.GetFileName(FileName), DPSettings.destinationPath, successfulFiles.ToArray(), ErroredFiles.ToArray(), 
+                null, foldersExtracted.ToArray(), 0);
 
             if (Type != ArchiveType.Bundle)
             {
