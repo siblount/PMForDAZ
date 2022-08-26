@@ -24,7 +24,7 @@ namespace DAZ_Installer.DP
     }
     public static class DPSettings
     {
-        // TO DO : Initalize and load settings.
+        // TO DO : Create a settings object to save settings used for an extraction and used at DPExtractJob to be passed into DPProcessor.ProcessArchive().
         // If no settings found - regenerate.
         public static string destinationPath { get; set; } // todo : Ask for daz content directory if no detected daz content paths found.
         // TO DO: Use HashSet instead of list.
@@ -36,11 +36,12 @@ namespace DAZ_Installer.DP
         public static string[] inititalCommonContentFolderNames { get; } = new string[] { "aniBlocks", "Animals", "Architecture", "Camera Presets", "data", "DAZ Studio Tutorials", "Documentation", "Documents", "Environments", "General", "Light Presets", "Lights", "People", "Presets", "Props", "Render Presets", "Render Settings", "Runtime", "Scene Builder", "Scene Subsets", "Scenes", "Scripts", "Shader Presets", "Shaders", "Support", "Templates", "Textures", "Vehicles" };
         // TO DO: Use HashSet instead of list.
         public static string[] commonContentFolderNames { get; set; }
-        public static Dictionary<string, string> folderRedirects { get; set; } = new Dictionary<string, string>() { { "docs", "Documentation" } };
+        public static Dictionary<string, string> folderRedirects { get; set; } = new Dictionary<string, string>() { { "docs", "Documentation" }, { "Documents", "Documentation" } };
         public static string tempPath { get; set; } = Path.Combine(Path.GetTempPath(), "DazProductInstaller"); //
         public static uint maxTagsToShow { get; set; } = 8; // Keep low because GDI+ slow.
         public static SettingOptions permDeleteSource { get; set; } = SettingOptions.Prompt;
         public static SettingOptions installPrevProducts { get; set; } = SettingOptions.Prompt;
+        public static SettingOptions OverwriteFiles { get; set; } = SettingOptions.Yes;
         public static string databasePath { get; set; } = "Database";
         public static bool initalized { get; set; } = false;
         public static bool invalidSettings = false;
@@ -50,10 +51,12 @@ namespace DAZ_Installer.DP
         const string cfnLocation = "Settings/cfn.txt"; // Content Folder Names Location
         const string frLocation = "Settings/fn.txt"; // Folder Redirects Location
         const string oLocation = "Settings/o.txt"; // Other settings Location
-
+        
+        // TODO: Handle situation where new settings were added; ex, OverWriteFiles
         public static void Initalize()
         {
             if (initalized) return;
+            // TODO: Catch situation where the parse fails.
             if (GetOtherSettings(out string[] settings))
             {
                 destinationPath = settings[0];
@@ -64,6 +67,10 @@ namespace DAZ_Installer.DP
                 tempPath = settings[5];
                 installPrevProducts = Enum.Parse<SettingOptions>(settings[6]);
                 databasePath = settings[7];
+                // TODO: Catch situation where the parse fails.
+                //OverwriteFiles = Enum.Parse<SettingOptions>(settings[8]);
+                OverwriteFiles = SettingOptions.Yes;
+
                 ValidateDirectoryPaths();
                 if (invalidSettings) MessageBox.Show("Some paths are invalid and have been reverted to default.", "Settings defaulted", 
                     MessageBoxButtons.OK, MessageBoxIcon.Information);
@@ -328,7 +335,7 @@ namespace DAZ_Installer.DP
             {
                 var lines = new string[] { destinationPath, downloadImages.ToString(),
                     thumbnailsPath, handleInstallation.ToString(), permDeleteSource.ToString(), tempPath,
-                    installPrevProducts.ToString(), databasePath};
+                    installPrevProducts.ToString(), databasePath, OverwriteFiles.ToString()};
                 File.WriteAllLines(oLocation, lines);
                 return true;
             }

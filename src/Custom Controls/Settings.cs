@@ -48,6 +48,7 @@ namespace DAZ_Installer
             SetupContentRedirects();
             SetupDeleteSourceFiles();
             SetupPreviouslyInstalledProducts();
+            SetupAllowOverwriting();
 
             loadingPanel.Visible = false;
             loadingPanel.Dispose();
@@ -126,22 +127,31 @@ namespace DAZ_Installer
         {
             foreach (var option in Enum.GetNames(typeof(SettingOptions)))
             {
-                removeSourceFilesComboBox.Items.Add(option);
+                removeSourceFilesCombo.Items.Add(option);
             }
 
             var choice = DPSettings.permDeleteSource;
-            removeSourceFilesComboBox.SelectedItem = Enum.GetName(choice);
+            removeSourceFilesCombo.SelectedItem = Enum.GetName(choice);
         }
 
         private void SetupPreviouslyInstalledProducts()
         {
             foreach (var option in Enum.GetNames(typeof(SettingOptions)))
             {
-                installPrevProducts.Items.Add(option);
+                installPrevProductsCombo.Items.Add(option);
             }
 
             var choice = DPSettings.installPrevProducts;
-            installPrevProducts.SelectedItem = Enum.GetName(choice);
+            installPrevProductsCombo.SelectedItem = Enum.GetName(choice);
+        }
+
+        private void SetupAllowOverwriting()
+        {
+            foreach (var option in Enum.GetNames(typeof(SettingOptions)))
+            {
+                allowOverwritingCombo.Items.Add(option);
+            }
+            allowOverwritingCombo.SelectedItem = Enum.GetName(DPSettings.OverwriteFiles);
         }
 
         private void tableLayoutPanel1_Paint(object sender, PaintEventArgs e)
@@ -236,10 +246,10 @@ namespace DAZ_Installer
             DPSettings.folderRedirects = aliasMap;
 
             // Permanate Delete Source
-            DPSettings.permDeleteSource = (SettingOptions)removeSourceFilesComboBox.SelectedIndex;
+            DPSettings.permDeleteSource = (SettingOptions)removeSourceFilesCombo.SelectedIndex;
 
             // Install Prev Products
-            DPSettings.installPrevProducts = (SettingOptions)installPrevProducts.SelectedIndex;
+            DPSettings.installPrevProducts = (SettingOptions)installPrevProductsCombo.SelectedIndex;
 
             if (invalidReponses)
             {
@@ -301,7 +311,7 @@ namespace DAZ_Installer
 
         private void removeSourceFiles_TextChanged(object sender, EventArgs e)
         {
-            if (!applySettingsBtn.Enabled && removeSourceFilesComboBox.Text != Enum.GetName(DPSettings.permDeleteSource))
+            if (!applySettingsBtn.Enabled && removeSourceFilesCombo.Text != Enum.GetName(DPSettings.permDeleteSource))
             {
                 applySettingsBtn.Enabled = true;
             }
@@ -309,7 +319,7 @@ namespace DAZ_Installer
 
         private void installPrevProducts_TextChanged(object sender, EventArgs e)
         {
-            if (!applySettingsBtn.Enabled && installPrevProducts.Text != Enum.GetName(DPSettings.installPrevProducts))
+            if (!applySettingsBtn.Enabled && installPrevProductsCombo.Text != Enum.GetName(DPSettings.installPrevProducts))
             {
                 applySettingsBtn.Enabled = true;
             }
@@ -388,6 +398,14 @@ namespace DAZ_Installer
             }
             contentFolderRedirectsListBox.EndUpdate();
             applySettingsBtn.Enabled = true;
+        }
+
+        private void allowOverwritingCombo_TextChanged(object sender, EventArgs e)
+        {
+            if (!applySettingsBtn.Enabled && allowOverwritingCombo.Text != Enum.GetName(DPSettings.OverwriteFiles))
+            {
+                applySettingsBtn.Enabled = true;
+            }
         }
     }
 }

@@ -21,7 +21,7 @@ namespace DAZ_Installer.DP
         public static HashSet<string> previouslyInstalledArchiveNames { get; private set; } = new HashSet<string>();
         public static List<string> doNotProcessList { get; } = new List<string>();
         public static uint workingArchiveFileCount { get; set; } = 0; // can disgard. 
-        public static SettingOptions OverwriteFiles = SettingOptions.Yes;
+        public static SettingOptions OverwriteFiles = DPSettings.OverwriteFiles;
 
         static DPProcessor() => DPDatabase.GetInstalledArchiveNamesQ(UpdateInstalledArchiveNames);
 
@@ -134,8 +134,10 @@ namespace DAZ_Installer.DP
         public static DPAbstractArchive? ProcessArchive(string filePath)
         {
             // We use these variables in case the user changes the settings in mist of an extraction process.
+            // TODO: Take a settings object to use.
             TempLocation = Path.Combine(DPSettings.tempPath, @"DazProductInstaller\");
             DestinationPath = DPSettings.destinationPath;
+            OverwriteFiles = DPSettings.OverwriteFiles;
             try
             {
                 Directory.CreateDirectory(TempLocation);
