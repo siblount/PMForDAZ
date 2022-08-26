@@ -39,11 +39,14 @@ namespace DAZ_Installer.DP {
                 DPFile dpfile = null;
                 DPAbstractArchive arc = InternalArchives.Find(a => a.Path == file.FullName);
                 if (DPFile.FindFileInDPFiles(file.FullName, out dpfile)) {
-                    if (dpfile.WillExtract) ExtractFile(file, dpfile);
+                    if (dpfile.WillExtract)
+                    {
+                        ExtractFile(file, dpfile);
+                        HandleProgressionZIP(archive, ++i, max);
+                    }
                 }
                 if (arc != null && arc.WillExtract) 
                     ExtractFile(file, arc);
-                HandleProgressionZIP(archive, ++i, max);
             }
             HandleProgressionZIP(archive, max, max);
         }

@@ -313,7 +313,7 @@ namespace DAZ_Installer.DP {
                 var ext = GetExtension(_lastEntity.Path);
                 if (DPFile.ValidImportExtension(ext))
                 {
-                    var newArchive = CreateNewArchive(_lastEntity.Path, true, RelativePath);
+                    var newArchive = CreateNewArchive(_lastEntity.Path, true, RelativePath ?? Path);
                     newArchive.ParentArchive = this;
                 }
                 else

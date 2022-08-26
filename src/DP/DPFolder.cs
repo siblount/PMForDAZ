@@ -169,38 +169,6 @@ namespace DAZ_Installer.DP
             }
             return folderArr.ToArray();
         }
-        internal bool DetermineIfContentFolder()
-        {
-            // First, check if parent is a folder.
-            string selfFolderName = PathHelper.GetLastDir(Path, false);
-            bool selfIsContentName = DPSettings.commonContentFolderNames.Contains(selfFolderName)
-                        || DPSettings.folderRedirects.ContainsKey(selfFolderName);
-            bool parentsAreContent = false;
-            if (Parent != null && Parent.GetType() == typeof(DPFolder))
-            {
-                if (Parent.isContentFolder) return false;
-                foreach (var subfolder in Parent.subfolders)
-                {
-                    if (subfolder == this) continue;
-                    var folderName = IOPath.GetDirectoryName(subfolder.Path);
-                    // TO DO: Check if it contains given name, uppercased name and lower cased name.
-                    if (DPSettings.commonContentFolderNames.Contains(folderName, StringComparer.CurrentCultureIgnoreCase)
-                        || DPSettings.folderRedirects.ContainsKey(folderName) || DPSettings.folderRedirects.ContainsKey(folderName.ToLower()))
-                    {
-                        parentsAreContent = true;
-                        break;
-                    }
-                }
-            }
-
-            // Also check if subfolders were originally marked as content folders and make them false.
-            foreach (var folder in subfolders)
-            {
-                folder.isContentFolder = false;
-            }
-
-            return selfIsContentName && !parentsAreContent;
-        }
         /// <summary>
         /// <inheritdoc/>
         /// <p> This function removes and updates the root folders list instead of root contents list. </p>

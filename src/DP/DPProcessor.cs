@@ -310,7 +310,7 @@ namespace DAZ_Installer.DP
                         foreach (var child in folder.GetFiles())
                         {
                             // Get destination path.
-                            var dPath = Path.Combine(DestinationPath, child.RelativePath);
+                            var dPath = Path.Combine(DestinationPath, child.RelativePath ?? child.Path);
                             // Update child destination path.
                             child.TargetPath = dPath;
                             child.WillExtract = true;
@@ -328,7 +328,7 @@ namespace DAZ_Installer.DP
                         {
                             var arc = (DPAbstractArchive)file;
                             arc.WillExtract = true;
-                            arc.TargetPath = Path.Combine(TempLocation, arc.RelativePath);
+                            arc.TargetPath = Path.Combine(TempLocation, arc.RelativePath ?? arc.Path);
                             // Add to queue.
                             workingArchive.InternalArchives.Add(arc);
                         }
@@ -343,7 +343,7 @@ namespace DAZ_Installer.DP
                     {
                         var arc = (DPAbstractArchive)content;
                         arc.WillExtract = true;
-                        arc.TargetPath = Path.Combine(TempLocation, arc.RelativePath);
+                        arc.TargetPath = Path.Combine(TempLocation, arc.RelativePath ?? arc.Path);
                         // Add to queue.
                         workingArchive.InternalArchives.Add(arc);
                     }
@@ -364,9 +364,35 @@ namespace DAZ_Installer.DP
 
         private static void DetermineContentFolders(DPAbstractArchive archiveFile)
         {
-            foreach (var folder in archiveFile.Folders.Values)
+            // A content folder is a folder whose name is contained in the user's common content folders list
+            // or in their folder redirects map.
+
+
+            // Prepare sort so that the first elements in folders are the ones at root.
+            var folders = archiveFile.Folders.Values.ToArray();
+            var foldersKeys = new byte[folders.Length];
+
+            for (int i = 0; i < foldersKeys.Length; i++)
             {
-                folder.isContentFolder = folder.DetermineIfContentFolder();
+                foldersKeys[i] = PathHelper.GetNumOfLevels(folders[i].Path);
+            }
+            
+            // Elements at the beginning are folders at root levels.
+            Array.Sort(foldersKeys, folders);
+
+            foreach (var folder in folders)
+            {
+                var folderName = Path.GetFileName(folder.Path);
+                var elgibleForContentFolderStatus = DPSettings.commonContentFolderNames.Contains(folderName, StringComparer.CurrentCultureIgnoreCase)
+                                                    || DPSettings.folderRedirects.ContainsKey(folderName) 
+                                                    || DPSettings.folderRedirects.ContainsKey(folderName.ToLower());
+                if (folder.Parent is null)
+                    folder.isContentFolder = elgibleForContentFolderStatus;
+                else
+                {
+                    if (folder.Parent.isContentFolder || folder.Parent.isPartOfContentFolder) continue;
+                    folder.isContentFolder = elgibleForContentFolderStatus;
+                }
             }
         }
 

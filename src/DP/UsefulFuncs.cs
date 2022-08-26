@@ -263,11 +263,17 @@ namespace DAZ_Installer.DP
             return strBuilder.TrimEnd(seperator);
         }
 
-        internal static sbyte GetNumOfLevelsAbove(string path, string relativeTo)
+        internal static byte GetNumOfLevelsAbove(string path, string relativeTo)
         {
             var relPath = GetRelativePath(path, relativeTo);
             var seperator = GetSeperator(relPath);
-            return (sbyte)relPath.Count((c) => c == seperator);
+            return (byte)relPath.Count((c) => c == seperator);
+        }
+
+        internal static byte GetNumOfLevels(string path)
+        {
+            var seperator = GetSeperator(path);
+            return (byte)path.Count((c) => c == seperator);
         }
 
         internal static string SwitchSeperators(string path)
