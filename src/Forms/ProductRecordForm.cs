@@ -143,61 +143,45 @@ namespace DAZ_Installer
             var folderMap = new Dictionary<string, TreeNode>(extractionRecord.Folders.Length);
             var treeNodes = new HashSet<TreeNode>(extractionRecord.Files.Length + extractionRecord.Folders.Length);
             // Initalize the map by just connecting a folder path to a tree node.
-            foreach (var folder in extractionRecord.Folders)
-            {
-                ReadOnlySpan<char> folderSpan = folder;
-                char seperator = PathHelper.GetSeperator(folder);
-                int lastIndexOf = folderSpan.Length;
-                while (lastIndexOf != -1)
-                {
-                    var slice = folderSpan.Slice(0, lastIndexOf).ToString();
-                    folderMap.TryAdd(slice, new TreeNode(Path.GetFileName(slice)));
-                    treeNodes.Add(folderMap[slice]);
-                    folderMap[slice].StateImageIndex = 0;
-                    folderSpan = folderSpan.Slice(0, lastIndexOf);
-                    lastIndexOf = folderSpan.LastIndexOf(seperator);
-                }
-            }
-
-            // Now make parent-child connections.
-            foreach (var folder in extractionRecord.Folders)
-            {
-                // If we are parented...
-                if (folder.IndexOf('\\') != -1)
-                {
-                    // Make the upper one our parent
-                    var upFolder = PathHelper.GetParent(folder);
-                    if (folderMap.ContainsKey(upFolder))
-                    {
-                        folderMap[upFolder].Nodes.Add(folderMap[folder]);
-                        treeNodes.Remove(folderMap[folder]);
-                    }
-                    else DPCommon.WriteToLog($"File Hierachy builder upper parent not found for {folder}.");
-                }
-                // Otherwise, we are the parent.
-            }
-
-            // Now add all the files to their folder.
             foreach (var file in extractionRecord.Files)
             {
-                var parent = PathHelper.GetParent(file);
-                var ext = Path.GetExtension(file);
-                var treeNode = new TreeNode(Path.GetFileName(file));
-                if (parent == null || file.IndexOf('\\') == -1) treeNodes.Add(treeNode);
-                else
+                var dirName = Path.GetDirectoryName(file + ".e");
+                // If it does not exist, we need to create tree nodes for this and add the root tree node to treeNodes.
+                if (!folderMap.ContainsKey(dirName) && dirName.Length != 0)
                 {
-                    if (folderMap.ContainsKey(parent)) folderMap[parent].Nodes.Add(treeNode);
-                    else DPCommon.WriteToLog($"File Hierachy builder upper parent not found for {file}.");
+                    // This is to ensure that the file doesn't get treated as a directory (EX: file doesn't have an ext)
+                    ReadOnlySpan<char> folderSpan = dirName;
+                    char seperator = PathHelper.GetSeperator(folderSpan);
+                    int lastIndexOf = folderSpan.Length;
+                    TreeNode lastNode = null;
+                    while (lastIndexOf != -1)
+                    {
+                        var slice = folderSpan.Slice(0, lastIndexOf).ToString();
+                        var added = folderMap.TryAdd(slice, new TreeNode(Path.GetFileName(slice)));
+                        if (!added) break;
+                        if (PathHelper.GetNumOfLevels(slice) == 0) treeNodes.Add(folderMap[slice]);
+                        if (lastNode != null) folderMap[slice].Nodes.Add(lastNode);
+                        folderMap[slice].StateImageIndex = 0;
+                        lastNode = folderMap[slice];
+                        folderSpan = folderSpan.Slice(0, lastIndexOf);
+                        lastIndexOf = folderSpan.LastIndexOf(seperator);
+                    }
                 }
+                var fileNode = new TreeNode(Path.GetFileName(file));
+                var ext = Path.GetExtension(file);
+                // If the file has a folder node, then add it to that node.
+                if (folderMap.ContainsKey(dirName))
+                    folderMap[dirName].Nodes.Add(fileNode);
+                else // otherwise, it means the file is at root.
+                    treeNodes.Add(fileNode);
 
                 if (string.IsNullOrEmpty(ext))
-                    treeNode.StateImageIndex = 0;
-                else if (ext.Contains("zip") || ext.Contains("7z"))
-                    treeNode.StateImageIndex = 2;
-                else if (ext.Contains("rar"))
-                    treeNode.StateImageIndex = 1;
+                    fileNode.StateImageIndex = 0;
+                else if (ext.EndsWith("zip") || ext.EndsWith("7z"))
+                    fileNode.StateImageIndex = 2;
+                else if (ext.EndsWith("rar"))
+                    fileNode.StateImageIndex = 1;
             }
-
             // Color red files that errored.
             foreach (var file in extractionRecord.ErroredFiles)
             {
