@@ -71,18 +71,18 @@ namespace DAZ_Installer
             this.tableLayoutPanel1.Padding = new System.Windows.Forms.Padding(3);
             this.tableLayoutPanel1.RowCount = 1;
             this.tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle());
-            this.tableLayoutPanel1.Size = new System.Drawing.Size(421, 42);
+            this.tableLayoutPanel1.Size = new System.Drawing.Size(383, 42);
             this.tableLayoutPanel1.TabIndex = 0;
             // 
             // gotoTxtBox
             // 
-            this.gotoTxtBox.Dock = System.Windows.Forms.DockStyle.Left;
+            this.gotoTxtBox.Dock = System.Windows.Forms.DockStyle.Fill;
             this.gotoTxtBox.Font = new System.Drawing.Font("Segoe UI", 10.2F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
-            this.gotoTxtBox.Location = new System.Drawing.Point(255, 6);
+            this.gotoTxtBox.Location = new System.Drawing.Point(217, 6);
             this.gotoTxtBox.MinimumSize = new System.Drawing.Size(50, 27);
             this.gotoTxtBox.Name = "gotoTxtBox";
             this.gotoTxtBox.PlaceholderText = "Goto";
-            this.gotoTxtBox.Size = new System.Drawing.Size(97, 30);
+            this.gotoTxtBox.Size = new System.Drawing.Size(97, 27);
             this.gotoTxtBox.TabIndex = 7;
             this.gotoTxtBox.KeyPress += new System.Windows.Forms.KeyPressEventHandler(this.gotoTxtBox_KeyPress);
             this.gotoTxtBox.KeyUp += new System.Windows.Forms.KeyEventHandler(this.gotoTxtBox_KeyUp);
@@ -91,9 +91,9 @@ namespace DAZ_Installer
             // 
             this.pageLbl.AutoSize = true;
             this.pageLbl.Dock = System.Windows.Forms.DockStyle.Left;
-            this.pageLbl.Location = new System.Drawing.Point(86, 3);
+            this.pageLbl.Location = new System.Drawing.Point(76, 3);
             this.pageLbl.Name = "pageLbl";
-            this.pageLbl.Size = new System.Drawing.Size(83, 36);
+            this.pageLbl.Size = new System.Drawing.Size(65, 36);
             this.pageLbl.TabIndex = 1;
             this.pageLbl.Text = "Page 0 of 0";
             this.pageLbl.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
@@ -101,7 +101,7 @@ namespace DAZ_Installer
             // goBtn
             // 
             this.goBtn.Dock = System.Windows.Forms.DockStyle.Left;
-            this.goBtn.Location = new System.Drawing.Point(358, 6);
+            this.goBtn.Location = new System.Drawing.Point(320, 6);
             this.goBtn.Name = "goBtn";
             this.goBtn.Size = new System.Drawing.Size(57, 30);
             this.goBtn.TabIndex = 1;
@@ -114,9 +114,9 @@ namespace DAZ_Installer
             this.goNextBtn.AutoSize = true;
             this.goNextBtn.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
             this.goNextBtn.Dock = System.Windows.Forms.DockStyle.Left;
-            this.goNextBtn.Location = new System.Drawing.Point(175, 6);
+            this.goNextBtn.Location = new System.Drawing.Point(147, 6);
             this.goNextBtn.Name = "goNextBtn";
-            this.goNextBtn.Size = new System.Drawing.Size(29, 30);
+            this.goNextBtn.Size = new System.Drawing.Size(25, 30);
             this.goNextBtn.TabIndex = 8;
             this.goNextBtn.Text = ">";
             this.goNextBtn.UseVisualStyleBackColor = true;
@@ -127,9 +127,9 @@ namespace DAZ_Installer
             this.goPrevBtn.AutoSize = true;
             this.goPrevBtn.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
             this.goPrevBtn.Dock = System.Windows.Forms.DockStyle.Left;
-            this.goPrevBtn.Location = new System.Drawing.Point(51, 6);
+            this.goPrevBtn.Location = new System.Drawing.Point(45, 6);
             this.goPrevBtn.Name = "goPrevBtn";
-            this.goPrevBtn.Size = new System.Drawing.Size(29, 30);
+            this.goPrevBtn.Size = new System.Drawing.Size(25, 30);
             this.goPrevBtn.TabIndex = 1;
             this.goPrevBtn.Text = "<";
             this.goPrevBtn.UseVisualStyleBackColor = true;
@@ -142,7 +142,7 @@ namespace DAZ_Installer
             this.goFirstBtn.Dock = System.Windows.Forms.DockStyle.Left;
             this.goFirstBtn.Location = new System.Drawing.Point(6, 6);
             this.goFirstBtn.Name = "goFirstBtn";
-            this.goFirstBtn.Size = new System.Drawing.Size(39, 30);
+            this.goFirstBtn.Size = new System.Drawing.Size(33, 30);
             this.goFirstBtn.TabIndex = 0;
             this.goFirstBtn.Text = "<<";
             this.goFirstBtn.UseVisualStyleBackColor = true;
@@ -153,9 +153,9 @@ namespace DAZ_Installer
             this.goLastBtn.AutoSize = true;
             this.goLastBtn.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
             this.goLastBtn.Dock = System.Windows.Forms.DockStyle.Left;
-            this.goLastBtn.Location = new System.Drawing.Point(210, 6);
+            this.goLastBtn.Location = new System.Drawing.Point(178, 6);
             this.goLastBtn.Name = "goLastBtn";
-            this.goLastBtn.Size = new System.Drawing.Size(39, 30);
+            this.goLastBtn.Size = new System.Drawing.Size(33, 30);
             this.goLastBtn.TabIndex = 9;
             this.goLastBtn.Text = ">>";
             this.goLastBtn.UseVisualStyleBackColor = true;
@@ -163,12 +163,11 @@ namespace DAZ_Installer
             // 
             // PageButtonControl
             // 
-            this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 20F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Inherit;
             this.AutoSize = true;
             this.Controls.Add(this.tableLayoutPanel1);
             this.Name = "PageButtonControl";
-            this.Size = new System.Drawing.Size(424, 45);
+            this.Size = new System.Drawing.Size(386, 45);
             this.tableLayoutPanel1.ResumeLayout(false);
             this.tableLayoutPanel1.PerformLayout();
             this.ResumeLayout(false);

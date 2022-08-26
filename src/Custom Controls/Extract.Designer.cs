@@ -67,12 +67,12 @@ namespace DAZ_Installer
             | System.Windows.Forms.AnchorStyles.Right)));
             this.mainTableLayoutPanel.ColumnCount = 1;
             this.mainTableLayoutPanel.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 100F));
-            this.mainTableLayoutPanel.Location = new System.Drawing.Point(25, 52);
-            this.mainTableLayoutPanel.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.mainTableLayoutPanel.Location = new System.Drawing.Point(31, 65);
+            this.mainTableLayoutPanel.Margin = new System.Windows.Forms.Padding(4, 2, 4, 2);
             this.mainTableLayoutPanel.Name = "mainTableLayoutPanel";
             this.mainTableLayoutPanel.RowCount = 1;
             this.mainTableLayoutPanel.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 100F));
-            this.mainTableLayoutPanel.Size = new System.Drawing.Size(499, 137);
+            this.mainTableLayoutPanel.Size = new System.Drawing.Size(491, 153);
             this.mainTableLayoutPanel.TabIndex = 0;
             // 
             // tabControl1
@@ -83,21 +83,21 @@ namespace DAZ_Installer
             this.tabControl1.Controls.Add(this.fileListPage);
             this.tabControl1.Controls.Add(this.fileHierachyPage);
             this.tabControl1.Controls.Add(this.queuePage);
-            this.tabControl1.Location = new System.Drawing.Point(25, 194);
-            this.tabControl1.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.tabControl1.Location = new System.Drawing.Point(31, 222);
+            this.tabControl1.Margin = new System.Windows.Forms.Padding(4, 2, 4, 2);
             this.tabControl1.Name = "tabControl1";
             this.tabControl1.SelectedIndex = 0;
-            this.tabControl1.Size = new System.Drawing.Size(499, 121);
+            this.tabControl1.Size = new System.Drawing.Size(491, 97);
             this.tabControl1.TabIndex = 1;
             // 
             // fileListPage
             // 
             this.fileListPage.Controls.Add(this.fileListView);
             this.fileListPage.Location = new System.Drawing.Point(4, 24);
-            this.fileListPage.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.fileListPage.Margin = new System.Windows.Forms.Padding(4, 2, 4, 2);
             this.fileListPage.Name = "fileListPage";
-            this.fileListPage.Padding = new System.Windows.Forms.Padding(3, 2, 3, 2);
-            this.fileListPage.Size = new System.Drawing.Size(491, 93);
+            this.fileListPage.Padding = new System.Windows.Forms.Padding(4, 2, 4, 2);
+            this.fileListPage.Size = new System.Drawing.Size(483, 69);
             this.fileListPage.TabIndex = 0;
             this.fileListPage.Text = "File List";
             this.fileListPage.UseVisualStyleBackColor = true;
@@ -109,11 +109,11 @@ namespace DAZ_Installer
             this.fileListView.ContextMenuStrip = this.fileListContextStrip;
             this.fileListView.Dock = System.Windows.Forms.DockStyle.Fill;
             this.fileListView.HeaderStyle = System.Windows.Forms.ColumnHeaderStyle.None;
-            this.fileListView.Location = new System.Drawing.Point(3, 2);
-            this.fileListView.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.fileListView.Location = new System.Drawing.Point(4, 2);
+            this.fileListView.Margin = new System.Windows.Forms.Padding(4, 2, 4, 2);
             this.fileListView.MultiSelect = false;
             this.fileListView.Name = "fileListView";
-            this.fileListView.Size = new System.Drawing.Size(485, 89);
+            this.fileListView.Size = new System.Drawing.Size(475, 65);
             this.fileListView.TabIndex = 0;
             this.fileListView.UseCompatibleStateImageBehavior = false;
             this.fileListView.View = System.Windows.Forms.View.Details;
@@ -171,10 +171,10 @@ namespace DAZ_Installer
             // 
             this.fileHierachyPage.Controls.Add(this.fileHierachyTree);
             this.fileHierachyPage.Location = new System.Drawing.Point(4, 24);
-            this.fileHierachyPage.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.fileHierachyPage.Margin = new System.Windows.Forms.Padding(4, 2, 4, 2);
             this.fileHierachyPage.Name = "fileHierachyPage";
-            this.fileHierachyPage.Padding = new System.Windows.Forms.Padding(3, 2, 3, 2);
-            this.fileHierachyPage.Size = new System.Drawing.Size(491, 93);
+            this.fileHierachyPage.Padding = new System.Windows.Forms.Padding(4, 2, 4, 2);
+            this.fileHierachyPage.Size = new System.Drawing.Size(483, 111);
             this.fileHierachyPage.TabIndex = 1;
             this.fileHierachyPage.Text = "File Hierachy";
             this.fileHierachyPage.UseVisualStyleBackColor = true;
@@ -183,10 +183,10 @@ namespace DAZ_Installer
             // 
             this.fileHierachyTree.Dock = System.Windows.Forms.DockStyle.Fill;
             this.fileHierachyTree.Indent = 21;
-            this.fileHierachyTree.Location = new System.Drawing.Point(3, 2);
-            this.fileHierachyTree.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.fileHierachyTree.Location = new System.Drawing.Point(4, 2);
+            this.fileHierachyTree.Margin = new System.Windows.Forms.Padding(4, 2, 4, 2);
             this.fileHierachyTree.Name = "fileHierachyTree";
-            this.fileHierachyTree.Size = new System.Drawing.Size(485, 89);
+            this.fileHierachyTree.Size = new System.Drawing.Size(475, 107);
             this.fileHierachyTree.StateImageList = this.archiveFolderIcons;
             this.fileHierachyTree.TabIndex = 0;
             // 
@@ -203,10 +203,10 @@ namespace DAZ_Installer
             // 
             this.queuePage.Controls.Add(this.queueControl1);
             this.queuePage.Location = new System.Drawing.Point(4, 24);
-            this.queuePage.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.queuePage.Margin = new System.Windows.Forms.Padding(4, 2, 4, 2);
             this.queuePage.Name = "queuePage";
-            this.queuePage.Padding = new System.Windows.Forms.Padding(3, 2, 3, 2);
-            this.queuePage.Size = new System.Drawing.Size(491, 93);
+            this.queuePage.Padding = new System.Windows.Forms.Padding(4, 2, 4, 2);
+            this.queuePage.Size = new System.Drawing.Size(483, 111);
             this.queuePage.TabIndex = 2;
             this.queuePage.Text = "Queue";
             this.queuePage.UseVisualStyleBackColor = true;
@@ -214,10 +214,10 @@ namespace DAZ_Installer
             // queueControl1
             // 
             this.queueControl1.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.queueControl1.Location = new System.Drawing.Point(3, 2);
-            this.queueControl1.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.queueControl1.Location = new System.Drawing.Point(4, 2);
+            this.queueControl1.Margin = new System.Windows.Forms.Padding(4, 2, 4, 2);
             this.queueControl1.Name = "queueControl1";
-            this.queueControl1.Size = new System.Drawing.Size(485, 89);
+            this.queueControl1.Size = new System.Drawing.Size(475, 107);
             this.queueControl1.TabIndex = 0;
             // 
             // panel1
@@ -225,10 +225,10 @@ namespace DAZ_Installer
             this.panel1.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
             this.panel1.Controls.Add(this.mainProcLbl);
-            this.panel1.Location = new System.Drawing.Point(25, 18);
-            this.panel1.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.panel1.Location = new System.Drawing.Point(31, 22);
+            this.panel1.Margin = new System.Windows.Forms.Padding(4, 2, 4, 2);
             this.panel1.Name = "panel1";
-            this.panel1.Size = new System.Drawing.Size(495, 32);
+            this.panel1.Size = new System.Drawing.Size(486, 40);
             this.panel1.TabIndex = 2;
             // 
             // mainProcLbl
@@ -237,8 +237,9 @@ namespace DAZ_Installer
             this.mainProcLbl.Dock = System.Windows.Forms.DockStyle.Fill;
             this.mainProcLbl.Font = new System.Drawing.Font("Segoe UI", 16.2F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
             this.mainProcLbl.Location = new System.Drawing.Point(0, 0);
+            this.mainProcLbl.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
             this.mainProcLbl.Name = "mainProcLbl";
-            this.mainProcLbl.Size = new System.Drawing.Size(495, 32);
+            this.mainProcLbl.Size = new System.Drawing.Size(486, 40);
             this.mainProcLbl.TabIndex = 0;
             this.mainProcLbl.Text = "Nothing to extract.";
             this.mainProcLbl.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
@@ -274,15 +275,14 @@ namespace DAZ_Installer
             // 
             // Extract
             // 
-            this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
-            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
+            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Inherit;
             this.BackColor = System.Drawing.Color.White;
             this.Controls.Add(this.tabControl1);
             this.Controls.Add(this.mainTableLayoutPanel);
             this.Controls.Add(this.panel1);
-            this.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.Margin = new System.Windows.Forms.Padding(4, 2, 4, 2);
             this.Name = "Extract";
-            this.Size = new System.Drawing.Size(540, 334);
+            this.Size = new System.Drawing.Size(542, 344);
             this.Load += new System.EventHandler(this.extractControl_Load);
             this.tabControl1.ResumeLayout(false);
             this.fileListPage.ResumeLayout(false);

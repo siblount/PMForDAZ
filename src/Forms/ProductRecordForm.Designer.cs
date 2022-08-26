@@ -29,6 +29,7 @@ namespace DAZ_Installer
         /// </summary>
         private void InitializeComponent()
         {
+            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(ProductRecordForm));
             this.productNameLbl = new System.Windows.Forms.Label();
             this.thumbnailBox = new System.Windows.Forms.PictureBox();
             this.browseImageBtn = new System.Windows.Forms.Button();
@@ -53,6 +54,10 @@ namespace DAZ_Installer
             this.fileListPage = new System.Windows.Forms.TabPage();
             this.erroredFilesPage = new System.Windows.Forms.TabPage();
             this.errorMessagesPage = new System.Windows.Forms.TabPage();
+            this.toolStrip1 = new System.Windows.Forms.ToolStrip();
+            this.toolStripButton1 = new System.Windows.Forms.ToolStripDropDownButton();
+            this.deleteRecordToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.deleteProductToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             ((System.ComponentModel.ISupportInitialize)(this.thumbnailBox)).BeginInit();
             this.tabControl1.SuspendLayout();
             this.tagsPage.SuspendLayout();
@@ -61,6 +66,7 @@ namespace DAZ_Installer
             this.fileListPage.SuspendLayout();
             this.erroredFilesPage.SuspendLayout();
             this.errorMessagesPage.SuspendLayout();
+            this.toolStrip1.SuspendLayout();
             this.SuspendLayout();
             // 
             // productNameLbl
@@ -69,9 +75,9 @@ namespace DAZ_Installer
             | System.Windows.Forms.AnchorStyles.Right)));
             this.productNameLbl.AutoEllipsis = true;
             this.productNameLbl.Font = new System.Drawing.Font("Segoe UI", 16F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point);
-            this.productNameLbl.Location = new System.Drawing.Point(12, 30);
+            this.productNameLbl.Location = new System.Drawing.Point(10, 22);
             this.productNameLbl.Name = "productNameLbl";
-            this.productNameLbl.Size = new System.Drawing.Size(527, 42);
+            this.productNameLbl.Size = new System.Drawing.Size(461, 32);
             this.productNameLbl.TabIndex = 0;
             this.productNameLbl.Text = "Product Name";
             // 
@@ -79,9 +85,10 @@ namespace DAZ_Installer
             // 
             this.thumbnailBox.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
             this.thumbnailBox.Image = global::DAZ_Installer.Properties.Resources.NoImageFound;
-            this.thumbnailBox.Location = new System.Drawing.Point(545, 32);
+            this.thumbnailBox.Location = new System.Drawing.Point(477, 24);
+            this.thumbnailBox.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.thumbnailBox.Name = "thumbnailBox";
-            this.thumbnailBox.Size = new System.Drawing.Size(223, 152);
+            this.thumbnailBox.Size = new System.Drawing.Size(195, 114);
             this.thumbnailBox.SizeMode = System.Windows.Forms.PictureBoxSizeMode.Zoom;
             this.thumbnailBox.TabIndex = 2;
             this.thumbnailBox.TabStop = false;
@@ -89,9 +96,10 @@ namespace DAZ_Installer
             // browseImageBtn
             // 
             this.browseImageBtn.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
-            this.browseImageBtn.Location = new System.Drawing.Point(545, 190);
+            this.browseImageBtn.Location = new System.Drawing.Point(477, 142);
+            this.browseImageBtn.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.browseImageBtn.Name = "browseImageBtn";
-            this.browseImageBtn.Size = new System.Drawing.Size(225, 29);
+            this.browseImageBtn.Size = new System.Drawing.Size(197, 22);
             this.browseImageBtn.TabIndex = 3;
             this.browseImageBtn.Text = "Browse Image";
             this.browseImageBtn.UseVisualStyleBackColor = true;
@@ -104,8 +112,9 @@ namespace DAZ_Installer
             this.contentFoldersList.Dock = System.Windows.Forms.DockStyle.Fill;
             this.contentFoldersList.HeaderStyle = System.Windows.Forms.ColumnHeaderStyle.None;
             this.contentFoldersList.Location = new System.Drawing.Point(0, 0);
+            this.contentFoldersList.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.contentFoldersList.Name = "contentFoldersList";
-            this.contentFoldersList.Size = new System.Drawing.Size(755, 145);
+            this.contentFoldersList.Size = new System.Drawing.Size(660, 106);
             this.contentFoldersList.TabIndex = 7;
             this.contentFoldersList.UseCompatibleStateImageBehavior = false;
             this.contentFoldersList.View = System.Windows.Forms.View.Details;
@@ -121,8 +130,9 @@ namespace DAZ_Installer
             this.filesExtractedList.Dock = System.Windows.Forms.DockStyle.Fill;
             this.filesExtractedList.HeaderStyle = System.Windows.Forms.ColumnHeaderStyle.None;
             this.filesExtractedList.Location = new System.Drawing.Point(0, 0);
+            this.filesExtractedList.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.filesExtractedList.Name = "filesExtractedList";
-            this.filesExtractedList.Size = new System.Drawing.Size(755, 145);
+            this.filesExtractedList.Size = new System.Drawing.Size(660, 106);
             this.filesExtractedList.TabIndex = 9;
             this.filesExtractedList.UseCompatibleStateImageBehavior = false;
             this.filesExtractedList.View = System.Windows.Forms.View.Details;
@@ -137,9 +147,9 @@ namespace DAZ_Installer
             | System.Windows.Forms.AnchorStyles.Right)));
             this.dateExtractedLbl.AutoEllipsis = true;
             this.dateExtractedLbl.Cursor = System.Windows.Forms.Cursors.IBeam;
-            this.dateExtractedLbl.Location = new System.Drawing.Point(16, 72);
+            this.dateExtractedLbl.Location = new System.Drawing.Point(14, 54);
             this.dateExtractedLbl.Name = "dateExtractedLbl";
-            this.dateExtractedLbl.Size = new System.Drawing.Size(523, 20);
+            this.dateExtractedLbl.Size = new System.Drawing.Size(458, 15);
             this.dateExtractedLbl.TabIndex = 10;
             this.dateExtractedLbl.Text = "Date Extracted: ";
             // 
@@ -150,8 +160,9 @@ namespace DAZ_Installer
             this.erroredFilesList.Dock = System.Windows.Forms.DockStyle.Fill;
             this.erroredFilesList.HeaderStyle = System.Windows.Forms.ColumnHeaderStyle.None;
             this.erroredFilesList.Location = new System.Drawing.Point(0, 0);
+            this.erroredFilesList.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.erroredFilesList.Name = "erroredFilesList";
-            this.erroredFilesList.Size = new System.Drawing.Size(755, 145);
+            this.erroredFilesList.Size = new System.Drawing.Size(660, 106);
             this.erroredFilesList.TabIndex = 12;
             this.erroredFilesList.UseCompatibleStateImageBehavior = false;
             this.erroredFilesList.View = System.Windows.Forms.View.Details;
@@ -167,8 +178,9 @@ namespace DAZ_Installer
             this.errorMessagesList.Dock = System.Windows.Forms.DockStyle.Fill;
             this.errorMessagesList.HeaderStyle = System.Windows.Forms.ColumnHeaderStyle.None;
             this.errorMessagesList.Location = new System.Drawing.Point(0, 0);
+            this.errorMessagesList.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.errorMessagesList.Name = "errorMessagesList";
-            this.errorMessagesList.Size = new System.Drawing.Size(755, 145);
+            this.errorMessagesList.Size = new System.Drawing.Size(660, 106);
             this.errorMessagesList.TabIndex = 16;
             this.errorMessagesList.UseCompatibleStateImageBehavior = false;
             this.errorMessagesList.View = System.Windows.Forms.View.Details;
@@ -183,9 +195,9 @@ namespace DAZ_Installer
             | System.Windows.Forms.AnchorStyles.Right)));
             this.destinationPathLbl.AutoEllipsis = true;
             this.destinationPathLbl.Cursor = System.Windows.Forms.Cursors.IBeam;
-            this.destinationPathLbl.Location = new System.Drawing.Point(16, 108);
+            this.destinationPathLbl.Location = new System.Drawing.Point(14, 81);
             this.destinationPathLbl.Name = "destinationPathLbl";
-            this.destinationPathLbl.Size = new System.Drawing.Size(523, 111);
+            this.destinationPathLbl.Size = new System.Drawing.Size(458, 83);
             this.destinationPathLbl.TabIndex = 14;
             this.destinationPathLbl.Text = "Destination Path: ";
             // 
@@ -195,9 +207,10 @@ namespace DAZ_Installer
             this.columnHeader1});
             this.tagsView.Dock = System.Windows.Forms.DockStyle.Fill;
             this.tagsView.HeaderStyle = System.Windows.Forms.ColumnHeaderStyle.None;
-            this.tagsView.Location = new System.Drawing.Point(3, 3);
+            this.tagsView.Location = new System.Drawing.Point(3, 2);
+            this.tagsView.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.tagsView.Name = "tagsView";
-            this.tagsView.Size = new System.Drawing.Size(749, 139);
+            this.tagsView.Size = new System.Drawing.Size(654, 102);
             this.tagsView.TabIndex = 13;
             this.tagsView.UseCompatibleStateImageBehavior = false;
             this.tagsView.View = System.Windows.Forms.View.Details;
@@ -209,9 +222,10 @@ namespace DAZ_Installer
             // applyChangesBtn
             // 
             this.applyChangesBtn.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
-            this.applyChangesBtn.Location = new System.Drawing.Point(642, 413);
+            this.applyChangesBtn.Location = new System.Drawing.Point(562, 310);
+            this.applyChangesBtn.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.applyChangesBtn.Name = "applyChangesBtn";
-            this.applyChangesBtn.Size = new System.Drawing.Size(128, 29);
+            this.applyChangesBtn.Size = new System.Drawing.Size(112, 22);
             this.applyChangesBtn.TabIndex = 14;
             this.applyChangesBtn.Text = "Apply Changes";
             this.applyChangesBtn.UseVisualStyleBackColor = true;
@@ -227,19 +241,21 @@ namespace DAZ_Installer
             this.tabControl1.Controls.Add(this.fileListPage);
             this.tabControl1.Controls.Add(this.erroredFilesPage);
             this.tabControl1.Controls.Add(this.errorMessagesPage);
-            this.tabControl1.Location = new System.Drawing.Point(12, 225);
+            this.tabControl1.Location = new System.Drawing.Point(10, 169);
+            this.tabControl1.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.tabControl1.Name = "tabControl1";
             this.tabControl1.SelectedIndex = 0;
-            this.tabControl1.Size = new System.Drawing.Size(763, 178);
+            this.tabControl1.Size = new System.Drawing.Size(668, 134);
             this.tabControl1.TabIndex = 17;
             // 
             // tagsPage
             // 
             this.tagsPage.Controls.Add(this.tagsView);
-            this.tagsPage.Location = new System.Drawing.Point(4, 29);
+            this.tagsPage.Location = new System.Drawing.Point(4, 24);
+            this.tagsPage.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.tagsPage.Name = "tagsPage";
-            this.tagsPage.Padding = new System.Windows.Forms.Padding(3);
-            this.tagsPage.Size = new System.Drawing.Size(755, 145);
+            this.tagsPage.Padding = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.tagsPage.Size = new System.Drawing.Size(660, 106);
             this.tagsPage.TabIndex = 0;
             this.tagsPage.Text = "Tags";
             this.tagsPage.UseVisualStyleBackColor = true;
@@ -247,10 +263,11 @@ namespace DAZ_Installer
             // fileHierachyPage
             // 
             this.fileHierachyPage.Controls.Add(this.fileTreeView);
-            this.fileHierachyPage.Location = new System.Drawing.Point(4, 29);
+            this.fileHierachyPage.Location = new System.Drawing.Point(4, 24);
+            this.fileHierachyPage.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.fileHierachyPage.Name = "fileHierachyPage";
-            this.fileHierachyPage.Padding = new System.Windows.Forms.Padding(3);
-            this.fileHierachyPage.Size = new System.Drawing.Size(755, 145);
+            this.fileHierachyPage.Padding = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.fileHierachyPage.Size = new System.Drawing.Size(660, 106);
             this.fileHierachyPage.TabIndex = 1;
             this.fileHierachyPage.Text = "File Hierachy";
             this.fileHierachyPage.UseVisualStyleBackColor = true;
@@ -258,17 +275,19 @@ namespace DAZ_Installer
             // fileTreeView
             // 
             this.fileTreeView.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.fileTreeView.Location = new System.Drawing.Point(3, 3);
+            this.fileTreeView.Location = new System.Drawing.Point(3, 2);
+            this.fileTreeView.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.fileTreeView.Name = "fileTreeView";
-            this.fileTreeView.Size = new System.Drawing.Size(749, 139);
+            this.fileTreeView.Size = new System.Drawing.Size(654, 102);
             this.fileTreeView.TabIndex = 0;
             // 
             // contentFoldersPage
             // 
             this.contentFoldersPage.Controls.Add(this.contentFoldersList);
-            this.contentFoldersPage.Location = new System.Drawing.Point(4, 29);
+            this.contentFoldersPage.Location = new System.Drawing.Point(4, 24);
+            this.contentFoldersPage.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.contentFoldersPage.Name = "contentFoldersPage";
-            this.contentFoldersPage.Size = new System.Drawing.Size(755, 145);
+            this.contentFoldersPage.Size = new System.Drawing.Size(660, 106);
             this.contentFoldersPage.TabIndex = 4;
             this.contentFoldersPage.Text = "Content Folders";
             this.contentFoldersPage.UseVisualStyleBackColor = true;
@@ -276,9 +295,10 @@ namespace DAZ_Installer
             // fileListPage
             // 
             this.fileListPage.Controls.Add(this.filesExtractedList);
-            this.fileListPage.Location = new System.Drawing.Point(4, 29);
+            this.fileListPage.Location = new System.Drawing.Point(4, 24);
+            this.fileListPage.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.fileListPage.Name = "fileListPage";
-            this.fileListPage.Size = new System.Drawing.Size(755, 145);
+            this.fileListPage.Size = new System.Drawing.Size(660, 106);
             this.fileListPage.TabIndex = 5;
             this.fileListPage.Text = "File List";
             this.fileListPage.UseVisualStyleBackColor = true;
@@ -286,9 +306,10 @@ namespace DAZ_Installer
             // erroredFilesPage
             // 
             this.erroredFilesPage.Controls.Add(this.erroredFilesList);
-            this.erroredFilesPage.Location = new System.Drawing.Point(4, 29);
+            this.erroredFilesPage.Location = new System.Drawing.Point(4, 24);
+            this.erroredFilesPage.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.erroredFilesPage.Name = "erroredFilesPage";
-            this.erroredFilesPage.Size = new System.Drawing.Size(755, 145);
+            this.erroredFilesPage.Size = new System.Drawing.Size(660, 106);
             this.erroredFilesPage.TabIndex = 2;
             this.erroredFilesPage.Text = "Errored Files";
             this.erroredFilesPage.UseVisualStyleBackColor = true;
@@ -296,18 +317,55 @@ namespace DAZ_Installer
             // errorMessagesPage
             // 
             this.errorMessagesPage.Controls.Add(this.errorMessagesList);
-            this.errorMessagesPage.Location = new System.Drawing.Point(4, 29);
+            this.errorMessagesPage.Location = new System.Drawing.Point(4, 24);
+            this.errorMessagesPage.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.errorMessagesPage.Name = "errorMessagesPage";
-            this.errorMessagesPage.Size = new System.Drawing.Size(755, 145);
+            this.errorMessagesPage.Size = new System.Drawing.Size(660, 106);
             this.errorMessagesPage.TabIndex = 3;
             this.errorMessagesPage.Text = "Error Messages";
             this.errorMessagesPage.UseVisualStyleBackColor = true;
             // 
+            // toolStrip1
+            // 
+            this.toolStrip1.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.toolStripButton1});
+            this.toolStrip1.Location = new System.Drawing.Point(0, 0);
+            this.toolStrip1.Name = "toolStrip1";
+            this.toolStrip1.Size = new System.Drawing.Size(684, 25);
+            this.toolStrip1.TabIndex = 18;
+            this.toolStrip1.Text = "toolStrip1";
+            // 
+            // toolStripButton1
+            // 
+            this.toolStripButton1.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Text;
+            this.toolStripButton1.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.deleteRecordToolStripMenuItem,
+            this.deleteProductToolStripMenuItem});
+            this.toolStripButton1.Image = ((System.Drawing.Image)(resources.GetObject("toolStripButton1.Image")));
+            this.toolStripButton1.ImageTransparentColor = System.Drawing.Color.Magenta;
+            this.toolStripButton1.Name = "toolStripButton1";
+            this.toolStripButton1.Size = new System.Drawing.Size(53, 22);
+            this.toolStripButton1.Text = "Delete";
+            // 
+            // deleteRecordToolStripMenuItem
+            // 
+            this.deleteRecordToolStripMenuItem.Name = "deleteRecordToolStripMenuItem";
+            this.deleteRecordToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
+            this.deleteRecordToolStripMenuItem.Text = "Delete record";
+            this.deleteRecordToolStripMenuItem.Click += new System.EventHandler(this.deleteRecordToolStripMenuItem_Click);
+            // 
+            // deleteProductToolStripMenuItem
+            // 
+            this.deleteProductToolStripMenuItem.Name = "deleteProductToolStripMenuItem";
+            this.deleteProductToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
+            this.deleteProductToolStripMenuItem.Text = "Delete product";
+            // 
             // ProductRecordForm
             // 
-            this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 20F);
+            this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(782, 453);
+            this.ClientSize = new System.Drawing.Size(684, 340);
+            this.Controls.Add(this.toolStrip1);
             this.Controls.Add(this.applyChangesBtn);
             this.Controls.Add(this.thumbnailBox);
             this.Controls.Add(this.productNameLbl);
@@ -315,9 +373,10 @@ namespace DAZ_Installer
             this.Controls.Add(this.dateExtractedLbl);
             this.Controls.Add(this.destinationPathLbl);
             this.Controls.Add(this.tabControl1);
+            this.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.MaximizeBox = false;
             this.MinimizeBox = false;
-            this.MinimumSize = new System.Drawing.Size(650, 391);
+            this.MinimumSize = new System.Drawing.Size(571, 303);
             this.Name = "ProductRecordForm";
             this.Text = "Product Record Form";
             ((System.ComponentModel.ISupportInitialize)(this.thumbnailBox)).EndInit();
@@ -328,7 +387,10 @@ namespace DAZ_Installer
             this.fileListPage.ResumeLayout(false);
             this.erroredFilesPage.ResumeLayout(false);
             this.errorMessagesPage.ResumeLayout(false);
+            this.toolStrip1.ResumeLayout(false);
+            this.toolStrip1.PerformLayout();
             this.ResumeLayout(false);
+            this.PerformLayout();
 
         }
 
@@ -358,5 +420,9 @@ namespace DAZ_Installer
         private System.Windows.Forms.TabPage fileListPage;
         private System.Windows.Forms.TabPage erroredFilesPage;
         private System.Windows.Forms.TabPage errorMessagesPage;
+        private System.Windows.Forms.ToolStrip toolStrip1;
+        private System.Windows.Forms.ToolStripDropDownButton toolStripButton1;
+        private System.Windows.Forms.ToolStripMenuItem deleteRecordToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem deleteProductToolStripMenuItem;
     }
 }
