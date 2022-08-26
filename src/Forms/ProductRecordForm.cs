@@ -141,13 +141,22 @@ namespace DAZ_Installer
         private void BuildFileHierachy()
         {
             var folderMap = new Dictionary<string, TreeNode>(extractionRecord.Folders.Length);
-            var treeNodes = new List<TreeNode>(extractionRecord.Files.Length + extractionRecord.Folders.Length);
+            var treeNodes = new HashSet<TreeNode>(extractionRecord.Files.Length + extractionRecord.Folders.Length);
             // Initalize the map by just connecting a folder path to a tree node.
             foreach (var folder in extractionRecord.Folders)
             {
-                folderMap[folder] = new TreeNode(Path.GetFileName(folder));
-                treeNodes.Add(folderMap[folder]);
-                folderMap[folder].StateImageIndex = 0;
+                ReadOnlySpan<char> folderSpan = folder;
+                char seperator = PathHelper.GetSeperator(folder);
+                int lastIndexOf = folderSpan.Length;
+                while (lastIndexOf != -1)
+                {
+                    var slice = folderSpan.Slice(0, lastIndexOf).ToString();
+                    folderMap.TryAdd(slice, new TreeNode(Path.GetFileName(slice)));
+                    treeNodes.Add(folderMap[slice]);
+                    folderMap[slice].StateImageIndex = 0;
+                    folderSpan = folderSpan.Slice(0, lastIndexOf);
+                    lastIndexOf = folderSpan.LastIndexOf(seperator);
+                }
             }
 
             // Now make parent-child connections.
@@ -205,8 +214,9 @@ namespace DAZ_Installer
                     }
                 }
             }
-
-            fileTreeView.Nodes.AddRange(treeNodes.ToArray());
+            var treeNodesArr = new TreeNode[treeNodes.Count];
+            treeNodes.CopyTo(treeNodesArr);
+            fileTreeView.Nodes.AddRange(treeNodesArr);
         }
 
         private void NormalizeExtractionRecord()
