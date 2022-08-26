@@ -230,9 +230,19 @@ namespace DAZ_Installer
                         extractionRecord.PID);
         }
 
-        private void ProductRecordForm_ResizeEnd(object sender, EventArgs e)
+        private void deleteRecordToolStripMenuItem_Click(object sender, EventArgs e)
         {
+            DPDatabase.RemoveProductRecord(record, OnProductRecordRemoval);
+        }
 
+        private void OnProductRecordRemoval(uint id)
+        {
+            if (record.ID == id)
+            {
+                MessageBox.Show("This product record has been removed in the database and can no longer be updated.");
+                applyChangesBtn.Enabled = false;
+                toolStrip1.Enabled = false;
+            }
         }
     }
 }
