@@ -2,6 +2,7 @@
 using System.Data;
 using System.Collections.Generic;
 using System.Data.SQLite;
+using System.Threading.Tasks;
 
 namespace DAZ_Installer.DP
 {
@@ -26,7 +27,7 @@ namespace DAZ_Installer.DP
         /// <param name="sortMethod">The sorting method to apply for results.</param>
         /// <param name="callerID">A caller id for classifying event invocations.</param>
         /// <param name="callback">The function to return values to.</param>
-        public static void Search(string searchQuery, DPSortMethod sortMethod = DPSortMethod.None,
+        public static void SearchQ(string searchQuery, DPSortMethod sortMethod = DPSortMethod.None,
             uint callerID = 0, Action<DPProductRecord[]> callback = null)
         {
             // We only want to do searches on one thread. Calling priority task manager ensures
@@ -49,7 +50,7 @@ namespace DAZ_Installer.DP
         /// <param name="sortMethod">The sorting method to apply for results.</param>
         /// <param name="callerID">A caller id for classifying event invocations.</param>
         /// <param name="callback">The function to return values to.</param>
-        public static void RegexSearch(string regex, DPSortMethod sortMethod = DPSortMethod.None,
+        public static void RegexSearchQ(string regex, DPSortMethod sortMethod = DPSortMethod.None,
             uint callerID = 0, Action<DPProductRecord[]> callback = null)
         {
             _priorityTaskManager.Stop();
@@ -70,7 +71,7 @@ namespace DAZ_Installer.DP
         /// <param name="limit">The max amount of product records per page; the max amount of records to receive.</param>
         /// <param name="callerID">A caller id for classifying event invocations.</param>
         /// <param name="callback">The function to return values to.</param>
-        public static void GetProductRecords(DPSortMethod sortMethod, uint page = 1, uint limit = 0,
+        public static void GetProductRecordsQ(DPSortMethod sortMethod, uint page = 1, uint limit = 0,
             uint callerID = 0, Action<DPProductRecord[]> callback = null)
         {
             _priorityTaskManager.Stop();
@@ -174,6 +175,21 @@ namespace DAZ_Installer.DP
         {
             var arg = new Tuple<string, object>[1] { new Tuple<string, object>("ID", id) };
             _mainTaskManager.AddToQueue(RemoveValuesWithCondition, tableName, arg, false, null as SQLiteConnection);
+        }
+
+        public static void RemoveProductRecord(DPProductRecord record, Action<uint> callback = null)
+        {
+            _mainTaskManager.AddToQueue((t) =>
+            {
+                var arg = new Tuple<string, object>[1] { new Tuple<string, object>("ID", Convert.ToInt32(record.ID)) };
+                var success = RemoveValuesWithCondition("ProductRecords", arg, false, null as SQLiteConnection, t);
+                if (success)
+                {
+                    callback?.Invoke(record.ID);
+                    ProductRecordRemoved?.Invoke(record.ID);
+                    ExtractionRecordRemoved?.Invoke(record.EID);
+                }
+            });
         }
 
         /// <summary>

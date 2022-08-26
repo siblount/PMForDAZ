@@ -369,7 +369,9 @@ namespace DAZ_Installer.DP
                             sqlCommand.ExecuteNonQuery();
                             transaction.Commit();
                             CreateTriggers();
-                            DatabaseUpdated?.Invoke();
+                            TableUpdated?.Invoke("ProductRecords");
+                            TableUpdated?.Invoke("ExtractionRecords");
+                            RecordsCleared?.Invoke();
                         }
                     } catch (Exception ex)
                     {
@@ -426,7 +428,7 @@ namespace DAZ_Installer.DP
                     sqlCommand = new SQLiteCommand(deleteCommand, connection, transaction);
                     sqlCommand.ExecuteNonQuery();
                     transaction.Commit();
-                    DatabaseUpdated?.Invoke();
+                    TableUpdated.Invoke("ProductRecords");
                 } catch (Exception ex)
                 {
                     DPCommon.WriteToLog($"Failed to delete from ProductRecords where ID IN {args}. REASON: {ex.Message}");
@@ -499,7 +501,7 @@ namespace DAZ_Installer.DP
                     sqlCommand = new SQLiteCommand(deleteCommand, connection, transaction);
                     sqlCommand.ExecuteNonQuery();
                     transaction.Commit();
-                    DatabaseUpdated?.Invoke();
+                    TableUpdated?.Invoke(tableName);
                 } catch (Exception ex)
                 {
                     DPCommon.WriteToLog($"Failed to delete from {tableName} {whereCommand}. REASON: {ex}");
@@ -547,7 +549,7 @@ namespace DAZ_Installer.DP
                     sqlCommand = new SQLiteCommand(deleteCommand, connection, transaction);
                     sqlCommand.ExecuteNonQuery();
                     transaction.Commit();
-                    DatabaseUpdated?.Invoke();
+                    TableUpdated?.Invoke(tableName);
                 } catch (Exception ex)
                 {
                     DPCommon.WriteToLog($"Failed delete all values for table: {tableName}. REASON: {ex.Message}");
@@ -580,6 +582,7 @@ namespace DAZ_Installer.DP
             RemoveValuesWithCondition("Tags",
                     new Tuple<string, object>[] { new Tuple<string, object>("Product Record ID", pid) }
                     , false, null, t);
+            TableUpdated?.Invoke("Tags");
         }
 
         #endregion
@@ -699,7 +702,7 @@ namespace DAZ_Installer.DP
                     FillParamsToConnection(sqlCommand, args, valsFlattened);
                     sqlCommand.ExecuteNonQuery();
                     transaction.Commit();
-                    DatabaseUpdated?.Invoke();
+                    TableUpdated?.Invoke(tableName);
                 }
                 catch (Exception ex)
                 {
@@ -746,7 +749,7 @@ namespace DAZ_Installer.DP
                     sqlCommand = new SQLiteCommand(insertCommand, connection, transaction);
                     sqlCommand.ExecuteNonQuery();
                     transaction.Commit();
-                    DatabaseUpdated?.Invoke();
+                    TableUpdated?.Invoke(tableName);
                 }
                 catch (Exception ex)
                 {
@@ -816,7 +819,7 @@ namespace DAZ_Installer.DP
                     FillParamsToConnection(sqlCommand, args, values);
                     sqlCommand.ExecuteNonQuery();
                     transaction.Commit();
-                    DatabaseUpdated?.Invoke();
+                    TableUpdated?.Invoke(tableName);
                 }
                 catch (Exception ex)
                 {
@@ -882,9 +885,10 @@ namespace DAZ_Installer.DP
                     if (eRecord != DPExtractionRecord.NULL_RECORD)
                     {
                         InsertTags(tags, connection, t);
-                        InsertValuesToTable("ExtractionRecords", eColumns, eObjs, connection, t);
+                        var success = InsertValuesToTable("ExtractionRecords", eColumns, eObjs, connection, t);
+                        if (success) ExtractionRecordAdded?.Invoke(eRecord);
                     }
-                    DatabaseUpdated?.Invoke();
+                    ProductRecordAdded?.Invoke(pRecord);
                 }
             }
             catch (Exception ex) {
@@ -935,7 +939,7 @@ namespace DAZ_Installer.DP
                     sqlCommand = new SQLiteCommand(insertCommand, connection, transaction);
                     sqlCommand.ExecuteNonQuery();
                     transaction.Commit();
-                    DatabaseUpdated?.Invoke();
+                    TableUpdated?.Invoke(tableName);
                 }
                 catch (Exception ex)
                 {

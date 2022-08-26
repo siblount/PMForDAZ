@@ -44,12 +44,65 @@ namespace DAZ_Installer.DP
         public static HashSet<string> ArchiveFileNames { get; private set; } = new HashSet<string>();
 
         // Events
+        /// <summary>
+        /// This event is invoked whenever a Search function has completed searching whether any results were found or not.
+        /// </summary>
         public static event Action<DPProductRecord[], uint> SearchUpdated;
+        /// <summary>
+        /// This event is invoked whenever the database schema, database connection status, or other database configurations have been changed.
+        /// </summary>
         public static event Action DatabaseUpdated;
+        /// <summary>
+        /// This event is invoked whenever a table has been updated; updated being having rows, columns removed, modified, or added.
+        /// </summary>
+        public static event Action<string> TableUpdated;
+        /// <summary>
+        /// This event is invoked whenever a request to view the table of the database has been called and successfully finished the request.
+        /// </summary>
         public static event Action<DataSet, uint> ViewUpdated;
+        /// <summary>
+        /// This event is currently not being used.
+        /// </summary>
         public static event Action<DPProductRecord[], uint> LibraryQueryCompleted;
+        /// <summary>
+        /// This event is invoked whenever requesting for an extraction record has been successfully completed.
+        /// </summary>
         public static event Action<DPExtractionRecord, uint> RecordQueryCompleted;
+        /// <summary>
+        /// This event is invoked whenever a library query has been completed regardless if it yields any product records or not.
+        /// </summary>
         public static event Action<uint> MainQueryCompleted;
+
+        // Product Record events
+        /// <summary>
+        /// This event is invoked whenever a product record has been removed (aside from when the table has been cleared).
+        /// </summary>
+        public static event Action<uint> ProductRecordRemoved;
+        /// <summary>
+        /// This event is invoked whenever a product record has been modified.
+        /// </summary>
+        public static event Action<uint, DPProductRecord?> ProductRecordModified;
+        /// <summary>
+        /// This event is invoked whenever a new product record has been added.
+        /// </summary>
+        public static event Action<DPProductRecord> ProductRecordAdded;
+
+        /// <summary>
+        /// This event is invoked whenever an extraction record has been removed (aside from when the table has been cleared).
+        /// </summary>
+        public static event Action<uint> ExtractionRecordRemoved;
+        /// <summary>
+        /// This event is invoked whenever a extraction record has been modified.
+        /// </summary>
+        public static event Action<uint, DPExtractionRecord?> ExtractionRecordModified;
+        /// <summary>
+        /// This event is invoked whenever a new extraction record has been added.
+        /// </summary>
+        public static event Action<DPExtractionRecord> ExtractionRecordAdded;
+        /// <summary>
+        /// This event is invoked whenever all of the records have been removed from the database.
+        /// </summary>
+        public static event Action RecordsCleared;
 
         private static string _expectedDatabasePath { get => Path.Join(DPSettings.databasePath, "db.db"); }
 
@@ -325,6 +378,7 @@ namespace DAZ_Installer.DP
                         cmdObj.ExecuteNonQuery();
                     }
                 }
+                DatabaseUpdated?.Invoke();
             } catch (Exception ex)
             {
                 DPCommon.WriteToLog($"An error occurred creating indexes. REASON: {ex}");
@@ -387,7 +441,9 @@ namespace DAZ_Installer.DP
                         createCommand.ExecuteNonQuery();
                     }
                 }
-            } catch (Exception ex)
+                DatabaseUpdated?.Invoke();
+            }
+            catch (Exception ex)
             {
                 DPCommon.WriteToLog($"An error occurred creating triggers. REASON: {ex}");
                 return false;
@@ -418,6 +474,7 @@ namespace DAZ_Installer.DP
                         createCommand.ExecuteNonQuery();
                     }
                 }
+                DatabaseUpdated?.Invoke();
             }
             catch (Exception ex)
             {
@@ -448,7 +505,9 @@ namespace DAZ_Installer.DP
                     using var deleteCommand = new SQLiteCommand(removeTriggersCommand, connection);
                     deleteCommand.ExecuteNonQuery();
                 }
-            } catch (Exception ex)
+                DatabaseUpdated?.Invoke();
+            }
+            catch (Exception ex)
             {
                 DPCommon.WriteToLog($"An error occurred removing triggers. REASON: {ex}");
                 return false;
