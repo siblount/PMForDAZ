@@ -23,7 +23,7 @@ namespace DAZ_Installer
         internal List<LibraryItem> LibraryItems { get; } = new List<LibraryItem>(25);
 
         internal List<LibraryItem> SearchItems { get; set; } = new List<LibraryItem>(25);
-        internal int CurrentPage 
+        internal uint CurrentPage 
         { 
             get => pageButtonControl1.CurrentPage; 
             set
@@ -32,12 +32,7 @@ namespace DAZ_Installer
             }
         }
 
-        internal int PreviousPage
-        {
-            get => pageButtonControl1.GetPreviousPage();
-        }
-
-        internal int PageCount
+        internal uint PageCount
         {
             get => pageButtonControl1.PageCount;
             set => pageButtonControl1.PageCount = value;

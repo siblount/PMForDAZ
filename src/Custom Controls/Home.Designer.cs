@@ -54,7 +54,7 @@ namespace DAZ_Installer
             this.titleLbl.Font = new System.Drawing.Font("Segoe UI", 16F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
             this.titleLbl.Location = new System.Drawing.Point(0, 0);
             this.titleLbl.Name = "titleLbl";
-            this.titleLbl.Size = new System.Drawing.Size(620, 37);
+            this.titleLbl.Size = new System.Drawing.Size(542, 55);
             this.titleLbl.TabIndex = 0;
             this.titleLbl.Text = "Daz Product Installer";
             this.titleLbl.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
@@ -62,9 +62,9 @@ namespace DAZ_Installer
             // extractBtn
             // 
             this.extractBtn.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.extractBtn.Location = new System.Drawing.Point(149, 310);
+            this.extractBtn.Location = new System.Drawing.Point(130, 208);
             this.extractBtn.Name = "extractBtn";
-            this.extractBtn.Size = new System.Drawing.Size(287, 38);
+            this.extractBtn.Size = new System.Drawing.Size(248, 38);
             this.extractBtn.TabIndex = 2;
             this.extractBtn.Text = "Extract File(s)";
             this.extractBtn.UseVisualStyleBackColor = true;
@@ -81,7 +81,7 @@ namespace DAZ_Installer
             this.dragHerePanel.Cursor = System.Windows.Forms.Cursors.Hand;
             this.dragHerePanel.Location = new System.Drawing.Point(18, 55);
             this.dragHerePanel.Name = "dragHerePanel";
-            this.dragHerePanel.Size = new System.Drawing.Size(587, 351);
+            this.dragHerePanel.Size = new System.Drawing.Size(509, 249);
             this.dragHerePanel.TabIndex = 3;
             this.dragHerePanel.Click += new System.EventHandler(this.dragHerePanel_Click);
             this.dragHerePanel.DragDrop += new System.Windows.Forms.DragEventHandler(this.dragHerePanel_DragDrop);
@@ -98,7 +98,7 @@ namespace DAZ_Installer
             this.dropText.Font = new System.Drawing.Font("Segoe UI", 16F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
             this.dropText.Location = new System.Drawing.Point(0, 0);
             this.dropText.Name = "dropText";
-            this.dropText.Size = new System.Drawing.Size(587, 351);
+            this.dropText.Size = new System.Drawing.Size(509, 249);
             this.dropText.TabIndex = 0;
             this.dropText.Text = "Click here to select file(s) or drag them here.";
             this.dropText.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
@@ -112,9 +112,9 @@ namespace DAZ_Installer
             // addMoreFilesBtn
             // 
             this.addMoreFilesBtn.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.addMoreFilesBtn.Location = new System.Drawing.Point(3, 310);
+            this.addMoreFilesBtn.Location = new System.Drawing.Point(3, 208);
             this.addMoreFilesBtn.Name = "addMoreFilesBtn";
-            this.addMoreFilesBtn.Size = new System.Drawing.Size(140, 38);
+            this.addMoreFilesBtn.Size = new System.Drawing.Size(121, 38);
             this.addMoreFilesBtn.TabIndex = 4;
             this.addMoreFilesBtn.Text = "Add more files";
             this.addMoreFilesBtn.UseVisualStyleBackColor = true;
@@ -123,9 +123,9 @@ namespace DAZ_Installer
             // clearListBtn
             // 
             this.clearListBtn.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.clearListBtn.Location = new System.Drawing.Point(442, 310);
+            this.clearListBtn.Location = new System.Drawing.Point(384, 208);
             this.clearListBtn.Name = "clearListBtn";
-            this.clearListBtn.Size = new System.Drawing.Size(142, 38);
+            this.clearListBtn.Size = new System.Drawing.Size(122, 38);
             this.clearListBtn.TabIndex = 3;
             this.clearListBtn.Text = "Clear List";
             this.clearListBtn.UseVisualStyleBackColor = true;
@@ -141,10 +141,9 @@ namespace DAZ_Installer
             this.listView1.Dock = System.Windows.Forms.DockStyle.Fill;
             this.listView1.ForeColor = System.Drawing.SystemColors.WindowText;
             this.listView1.HeaderStyle = System.Windows.Forms.ColumnHeaderStyle.None;
-            this.listView1.HideSelection = false;
             this.listView1.Location = new System.Drawing.Point(3, 3);
             this.listView1.Name = "listView1";
-            this.listView1.Size = new System.Drawing.Size(581, 301);
+            this.listView1.Size = new System.Drawing.Size(503, 199);
             this.listView1.TabIndex = 4;
             this.listView1.UseCompatibleStateImageBehavior = false;
             this.listView1.View = System.Windows.Forms.View.Details;
@@ -165,20 +164,20 @@ namespace DAZ_Installer
             this.addMoreItemsToolStripMenuItem});
             this.homeListContextMenuStrip.Name = "homeListContextMenuStrip";
             this.homeListContextMenuStrip.ShowImageMargin = false;
-            this.homeListContextMenuStrip.Size = new System.Drawing.Size(170, 52);
+            this.homeListContextMenuStrip.Size = new System.Drawing.Size(144, 48);
             this.homeListContextMenuStrip.Opening += new System.ComponentModel.CancelEventHandler(this.homeListContextMenuStrip_Opening);
             // 
             // removeToolStripMenuItem
             // 
             this.removeToolStripMenuItem.Name = "removeToolStripMenuItem";
-            this.removeToolStripMenuItem.Size = new System.Drawing.Size(169, 24);
+            this.removeToolStripMenuItem.Size = new System.Drawing.Size(143, 22);
             this.removeToolStripMenuItem.Text = "Remove";
             this.removeToolStripMenuItem.Click += new System.EventHandler(this.removeToolStripMenuItem_Click);
             // 
             // addMoreItemsToolStripMenuItem
             // 
             this.addMoreItemsToolStripMenuItem.Name = "addMoreItemsToolStripMenuItem";
-            this.addMoreItemsToolStripMenuItem.Size = new System.Drawing.Size(169, 24);
+            this.addMoreItemsToolStripMenuItem.Size = new System.Drawing.Size(143, 22);
             this.addMoreItemsToolStripMenuItem.Text = "Add more items...";
             this.addMoreItemsToolStripMenuItem.Click += new System.EventHandler(this.addMoreItemsToolStripMenuItem_Click);
             // 
@@ -186,8 +185,8 @@ namespace DAZ_Installer
             // 
             this.openFileDialog1.AddExtension = false;
             this.openFileDialog1.DefaultExt = "zip";
-            this.openFileDialog1.Filter = "RAR files (*.rar)|*.rar|ZIP files (*.zip)|*.zip|7z files (*.7z)|*.7z|All files (*" +
-    ".*)|*.*";
+            this.openFileDialog1.Filter = "RAR files (*.rar)|*.rar|ZIP files (*.zip)|*.zip|7z files (*.7z)|*.7z|7z part file" +
+    " base(*.001)|*.001|All files (*.*)|*.*";
             this.openFileDialog1.Multiselect = true;
             this.openFileDialog1.SupportMultiDottedExtensions = true;
             // 
@@ -209,20 +208,19 @@ namespace DAZ_Installer
             this.tableLayoutPanel1.RowCount = 2;
             this.tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 100F));
             this.tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 44F));
-            this.tableLayoutPanel1.Size = new System.Drawing.Size(587, 351);
+            this.tableLayoutPanel1.Size = new System.Drawing.Size(509, 249);
             this.tableLayoutPanel1.TabIndex = 5;
             // 
-            // homePage
+            // Home
             // 
-            this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 20F);
-            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
+            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Inherit;
             this.AutoSize = true;
             this.BackColor = System.Drawing.Color.White;
             this.Controls.Add(this.dragHerePanel);
             this.Controls.Add(this.titleLbl);
             this.Controls.Add(this.tableLayoutPanel1);
-            this.Name = "homePage";
-            this.Size = new System.Drawing.Size(620, 446);
+            this.Name = "Home";
+            this.Size = new System.Drawing.Size(542, 344);
             this.Load += new System.EventHandler(this.homePage_Load);
             this.dragHerePanel.ResumeLayout(false);
             this.homeListContextMenuStrip.ResumeLayout(false);

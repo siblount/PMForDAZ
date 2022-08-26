@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Text;
 using System.Windows.Forms;
+using System.Threading.Tasks;
 
 namespace DAZ_Installer.DP
 {
@@ -23,13 +24,9 @@ namespace DAZ_Installer.DP
     }
     public static class DPSettings
     {
-        // TO DO : Initalize and load settings.
+        // TO DO : Create a settings object to save settings used for an extraction and used at DPExtractJob to be passed into DPProcessor.ProcessArchive().
         // If no settings found - regenerate.
-        public static string destinationPath
-        {
-            get;
-            set;
-        } // todo : Ask for daz content directory if no detected daz content paths found.
+        public static string destinationPath { get; set; } // todo : Ask for daz content directory if no detected daz content paths found.
         // TO DO: Use HashSet instead of list.
         public static string[] detectedDazContentPaths;
         public static SettingOptions downloadImages { get; set; } = SettingOptions.Prompt;
@@ -39,23 +36,27 @@ namespace DAZ_Installer.DP
         public static string[] inititalCommonContentFolderNames { get; } = new string[] { "aniBlocks", "Animals", "Architecture", "Camera Presets", "data", "DAZ Studio Tutorials", "Documentation", "Documents", "Environments", "General", "Light Presets", "Lights", "People", "Presets", "Props", "Render Presets", "Render Settings", "Runtime", "Scene Builder", "Scene Subsets", "Scenes", "Scripts", "Shader Presets", "Shaders", "Support", "Templates", "Textures", "Vehicles" };
         // TO DO: Use HashSet instead of list.
         public static string[] commonContentFolderNames { get; set; }
-        public static Dictionary<string, string> folderRedirects { get; set; } = new Dictionary<string, string>() { { "docs", "Documentation" } };
+        public static Dictionary<string, string> folderRedirects { get; set; } = new Dictionary<string, string>() { { "docs", "Documentation" }, { "Documents", "Documentation" } };
         public static string tempPath { get; set; } = Path.Combine(Path.GetTempPath(), "DazProductInstaller"); //
         public static uint maxTagsToShow { get; set; } = 8; // Keep low because GDI+ slow.
         public static SettingOptions permDeleteSource { get; set; } = SettingOptions.Prompt;
         public static SettingOptions installPrevProducts { get; set; } = SettingOptions.Prompt;
+        public static SettingOptions OverwriteFiles { get; set; } = SettingOptions.Yes;
         public static string databasePath { get; set; } = "Database";
         public static bool initalized { get; set; } = false;
+        public static bool invalidSettings = false;
 
 
         // Constants
         const string cfnLocation = "Settings/cfn.txt"; // Content Folder Names Location
         const string frLocation = "Settings/fn.txt"; // Folder Redirects Location
         const string oLocation = "Settings/o.txt"; // Other settings Location
-
+        
+        // TODO: Handle situation where new settings were added; ex, OverWriteFiles
         public static void Initalize()
         {
             if (initalized) return;
+            // TODO: Catch situation where the parse fails.
             if (GetOtherSettings(out string[] settings))
             {
                 destinationPath = settings[0];
@@ -66,26 +67,25 @@ namespace DAZ_Installer.DP
                 tempPath = settings[5];
                 installPrevProducts = Enum.Parse<SettingOptions>(settings[6]);
                 databasePath = settings[7];
-            }
-            else
+                // TODO: Catch situation where the parse fails.
+                //OverwriteFiles = Enum.Parse<SettingOptions>(settings[8]);
+                OverwriteFiles = SettingOptions.Yes;
+
+                ValidateDirectoryPaths();
+                if (invalidSettings) MessageBox.Show("Some paths are invalid and have been reverted to default.", "Settings defaulted", 
+                    MessageBoxButtons.OK, MessageBoxIcon.Information);
+
+            } else
             {
-                // Since getting other settings failed... we will use the default parameters, but some can't go unpunished.
-                if (DPRegistry.ContentDirectories.Length == 0)
-                {
-                    MessageBox.Show("Couldn't find DAZ directories located in registry. On the next prompt, please select where you want your products to be installed to. You can always change this later in the settings.",
-                        "No Daz content directories found in registry", MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
-                    var path = Settings.settingsPage.AskForDirectory();
-                    while (path == string.Empty)
-                    {
-                        MessageBox.Show("No directory was selected. It is required that you select a directory for products you wish to install. Please select where you want your products to be installed to. You can always change this later in the settings.", "Folder selection required", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                        path = Settings.settingsPage.AskForDirectory();
-                    }
-                }
-                else
-                {
-                    destinationPath = DPRegistry.ContentDirectories[0];
-                }
+                // If the settings existed but we failed to parse, let the user know. Otherwise, assume they are a new user.
+                if (File.Exists(oLocation))
+                    MessageBox.Show("Settings file was found but was unable to parse settings. Settings have been reset to default values.", 
+                        "Settings failed to parse", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                ValidateDirectoryPaths();
+
             }
+            
+            
 
             if (GetContentFolderNames(out string[] folders))
             {
@@ -104,16 +104,73 @@ namespace DAZ_Installer.DP
             initalized = true;
             //DPRegistry.Initalize();
             detectedDazContentPaths = DPRegistry.ContentDirectories;
-            DeleteTempFiles();
+            DPProcessor.ClearTemp();
         }
 
-        internal static void DeleteTempFiles()
+        private static void ValidateDirectoryPaths()
         {
-            // Issue: UnauthorizedAccessException for weird reason.
-            if (Directory.Exists(tempPath))
+            bool destExists = !string.IsNullOrEmpty(destinationPath) && Directory.Exists(destinationPath);
+            bool thumbExists = !string.IsNullOrEmpty(thumbnailsPath) && Directory.Exists(thumbnailsPath);
+            bool tempExists = !string.IsNullOrEmpty(tempPath) && (Directory.Exists(tempPath) || Path.Combine(Path.GetTempPath(), "DazProductInstaller") == tempPath);
+            bool databaseExists = !string.IsNullOrEmpty(databasePath) && Directory.Exists(databasePath);
+            bool anyNotEmpty = !string.IsNullOrEmpty(databasePath) ||
+                                !string.IsNullOrEmpty(tempPath) ||
+                                !string.IsNullOrEmpty(thumbnailsPath) ||
+                                !string.IsNullOrEmpty(destinationPath);
+            invalidSettings = anyNotEmpty && (!destExists || !thumbExists || !tempExists || !databaseExists);
+            if (!destExists)
             {
-                Directory.Delete(tempPath, true);
-                DPCommon.WriteToLog("Deleted temp files.");
+                if (DPRegistry.ContentDirectories.Length == 0)
+                {
+                    MessageBox.Show("Couldn't find DAZ directories located in registry. On the next prompt, please select where you want your products to be installed to. You can always change this later in the settings.",
+                        "No Daz content directories found in registry", MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
+                    var path = Settings.settingsPage.AskForDirectory();
+                    while (path == string.Empty)
+                    {
+                        MessageBox.Show("No directory was selected. It is required that you select a directory for products you wish to install. Please select where you want your products to be installed to. You can always change this later in the settings.", "Folder selection required", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        path = Settings.settingsPage.AskForDirectory();
+                    }
+                }
+                else
+                {
+                    destinationPath = DPRegistry.ContentDirectories[0];
+                }
+            }
+            if (!thumbExists)
+            {
+                thumbnailsPath = "Thumbnails";
+                try
+                {
+                    Directory.CreateDirectory(thumbnailsPath);
+                }
+                catch (Exception ex)
+                {
+                    DPCommon.WriteToLog($"Failed to create directories for default thumbnail path. REASON: {ex}");
+                }
+            }
+            if (!tempExists)
+            {
+                tempPath = Path.Combine(Path.GetTempPath(), "DazProductInstaller");
+                try
+                {
+                    Directory.CreateDirectory(tempPath);
+                }
+                catch (Exception ex)
+                {
+                    DPCommon.WriteToLog($"Failed to create directories for default temp path. REASON: {ex}");
+                }
+            }
+            if (!databaseExists)
+            {
+                databasePath = "Database";
+                try
+                {
+                    Directory.CreateDirectory(tempPath);
+                }
+                catch (Exception ex)
+                {
+                    DPCommon.WriteToLog($"Failed to create directories for default database path. REASON: {ex}");
+                }
             }
         }
 
@@ -278,7 +335,7 @@ namespace DAZ_Installer.DP
             {
                 var lines = new string[] { destinationPath, downloadImages.ToString(),
                     thumbnailsPath, handleInstallation.ToString(), permDeleteSource.ToString(), tempPath,
-                    installPrevProducts.ToString(), databasePath};
+                    installPrevProducts.ToString(), databasePath, OverwriteFiles.ToString()};
                 File.WriteAllLines(oLocation, lines);
                 return true;
             }

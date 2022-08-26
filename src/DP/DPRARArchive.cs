@@ -121,7 +121,7 @@ namespace DAZ_Installer.DP
             {
                 if (!FolderExists(e.fileInfo.FileName))
                 {
-                    new DPFolder(e.fileInfo.FileName, null);
+                    _ = new DPFolder(e.fileInfo.FileName, null);
                     //newDir.parent = workingArchive.FindParent(ref IDP);
                     //if (newDir.parent == null) workingArchive.rootFolders.Add(newDir);
                 }
@@ -137,7 +137,7 @@ namespace DAZ_Installer.DP
                 }
                 else
                 {
-                    var newFile = new DPFile(e.fileInfo.FileName, null);
+                    var newFile = DPFile.CreateNewFile(e.fileInfo.FileName, null);
                     newFile.AssociatedArchive = this;
                 }
             }
@@ -146,7 +146,7 @@ namespace DAZ_Installer.DP
 
         public void ConnectVolumeDir(string dirPath)
         {
-            lastVolumes.Add(System.IO.Path.GetFileName(dirPath));
+            lastVolumes.Add(IOPath.GetFileName(dirPath));
             HierachyName = FileName + " (";
             foreach (var volume in lastVolumes)
             {
@@ -287,6 +287,8 @@ namespace DAZ_Installer.DP
 
         private bool ExtractFile(RAR handler) {
             string fileName = handler.CurrentFile.FileName;
+            bool changedAttributes = false;
+            EXTRACT:
             DPAbstractFile file = null;
             try {
                 if (DPFile.FindFileInDPFiles(fileName, out DPFile file1)) file = file1;
@@ -322,8 +324,29 @@ namespace DAZ_Installer.DP
                     } else {
                         DPCommon.WriteToLog("An unexpected error occured when extracting a rar file.");
                     }
-                    return false;
+                    
                 }
+                // Check to see if we are attempting to overwrite a file that we don't have access to (ex: hidden/read-only/anti-virus/user no access).
+                if (e.Message == "File write error." || e.Message == "File read error." || e.Message == "File could not be opened.")
+                {
+                    try
+                    {
+                        FileInfo fileInfo = new FileInfo(file.TargetPath);
+                        if (fileInfo.Exists && !changedAttributes)
+                        {
+                            fileInfo.Attributes = FileAttributes.Normal;
+                            changedAttributes = true;
+                            goto EXTRACT;
+                        }
+                        else
+                            DPCommon.WriteToLog($"Failed to extract file even after file attribute change for {fileName}.");
+                    } catch (Exception ex)
+                    {
+                        DPCommon.WriteToLog($"Unable to extract file and change file attributes for {fileName}. REASON: {ex}");
+                    }
+                }
+
+                return false;
             }
             return true;
         }

@@ -10,18 +10,31 @@ using System;
 
 
 namespace DAZ_Installer.DP {
-
+    /// <summary>
+    /// Defines the archive type of an archive.
+    /// </summary>
+    // TODO: Add a type for Multi-Product and Multi-Bundle to help determine whether
+    // an archive should be added to the database/library
     internal enum ArchiveType
     {
         Product, Bundle, Unknown
     }
 
+    /// <summary>
+    /// Defines the archive format of an archive.
+    /// </summary>
     internal enum ArchiveFormat {
         SevenZ, WinZip, RAR, Unknown
     }
-    
+    /// <summary>
+    /// Abstract class for all supported archive files. 
+    /// Currently the supported archive files are RAR, WinZip, and 7z (partially).
+    /// </summary>
     internal abstract class DPAbstractArchive : DPAbstractFile {
-
+        /// <summary>
+        /// The current mode of the archive file; describes whether the archie is 
+        /// peeking (seeking files) or extracting (seeking and extracting files).
+        /// </summary>
         protected enum Mode {
             Peek, Extract
         }
@@ -40,12 +53,6 @@ namespace DAZ_Installer.DP {
         /// </summary>
         /// <value>The working archive's FileName + $"\\{Path}".</value>
         internal string ListName { get; set; }
-        /// <summary>
-        /// A global static dictionary of available archives
-        /// </summary>
-        /// <typeparam name="string">The name of the archive.</typeparam>
-        /// <typeparam name="DPAbstractArchive">The archive.</typeparam>
-        internal static Dictionary<string, DPAbstractArchive> Archives { get; } = new Dictionary<string, DPAbstractArchive>(); 
         /// <summary>
         /// A list of archives that are children of this archive.
         /// </summary>
@@ -133,9 +140,16 @@ namespace DAZ_Installer.DP {
         /// </summary>
         internal DPProgressCombo? ProgressCombo { get; set; }
 
+        /// <summary>
+        /// Identifies what mode the archive is currently in. The default is Mode.Extract.
+        /// </summary>
         protected Mode mode { get; set; } = Mode.Extract;
 
-        internal static Regex ProductNameRegex = new Regex(@"([^+|-|_|\s]+)", RegexOptions.Compiled);
+        /// <summary>
+        /// The regex expression used for creating a product name.
+        /// </summary>
+        /// <returns></returns>
+        internal static Regex ProductNameRegex = new Regex(@"([^+|\-|_|\s]+)", RegexOptions.Compiled);
         internal DPAbstractArchive(string _path, bool innerArchive = false, string? relativePathBase = null) : base(_path)
         {
             IsInnerArchive = innerArchive; // Order matters.
@@ -158,13 +172,6 @@ namespace DAZ_Installer.DP {
 
             if (IsInnerArchive)
                 DPProcessor.workingArchive.Contents.Add(this);
-
-            Archives.Add(Path, this);
-        }
-
-        ~DPAbstractArchive()
-        {
-            Archives.Remove(Path ??= string.Empty);
         }
         #region Abstract methods
         /// <summary>
@@ -198,34 +205,33 @@ namespace DAZ_Installer.DP {
         /// </summary>
         /// <returns>Returns an extension of the appropriate archive extraction method. Otherwise, null.</returns>
 
-        internal static ArchiveFormat CheckArchiveLegitmacy(DPAbstractArchive archive) {
-            FileStream stream;
-            // Open file.
-            if (archive.IsInnerArchive) stream = File.OpenRead(archive.ExtractedPath);
-            else stream = File.OpenRead(archive.Path);
-            
-            var bytes = new byte[8];
-            stream.Read(bytes, 0, 8);
-            stream.Close();
-            // ZIP File Header
-            // 	50 4B OR 	57 69
-            if ((bytes[0] == 80 || bytes[0] == 87) && (bytes[1] == 75 || bytes[2] == 105))
+        internal static ArchiveFormat DetermineArchiveFormatPrecise(string location) {
+            try
             {
-                return ArchiveFormat.WinZip;
-            }
-            // RAR 5 consists of 8 bytes.  0x52 0x61 0x72 0x21 0x1A 0x07 0x01 0x00
-            // RAR 4.x consists of 7. 0x52 0x61 0x72 0x21 0x1A 0x07 0x00
-            // Rar!
-            if (bytes[0] == 82 && bytes[1] == 97 && bytes[2] == 114 && bytes[3] == 33)
-            {
-                return ArchiveFormat.RAR;
-            }
+                using FileStream stream = File.OpenRead(location);
+                var bytes = new byte[8];
+                stream.Read(bytes, 0, 8);
+                stream.Close();
+                // ZIP File Header
+                // 	50 4B OR 	57 69
+                if ((bytes[0] == 80 || bytes[0] == 87) && (bytes[1] == 75 || bytes[2] == 105))
+                {
+                    return ArchiveFormat.WinZip;
+                }
+                // RAR 5 consists of 8 bytes.  0x52 0x61 0x72 0x21 0x1A 0x07 0x01 0x00
+                // RAR 4.x consists of 7. 0x52 0x61 0x72 0x21 0x1A 0x07 0x00
+                // Rar!
+                if (bytes[0] == 82 && bytes[1] == 97 && bytes[2] == 114 && bytes[3] == 33)
+                {
+                    return ArchiveFormat.RAR;
+                }
 
-            if (bytes[0] == 55 && bytes[1] == 122 && bytes[2] == 188 && bytes[3] == 175)
-            {
-                return ArchiveFormat.SevenZ;
-            }
-            return ArchiveFormat.Unknown;
+                if (bytes[0] == 55 && bytes[1] == 122 && bytes[2] == 188 && bytes[3] == 175)
+                {
+                    return ArchiveFormat.SevenZ;
+                }
+                return ArchiveFormat.Unknown;
+            } catch { return ArchiveFormat.Unknown; }
         }
 
         /// <summary>
@@ -234,6 +240,8 @@ namespace DAZ_Installer.DP {
         /// <param name="path">The path of the archive.</param>
         /// <returns>A ArchiveFormat enum determining the archive format.</returns>
         internal static ArchiveFormat DetermineArchiveFormat(string ext) {
+            // ADDITONAL NOTE: This is called for determing archive files inside of an
+            // archive file.
             ext = ext.ToLower();
             switch (ext) {
                 case "7z":
@@ -243,6 +251,7 @@ namespace DAZ_Installer.DP {
                 case "zip":
                     return ArchiveFormat.WinZip;
                 default:
+                    if (uint.TryParse(ext, out uint _)) return ArchiveFormat.SevenZ;
                     return ArchiveFormat.Unknown;
             }
         }
@@ -274,19 +283,11 @@ namespace DAZ_Installer.DP {
             return foundFiles.ToArray();
         }
 
-        internal static bool FindArchiveViaName(string path, out DPAbstractArchive archive)
-        {
-            if (Archives.TryGetValue(path, out archive)) return true;
-
-            archive = null;
-            return false;
-        }
-
         internal DPProductRecord CreateRecords()
         {
             string imageLocation = string.Empty;
             var workingExtractionRecord = 
-                new DPExtractionRecord(System.IO.Path.GetFileName(FileName), DPSettings.destinationPath, GetSuccessfulFiles(), ErroredFiles.ToArray(), 
+                new DPExtractionRecord(IOPath.GetFileName(FileName), DPSettings.destinationPath, GetSuccessfulFiles(), ErroredFiles.ToArray(), 
                 null, ConvertDPFoldersToStringArr(Folders), 0);
 
             if (Type != ArchiveType.Bundle)
@@ -360,11 +361,29 @@ namespace DAZ_Installer.DP {
             var productNameTokens = SplitProductName();
             ReadContentFiles();
             ReadMetaFiles();
-            var tagsSet = new HashSet<string>(GetEstimateTagCount() + productNameTokens.Length);
-
+            var tagsSet = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            tagsSet.EnsureCapacity(GetEstimateTagCount() + productNameTokens.Length +
+                (Folders.Count * 2) + ((Contents.Count - InternalArchives.Count) * 2));
+            foreach (var file in DazFiles)
+            {
+                var contentInfo = file.ContentInfo;
+                if (contentInfo.Website.Length != 0) tagsSet.Add(contentInfo.Website);
+                if (contentInfo.Email.Length != 0) tagsSet.Add(contentInfo.Email);
+                tagsSet.UnionWith(contentInfo.Authors);
+            }
+            foreach (var content in Contents)
+            {
+                if (content is DPAbstractArchive) continue;
+                tagsSet.UnionWith(IOPath.GetFileNameWithoutExtension(content.Path).Split(' '));
+            }
+            foreach (var folder in Folders)
+            {
+                tagsSet.UnionWith(PathHelper.GetFileName(folder.Key).Split(' '));
+            }
             tagsSet.UnionWith(ProductInfo.Authors);
+            tagsSet.UnionWith(productNameTokens);
             if (ProductInfo.SKU.Length != 0) tagsSet.Add(ProductInfo.SKU);
-
+            if (ProductInfo.ProductName.Length != 0) tagsSet.Add(ProductInfo.ProductName);
             ProductInfo.Tags = tagsSet;
         
         }

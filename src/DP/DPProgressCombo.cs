@@ -74,8 +74,8 @@ namespace DAZ_Installer.DP {
         }
 
         internal void Remove() {
-            ProgressCombos.TryPop(out _);
-            Extract.ExtractPage.DeleteProgressionCombo(this);
+            if (ProgressCombos.TryPop(out _))
+                Extract.ExtractPage.DeleteProgressionCombo(this);
         }
 
         internal void UpdateText(string text) {

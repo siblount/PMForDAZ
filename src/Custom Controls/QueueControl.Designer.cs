@@ -59,16 +59,16 @@
             this.label1.AutoSize = true;
             this.label1.Location = new System.Drawing.Point(3, 0);
             this.label1.Name = "label1";
-            this.label1.Size = new System.Drawing.Size(35, 20);
+            this.label1.Size = new System.Drawing.Size(27, 15);
             this.label1.TabIndex = 0;
             this.label1.Text = "Test";
             // 
             // pictureBox1
             // 
             this.pictureBox1.Image = ((System.Drawing.Image)(resources.GetObject("pictureBox1.Image")));
-            this.pictureBox1.Location = new System.Drawing.Point(471, 3);
+            this.pictureBox1.Location = new System.Drawing.Point(472, 3);
             this.pictureBox1.Name = "pictureBox1";
-            this.pictureBox1.Size = new System.Drawing.Size(100, 62);
+            this.pictureBox1.Size = new System.Drawing.Size(99, 62);
             this.pictureBox1.SizeMode = System.Windows.Forms.PictureBoxSizeMode.Zoom;
             this.pictureBox1.TabIndex = 1;
             this.pictureBox1.TabStop = false;
@@ -81,8 +81,7 @@
             // 
             // QueueControl
             // 
-            this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 20F);
-            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
+            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Inherit;
             this.Controls.Add(this.tableLayoutPanel1);
             this.Name = "QueueControl";
             this.Size = new System.Drawing.Size(574, 371);

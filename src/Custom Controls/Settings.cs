@@ -2,16 +2,13 @@
 // You may find a full copy of this license at root project directory\LICENSE
 
 using System;
-using System.IO;
 using System.Collections.Generic;
-using System.ComponentModel;
-using System.Data;
-using System.Drawing;
-using System.Linq;
-using System.Text;
+using System.IO;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using DAZ_Installer.DP;
+using DAZ_Installer.Forms;
 
 namespace DAZ_Installer
 {
@@ -29,9 +26,9 @@ namespace DAZ_Installer
 
         private void Settings_Load(object sender, EventArgs e)
         {
-            Task setupSettingsPage = new Task(LoadSettings);
-            setupSettingsPage.Start();
-            setupSettingsPage.ContinueWith((Task a) => a.Dispose());
+            Task.Run(LoadSettings);
+            loadingPanel.Visible = true;
+            loadingPanel.BringToFront();
         }
 
         // ._.
@@ -40,39 +37,24 @@ namespace DAZ_Installer
             DPCommon.WriteToLog("Loading settings...");
             // Get our settings.
             DPSettings.Initalize();
-            loadingPanel.Visible = true;
-            loadingPanel.BringToFront();
             validating = true;
-            var result1 = BeginInvoke(new Action(SetupDownloadThumbnailsSetting));
-            var result2 = BeginInvoke(new Action(SetupDestinationPathSetting));
-            var result3 = BeginInvoke(new Action(SetupFileHandling));
-            var result4 = BeginInvoke(new Action(SetupTempPath));
-            var result5 = BeginInvoke(new Action(SetupContentFolders));
-            var result6 = BeginInvoke(new Action(SetupContentRedirects));
-            var result7 = BeginInvoke(new Action(SetupDeleteSourceFiles));
-            var result8 = BeginInvoke(new Action(SetupPreviouslyInstalledProducts));
-
-            result1.AsyncWaitHandle.WaitOne();
-            result2.AsyncWaitHandle.WaitOne();
-            result3.AsyncWaitHandle.WaitOne();
-            result4.AsyncWaitHandle.WaitOne();
-            result5.AsyncWaitHandle.WaitOne();
-            result6.AsyncWaitHandle.WaitOne();
-            result7.AsyncWaitHandle.WaitOne();
-            result8.AsyncWaitHandle.WaitOne();
-
-            result1.AsyncWaitHandle.Dispose();
-            result2.AsyncWaitHandle.Dispose();
-            result3.AsyncWaitHandle.Dispose();
-            result4.AsyncWaitHandle.Dispose();
-            result5.AsyncWaitHandle.Dispose();
-            result6.AsyncWaitHandle.Dispose();
-            result7.AsyncWaitHandle.Dispose();
-            result8.AsyncWaitHandle.Dispose();
+            
+            
+            SetupDownloadThumbnailsSetting();
+            SetupDestinationPathSetting();
+            SetupFileHandling();
+            SetupTempPath();
+            SetupContentFolders();
+            SetupContentRedirects();
+            SetupDeleteSourceFiles();
+            SetupPreviouslyInstalledProducts();
+            SetupAllowOverwriting();
 
             loadingPanel.Visible = false;
             loadingPanel.Dispose();
             validating = false;
+
+            applySettingsBtn.Enabled = DPSettings.invalidSettings;
         }
 
         private void SetupContentRedirects()
@@ -145,22 +127,31 @@ namespace DAZ_Installer
         {
             foreach (var option in Enum.GetNames(typeof(SettingOptions)))
             {
-                removeSourceFilesComboBox.Items.Add(option);
+                removeSourceFilesCombo.Items.Add(option);
             }
 
             var choice = DPSettings.permDeleteSource;
-            removeSourceFilesComboBox.SelectedItem = Enum.GetName(choice);
+            removeSourceFilesCombo.SelectedItem = Enum.GetName(choice);
         }
 
         private void SetupPreviouslyInstalledProducts()
         {
             foreach (var option in Enum.GetNames(typeof(SettingOptions)))
             {
-                installPrevProducts.Items.Add(option);
+                installPrevProductsCombo.Items.Add(option);
             }
 
             var choice = DPSettings.installPrevProducts;
-            installPrevProducts.SelectedItem = Enum.GetName(choice);
+            installPrevProductsCombo.SelectedItem = Enum.GetName(choice);
+        }
+
+        private void SetupAllowOverwriting()
+        {
+            foreach (var option in Enum.GetNames(typeof(SettingOptions)))
+            {
+                allowOverwritingCombo.Items.Add(option);
+            }
+            allowOverwritingCombo.SelectedItem = Enum.GetName(DPSettings.OverwriteFiles);
         }
 
         private void tableLayoutPanel1_Paint(object sender, PaintEventArgs e)
@@ -203,6 +194,7 @@ namespace DAZ_Installer
             DPSettings.downloadImages = Enum.Parse<SettingOptions>((string) downloadThumbnailsComboBox.SelectedItem);
             validating = true;
             // Destination Path
+            // A loop occurred when the path was G:/ but G:/ was not mounted.
             DESTCHECK:
             if (Directory.Exists(destinationPathCombo.Text.Trim())) DPSettings.destinationPath = destinationPathCombo.Text.Trim();
             else {
@@ -216,6 +208,10 @@ namespace DAZ_Installer
             }
 
             // Temp Path
+            // TODO: We don't want to delete the temp folder itself.
+            // For example: We don't want to delete D:/temp, we want to delete D:/temp/.
+            // The difference is that currently D:/temp will be deleted whereas, 
+            // D:/temp/ will not delete the temp folder but all subfolders and files in it.
             TEMPCHECK:
             if (Directory.Exists(tempTxtBox.Text.Trim())) DPSettings.tempPath = tempTxtBox.Text.Trim();
             else
@@ -232,6 +228,29 @@ namespace DAZ_Installer
             // File Handling Method
             DPSettings.handleInstallation = (InstallOptions)fileHandlingCombo.SelectedIndex;
 
+            //Content Folders
+            var contentFolders = new string[contentFoldersListBox.Items.Count];
+            for (var i = 0; i < contentFolders.Length; i++)
+            {
+                contentFolders[i] = (string) contentFoldersListBox.Items[i];
+            }
+            DPSettings.commonContentFolderNames = contentFolders;
+
+            // Alias Content Folders
+            var aliasMap = new Dictionary<string, string>(contentFolderRedirectsListBox.Items.Count);
+            foreach (string item in contentFolderRedirectsListBox.Items)
+            {
+                var tokens = item.Split(" --> ");
+                aliasMap[tokens[0]] = tokens[1];
+            }
+            DPSettings.folderRedirects = aliasMap;
+
+            // Permanate Delete Source
+            DPSettings.permDeleteSource = (SettingOptions)removeSourceFilesCombo.SelectedIndex;
+
+            // Install Prev Products
+            DPSettings.installPrevProducts = (SettingOptions)installPrevProductsCombo.SelectedIndex;
+
             if (invalidReponses)
             {
                 MessageBox.Show("Some inputs were invalid and were reset to their previous state. See log for more info.", "Invalid inputs", MessageBoxButtons.OK, MessageBoxIcon.Information);
@@ -240,21 +259,6 @@ namespace DAZ_Installer
             }
             validating = false;
             return true;
-        }
-
-        private void label3_Click(object sender, EventArgs e)
-        {
-
-        }
-
-        private void modifyContentRedirectsBtn_Click(object sender, EventArgs e)
-        {
-
-        }
-
-        private void label1_Click(object sender, EventArgs e)
-        {
-
         }
 
         private void tempTxtBox_Leave(object sender, EventArgs e)
@@ -307,7 +311,7 @@ namespace DAZ_Installer
 
         private void removeSourceFiles_TextChanged(object sender, EventArgs e)
         {
-            if (!applySettingsBtn.Enabled && removeSourceFilesComboBox.Text != Enum.GetName(DPSettings.permDeleteSource))
+            if (!applySettingsBtn.Enabled && removeSourceFilesCombo.Text != Enum.GetName(DPSettings.permDeleteSource))
             {
                 applySettingsBtn.Enabled = true;
             }
@@ -315,7 +319,7 @@ namespace DAZ_Installer
 
         private void installPrevProducts_TextChanged(object sender, EventArgs e)
         {
-            if (!applySettingsBtn.Enabled && installPrevProducts.Text != Enum.GetName(DPSettings.installPrevProducts))
+            if (!applySettingsBtn.Enabled && installPrevProductsCombo.Text != Enum.GetName(DPSettings.installPrevProducts))
             {
                 applySettingsBtn.Enabled = true;
             }
@@ -325,7 +329,7 @@ namespace DAZ_Installer
         {
             if (InvokeRequired)
             {
-                string result = (string) Invoke(new Func<string>(AskForDirectory));
+                string result = Invoke(new Func<string>(AskForDirectory));
                 return result;
             } else
             {
@@ -337,7 +341,70 @@ namespace DAZ_Installer
                     if (dialogResult == DialogResult.Cancel) return string.Empty;
                     return folderBrowser.SelectedPath;
                 }
+            }
+        }
 
+        private void chooseDestPathBtn_Click(object sender, EventArgs e)
+        {
+            using var browser = new FolderBrowserDialog();
+            browser.InitialDirectory = Environment.GetFolderPath(Environment.SpecialFolder.MyComputer);
+            browser.Description = "Select folder to install products into";
+            browser.UseDescriptionForTitle = true;
+            var result = browser.ShowDialog();
+            if (result == DialogResult.OK)
+            {
+                destinationPathCombo.Items[0] = browser.SelectedPath;
+                destinationPathCombo.SelectedIndex = 0;
+                destinationPathCombo_TextChanged(null, null);
+            }
+        }
+
+        private void chooseTempPathBtn_Click(object sender, EventArgs e)
+        {
+            using var browser = new FolderBrowserDialog();
+            browser.InitialDirectory = Environment.GetFolderPath(Environment.SpecialFolder.MyComputer);
+            browser.Description = "Select folder to temporarily extract products into";
+            browser.UseDescriptionForTitle = true;
+            var result = browser.ShowDialog();
+            if (result == DialogResult.OK)
+            {
+                tempTxtBox.Text = browser.SelectedPath;
+                tempTxtBox_Leave(null, null);
+            }
+        }
+
+        private void modifyContentFoldersBtn_Click(object sender, EventArgs e)
+        {
+            var contentManager = new ContentFolderManager();
+            contentManager.ShowDialog();
+            contentFoldersListBox.Items.Clear();
+            foreach (var item in contentManager.ContentFolders)
+            {
+                contentFoldersListBox.Items.Add(item);
+            }
+            applySettingsBtn.Enabled = true;
+        }
+
+        private void modifyContentRedirectsBtn_Click_1(object sender, EventArgs e)
+        {
+            var contentManager = new ContentFolderAliasManager();
+            contentManager.ShowDialog();
+            if (contentManager.AliasListView is null) return;
+            contentFolderRedirectsListBox.BeginUpdate();
+            contentFolderRedirectsListBox.Items.Clear();
+            for (var i = 0; i < contentManager.AliasListView.Items.Count; i++)
+            {
+                contentFolderRedirectsListBox.Items.Add(contentManager.AliasListView.Items[i].Text);
+            }
+            contentFolderRedirectsListBox.EndUpdate();
+            applySettingsBtn.Enabled = true;
+        }
+
+        private void allowOverwritingCombo_TextChanged(object sender, EventArgs e)
+        {
+            if (!applySettingsBtn.Enabled && allowOverwritingCombo.Text != Enum.GetName(DPSettings.OverwriteFiles))
+            {
+                applySettingsBtn.Enabled = true;
             }
         }
     }

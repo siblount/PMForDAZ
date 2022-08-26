@@ -34,8 +34,7 @@ namespace DAZ_Installer.DP {
                 try
                 {
                     var propertyName = GetPropertyName(line);
-                    if (propertyName.Contains("id", StringComparison.Ordinal)) ContentInfo.ID = ParseJsonValue(line, "id");
-                    else if (propertyName.Contains("type", StringComparison.Ordinal)) ContentInfo.ContentType = GetContentType(ParseJsonValue(line, "type"), this);
+                    if (propertyName.Contains("type", StringComparison.Ordinal)) ContentInfo.ContentType = GetContentType(ParseJsonValue(line, "type"), this);
                     else if (propertyName.Contains("author", StringComparison.Ordinal)) ContentInfo.Authors.Add(ParseJsonValue(line, "author"));
                     else if (propertyName.Contains("email", StringComparison.Ordinal)) ContentInfo.Email = ParseJsonValue(line, "email");
                     else if (propertyName.Contains("website", StringComparison.Ordinal)) ContentInfo.Website = ParseJsonValue(line, "website");
@@ -55,12 +54,12 @@ namespace DAZ_Installer.DP {
 
             var afterColString = jsonString.Slice(colIndex+1);
             var startSearchIndex = afterColString.IndexOf('"');
-            var lastQuoteIndex = jsonString.LastIndexOf('"');
+            var lastQuoteIndex = afterColString.LastIndexOf('"');
 
             if (startSearchIndex == -1 || lastQuoteIndex == startSearchIndex)
                 return string.Empty;
 
-            return new string(jsonString.Slice(startSearchIndex + 1, lastQuoteIndex - startSearchIndex - 1 - startSearchIndex));
+            return afterColString.Slice(startSearchIndex + 1, lastQuoteIndex - startSearchIndex - 1).ToString();
         }
 
         // Not accurate but it's okay.

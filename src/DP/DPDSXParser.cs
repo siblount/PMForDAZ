@@ -19,6 +19,7 @@ namespace DAZ_Installer.DP
         internal bool hasErrored;
         internal string fileName = string.Empty;
         protected Task asyncTask { get; set; } = null;
+        protected bool Disposed = false;
         internal DPDSXParser(string path)
         {
             fileName = Path.GetFileName(fileName);
@@ -31,12 +32,14 @@ namespace DAZ_Installer.DP
             catch (Exception e)
             {
                 DPCommon.WriteToLog(e);
+                stream?.Dispose();
+                Disposed = true;
                 hasErrored = true;
             }
         }
         ~DPDSXParser()
         {
-            stream.Dispose();
+            if (!Disposed) stream?.Dispose();
         }
 
         protected void ReadFile()
@@ -47,41 +50,58 @@ namespace DAZ_Installer.DP
             Span<char> chars = new char[BUFFER_SIZE];
             DPCommon.WriteToLog($"Reading file {fileName}...");
             watch.Start();
-            while (stream.Read(chars) != 0) {
-                var tmp = GetNextElement(chars, 0, out lastIndex);
-                if (lastElement != null && tmp != null) {
-                    workingFileContents.AddElement(tmp);
-                    lastElement.NextSibling = tmp;
-                    tmp.PreviousSibling = lastElement;
-                    lastElement = tmp;
-                } else if (lastElement == null && tmp != null) {
-                    workingFileContents.AddElement(tmp);
-                    lastElement = tmp;
-                }
-                while (lastElement != null) {
-                    var nextIndex = lastIndex;
-                    var element = GetNextElement(chars, nextIndex, out nextIndex);
-                    lastElement.NextSibling = element;
-                    if (element != null) {
-                        workingFileContents.AddElement(element);
-                        element.PreviousSibling = lastElement;
-                    }
-                    lastIndex = nextIndex;
-                    lastElement = element;
-                }
-                chunk++;
-                offset = chars.Length - 1 - lastIndex;
-            }
-            watch.Stop();
-            DPCommon.WriteToLog($"Execution Time: {watch.ElapsedMilliseconds} ms");
-            foreach (var element in workingFileContents.GetAllElements())
+            try
             {
-                DPCommon.WriteToLog($"Element Tag Name: {new string(element.TagName)}");
-                foreach (var attribute in element.attributes)
+                while (stream.Read(chars) != 0)
                 {
-                    DPCommon.WriteToLog($"Attribute Name: {attribute.Key} | Attribute Value: {attribute.Value}");
+                    var tmp = GetNextElement(chars, 0, out lastIndex);
+                    if (lastElement != null && tmp != null)
+                    {
+                        workingFileContents.AddElement(tmp);
+                        lastElement.NextSibling = tmp;
+                        tmp.PreviousSibling = lastElement;
+                        lastElement = tmp;
+                    }
+                    else if (lastElement == null && tmp != null)
+                    {
+                        workingFileContents.AddElement(tmp);
+                        lastElement = tmp;
+                    }
+                    while (lastElement != null)
+                    {
+                        var nextIndex = lastIndex;
+                        var element = GetNextElement(chars, nextIndex, out nextIndex);
+                        lastElement.NextSibling = element;
+                        if (element != null)
+                        {
+                            workingFileContents.AddElement(element);
+                            element.PreviousSibling = lastElement;
+                        }
+                        lastIndex = nextIndex;
+                        lastElement = element;
+                    }
+                    chunk++;
+                    offset = chars.Length - 1 - lastIndex;
                 }
+                watch.Stop();
+                DPCommon.WriteToLog($"Execution Time: {watch.ElapsedMilliseconds} ms");
+                foreach (var element in workingFileContents.GetAllElements())
+                {
+                    DPCommon.WriteToLog($"Element Tag Name: {new string(element.TagName)}");
+                    foreach (var attribute in element.attributes)
+                    {
+                        DPCommon.WriteToLog($"Attribute Name: {attribute.Key} | Attribute Value: {attribute.Value}");
+                    }
+                }
+            } catch (Exception e)
+            {
+                DPCommon.WriteToLog($"An error occurred while attempting to read DSX file. REASON: {e}");
+            } finally
+            {
+                if (!Disposed) stream?.Dispose();
+                Disposed = true;
             }
+            
         }
 
         /// <summary>
@@ -162,7 +182,7 @@ namespace DAZ_Installer.DP
                         lastIndex = -1;
                         return null;
                     }
-                    totalMessage = new char[nextMoreThanIndex - nextLessThanIndex];
+                    totalMessage = new char[nextMoreThanIndex - nextLessThanIndex]; // overflow exception: nextMoreThanIndex was -1.
                     workingElement.TagName = tagName.ToString();
                     workingElement.BeginningIndex = nextLessThanIndex;
                     workingElement.EndIndex = nextMoreThanIndex;

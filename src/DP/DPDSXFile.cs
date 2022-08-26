@@ -32,6 +32,7 @@ namespace DAZ_Installer.DP {
             search = collection.FindElementViaTag("Artist");
             foreach (var artist in search) {
                 ContentInfo.Authors.Add(artist.attributes["VALUE"]);
+                AssociatedArchive.ProductInfo.Authors.Add(artist.attributes["VALUE"]);
             }
             search = collection.FindElementViaTag("ProductToken");
             if (search.Length != 0) {

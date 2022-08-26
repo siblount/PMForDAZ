@@ -45,11 +45,12 @@ namespace DAZ_Installer
             // searchBox
             // 
             this.searchBox.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
-            this.searchBox.Location = new System.Drawing.Point(442, 35);
+            this.searchBox.Location = new System.Drawing.Point(394, 32);
+            this.searchBox.Margin = new System.Windows.Forms.Padding(4, 2, 4, 2);
             this.searchBox.Name = "searchBox";
             this.searchBox.PlaceholderText = "Search";
             this.searchBox.RightToLeft = System.Windows.Forms.RightToLeft.No;
-            this.searchBox.Size = new System.Drawing.Size(147, 27);
+            this.searchBox.Size = new System.Drawing.Size(117, 23);
             this.searchBox.TabIndex = 0;
             this.searchBox.WordWrap = false;
             this.searchBox.TextChanged += new System.EventHandler(this.searchBox_TextChanged);
@@ -59,9 +60,10 @@ namespace DAZ_Installer
             // 
             this.titleLbl.AutoSize = true;
             this.titleLbl.Font = new System.Drawing.Font("Segoe UI", 16.2F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
-            this.titleLbl.Location = new System.Drawing.Point(31, 24);
+            this.titleLbl.Location = new System.Drawing.Point(34, 22);
+            this.titleLbl.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
             this.titleLbl.Name = "titleLbl";
-            this.titleLbl.Size = new System.Drawing.Size(101, 38);
+            this.titleLbl.Size = new System.Drawing.Size(79, 30);
             this.titleLbl.TabIndex = 1;
             this.titleLbl.Text = "Library";
             // 
@@ -83,9 +85,10 @@ namespace DAZ_Installer
             | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
             this.libraryPanel1.BackColor = System.Drawing.Color.White;
-            this.libraryPanel1.Location = new System.Drawing.Point(31, 76);
+            this.libraryPanel1.Location = new System.Drawing.Point(34, 71);
+            this.libraryPanel1.Margin = new System.Windows.Forms.Padding(4, 2, 4, 2);
             this.libraryPanel1.Name = "libraryPanel1";
-            this.libraryPanel1.Size = new System.Drawing.Size(558, 350);
+            this.libraryPanel1.Size = new System.Drawing.Size(478, 254);
             this.libraryPanel1.TabIndex = 2;
             // 
             // statusStrip1
@@ -94,9 +97,10 @@ namespace DAZ_Installer
             this.statusStrip1.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.loadStripStatusLabel,
             this.stripProgressBar});
-            this.statusStrip1.Location = new System.Drawing.Point(0, 420);
+            this.statusStrip1.Location = new System.Drawing.Point(0, 320);
             this.statusStrip1.Name = "statusStrip1";
-            this.statusStrip1.Size = new System.Drawing.Size(617, 26);
+            this.statusStrip1.Padding = new System.Windows.Forms.Padding(1, 0, 15, 0);
+            this.statusStrip1.Size = new System.Drawing.Size(542, 24);
             this.statusStrip1.SizingGrip = false;
             this.statusStrip1.TabIndex = 3;
             this.statusStrip1.Text = "statusStrip1";
@@ -104,26 +108,26 @@ namespace DAZ_Installer
             // loadStripStatusLabel
             // 
             this.loadStripStatusLabel.Name = "loadStripStatusLabel";
-            this.loadStripStatusLabel.Size = new System.Drawing.Size(112, 20);
+            this.loadStripStatusLabel.Size = new System.Drawing.Size(91, 19);
             this.loadStripStatusLabel.Text = "Loading items...";
             this.loadStripStatusLabel.Click += new System.EventHandler(this.toolStripStatusLabel1_Click);
             // 
             // stripProgressBar
             // 
             this.stripProgressBar.Name = "stripProgressBar";
-            this.stripProgressBar.Size = new System.Drawing.Size(100, 18);
+            this.stripProgressBar.Size = new System.Drawing.Size(110, 18);
             // 
             // Library
             // 
-            this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 20F);
-            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
+            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Inherit;
             this.BackColor = System.Drawing.Color.White;
             this.Controls.Add(this.statusStrip1);
             this.Controls.Add(this.libraryPanel1);
             this.Controls.Add(this.titleLbl);
             this.Controls.Add(this.searchBox);
+            this.Margin = new System.Windows.Forms.Padding(4, 2, 4, 2);
             this.Name = "Library";
-            this.Size = new System.Drawing.Size(617, 446);
+            this.Size = new System.Drawing.Size(542, 344);
             this.Load += new System.EventHandler(this.Library_Load);
             this.statusStrip1.ResumeLayout(false);
             this.statusStrip1.PerformLayout();

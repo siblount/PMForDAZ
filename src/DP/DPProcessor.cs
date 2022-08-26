@@ -18,10 +18,12 @@ namespace DAZ_Installer.DP
         public static string TempLocation = Path.Combine(DPSettings.tempPath, @"DazProductInstaller\");
         public static string DestinationPath = DPSettings.destinationPath;
         public static DPAbstractArchive workingArchive;
-        public static HashSet<string> previouslyInstalledArchiveNames { get; } = new HashSet<string>();
+        public static HashSet<string> previouslyInstalledArchiveNames { get; private set; } = new HashSet<string>();
         public static List<string> doNotProcessList { get; } = new List<string>();
         public static uint workingArchiveFileCount { get; set; } = 0; // can disgard. 
-        public static SettingOptions OverwriteFiles = SettingOptions.Yes;
+        public static SettingOptions OverwriteFiles = DPSettings.OverwriteFiles;
+
+        static DPProcessor() => DPDatabase.GetInstalledArchiveNamesQ(UpdateInstalledArchiveNames);
 
         public static DPAbstractArchive ProcessInnerArchive(DPAbstractArchive archiveFile)
         {
@@ -31,7 +33,30 @@ namespace DAZ_Installer.DP
                 Directory.CreateDirectory(TempLocation);
             }
             catch (Exception e) { DPCommon.WriteToLog($"Unable to create temp directory. {e}"); }
-            archiveFile.Peek();
+            if (previouslyInstalledArchiveNames.Contains(Path.GetFileName(archiveFile.FileName)))
+            {
+                // ,_, 
+                switch (DPSettings.installPrevProducts)
+                {
+                    case SettingOptions.No:
+                        return null;
+                    case SettingOptions.Prompt:
+                        var result = MessageBox.Show($"It seems that \"{archiveFile.FileName}\" was already processed. " +
+                            $"Do you wish to continue processing this file?", "Archive already processed", MessageBoxButtons.YesNo, MessageBoxIcon.Information);
+                        if (result == DialogResult.No) return null;
+                        break;
+                }
+            }
+            try
+            {
+                archiveFile.Peek();
+            } catch (Exception ex)
+            {
+                archiveFile.errored = true;
+                HandleEarlyExit(archiveFile);
+                DPCommon.WriteToLog($"Unable to peek into inner archive: {Path.GetFileName(archiveFile.Path)}." +
+                    $"REASON: {ex}");
+            }
             // TO DO: Highlight files in red for files that failed to extract.
             Extract.ExtractPage.AddToList(archiveFile);
             Extract.ExtractPage.AddToHierachy(archiveFile);
@@ -40,20 +65,34 @@ namespace DAZ_Installer.DP
             {
                 // TODO: Warn user that there was not enough space and cancel.
                 DPCommon.WriteToLog("Destination did not have enough space. Operation aborted.");
+                HandleEarlyExit(archiveFile);
                 archiveFile.errored = true;
                 return archiveFile;
             }
 
             archiveFile.ManifestFile = archiveFile.FindFileViaNameContains("Manifest.dsx") as DPDSXFile; // null if not found
 
-            PrepareOperations(archiveFile);
-            DetermineContentFolders(archiveFile);
-            UpdateRelativePaths(archiveFile);
-
-            DetermineFilesToExtract(archiveFile);
-
-            // archiveFile.UpdateFilePaths();
-            archiveFile.Extract();
+            try
+            {
+                PrepareOperations(archiveFile);
+                DetermineContentFolders(archiveFile);
+                UpdateRelativePaths(archiveFile);
+                DetermineFilesToExtract(archiveFile);
+            } catch (Exception ex)
+            {
+                archiveFile.errored = true;
+                HandleEarlyExit(archiveFile);
+                DPCommon.WriteToLog($"Failed to prepare for extraction for {archiveFile.FileName} (inner archive). REASON: {ex}");
+            }
+            try
+            {
+                archiveFile.Extract();
+            } catch (Exception ex)
+            {
+                archiveFile.errored = true;
+                HandleEarlyExit(archiveFile);
+                DPCommon.WriteToLog($"Failed to extract files for {archiveFile.FileName} (inner archive). REASON: {ex}");
+            }
 
             DPCommon.WriteToLog("We are done");
 
@@ -64,7 +103,6 @@ namespace DAZ_Installer.DP
             analyzeCombo.UpdateText("Analyzing file contents...");
             archiveFile.Type = archiveFile.DetermineArchiveType();
             DPCommon.WriteToLog("Analyzing files...");
-            archiveFile.ReadContentFiles();
             analyzeCombo.UpdateText("Creating library item...");
             try {
                 archiveFile.GetTags();
@@ -79,6 +117,7 @@ namespace DAZ_Installer.DP
 
             // Create record.
             var record = archiveFile.CreateRecords();
+            if (record != null) previouslyInstalledArchiveNames.Add(archiveFile.FileName);
             // TO DO: Only add if successful extraction, and all files from temp were moved, and/or user didn't cancel operation.
             DPCommon.WriteToLog($"Archive Type: {archiveFile.Type}");
             // TODO: This might need to be removed.
@@ -92,18 +131,19 @@ namespace DAZ_Installer.DP
             return archiveFile;
         }
 
-        public static DPAbstractArchive ProcessArchive(string filePath)
+        public static DPAbstractArchive? ProcessArchive(string filePath)
         {
             // We use these variables in case the user changes the settings in mist of an extraction process.
+            // TODO: Take a settings object to use.
             TempLocation = Path.Combine(DPSettings.tempPath, @"DazProductInstaller\");
             DestinationPath = DPSettings.destinationPath;
+            OverwriteFiles = DPSettings.OverwriteFiles;
             try
             {
                 Directory.CreateDirectory(TempLocation);
             }
             catch (Exception e) { DPCommon.WriteToLog($"Unable to create directory. {e}"); }
-
-            if (previouslyInstalledArchiveNames.Contains(Path.GetFileName(filePath)))
+            if (previouslyInstalledArchiveNames.Contains(Path.GetFileName(Path.GetFileName(filePath))))
             {
                 // ,_, 
                 switch (DPSettings.installPrevProducts)
@@ -111,15 +151,26 @@ namespace DAZ_Installer.DP
                     case SettingOptions.No:
                         return null;
                     case SettingOptions.Prompt:
-                        var result = MessageBox.Show($"It seems that {Path.GetFileName(filePath)} was already processed. Do you wish to continue processing this file?", "Archive already processed", MessageBoxButtons.YesNo, MessageBoxIcon.Information);
+                        var result = MessageBox.Show($"It seems that \"{Path.GetFileName(filePath)}\" was already processed. Do you wish to continue processing this file?", "Archive already processed", MessageBoxButtons.YesNo, MessageBoxIcon.Information);
                         if (result == DialogResult.No) return null;
                         break;
                 }
             }
             // Create new archive.
             var archiveFile = DPAbstractArchive.CreateNewArchive(filePath, false);
+            if (archiveFile == null) return null;
             workingArchive = archiveFile;
-            archiveFile.Peek();
+            try
+            {
+                archiveFile.Peek();
+            }
+            catch (Exception ex)
+            {
+                archiveFile.errored = true;
+                HandleEarlyExit(archiveFile);
+                DPCommon.WriteToLog($"Unable to peek into inner archive: {Path.GetFileName(archiveFile.Path)}." +
+                    $"REASON: {ex}");
+            }
             // TO DO: Highlight files in red for files that failed to extract.
             Extract.ExtractPage.AddToList(archiveFile);
             Extract.ExtractPage.AddToHierachy(archiveFile);
@@ -130,18 +181,33 @@ namespace DAZ_Installer.DP
                 // TODO: Warn user that there was not enough space and cancel.
                 DPCommon.WriteToLog("Destination did not have enough space. Operation aborted.");
                 archiveFile.errored = true;
+                HandleEarlyExit(archiveFile);
                 return archiveFile;
             }
 
             archiveFile.ManifestFile = archiveFile.FindFileViaNameContains("Manifest.dsx") as DPDSXFile;
-
-            PrepareOperations(archiveFile);
-            DetermineContentFolders(archiveFile);
-            UpdateRelativePaths(archiveFile);
+            try
+            {
+                PrepareOperations(archiveFile);
+                DetermineContentFolders(archiveFile);
+                UpdateRelativePaths(archiveFile);
+                DetermineFilesToExtract(archiveFile);
+            } catch (Exception ex)
+            {
+                archiveFile.errored = true;
+                HandleEarlyExit(archiveFile);
+                DPCommon.WriteToLog($"Failed to prepare for extraction for {archiveFile.FileName}. REASON: {ex}");
+            }
             // TODO: Ensure that archive progress combo is not null.
-            DetermineFilesToExtract(archiveFile);
-
-            archiveFile.Extract();
+            try
+            {
+                archiveFile.Extract();
+            } catch (Exception ex)
+            {
+                archiveFile.errored = true;
+                HandleEarlyExit(archiveFile);
+                DPCommon.WriteToLog($"Failed to extract files for {archiveFile.FileName}. REASON: {ex}");
+            }
             DPCommon.WriteToLog("We are done");
 
             archiveFile.ProgressCombo?.Remove();
@@ -151,7 +217,6 @@ namespace DAZ_Installer.DP
             analyzeCombo.UpdateText("Analyzing file contents...");
             archiveFile.Type = archiveFile.DetermineArchiveType();
             DPCommon.WriteToLog("Analyzing files...");
-            archiveFile.ReadContentFiles();
             analyzeCombo.UpdateText("Creating library item...");
             try {
                 archiveFile.GetTags();
@@ -165,7 +230,10 @@ namespace DAZ_Installer.DP
 
             DPCommon.WriteToLog($"Archive Type: {archiveFile.Type}");
             // Create records and save it to disk.
+            // TODO: Add a flag to make sure records aren't created for completely
+            // failed archives (such as an "zip" archive when really it's a jpg file).
             var record = archiveFile.CreateRecords();
+            if (record != null) previouslyInstalledArchiveNames.Add(archiveFile.FileName);
             // TODO: This might need to be removed.
             if (archiveFile.Type == ArchiveType.Product)
             {
@@ -177,6 +245,9 @@ namespace DAZ_Installer.DP
             return archiveFile;
         }
 
+        public static void UpdateInstalledArchiveNames(HashSet<string> strings) => previouslyInstalledArchiveNames = strings;
+
+
         private static void UpdateRelativePaths(DPAbstractArchive archive)
         {
             foreach (var content in archive.RootContents)
@@ -187,7 +258,6 @@ namespace DAZ_Installer.DP
             {
                 folder.UpdateChildrenRelativePaths();
             }
-            
         }
 
         public static void DetermineFilesToExtract(DPAbstractArchive archive)
@@ -281,12 +351,12 @@ namespace DAZ_Installer.DP
             }
 
         }
-
+        // TODO: Handle situations where the destination no longer exists or has no access.
         private static bool DestinationHasEnoughSpace() {
             var destinationDrive = new DriveInfo(Path.GetPathRoot(DestinationPath));
             return (ulong) destinationDrive.AvailableFreeSpace > workingArchive.TrueArchiveSize;
         }
-
+        // TODO: Handle situations where the destination no longer exists or has no access.
         private static bool TempHasEnoughSpace() {
             var tempDrive = new DriveInfo(Path.GetPathRoot(TempLocation));
             return (ulong) tempDrive.AvailableFreeSpace > workingArchive.TrueArchiveSize;
@@ -302,10 +372,13 @@ namespace DAZ_Installer.DP
 
 
         // TODO: Clear temp needs to remove as much space as possible. It will error when we have file handles.
-        private static void ClearTemp() {
+        internal static void ClearTemp() {
             try {
+                // Note: UnauthorizedAccess is called when a file has the read-only attribute.
+                // TODO: Async call to change file attributes and delete them.
                 if (Directory.Exists(TempLocation)) {
                     Directory.Delete(TempLocation, true);
+                    DPCommon.WriteToLog("Deleted temp files");
                 }
             } catch {}
         }
@@ -325,6 +398,16 @@ namespace DAZ_Installer.DP
             } else {
                 workingArchive.ReadMetaFiles();
             }
+        }
+
+        private static void HandleEarlyExit(DPAbstractArchive archive)
+        {
+            archive.ProgressCombo?.Remove();
+            try
+            {
+                archive.ReleaseArchiveHandles();
+            }
+            catch { }   
         }
     }
 }
