@@ -120,14 +120,6 @@ namespace DAZ_Installer.DP
             if (record != null) previouslyInstalledArchiveNames.Add(archiveFile.FileName);
             // TO DO: Only add if successful extraction, and all files from temp were moved, and/or user didn't cancel operation.
             DPCommon.WriteToLog($"Archive Type: {archiveFile.Type}");
-            // TODO: This might need to be removed.
-            if (archiveFile.Type == ArchiveType.Product)
-            {
-                // Add it to the library.
-                Library.self.AddNewLibraryItem(record);
-            }
-
-
             return archiveFile;
         }
 
@@ -234,13 +226,6 @@ namespace DAZ_Installer.DP
             // failed archives (such as an "zip" archive when really it's a jpg file).
             var record = archiveFile.CreateRecords();
             if (record != null) previouslyInstalledArchiveNames.Add(archiveFile.FileName);
-            // TODO: This might need to be removed.
-            if (archiveFile.Type == ArchiveType.Product)
-            {
-                // Add it to the library.
-                Library.self.AddNewLibraryItem(record);
-            }
-            Library.self.InformLibraryUpdate();
             
             return archiveFile;
         }
