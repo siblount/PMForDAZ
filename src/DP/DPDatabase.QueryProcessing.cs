@@ -214,28 +214,28 @@ namespace DAZ_Installer.DP
         {
             string[] tokens = userQuery.Split(' ');
             string sqlQuery = @"SELECT DISTINCT * FROM ProductRecords WHERE ID IN (SELECT ""Product Record ID"" FROM Tags WHERE Tag LIKE ";
-            StringBuilder sb = new StringBuilder(((int)Math.Floor(Math.Log10(tokens.Length)) + 1) * tokens.Length + (15 * tokens.Length));
+            StringBuilder sb = new StringBuilder(((int)Math.Floor(Math.Log10(tokens.Length)) + 1) * tokens.Length + (14 * tokens.Length));
             for (int i = 0; i < tokens.Length; i++)
             {   
                 if (bothSides)
-                    sb.Append(i == tokens.Length - 1 ? "%@A%" + i :
-                                                        "%@A%" + i + "OR TAG LIKE ");
+                    sb.Append(i == tokens.Length - 1 ? "@A" + i :
+                                                        "@A" + i + " OR TAG LIKE ");
                 else
-                    sb.Append(i == tokens.Length - 1 ? "@A%" + i :
-                                                        "@A%" + i + "OR TAG LIKE ");
+                    sb.Append(i == tokens.Length - 1 ? "@A" + i :
+                                                        "@A" + i + " OR TAG LIKE ");
             }
             sqlQuery += sb.ToString();
 
-            switch (method)
+        switch (method)
             {
                 case DPSortMethod.Alphabetical:
-                    sqlQuery += @" COLLATE NOCASE) ORDER BY ""Product Name"" ASC;";
+                    sqlQuery += @") ORDER BY ""Product Name"" ASC;";
                     break;
                 case DPSortMethod.Date:
-                    sqlQuery += @" COLLATE NOCASE) ORDER BY ""Date Created"" ASC;";
+                    sqlQuery += @") ORDER BY ""Date Created"" ASC;";
                     break;
                 case DPSortMethod.Relevance:
-                    sqlQuery += @"GROUP BY ""Product Record ID"" ORDER BY COUNT(*) DESC COLLATE NOCASE);";
+                    sqlQuery += @" GROUP BY ""Product Record ID"" ORDER BY COUNT(*) DESC);";
                     break;
                 default:
                     sqlQuery += ");";
@@ -246,7 +246,10 @@ namespace DAZ_Installer.DP
 
             for (int i = 0; i < tokens.Length; i++)
             {
-                command.Parameters.Add(new SQLiteParameter("@A" + i, tokens[i]));
+                if (bothSides)
+                    command.Parameters.Add(new SQLiteParameter("@A" + i, '%' + tokens[i] + '%'));
+                else
+                    command.Parameters.Add(new SQLiteParameter("@A" + i, '%' + tokens[i]));
             }
 
         }
