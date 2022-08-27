@@ -10,7 +10,7 @@ Additonally, it -
  - Quickly install products regardless of file structures. **This is very useful for Renderosity and other vendor websites**.
  - Also be a library to store processed/installed products.
  - Be a database to search for products for users who have a lot of products.
- - [ In debate ] Be a product management for products that are from Renderosity and other vendors.
+ - Be a product management tool for products that are from Renderosity and other vendors (For example).
 
 
 ## Project Status
