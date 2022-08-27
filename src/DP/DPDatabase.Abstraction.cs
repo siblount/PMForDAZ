@@ -372,6 +372,8 @@ namespace DAZ_Installer.DP
                             TableUpdated?.Invoke("ProductRecords");
                             TableUpdated?.Invoke("ExtractionRecords");
                             RecordsCleared?.Invoke();
+                            TableUpdated?.Invoke("ProductRecords");
+                            TableUpdated?.Invoke("ExtractionRecords");
                         }
                     } catch (Exception ex)
                     {
@@ -582,7 +584,6 @@ namespace DAZ_Installer.DP
             RemoveValuesWithCondition("Tags",
                     new Tuple<string, object>[] { new Tuple<string, object>("Product Record ID", pid) }
                     , false, null, t);
-            TableUpdated?.Invoke("Tags");
         }
 
         #endregion
@@ -888,7 +889,7 @@ namespace DAZ_Installer.DP
                         var success = InsertValuesToTable("ExtractionRecords", eColumns, eObjs, connection, t);
                         if (success) ExtractionRecordAdded?.Invoke(eRecord);
                     }
-                    ProductRecordAdded?.Invoke(pRecord);
+                    ProductRecordAdded?.Invoke(pRecord, GetLastProductID(connection, t));
                 }
             }
             catch (Exception ex) {
