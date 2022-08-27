@@ -368,9 +368,8 @@ namespace DAZ_Installer.DP
             foreach (var folder in folders)
             {
                 var folderName = Path.GetFileName(folder.Path);
-                var elgibleForContentFolderStatus = DPSettings.commonContentFolderNames.Contains(folderName, StringComparer.CurrentCultureIgnoreCase)
-                                                    || DPSettings.folderRedirects.ContainsKey(folderName) 
-                                                    || DPSettings.folderRedirects.ContainsKey(folderName.ToLower());
+                var elgibleForContentFolderStatus = DPSettings.commonContentFolderNames.Contains(folderName) || 
+                                                    DPSettings.folderRedirects.ContainsKey(folderName);
                 if (folder.Parent is null)
                     folder.isContentFolder = elgibleForContentFolderStatus;
                 else

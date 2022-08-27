@@ -41,8 +41,7 @@ namespace DAZ_Installer.Forms
             contentFoldersView.BeginUpdate();
             contentFoldersView.Items.Clear();
             ContentFolders.Clear();
-            Array.ForEach(DPSettings.commonContentFolderNames,
-                f => ContentFolders.Add(f));
+            ContentFolders.UnionWith(DPSettings.commonContentFolderNames);
             foreach(var item in ContentFolders)
             {
                 contentFoldersView.Items.Add(item);

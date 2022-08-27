@@ -229,10 +229,10 @@ namespace DAZ_Installer
             DPSettings.handleInstallation = (InstallOptions)fileHandlingCombo.SelectedIndex;
 
             //Content Folders
-            var contentFolders = new string[contentFoldersListBox.Items.Count];
-            for (var i = 0; i < contentFolders.Length; i++)
+            var contentFolders = new HashSet<string>(contentFoldersListBox.Items.Count);
+            for (var i = 0; i < contentFoldersListBox.Items.Count; i++)
             {
-                contentFolders[i] = (string) contentFoldersListBox.Items[i];
+                contentFolders.Add((string)contentFoldersListBox.Items[i]);
             }
             DPSettings.commonContentFolderNames = contentFolders;
 

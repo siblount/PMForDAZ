@@ -33,10 +33,10 @@ namespace DAZ_Installer.DP
         public static string thumbnailsPath { get; set; } = "Thumbnails";
         public static InstallOptions handleInstallation { get; set; } = InstallOptions.ManifestAndAuto;
         // TO DO: Use HashSet instead of list.
-        public static string[] inititalCommonContentFolderNames { get; } = new string[] { "aniBlocks", "Animals", "Architecture", "Camera Presets", "data", "DAZ Studio Tutorials", "Documentation", "Documents", "Environments", "General", "Light Presets", "Lights", "People", "Presets", "Props", "Render Presets", "Render Settings", "Runtime", "Scene Builder", "Scene Subsets", "Scenes", "Scripts", "Shader Presets", "Shaders", "Support", "Templates", "Textures", "Vehicles" };
+        public static HashSet<string> inititalCommonContentFolderNames { get; } = new HashSet<string>() { "aniBlocks", "Animals", "Architecture", "Camera Presets", "data", "DAZ Studio Tutorials", "Documentation", "Documents", "Environments", "General", "Light Presets", "Lights", "People", "Presets", "Props", "Render Presets", "Render Settings", "Runtime", "Scene Builder", "Scene Subsets", "Scenes", "Scripts", "Shader Presets", "Shaders", "Support", "Templates", "Textures", "Vehicles" };
         // TO DO: Use HashSet instead of list.
-        public static string[] commonContentFolderNames { get; set; }
-        public static Dictionary<string, string> folderRedirects { get; set; } = new Dictionary<string, string>() { { "docs", "Documentation" }, { "Documents", "Documentation" } };
+        public static HashSet<string> commonContentFolderNames { get; set; }
+        public static Dictionary<string, string> folderRedirects { get; set; } = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) { { "docs", "Documentation" }, { "Documents", "Documentation" } };
         public static string tempPath { get; set; } = Path.Combine(Path.GetTempPath(), "DazProductInstaller"); //
         public static uint maxTagsToShow { get; set; } = 8; // Keep low because GDI+ slow.
         public static SettingOptions permDeleteSource { get; set; } = SettingOptions.Prompt;
@@ -84,17 +84,8 @@ namespace DAZ_Installer.DP
                 ValidateDirectoryPaths();
 
             }
-            
-            
 
-            if (GetContentFolderNames(out string[] folders))
-            {
-                commonContentFolderNames = folders;
-            }
-            else
-            {
-                commonContentFolderNames = inititalCommonContentFolderNames;
-            }
+            commonContentFolderNames = GetContentFolderNames(out HashSet<string> folders) ? folders : inititalCommonContentFolderNames;
 
             if (GetFolderRedirects(out Dictionary<string, string> dict))
             {
@@ -204,7 +195,7 @@ namespace DAZ_Installer.DP
             return true;
         }
 
-        public static bool GetContentFolderNames(out string[] arr)
+        public static bool GetContentFolderNames(out HashSet<string>? map)
         {
 
             if (File.Exists(cfnLocation))
@@ -212,28 +203,23 @@ namespace DAZ_Installer.DP
                 try
                 {
                     var contents = File.ReadAllLines(cfnLocation);
-                    arr = contents;
+                    map = new HashSet<string>(contents);
                     return true;
                 }
                 catch (Exception e)
                 {
                     DPCommon.WriteToLog($"Unable to get content folder names file. Reason: {e}");
-                    arr = null;
-                    return false;
                 }
             }
-            else
-            {
-                arr = null;
-                return false;
-            }
+            map = null;
+            return false;
         }
         public static bool WriteContentFolderNames()
         {
             try
             {
                 Directory.CreateDirectory("Settings");
-                if (commonContentFolderNames != null && commonContentFolderNames.Length > 0)
+                if (commonContentFolderNames != null && commonContentFolderNames.Count > 0)
                 {
                     File.WriteAllLines(cfnLocation, commonContentFolderNames);
                 }

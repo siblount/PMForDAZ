@@ -32,10 +32,10 @@ namespace DAZ_Installer.Forms
         private void SetupComboBox()
         {
             contentFoldersComboBox.BeginUpdate();
-            contentFoldersComboBox.Items.AddRange(DPSettings.commonContentFolderNames);
+            contentFoldersComboBox.Items.AddRange(DPSettings.commonContentFolderNames.ToArray());
             contentFoldersComboBox.AutoCompleteMode = AutoCompleteMode.SuggestAppend;
             contentFoldersComboBox.AutoCompleteSource = AutoCompleteSource.CustomSource;
-            contentFoldersComboBox.AutoCompleteCustomSource.AddRange(DPSettings.commonContentFolderNames);
+            contentFoldersComboBox.AutoCompleteCustomSource.AddRange(DPSettings.commonContentFolderNames.ToArray());
             contentFoldersComboBox.EndUpdate();
         }
 
