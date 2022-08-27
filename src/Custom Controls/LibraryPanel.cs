@@ -94,6 +94,13 @@ namespace DAZ_Installer
             EditMode = false;
         }
 
+        internal void NudgeCurrentPage(uint page)
+        {
+            pageButtonControl1.SilentUpdateCurrentPage(page);
+        }
+
+        internal void NudgePageCount(uint count) => pageButtonControl1.SilentUpdatePageCount(count);
+
         private void pageButtonControl1_SizeChanged(object sender, EventArgs e)
         {
             // We need to manually center it in the containing panel.

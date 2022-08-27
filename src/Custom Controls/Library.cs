@@ -55,6 +55,9 @@ namespace DAZ_Installer
             Task.Run(LoadLibraryItemImages)
                 .ContinueWith(t => LoadLibraryItems());
             libraryPanel1.AddPageChangeListener(UpdatePage);
+            DPDatabase.ProductRecordAdded += OnAddedProductRecord;
+            DPDatabase.ProductRecordRemoved += OnRemovedProductRecord;
+            DPDatabase.ProductRecordModified += OnModifiedProductRecord;
         }
 
         // Called on a different thread.
@@ -71,7 +74,7 @@ namespace DAZ_Installer
         private void LoadLibraryItems()
         {
             if (Program.IsRunByIDE && !IsHandleCreated) return;
-            DPDatabase.GetProductRecords(DPSortMethod.None, (uint) libraryPanel1.CurrentPage, 25, 0, OnLibraryQueryUpdate);
+            DPDatabase.GetProductRecordsQ(DPSortMethod.None, (uint) libraryPanel1.CurrentPage, 25, 0, OnLibraryQueryUpdate);
 
             // Invoke or BeginInvoke cannot be called on a control until the window handle has been created.'
             DPCommon.WriteToLog("Loaded library items.");
@@ -243,7 +246,7 @@ namespace DAZ_Installer
             // if (page == libraryPanel1.PreviousPage) return;
             
             if (!searchMode) {
-                DPDatabase.GetProductRecords(DPSortMethod.None, page, 25, callback: OnLibraryQueryUpdate);
+                DPDatabase.GetProductRecordsQ(DPSortMethod.None, page, 25, callback: OnLibraryQueryUpdate);
             } else {
                 TryPageUpdate();
             }
@@ -313,7 +316,7 @@ namespace DAZ_Installer
             {
                 if (searchBox.Text.Length != 0) {
                     lastSearchID = (uint) Random.Shared.Next(1,int.MaxValue);
-                    DPDatabase.RegexSearch(searchBox.Text, callback: OnSearchUpdate);
+                    DPDatabase.SearchQ(searchBox.Text, DPSortMethod.Relevance, callback: OnSearchUpdate);
                 }
             }
         }
@@ -337,13 +340,114 @@ namespace DAZ_Installer
             if (!searchMode) TryPageUpdate();
         }
 
+        private void OnAddedProductRecord(DPProductRecord record, uint recordID)
+        {
+            DPCommon.WriteToLog($"A product has been added! {record.ProductName}");
+            // First, check to see if it is in range of the current page.
+            // If it is, then we need to update that page.
+            if (recordID <= (libraryPanel1.CurrentPage) * 25 && recordID > (libraryPanel1.CurrentPage - 1) * 25)
+            {
+                var newProductRecords = new DPProductRecord[ProductRecords.Length + 1];
+                ProductRecords.CopyTo(newProductRecords, 0);
+                ProductRecords = newProductRecords;
+                ProductRecords[ProductRecords.Length -1] = record;
+                TryPageUpdate();
+            }
+            
+            // Otherwise, we may need to change the page count and current page.
+            if ((uint)Math.Ceiling((DPDatabase.ProductRecordCount + 1) / 25f) != libraryPanel1.PageCount)
+            {
+                libraryPanel1.NudgePageCount(libraryPanel1.PageCount + 1);
+                // Now we need to update the current page.
+                // If the ID is higher than the current page range, then we don't do anything.
+                // Otherwise, we need to move the current page up one.
+                if (recordID < libraryPanel1.CurrentPage * 25)
+                    libraryPanel1.NudgeCurrentPage(libraryPanel1.CurrentPage + 1);
+            }
+        }
+
+        private void OnRemovedProductRecord(uint ID)
+        {
+            for (var i = 0; i < ProductRecords.Length; i++)
+            {
+                // DO NOT FAST DELETE SWAP, ORDER MUST BE MAINTAINED!
+                if (ProductRecords[i].ID == ID)
+                {
+                    var records = new DPProductRecord[ProductRecords.Length - 1];
+                    Array.ConstrainedCopy(ProductRecords, 0, records, 0, i);
+                    Array.ConstrainedCopy(ProductRecords, i + 1, records, i, records.Length - i);
+                    var lb = libraryPanel1.LibraryItems.Find(l => l.ProductRecord == ProductRecords[i]);
+                    if (lb != null) DisableLibraryItem(lb);
+                    ProductRecords = records;
+                    break;
+                }
+            }
+            if (!searchMode) goto UPDATE;
+            for (var i = 0; i < SearchRecords.Length; i++)
+            {
+                // DO NOT FAST DELETE SWAP, ORDER MUST BE MAINTAINED!
+                if (SearchRecords[i].ID == ID)
+                {
+                    var records = new DPProductRecord[SearchRecords.Length - 1];
+                    Array.ConstrainedCopy(SearchRecords, 0, records, 0, i);
+                    Array.ConstrainedCopy(SearchRecords, i + 1, records, i, records.Length - i);
+                    var lb = libraryPanel1.LibraryItems.Find(l => l.ProductRecord == SearchRecords[i]);
+                    if (lb != null) DisableLibraryItem(lb);
+                    SearchRecords = records;
+                    break;
+                }
+            }
+            UPDATE:
+            TryPageUpdate();
+        }
+
+        private void OnModifiedProductRecord(DPProductRecord updatedRecord, uint oldID) {
+            if (searchMode)
+            {
+                var index = Array.FindIndex(SearchRecords, r => r.ID == oldID);
+                if (index == -1) return;
+                var lb = libraryPanel1.LibraryItems.Find(l => l.ProductRecord == SearchRecords[index]);
+                if (lb is null) return;
+                UpdateLibraryItem(lb, updatedRecord);
+                SearchRecords[index] = updatedRecord;
+            } else
+            {
+                var index = Array.FindIndex(ProductRecords, r => r.ID == oldID);
+                if (index == -1) return;
+                var lb = libraryPanel1.LibraryItems.Find(l => l.ProductRecord == ProductRecords[index]);
+                if (lb is null) return;
+                UpdateLibraryItem(lb, updatedRecord);
+                ProductRecords[index] = updatedRecord;
+            }
+        }
+
         public void ClearLibraryItems() => libraryItems.Clear();
         public void ClearSearchItems() => searchItems.Clear();
 
-        public void InformLibraryUpdate()
+        private void UpdateLibraryItem(LibraryItem lb, DPProductRecord record)
         {
-            if (!searchMode)
-                DPDatabase.GetProductRecords(DPSortMethod.None, (uint) libraryPanel1.CurrentPage, 25, callback: OnLibraryQueryUpdate);
+            if (InvokeRequired)
+            {
+                Invoke(UpdateLibraryItem, lb, record);
+                return;
+            }
+            libraryPanel1.EditMode = true; 
+            lb.TitleText = record.ProductName;
+            lb.Tags = record.Tags;
+            lb.ProductRecord = record;
+            lb.Image = File.Exists(record.ThumbnailPath) ? AddReferenceImage(record.ThumbnailPath)
+                                                        : noImageFound;
+            libraryPanel1.EditMode = false;
+        }
+
+        private void DisableLibraryItem(LibraryItem lb)
+        {
+            if (InvokeRequired)
+            {
+                Invoke(DisableLibraryItem, lb);
+                return;
+            }
+            lb.Enabled = lb.Visible = false;
         }
     }
 }

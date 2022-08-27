@@ -88,6 +88,28 @@ namespace DAZ_Installer
             tableLayoutPanel1.ResumeLayout();
         }
 
+        public void SilentUpdatePageCount(uint newPageCount)
+        {
+            if (InvokeRequired)
+            {
+                Invoke(SilentUpdatePageCount, newPageCount);
+                return;
+            }
+            pageCount = newPageCount;
+            pageLbl.Text = $"Page {currentPage} out of {pageCount}";
+        }
+
+        public void SilentUpdateCurrentPage(uint newCurrentPage)
+        {
+            if (InvokeRequired)
+            {
+                Invoke(SilentUpdateCurrentPage, newCurrentPage);
+                return;
+            }
+            currentPage = newCurrentPage;
+            pageLbl.Text = $"Page {currentPage} out of {pageCount}";
+        }
+
         private void gotoTxtBox_KeyUp(object sender, KeyEventArgs e)
         {
             if (e.KeyData == Keys.Enter)

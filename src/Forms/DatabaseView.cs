@@ -39,6 +39,7 @@ namespace DAZ_Installer.Forms
 
         private void DatabaseView_Load(object sender, EventArgs e)
         {
+            DP.DPDatabase.TableUpdated += OnTableChanged;
             if (DP.DPDatabase.tableNames != null)
             {
                 tableNames.Items.AddRange(DP.DPDatabase.tableNames);
@@ -50,6 +51,12 @@ namespace DAZ_Installer.Forms
         {
             if (tableNames.Text.Trim().Length != 0)
                 DP.DPDatabase.ViewTableQ(tableNames.Text, 0, ShowEverything);
+        }
+
+        private void OnTableChanged(string tableName)
+        {
+            if (tableName != tableNames.Text) return;
+            DP.DPDatabase.ViewTableQ(tableName, callback: ShowEverything);
         }
     }
 }

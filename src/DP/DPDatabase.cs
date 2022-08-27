@@ -81,11 +81,11 @@ namespace DAZ_Installer.DP
         /// <summary>
         /// This event is invoked whenever a product record has been modified.
         /// </summary>
-        public static event Action<uint, DPProductRecord?> ProductRecordModified;
+        public static event Action<DPProductRecord, uint> ProductRecordModified;
         /// <summary>
         /// This event is invoked whenever a new product record has been added.
         /// </summary>
-        public static event Action<DPProductRecord> ProductRecordAdded;
+        public static event Action<DPProductRecord, uint> ProductRecordAdded;
 
         /// <summary>
         /// This event is invoked whenever an extraction record has been removed (aside from when the table has been cleared).
