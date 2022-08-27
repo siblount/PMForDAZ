@@ -20,20 +20,16 @@ Currently, the application can:
   - ✅ Recognize and intelligently install products regardless of file structure.
   - ✅ Handle any most file structures (ie: Content as root folder, or not).
   - ✅ Recursively install products in an archive; handles bundles.
-  - ✅ Supports WIN-ZIP, RAR formats
+  - ✅ Supports ZIP, RAR, and 7z formats
   - ✅ Create extraction & product records.
   - ✅ Choose your preferences (ie: install locations, temp location, product handling, etc).
   - ✅ Hold records of installation files (database).
   - ✅ Search products you've downloaded.
 
 The application cannot at this stage:
-  - ❌ Handle 7z files.
-  - ❌ Detect product IDs from DAZ consistently.
-  - ❌ Fetch thubmnails consistently - error prone.
   - ❌ Merge "part" archives into a single record.
   - ❌ Manage content / delete or move on request.
-  - ❌ Handle certain MANIFEST tasks such as "EXECUTE".
-  - ❌ Consistently create tags based off of file names, content, etc (creates some tags but stops due to some error).
+  - ❌ Handle certain MANIFEST tasks such as "EXECUTE"..
   - ❌ Handle password-protected archives appropriately (RAR, 7z).
 
 ## Points of Interest
