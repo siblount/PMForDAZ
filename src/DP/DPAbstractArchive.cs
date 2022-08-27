@@ -302,16 +302,16 @@ namespace DAZ_Installer.DP {
                 }
             }
             var workingExtractionRecord = 
-                new DPExtractionRecord(IOPath.GetFileName(FileName), DPSettings.destinationPath, successfulFiles.ToArray(), ErroredFiles.ToArray(), 
+                new DPExtractionRecord(IOPath.GetFileName(FileName), DPProcessor.settingsToUse.destinationPath, successfulFiles.ToArray(), ErroredFiles.ToArray(), 
                 null, foldersExtracted.ToArray(), 0);
 
             if (Type != ArchiveType.Bundle)
             {
-                if (DPSettings.downloadImages == SettingOptions.Yes)
+                if (DPProcessor.settingsToUse.downloadImages == SettingOptions.Yes)
                 {
                     imageLocation = DPNetwork.DownloadImage(workingExtractionRecord.ArchiveFileName);
                 }
-                else if (DPSettings.downloadImages == SettingOptions.Prompt)
+                else if (DPProcessor.settingsToUse.downloadImages == SettingOptions.Prompt)
                 {
                     // TODO: Use more reliable method! Support files!
                     // Pre-check if the archive file name starts with "IM"

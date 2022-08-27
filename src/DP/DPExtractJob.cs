@@ -65,15 +65,17 @@ namespace DAZ_Installer.DP
         {
             string[] arr = (string[])_arr;
             var progressCombo = new DPProgressCombo();
-
+            // Snapshot the settings and this will be what we use
+            // throughout the entire extraction process.
+            var settings = DPSettings.GetCopy();
             for (var i = 0; i < arr.Length; i++)
             {
                 if (DPProcessor.doNotProcessList.IndexOf(Path.GetFileName(arr[i])) != -1) continue;
 
                 var x = arr[i];
                 progressCombo.ProgressBar.Value = (int)((double)i / arr.Length * 100);
-                progressCombo.UpdateText($"Processing archive {i}/{arr.Length}: {Path.GetFileName(x)}...({progressCombo.ProgressBar.Value})%");
-                DPProcessor.ProcessArchive(x);
+                progressCombo.UpdateText($"Processing archive {i+1}/{arr.Length}: {Path.GetFileName(x)}...({progressCombo.ProgressBar.Value})%");
+                DPProcessor.ProcessArchive(x, settings);
             }
             progressCombo.UpdateText($"Finished processing archives");
             progressCombo.ProgressBar.Value = 100;
@@ -88,7 +90,7 @@ namespace DAZ_Installer.DP
                     catch (Exception ex) { DPCommon.WriteToLog($"Failed to delete source: {path}. REASON: {ex}"); }
                 }
             };
-            switch (DPSettings.permDeleteSource)
+            switch (settings.permDeleteSource)
             {
                 case SettingOptions.Yes:
                     removeFiles();

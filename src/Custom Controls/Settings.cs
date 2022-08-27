@@ -36,7 +36,7 @@ namespace DAZ_Installer
         {
             DPCommon.WriteToLog("Loading settings...");
             // Get our settings.
-            DPSettings.Initalize();
+            DPSettings.currentSettingsObject.Initalize();
             validating = true;
             
             
@@ -59,7 +59,7 @@ namespace DAZ_Installer
 
         private void SetupContentRedirects()
         {
-            foreach (var keypair in DPSettings.folderRedirects)
+            foreach (var keypair in DPSettings.currentSettingsObject.folderRedirects)
             {
                 contentFolderRedirectsListBox.Items.Add($"{keypair.Key} --> {keypair.Value}");
             }
@@ -67,7 +67,7 @@ namespace DAZ_Installer
 
         private void SetupContentFolders()
         {
-            foreach (var folder in DPSettings.commonContentFolderNames)
+            foreach (var folder in DPSettings.currentSettingsObject.commonContentFolderNames)
             {
                 contentFoldersListBox.Items.Add(folder);
             }
@@ -75,16 +75,16 @@ namespace DAZ_Installer
 
         private void SetupTempPath()
         {
-            tempTxtBox.Text = DPSettings.tempPath;
+            tempTxtBox.Text = DPSettings.currentSettingsObject.tempPath;
         }
 
         private void SetupDestinationPathSetting()
         {
-            // If no detected daz content paths, all handled in the initalization phase of DPSettings.
+            // If no detected daz content paths, all handled in the initalization phase of DPSettings.currentSettingsObject.
             // First, we will add our selected path.
-            destinationPathCombo.Items.Add(DPSettings.destinationPath);
+            destinationPathCombo.Items.Add(DPSettings.currentSettingsObject.destinationPath);
             destinationPathCombo.SelectedIndex = 0;
-            foreach (var path in DPSettings.detectedDazContentPaths)
+            foreach (var path in DPSettings.currentSettingsObject.detectedDazContentPaths)
             {
                 destinationPathCombo.Items.Add(path);
             }
@@ -96,7 +96,7 @@ namespace DAZ_Installer
             fileHandlingCombo.Items.AddRange(names);
 
             // Now show the one we selected.
-            var fileMethod = DPSettings.handleInstallation;
+            var fileMethod = DPSettings.currentSettingsObject.handleInstallation;
             switch (fileMethod)
             {
                 case InstallOptions.ManifestOnly:
@@ -119,7 +119,7 @@ namespace DAZ_Installer
                 downloadThumbnailsComboBox.Items.Add(option);
             }
 
-            var choice = DPSettings.downloadImages;
+            var choice = DPSettings.currentSettingsObject.downloadImages;
             downloadThumbnailsComboBox.SelectedItem = Enum.GetName(choice);
         }
 
@@ -130,7 +130,7 @@ namespace DAZ_Installer
                 removeSourceFilesCombo.Items.Add(option);
             }
 
-            var choice = DPSettings.permDeleteSource;
+            var choice = DPSettings.currentSettingsObject.permDeleteSource;
             removeSourceFilesCombo.SelectedItem = Enum.GetName(choice);
         }
 
@@ -141,7 +141,7 @@ namespace DAZ_Installer
                 installPrevProductsCombo.Items.Add(option);
             }
 
-            var choice = DPSettings.installPrevProducts;
+            var choice = DPSettings.currentSettingsObject.installPrevProducts;
             installPrevProductsCombo.SelectedItem = Enum.GetName(choice);
         }
 
@@ -151,7 +151,7 @@ namespace DAZ_Installer
             {
                 allowOverwritingCombo.Items.Add(option);
             }
-            allowOverwritingCombo.SelectedItem = Enum.GetName(DPSettings.OverwriteFiles);
+            allowOverwritingCombo.SelectedItem = Enum.GetName(DPSettings.currentSettingsObject.OverwriteFiles);
         }
 
         private void tableLayoutPanel1_Paint(object sender, PaintEventArgs e)
@@ -172,7 +172,7 @@ namespace DAZ_Installer
             if (!updateResult) return;
 
             // Try saving settings.
-            var saveResult = DPSettings.SaveSettings(out string errorMsg);
+            var saveResult = DPSettings.currentSettingsObject.SaveSettings(out string errorMsg);
 
             // If something failed...
             if (!saveResult)
@@ -191,19 +191,19 @@ namespace DAZ_Installer
             // We don't update content folders.
             if (validating) return false;
             var invalidReponses = false;
-            DPSettings.downloadImages = Enum.Parse<SettingOptions>((string) downloadThumbnailsComboBox.SelectedItem);
+            DPSettings.currentSettingsObject.downloadImages = Enum.Parse<SettingOptions>((string) downloadThumbnailsComboBox.SelectedItem);
             validating = true;
             // Destination Path
             // A loop occurred when the path was G:/ but G:/ was not mounted.
             DESTCHECK:
-            if (Directory.Exists(destinationPathCombo.Text.Trim())) DPSettings.destinationPath = destinationPathCombo.Text.Trim();
+            if (Directory.Exists(destinationPathCombo.Text.Trim())) DPSettings.currentSettingsObject.destinationPath = destinationPathCombo.Text.Trim();
             else {
                 try
                 {
                     Directory.CreateDirectory(tempTxtBox.Text.Trim());
                     goto DESTCHECK;
                 } catch { };
-                destinationPathCombo.Text = DPSettings.destinationPath;
+                destinationPathCombo.Text = DPSettings.currentSettingsObject.destinationPath;
                 invalidReponses = true;
             }
 
@@ -213,7 +213,7 @@ namespace DAZ_Installer
             // The difference is that currently D:/temp will be deleted whereas, 
             // D:/temp/ will not delete the temp folder but all subfolders and files in it.
             TEMPCHECK:
-            if (Directory.Exists(tempTxtBox.Text.Trim())) DPSettings.tempPath = tempTxtBox.Text.Trim();
+            if (Directory.Exists(tempTxtBox.Text.Trim())) DPSettings.currentSettingsObject.tempPath = tempTxtBox.Text.Trim();
             else
             {
                 try
@@ -221,12 +221,12 @@ namespace DAZ_Installer
                     Directory.CreateDirectory(tempTxtBox.Text.Trim());
                     goto TEMPCHECK;
                 } catch {}
-                tempTxtBox.Text = DPSettings.tempPath;
+                tempTxtBox.Text = DPSettings.currentSettingsObject.tempPath;
                 invalidReponses = true;
             }
 
             // File Handling Method
-            DPSettings.handleInstallation = (InstallOptions)fileHandlingCombo.SelectedIndex;
+            DPSettings.currentSettingsObject.handleInstallation = (InstallOptions)fileHandlingCombo.SelectedIndex;
 
             //Content Folders
             var contentFolders = new HashSet<string>(contentFoldersListBox.Items.Count);
@@ -234,7 +234,7 @@ namespace DAZ_Installer
             {
                 contentFolders.Add((string)contentFoldersListBox.Items[i]);
             }
-            DPSettings.commonContentFolderNames = contentFolders;
+            DPSettings.currentSettingsObject.commonContentFolderNames = contentFolders;
 
             // Alias Content Folders
             var aliasMap = new Dictionary<string, string>(contentFolderRedirectsListBox.Items.Count);
@@ -243,13 +243,13 @@ namespace DAZ_Installer
                 var tokens = item.Split(" --> ");
                 aliasMap[tokens[0]] = tokens[1];
             }
-            DPSettings.folderRedirects = aliasMap;
+            DPSettings.currentSettingsObject.folderRedirects = aliasMap;
 
             // Permanate Delete Source
-            DPSettings.permDeleteSource = (SettingOptions)removeSourceFilesCombo.SelectedIndex;
+            DPSettings.currentSettingsObject.permDeleteSource = (SettingOptions)removeSourceFilesCombo.SelectedIndex;
 
             // Install Prev Products
-            DPSettings.installPrevProducts = (SettingOptions)installPrevProductsCombo.SelectedIndex;
+            DPSettings.currentSettingsObject.installPrevProducts = (SettingOptions)installPrevProductsCombo.SelectedIndex;
 
             if (invalidReponses)
             {
@@ -263,7 +263,7 @@ namespace DAZ_Installer
 
         private void tempTxtBox_Leave(object sender, EventArgs e)
         {
-            if (!applySettingsBtn.Enabled && tempTxtBox.Text != DPSettings.tempPath)
+            if (!applySettingsBtn.Enabled && tempTxtBox.Text != DPSettings.currentSettingsObject.tempPath)
             {
                 applySettingsBtn.Enabled = true;
             }
@@ -271,7 +271,7 @@ namespace DAZ_Installer
 
         private void tempTxtBox_KeyUp(object sender, KeyEventArgs e)
         {
-            if (!applySettingsBtn.Enabled && tempTxtBox.Text != DPSettings.tempPath)
+            if (!applySettingsBtn.Enabled && tempTxtBox.Text != DPSettings.currentSettingsObject.tempPath)
             {
                  applySettingsBtn.Enabled = true;
             }
@@ -279,7 +279,7 @@ namespace DAZ_Installer
 
         private void destinationPathCombo_Leave(object sender, EventArgs e)
         {
-            if (!applySettingsBtn.Enabled && destinationPathCombo.Text != DPSettings.destinationPath)
+            if (!applySettingsBtn.Enabled && destinationPathCombo.Text != DPSettings.currentSettingsObject.destinationPath)
             {
                 applySettingsBtn.Enabled = true;
             }
@@ -287,7 +287,7 @@ namespace DAZ_Installer
 
         private void destinationPathCombo_TextChanged(object sender, EventArgs e)
         {
-            if (!applySettingsBtn.Enabled && destinationPathCombo.Text != DPSettings.destinationPath)
+            if (!applySettingsBtn.Enabled && destinationPathCombo.Text != DPSettings.currentSettingsObject.destinationPath)
             {
                 applySettingsBtn.Enabled = true;
             }
@@ -295,7 +295,7 @@ namespace DAZ_Installer
 
         private void downloadThumbnailsComboBox_TextChanged(object sender, EventArgs e)
         {
-            if (!applySettingsBtn.Enabled && downloadThumbnailsComboBox.Text != Enum.GetName(DPSettings.downloadImages))
+            if (!applySettingsBtn.Enabled && downloadThumbnailsComboBox.Text != Enum.GetName(DPSettings.currentSettingsObject.downloadImages))
             {
                 applySettingsBtn.Enabled = true;
             }
@@ -303,7 +303,7 @@ namespace DAZ_Installer
 
         private void fileHandlingCombo_TextChanged(object sender, EventArgs e)
         {
-            if (!applySettingsBtn.Enabled && fileHandlingCombo.Text != names[(int) DPSettings.handleInstallation])
+            if (!applySettingsBtn.Enabled && fileHandlingCombo.Text != names[(int) DPSettings.currentSettingsObject.handleInstallation])
             {
                 applySettingsBtn.Enabled = true;
             }
@@ -311,7 +311,7 @@ namespace DAZ_Installer
 
         private void removeSourceFiles_TextChanged(object sender, EventArgs e)
         {
-            if (!applySettingsBtn.Enabled && removeSourceFilesCombo.Text != Enum.GetName(DPSettings.permDeleteSource))
+            if (!applySettingsBtn.Enabled && removeSourceFilesCombo.Text != Enum.GetName(DPSettings.currentSettingsObject.permDeleteSource))
             {
                 applySettingsBtn.Enabled = true;
             }
@@ -319,7 +319,7 @@ namespace DAZ_Installer
 
         private void installPrevProducts_TextChanged(object sender, EventArgs e)
         {
-            if (!applySettingsBtn.Enabled && installPrevProductsCombo.Text != Enum.GetName(DPSettings.installPrevProducts))
+            if (!applySettingsBtn.Enabled && installPrevProductsCombo.Text != Enum.GetName(DPSettings.currentSettingsObject.installPrevProducts))
             {
                 applySettingsBtn.Enabled = true;
             }
@@ -402,7 +402,7 @@ namespace DAZ_Installer
 
         private void allowOverwritingCombo_TextChanged(object sender, EventArgs e)
         {
-            if (!applySettingsBtn.Enabled && allowOverwritingCombo.Text != Enum.GetName(DPSettings.OverwriteFiles))
+            if (!applySettingsBtn.Enabled && allowOverwritingCombo.Text != Enum.GetName(DPSettings.currentSettingsObject.OverwriteFiles))
             {
                 applySettingsBtn.Enabled = true;
             }

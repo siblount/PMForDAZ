@@ -15,13 +15,15 @@ namespace DAZ_Installer.DP
     internal static class DPProcessor
     {
         // SecureString - System.Security
-        public static string TempLocation = Path.Combine(DPSettings.tempPath, @"DazProductInstaller\");
-        public static string DestinationPath = DPSettings.destinationPath;
+        // We use these variables in case the user changes the settings in mist of an extraction process
+        public static DPSettings settingsToUse = DPSettings.currentSettingsObject;
+        public static string TempLocation => Path.Combine(settingsToUse.tempPath, @"DazProductInstaller\");
+        public static string DestinationPath => settingsToUse.destinationPath;
         public static DPAbstractArchive workingArchive;
         public static HashSet<string> previouslyInstalledArchiveNames { get; private set; } = new HashSet<string>();
         public static List<string> doNotProcessList { get; } = new List<string>();
         public static uint workingArchiveFileCount { get; set; } = 0; // can disgard. 
-        public static SettingOptions OverwriteFiles = DPSettings.OverwriteFiles;
+        public static SettingOptions OverwriteFiles => settingsToUse.OverwriteFiles;
 
         static DPProcessor() => DPDatabase.GetInstalledArchiveNamesQ(UpdateInstalledArchiveNames);
 
@@ -36,7 +38,7 @@ namespace DAZ_Installer.DP
             if (previouslyInstalledArchiveNames.Contains(Path.GetFileName(archiveFile.FileName)))
             {
                 // ,_, 
-                switch (DPSettings.installPrevProducts)
+                switch (settingsToUse.installPrevProducts)
                 {
                     case SettingOptions.No:
                         return null;
@@ -123,13 +125,9 @@ namespace DAZ_Installer.DP
             return archiveFile;
         }
 
-        public static DPAbstractArchive? ProcessArchive(string filePath)
+        public static DPAbstractArchive? ProcessArchive(string filePath, DPSettings settings)
         {
-            // We use these variables in case the user changes the settings in mist of an extraction process.
-            // TODO: Take a settings object to use.
-            TempLocation = Path.Combine(DPSettings.tempPath, @"DazProductInstaller\");
-            DestinationPath = DPSettings.destinationPath;
-            OverwriteFiles = DPSettings.OverwriteFiles;
+            settingsToUse = settings;
             try
             {
                 Directory.CreateDirectory(TempLocation);
@@ -138,7 +136,7 @@ namespace DAZ_Installer.DP
             if (previouslyInstalledArchiveNames.Contains(Path.GetFileName(Path.GetFileName(filePath))))
             {
                 // ,_, 
-                switch (DPSettings.installPrevProducts)
+                switch (settingsToUse.installPrevProducts)
                 {
                     case SettingOptions.No:
                         return null;
@@ -250,8 +248,8 @@ namespace DAZ_Installer.DP
             // Handle Manifest first.
             if (archive.ManifestFile != null && archive.ManifestFile.WasExtracted)
             {
-                if (DPSettings.handleInstallation == InstallOptions.ManifestAndAuto ||
-                    DPSettings.handleInstallation == InstallOptions.ManifestOnly)
+                if (settingsToUse.handleInstallation == InstallOptions.ManifestAndAuto ||
+                    settingsToUse.handleInstallation == InstallOptions.ManifestOnly)
                 {
                     var manifest = archive.ManifestFile;
                     var manifestDestinations = manifest.GetManifestDestinations();
@@ -274,13 +272,13 @@ namespace DAZ_Installer.DP
                         }
                         else
                         {
-                            file.WillExtract = DPSettings.handleInstallation != InstallOptions.ManifestOnly;
+                            file.WillExtract = settingsToUse.handleInstallation != InstallOptions.ManifestOnly;
                         }
                     }
                 }
 
             }
-            if (DPSettings.handleInstallation == InstallOptions.Automatic || DPSettings.handleInstallation == InstallOptions.ManifestAndAuto)
+            if (settingsToUse.handleInstallation == InstallOptions.Automatic || settingsToUse.handleInstallation == InstallOptions.ManifestAndAuto)
             {
                 // Get contents where file was not extracted.
                 var folders = archive.Folders.Values.ToArray();
@@ -368,8 +366,8 @@ namespace DAZ_Installer.DP
             foreach (var folder in folders)
             {
                 var folderName = Path.GetFileName(folder.Path);
-                var elgibleForContentFolderStatus = DPSettings.commonContentFolderNames.Contains(folderName) || 
-                                                    DPSettings.folderRedirects.ContainsKey(folderName);
+                var elgibleForContentFolderStatus = settingsToUse.commonContentFolderNames.Contains(folderName) || 
+                                                    settingsToUse.folderRedirects.ContainsKey(folderName);
                 if (folder.Parent is null)
                     folder.isContentFolder = elgibleForContentFolderStatus;
                 else

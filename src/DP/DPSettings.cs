@@ -22,26 +22,25 @@ namespace DAZ_Installer.DP
     {
         ManifestOnly, ManifestAndAuto, Automatic
     }
-    public static class DPSettings
+    public class DPSettings
     {
         // TO DO : Create a settings object to save settings used for an extraction and used at DPExtractJob to be passed into DPProcessor.ProcessArchive().
         // If no settings found - regenerate.
-        public static string destinationPath { get; set; } // todo : Ask for daz content directory if no detected daz content paths found.
+        public static DPSettings currentSettingsObject;
+        public string destinationPath { get; set; } // todo : Ask for daz content directory if no detected daz content paths found.
         // TO DO: Use HashSet instead of list.
-        public static string[] detectedDazContentPaths;
-        public static SettingOptions downloadImages { get; set; } = SettingOptions.Prompt;
-        public static string thumbnailsPath { get; set; } = "Thumbnails";
-        public static InstallOptions handleInstallation { get; set; } = InstallOptions.ManifestAndAuto;
-        // TO DO: Use HashSet instead of list.
+        public string[] detectedDazContentPaths;
+        public SettingOptions downloadImages { get; set; } = SettingOptions.Prompt;
+        public string thumbnailsPath { get; set; } = "Thumbnails";
+        public InstallOptions handleInstallation { get; set; } = InstallOptions.ManifestAndAuto;
         public static HashSet<string> inititalCommonContentFolderNames { get; } = new HashSet<string>() { "aniBlocks", "Animals", "Architecture", "Camera Presets", "data", "DAZ Studio Tutorials", "Documentation", "Documents", "Environments", "General", "Light Presets", "Lights", "People", "Presets", "Props", "Render Presets", "Render Settings", "Runtime", "Scene Builder", "Scene Subsets", "Scenes", "Scripts", "Shader Presets", "Shaders", "Support", "Templates", "Textures", "Vehicles" };
-        // TO DO: Use HashSet instead of list.
-        public static HashSet<string> commonContentFolderNames { get; set; }
-        public static Dictionary<string, string> folderRedirects { get; set; } = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) { { "docs", "Documentation" }, { "Documents", "Documentation" } };
-        public static string tempPath { get; set; } = Path.Combine(Path.GetTempPath(), "DazProductInstaller"); //
-        public static uint maxTagsToShow { get; set; } = 8; // Keep low because GDI+ slow.
-        public static SettingOptions permDeleteSource { get; set; } = SettingOptions.Prompt;
-        public static SettingOptions installPrevProducts { get; set; } = SettingOptions.Prompt;
-        public static SettingOptions OverwriteFiles { get; set; } = SettingOptions.Yes;
+        public HashSet<string> commonContentFolderNames { get; set; }
+        public Dictionary<string, string> folderRedirects { get; set; } = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) { { "docs", "Documentation" }, { "Documents", "Documentation" } };
+        public string tempPath { get; set; } = Path.Combine(Path.GetTempPath(), "DazProductInstaller"); //
+        public uint maxTagsToShow { get; set; } = 8; // Keep low because GDI+ slow.
+        public SettingOptions permDeleteSource { get; set; } = SettingOptions.Prompt;
+        public SettingOptions installPrevProducts { get; set; } = SettingOptions.Prompt;
+        public SettingOptions OverwriteFiles { get; set; } = SettingOptions.Yes;
         public static string databasePath { get; set; } = "Database";
         public static bool initalized { get; set; } = false;
         public static bool invalidSettings = false;
@@ -51,9 +50,26 @@ namespace DAZ_Installer.DP
         const string cfnLocation = "Settings/cfn.txt"; // Content Folder Names Location
         const string frLocation = "Settings/fn.txt"; // Folder Redirects Location
         const string oLocation = "Settings/o.txt"; // Other settings Location
+
+        static DPSettings()
+        {
+            currentSettingsObject = new DPSettings();
+            currentSettingsObject.Initalize();
+        }
+
+        public DPSettings() { }
+
+        public static DPSettings GetCopy()
+        {
+            var settings = (DPSettings) currentSettingsObject.MemberwiseClone();
+            settings.commonContentFolderNames = new HashSet<string>(currentSettingsObject.commonContentFolderNames);
+            settings.folderRedirects = new Dictionary<string, string>(currentSettingsObject.folderRedirects);
+            settings.detectedDazContentPaths = (string[]) currentSettingsObject.detectedDazContentPaths.Clone();
+            return settings;
+        }
         
         // TODO: Handle situation where new settings were added; ex, OverWriteFiles
-        public static void Initalize()
+        public void Initalize()
         {
             if (initalized) return;
             // TODO: Catch situation where the parse fails.
@@ -98,7 +114,7 @@ namespace DAZ_Installer.DP
             DPProcessor.ClearTemp();
         }
 
-        private static void ValidateDirectoryPaths()
+        private void ValidateDirectoryPaths()
         {
             bool destExists = !string.IsNullOrEmpty(destinationPath) && Directory.Exists(destinationPath);
             bool thumbExists = !string.IsNullOrEmpty(thumbnailsPath) && Directory.Exists(thumbnailsPath);
@@ -165,7 +181,7 @@ namespace DAZ_Installer.DP
             }
         }
 
-        public static bool SaveSettings(out string errorMsg)
+        public bool SaveSettings(out string errorMsg)
         {
             var stringbuilder = new StringBuilder(50 * 3);
             var contentWriteResult = WriteContentFolderNames();
@@ -195,7 +211,7 @@ namespace DAZ_Installer.DP
             return true;
         }
 
-        public static bool GetContentFolderNames(out HashSet<string>? map)
+        public bool GetContentFolderNames(out HashSet<string>? map)
         {
 
             if (File.Exists(cfnLocation))
@@ -214,7 +230,7 @@ namespace DAZ_Installer.DP
             map = null;
             return false;
         }
-        public static bool WriteContentFolderNames()
+        public bool WriteContentFolderNames()
         {
             try
             {
@@ -239,7 +255,7 @@ namespace DAZ_Installer.DP
 
         // Key: Redirectee (not in common foldr names), Value: A common folder name
         // Ex: { "Docs" : "Documentation" }
-        public static bool GetFolderRedirects(out Dictionary<string, string> dict)
+        public bool GetFolderRedirects(out Dictionary<string, string> dict)
         {
             if (File.Exists(frLocation))
             {
@@ -270,7 +286,7 @@ namespace DAZ_Installer.DP
         }
 
 
-        public static bool WriteFolderRedirects()
+        public bool WriteFolderRedirects()
         {
 
             List<string> dictLines = new List<string>(folderRedirects.Count);
@@ -290,7 +306,7 @@ namespace DAZ_Installer.DP
                 return false;
             }
         }
-        public static bool GetOtherSettings(out string[] settings)
+        public bool GetOtherSettings(out string[] settings)
         {
             if (File.Exists(oLocation))
             {
@@ -314,7 +330,7 @@ namespace DAZ_Installer.DP
                 return false;
             }
         }
-        public static bool WriteOtherSettings()
+        public bool WriteOtherSettings()
         {
             Directory.CreateDirectory("Settings");
             try

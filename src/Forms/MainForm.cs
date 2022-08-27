@@ -29,7 +29,6 @@ namespace DAZ_Installer
             InitializeComponent();
             activeForm = this;
             InitalizePages();
-            DPSettings.Initalize();
         }
 
         private void InitalizePages()
