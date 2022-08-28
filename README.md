@@ -1,7 +1,8 @@
 # DAZ Product Installer
 
 This is an application currently only for Windows users to install their products regardless of the vendor's format; it accepts unique file structurs and archive extensions.
-[![Daz Product Installer Alpha Preview Video](https://img.youtube.com/vi/FwLc-dcl8W0/0.jpg)](https://www.youtube.com/watch?v=FwLc-dcl8W0)
+
+[![Daz Product Installer Alpha Preview Video](https://i.postimg.cc/RhBnRmF3/image.png)](https://www.youtube.com/watch?v=FwLc-dcl8W0)
 
 ## What does this project aim to do?
 Firstly, it aims to be a **free** and **open-source*** application to gain trust of users, allow others to contribute, and release a product that is useful for all.
