@@ -181,7 +181,7 @@ namespace DAZ_Installer
             } else
             {
                 // 125, 119
-                var icon = Image.FromFile(filePath);
+                using var icon = Image.FromFile(filePath);
                 thumbnails.Images.Add(icon);
                 // Get the last index.
                 var i = thumbnails.Images.Count - 1;
