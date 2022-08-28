@@ -883,13 +883,21 @@ namespace DAZ_Installer.DP
                 // If both operations are successful, emit signal.
                 if (InsertValuesToTable("ProductRecords", pColumns, pObjs, connection, t))
                 {
+                    var lastID = GetLastProductID(connection, t);
                     if (eRecord != DPExtractionRecord.NULL_RECORD)
                     {
                         InsertTags(tags, connection, t);
                         var success = InsertValuesToTable("ExtractionRecords", eColumns, eObjs, connection, t);
-                        if (success) ExtractionRecordAdded?.Invoke(eRecord);
+                        if (success)
+                        {
+                            // Create a new extraction record to contain the PID and it's EID.
+                            var newE = new DPExtractionRecord(archiveFileName, destPath, files, erroredFiles, erroredMessages, folders, lastID);
+                            ExtractionRecordAdded?.Invoke(newE);
+                        }
                     }
-                    ProductRecordAdded?.Invoke(pRecord, GetLastProductID(connection, t));
+                    // Create new product record to update ID.
+                    var newP = new DPProductRecord(productName, tags, author, sku, time, thumbnailPath, lastID, lastID);
+                    ProductRecordAdded?.Invoke(newP, lastID);
                 }
             }
             catch (Exception ex) {
