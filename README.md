@@ -3,9 +3,9 @@
 This is an application currently only for Windows users to install their products regardless of the vendor's format; it accepts unique file structurs and archive extensions.
 
 <div align="center">
- <iframe width="560" height="315" src="https://www.youtube.com/embed/FwLc-dcl8W0" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
 [![Daz Product Installer Alpha Preview Video](https://i.postimg.cc/RhBnRmF3/image.png)](https://www.youtube.com/watch?v=FwLc-dcl8W0)
 </div>
+<iframe width="560" height="315" src="https://www.youtube.com/embed/FwLc-dcl8W0" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
 
 ## What does this project aim to do?
 Firstly, it aims to be a **free** and **open-source*** application to gain trust of users, allow others to contribute, and release a product that is useful for all.
