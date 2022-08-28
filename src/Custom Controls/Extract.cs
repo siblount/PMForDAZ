@@ -182,13 +182,6 @@ namespace DAZ_Installer
             else if (ext.Contains("rar"))
                node.StateImageIndex = 1;
         }
-        private void extractControl_Load(object sender, EventArgs e)
-        {
-            //var DSXParser = new DSXParser(@"D:\3D\DAZ3D shit\DAZ IM Manager Downloads\Manifest.dsx");
-            //DPSettings.Initalize();
-        }
-
-        
 
         public void ResetExtractPage()
         {

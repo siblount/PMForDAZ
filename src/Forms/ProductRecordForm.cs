@@ -158,7 +158,12 @@ namespace DAZ_Installer
                     {
                         var slice = folderSpan.Slice(0, lastIndexOf).ToString();
                         var added = folderMap.TryAdd(slice, new TreeNode(Path.GetFileName(slice)));
-                        if (!added) break;
+                        if (!added)
+                        {
+                            if (lastNode == null) break;
+                            folderMap[slice].Nodes.Add(lastNode);
+                            break;
+                        }
                         if (PathHelper.GetNumOfLevels(slice) == 0) treeNodes.Add(folderMap[slice]);
                         if (lastNode != null) folderMap[slice].Nodes.Add(lastNode);
                         folderMap[slice].StateImageIndex = 0;

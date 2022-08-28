@@ -283,7 +283,6 @@ namespace DAZ_Installer
             this.Margin = new System.Windows.Forms.Padding(4, 2, 4, 2);
             this.Name = "Extract";
             this.Size = new System.Drawing.Size(542, 344);
-            this.Load += new System.EventHandler(this.extractControl_Load);
             this.tabControl1.ResumeLayout(false);
             this.fileListPage.ResumeLayout(false);
             this.fileListContextStrip.ResumeLayout(false);

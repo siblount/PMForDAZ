@@ -15,7 +15,7 @@ namespace DAZ_Installer.Forms
         public ContentFolderManager()
         {
             InitializeComponent();
-            ContentFolders.UnionWith(DPSettings.commonContentFolderNames);
+            ContentFolders.UnionWith(DPSettings.currentSettingsObject.commonContentFolderNames);
             SetupContentFoldersList();
             contentFoldersView.Columns[0].Width = contentFoldersView.ClientSize.Width;
         }
@@ -41,7 +41,7 @@ namespace DAZ_Installer.Forms
             contentFoldersView.BeginUpdate();
             contentFoldersView.Items.Clear();
             ContentFolders.Clear();
-            ContentFolders.UnionWith(DPSettings.commonContentFolderNames);
+            ContentFolders.UnionWith(DPSettings.currentSettingsObject.commonContentFolderNames);
             foreach(var item in ContentFolders)
             {
                 contentFoldersView.Items.Add(item);

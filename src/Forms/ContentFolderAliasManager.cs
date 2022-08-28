@@ -13,8 +13,8 @@ namespace DAZ_Installer.Forms
 {
     public partial class ContentFolderAliasManager : Form
     {
-        Dictionary<string, string> Aliases = new Dictionary<string, string>(DPSettings.folderRedirects);
-        HashSet<string> keys = new HashSet<string>(DPSettings.folderRedirects.Count, 
+        Dictionary<string, string> Aliases = new Dictionary<string, string>(DPSettings.currentSettingsObject.folderRedirects);
+        HashSet<string> keys = new HashSet<string>(DPSettings.currentSettingsObject.folderRedirects.Count, 
             StringComparer.OrdinalIgnoreCase);
         public ListView AliasListView { get; init; }
         public ContentFolderAliasManager()
@@ -32,10 +32,10 @@ namespace DAZ_Installer.Forms
         private void SetupComboBox()
         {
             contentFoldersComboBox.BeginUpdate();
-            contentFoldersComboBox.Items.AddRange(DPSettings.commonContentFolderNames.ToArray());
+            contentFoldersComboBox.Items.AddRange(DPSettings.currentSettingsObject.commonContentFolderNames.ToArray());
             contentFoldersComboBox.AutoCompleteMode = AutoCompleteMode.SuggestAppend;
             contentFoldersComboBox.AutoCompleteSource = AutoCompleteSource.CustomSource;
-            contentFoldersComboBox.AutoCompleteCustomSource.AddRange(DPSettings.commonContentFolderNames.ToArray());
+            contentFoldersComboBox.AutoCompleteCustomSource.AddRange(DPSettings.currentSettingsObject.commonContentFolderNames.ToArray());
             contentFoldersComboBox.EndUpdate();
         }
 
@@ -101,7 +101,7 @@ namespace DAZ_Installer.Forms
             aliasListView.BeginUpdate();
             aliasListView.Items.Clear();
             Aliases.Clear();
-            Aliases = new Dictionary<string, string>(DPSettings.folderRedirects);
+            Aliases = new Dictionary<string, string>(DPSettings.currentSettingsObject.folderRedirects);
             foreach (var pair in Aliases)
             {
                 aliasListView.Items.Add($"{pair.Key} --> {pair.Value}");

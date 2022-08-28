@@ -39,7 +39,7 @@ namespace DAZ_Installer.DP
                         using (WebClient client = new WebClient())
                         {
                             var imgFileName = Path.GetFileNameWithoutExtension(fileName) + Path.GetExtension(imgLink);
-                            var downloadLocation = Path.Combine(DPSettings.thumbnailsPath, imgFileName);
+                            var downloadLocation = Path.Combine(DPProcessor.settingsToUse.thumbnailsPath, imgFileName);
                             Directory.CreateDirectory(Path.GetDirectoryName(downloadLocation));
                             client.DownloadFile(new Uri(gcdnLink), downloadLocation);
                             Task.Run(() => _downscaleImage(downloadLocation));

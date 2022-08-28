@@ -74,9 +74,9 @@ namespace DAZ_Installer
                 var foundEllipsedLabel = false;
                 var t = 0;
 
-                for (var i = 0; i < tags.Length && t < DPSettings.maxTagsToShow; i++)
+                for (var i = 0; i < tags.Length && t < DPSettings.currentSettingsObject.maxTagsToShow; i++)
                     // TODO: Use AddRange instead of Controls.Add
-                {
+                {   
                     var tagName = tags[i];
                     if (string.IsNullOrEmpty(tagName) || string.IsNullOrWhiteSpace(tagName))
                         continue;
@@ -128,7 +128,7 @@ namespace DAZ_Installer
             try
             {
                 var foundEllipsedLabel = false;
-                for (var i = 0; i < labels.Count && i < DPSettings.maxTagsToShow; i++)
+                for (var i = 0; i < labels.Count && i < DPSettings.currentSettingsObject.maxTagsToShow; i++)
                 {
                     var workingLabel = labels[i];
                     
