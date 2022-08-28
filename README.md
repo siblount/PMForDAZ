@@ -2,6 +2,7 @@
 
 This is an application currently only for Windows users to install their products regardless of the vendor's format; it accepts unique file structures and archive formats.
 
+### Watch a preview here (click on image):
 [![Daz Product Installer Alpha Preview Video](https://i.postimg.cc/RhBnRmF3/image.png)](https://www.youtube.com/watch?v=FwLc-dcl8W0)
 
 ## What does this project aim to do?
