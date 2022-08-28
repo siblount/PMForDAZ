@@ -153,7 +153,9 @@ namespace DAZ_Installer.DP
                     // Create the database.
                     CreateDatabase();
                     // Update database info.
-                    InsertDefaultValuesToTable("DatabaseInfo", null, CancellationToken.None);
+                    using var connection = CreateInitialConnection();
+                    if (connection == null) return false;
+                    InsertDefaultValuesToTable("DatabaseInfo", connection, CancellationToken.None);
                 }
                 DatabaseUpdated?.Invoke();
                 DPGlobal.AppClosing += OnAppClose;
@@ -191,6 +193,27 @@ namespace DAZ_Installer.DP
                 connection.ConnectionString = builder.ConnectionString;
                 return connection; 
             } catch (Exception e)
+            {
+                DPCommon.WriteToLog($"Failed to create connection. REASON: {e}");
+            }
+            return null;
+        }
+        /// <summary>
+        /// Creates and returns a connection with the connection string setup. Should only be used for the Initialization function.
+        /// </summary>
+        /// <returns>An SQLiteConnection if successfully created, otherwise null.</returns>
+        private static SQLiteConnection? CreateInitialConnection()
+        {
+            try
+            {
+                var connection = new SQLiteConnection();
+                var builder = new SQLiteConnectionStringBuilder();
+                builder.DataSource = Path.GetFullPath(_expectedDatabasePath);
+                builder.Pooling = true;
+                connection.ConnectionString = builder.ConnectionString;
+                return connection;
+            }
+            catch (Exception e)
             {
                 DPCommon.WriteToLog($"Failed to create connection. REASON: {e}");
             }
@@ -309,7 +332,7 @@ namespace DAZ_Installer.DP
             )";
             try
             {
-                using (var connection = CreateConnection())
+                using (var connection = CreateInitialConnection())
                 {
                     var success = OpenConnection(connection);
                     if (!success) return false;
@@ -363,7 +386,7 @@ namespace DAZ_Installer.DP
 
             try
             {
-                using (var connection = CreateConnection())
+                using (var connection = CreateInitialConnection())
                 {
                     var success = OpenConnection(connection);
                     if (!success) return false;
@@ -426,7 +449,7 @@ namespace DAZ_Installer.DP
 
             try
             {
-                using (var connection = CreateConnection())
+                using (var connection = CreateInitialConnection())
                 {
                     var success = OpenConnection(connection);
                     if (!success) return false;
@@ -465,7 +488,7 @@ namespace DAZ_Installer.DP
                                             PRAGMA journal_size_limit=32768;
                                             PRAGMA page_size=512;";
             try {
-                using (var connection = CreateConnection())
+                using (var connection = CreateInitialConnection())
                 {
                     var success = OpenConnection(connection);
                     if (!success) return false;
@@ -498,7 +521,7 @@ namespace DAZ_Installer.DP
 
             try
             {
-                using (var connection = CreateConnection())
+                using (var connection = CreateInitialConnection())
                 {
                     var success = OpenConnection(connection);
                     if (!success) return false;
