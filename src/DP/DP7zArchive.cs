@@ -142,6 +142,7 @@ namespace DAZ_Installer.DP {
 
         internal override void ReleaseArchiveHandles()
         {
+            _process?.Kill(true);
             _process?.Dispose();
         }
         #endregion

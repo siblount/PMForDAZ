@@ -30,6 +30,7 @@ namespace DAZ_Installer.DP
         public static DPAbstractArchive ProcessInnerArchive(DPAbstractArchive archiveFile)
         {
             workingArchive = archiveFile;
+            DPFile.DPFiles.Clear();
             try
             {
                 Directory.CreateDirectory(TempLocation);
@@ -120,6 +121,7 @@ namespace DAZ_Installer.DP
             // Create record.
             var record = archiveFile.CreateRecords();
             if (record != null) previouslyInstalledArchiveNames.Add(archiveFile.FileName);
+            archiveFile.ReleaseArchiveHandles();
             // TO DO: Only add if successful extraction, and all files from temp were moved, and/or user didn't cancel operation.
             DPCommon.WriteToLog($"Archive Type: {archiveFile.Type}");
             return archiveFile;
@@ -128,6 +130,7 @@ namespace DAZ_Installer.DP
         public static DPAbstractArchive? ProcessArchive(string filePath, DPSettings settings)
         {
             settingsToUse = settings;
+            DPFile.DPFiles.Clear();
             try
             {
                 Directory.CreateDirectory(TempLocation);
@@ -224,7 +227,8 @@ namespace DAZ_Installer.DP
             // failed archives (such as an "zip" archive when really it's a jpg file).
             var record = archiveFile.CreateRecords();
             if (record != null) previouslyInstalledArchiveNames.Add(archiveFile.FileName);
-            
+            archiveFile.ReleaseArchiveHandles();
+
             return archiveFile;
         }
 
