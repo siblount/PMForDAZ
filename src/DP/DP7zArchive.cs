@@ -49,7 +49,8 @@ namespace DAZ_Installer.DP {
         }
 
         internal DP7zArchive(string _path,  bool innerArchive = false, string? relativePathBase = null) : base(_path, innerArchive, relativePathBase) {}
-
+        
+        #region Override Methods
         // It's best for 7z to extract everything to the temp directory.
         internal override void Extract()
         {
@@ -77,7 +78,7 @@ namespace DAZ_Installer.DP {
             
             
         }
-        #region Override Methods
+        
 
         internal override void Peek()
         {
@@ -127,16 +128,25 @@ namespace DAZ_Installer.DP {
                     }
 
                 }
-                catch { }
+                catch (Exception ex)
+                {
+                    DPCommon.WriteToLog($"An unexpected error occured in ReadContentFiles() for 7z. REASON: {ex}");
+                }
             }
         }
 
         internal override void ReadMetaFiles()
         {
-            foreach (var file in DSXFiles)
+            try
             {
-                if (file.WasExtracted)
-                    file.CheckContents();
+                foreach (var file in DSXFiles)
+                {
+                    if (file.WasExtracted)
+                        file.CheckContents();
+                }
+            } catch (Exception ex)
+            {
+                DPCommon.WriteToLog($"An unexpected error occured in ReadMetaFiles() for 7z. REASON: {ex}");
             }
         }
 
@@ -300,6 +310,7 @@ namespace DAZ_Installer.DP {
         {
             foreach (var file in Contents)
             {
+                if (file.ExtractedPath == null) continue;
                 FileInfo fileInfo = new FileInfo(file.ExtractedPath);
                 file.WasExtracted = fileInfo.Exists;
             }
