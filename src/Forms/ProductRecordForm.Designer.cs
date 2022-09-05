@@ -359,6 +359,7 @@ namespace DAZ_Installer
             this.deleteProductToolStripMenuItem.Name = "deleteProductToolStripMenuItem";
             this.deleteProductToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
             this.deleteProductToolStripMenuItem.Text = "Delete product";
+            this.deleteProductToolStripMenuItem.Click += new System.EventHandler(this.deleteProductToolStripMenuItem_Click);
             // 
             // ProductRecordForm
             // 

@@ -231,6 +231,9 @@ namespace DAZ_Installer
 
         private void deleteRecordToolStripMenuItem_Click(object sender, EventArgs e)
         {
+            var result = MessageBox.Show($"Are you sure you want to remove the record for {record.ProductName}? " +
+                "This wont remove the files on disk. Additionally, the record cannot be restored.", "Remove product record confirmation", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+            if (result == DialogResult.No) return;
             DPDatabase.RemoveProductRecord(record, OnProductRecordRemoval);
         }
 
@@ -242,6 +245,69 @@ namespace DAZ_Installer
                 applyChangesBtn.Enabled = false;
                 toolStrip1.Enabled = false;
             }
+        }
+
+        private void deleteProductToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            var result = MessageBox.Show($"Are you sure you want to remove the record & product files for {record.ProductName}? " +
+                "THIS WILL PERMANENTLY REMOVE ASSOCIATED FILES ON DISK!", "Remove product confirmation", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+            if (result == DialogResult.No) return;
+            uint deletedFiles = 0;
+            // Try deleting at the destination path.
+            if (!Directory.Exists(extractionRecord.DestinationPath))
+            {
+                var r = MessageBox.Show("The path at which the files were extracted to no longer exists. Do you want to check on through your current content folders?",
+                    "Root content folder doesn't exist", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+                if (r == DialogResult.No) return;
+            }
+            deletedFiles = DeleteFiles(extractionRecord.DestinationPath);
+            if (deletedFiles == 0)
+            {
+                // Quick test.
+                if (File.Exists(Path.Combine(extractionRecord.DestinationPath, extractionRecord.Files[0])))
+                    MessageBox.Show("None of the product files were removed due to some error.", "Failed to remove product files", 
+                        MessageBoxButtons.OK, MessageBoxIcon.Error);
+                else
+                {
+                var r = MessageBox.Show("The path at which the files were extracted to no longer exists. Do you want to check on through your current content folders?",
+                    "Root content folder doesn't exist", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+                    if (r == DialogResult.No) return;
+                }
+                
+                foreach (var contentFolder in DPSettings.currentSettingsObject.detectedDazContentPaths)
+                {
+                    deletedFiles = DeleteFiles(contentFolder);
+                    if (deletedFiles > 0) break;
+                }
+            }
+
+            var delta = extractionRecord.Files.Length - deletedFiles;
+            if (delta == extractionRecord.Files.Length)
+                MessageBox.Show($"Failed to remove any product files.", "Removal failed", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            else if (delta > 0)
+                MessageBox.Show($"Some product files failed to be removed.",
+                    "Some files failed to be removed", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            else DPDatabase.RemoveProductRecord(record);
+        }
+
+        private uint DeleteFiles(string destinationPath)
+        {
+            var deleteCount = 0;
+            foreach (var file in extractionRecord.Files)
+            {
+                var deletePath = Path.Combine(extractionRecord.DestinationPath, file);
+                var info = new FileInfo(deletePath);
+                try
+                {
+                    info.Delete();
+                    deleteCount++;
+                }
+                catch (Exception ex)
+                {
+                    DPCommon.WriteToLog($"Failed to remove product file for {record.ProductName}, file: {file}. REASON: {ex}");
+                }
+            }
+            return deleteCount;
         }
     }
 }
