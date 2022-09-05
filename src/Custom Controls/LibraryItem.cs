@@ -2,6 +2,7 @@
 // You may find a full copy of this license at root project directory\LICENSE
 
 using System;
+using System.IO;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Windows.Forms;
@@ -169,6 +170,50 @@ namespace DAZ_Installer
             }
             ProductRecordForm recordForm = new ProductRecordForm(ProductRecord);
             recordForm.ShowDialog();
+        }
+
+        private void removeRecordToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            var result = MessageBox.Show($"Are you sure you want to remove the record for {ProductRecord.ProductName}? " +
+                "This wont remove the files on disk. Additionally, the record cannot be restored.", "Remove product record confirmation", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+            if (result == DialogResult.No) return;
+            DPDatabase.RemoveProductRecord(ProductRecord);
+        }
+
+        private void removeProductToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            var result = MessageBox.Show($"Are you sure you want to remove the record & product files for {ProductRecord.ProductName}? " +
+                "THIS WILL PERMANENTLY REMOVE ASSOCIATED FILES ON DISK!", "Remove product confirmation", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+            if (result == DialogResult.No) return;
+            DPDatabase.GetExtractionRecordQ(ProductRecord.EID, callback: OnGetExtractionRecord);
+        }
+
+        private void OnGetExtractionRecord(DPExtractionRecord record)
+        {
+            if (record.PID != ProductRecord.ID) return;
+            var deleteCount = 0;
+            // Now delete.
+            foreach (var file in record.Files)
+            {
+                var deletePath = Path.Combine(record.DestinationPath, file);
+                var info = new FileInfo(deletePath);
+                try
+                {
+                    info.Delete();
+                    deleteCount++;
+                } catch (Exception ex)
+                {
+                    DPCommon.WriteToLog($"Failed to remove product file for {ProductRecord.ProductName}, file: {file}. REASON: {ex}");
+                }
+            }
+            var delta = record.Files.Length - deleteCount;
+            if (delta == record.Files.Length)
+                MessageBox.Show($"Removal of product files completely failed for {ProductRecord.ProductName}.",
+                    "Removal failed", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            else if (delta > 0)
+                MessageBox.Show($"Some product files failed to be removed for {ProductRecord.ProductName}.",
+                    "Some files failed to be removed", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            else DPDatabase.RemoveProductRecord(ProductRecord);
         }
     }
 }
