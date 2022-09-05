@@ -115,7 +115,7 @@ namespace DAZ_Installer.DP
             switch (method)
             {
                 case DPSortMethod.Alphabetical:
-                    sqlQuery += @") ORDER BY ""Product Name"" ASC;";
+                    sqlQuery += @") ORDER BY ""Product Name"" COLLATE NOCASE ASC;";
                     break;
                 case DPSortMethod.Date:
                     sqlQuery += @") ORDER BY ""Date Created"" ASC;";
@@ -141,19 +141,19 @@ namespace DAZ_Installer.DP
         private static void SetupSQLLibraryQuery(uint page, uint limit, DPSortMethod method, SQLiteCommand command)
         {
             uint beginningRowID = (page - 1) * limit;
-            string sqlQuery = $"SELECT * FROM ProductRecords WHERE ROWID >= {beginningRowID} ";
+            string sqlQuery = $"SELECT * FROM ProductRecords ";
 
             switch (method)
             {
                 case DPSortMethod.Alphabetical:
-                    sqlQuery += @"ORDER BY ""Product Name"" ASC";
+                    sqlQuery += @"ORDER BY ""Product Name"" COLLATE NOCASE DESC ";
                     break;
                 case DPSortMethod.Date:
-                    sqlQuery += @"ORDER BY ""Date Created"" ASC";
+                    sqlQuery += @"ORDER BY ""Date Created"" ASC ";
                     break;
             }
 
-            sqlQuery += limit == 0 ? ";" : "LIMIT " + limit + ";";
+            sqlQuery += limit == 0 ? $"LIMIT -1 OFFSET {beginningRowID};" : $"LIMIT {limit} OFFSET {beginningRowID};";
 
             command.CommandText = sqlQuery;
         }
@@ -178,7 +178,7 @@ namespace DAZ_Installer.DP
             switch (method)
             {
                 case DPSortMethod.Alphabetical:
-                    sqlQuery += @")) ORDER BY ""Product Name"" ASC;";
+                    sqlQuery += @")) ORDER BY ""Product Name"" COLLATE NOCASE ASC;";
                     break;
                 case DPSortMethod.Date:
                     sqlQuery += @")) ORDER BY ""Date Created"" ASC;";
@@ -229,7 +229,7 @@ namespace DAZ_Installer.DP
         switch (method)
             {
                 case DPSortMethod.Alphabetical:
-                    sqlQuery += @") ORDER BY ""Product Name"" ASC;";
+                    sqlQuery += @") ORDER BY ""Product Name"" COLLATE NOCASE ASC;";
                     break;
                 case DPSortMethod.Date:
                     sqlQuery += @") ORDER BY ""Date Created"" ASC;";
