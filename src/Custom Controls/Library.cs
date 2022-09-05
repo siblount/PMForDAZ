@@ -28,10 +28,11 @@ namespace DAZ_Installer
         protected List<LibraryItem> searchItems { get => libraryPanel1.SearchItems; set => libraryPanel1.SearchItems = value; }
         protected DPProductRecord[] ProductRecords { get; set; } = new DPProductRecord[0];
         private DPProductRecord[] SearchRecords { get; set; } = new DPProductRecord[0];
-        
+
         protected bool mainImagesLoaded = false;
 
-        internal DPSortMethod SearchSortMethod = DPSortMethod.Date;
+        internal DPSortMethod SortMethod = DPSortMethod.Date;
+        private string lastSearchQuery = string.Empty;
 
         protected bool SearchMode
         {
@@ -44,7 +45,8 @@ namespace DAZ_Installer
         public Library()
         {
             InitializeComponent();
-            self = this;  
+            self = this;
+            SetupSortMethodCombo();
         }
 
         // Called only when visible. Can be loaded but but visible.
@@ -61,7 +63,7 @@ namespace DAZ_Installer
         }
 
         // Called on a different thread.
-        public void LoadLibraryItemImages()
+        private void LoadLibraryItemImages()
         {
             thumbnails.Images.Add(Properties.Resources.NoImageFound);
 
@@ -74,11 +76,19 @@ namespace DAZ_Installer
         private void LoadLibraryItems()
         {
             if (Program.IsRunByIDE && !IsHandleCreated) return;
-            DPDatabase.GetProductRecordsQ(DPSortMethod.None, (uint) libraryPanel1.CurrentPage, 25, 0, OnLibraryQueryUpdate);
+            DPDatabase.GetProductRecordsQ(SortMethod, (uint)libraryPanel1.CurrentPage, 25, 0, OnLibraryQueryUpdate);
 
             // Invoke or BeginInvoke cannot be called on a control until the window handle has been created.'
             DPCommon.WriteToLog("Loaded library items.");
+        }
 
+        private void SetupSortMethodCombo()
+        {
+            foreach (var option in Enum.GetNames(typeof(DPSortMethod)))
+            {
+                sortByCombo.Items.Add(option);
+            }
+            sortByCombo.SelectedItem = Enum.GetName(SortMethod);
         }
 
         /// <summary>
@@ -98,7 +108,8 @@ namespace DAZ_Installer
                     lb.Dispose();
                 }
                 libraryPanel1.LibraryItems.Clear();
-            } else
+            }
+            else
             {
                 if (searchItems == null)
                 {
@@ -120,7 +131,7 @@ namespace DAZ_Installer
 
         internal LibraryItem AddNewSearchItem(DPProductRecord record)
         {
-            if (InvokeRequired) 
+            if (InvokeRequired)
                 return (LibraryItem)Invoke(new Func<DPProductRecord, LibraryItem>(AddNewSearchItem), record);
 
             var searchItem = new LibraryItem();
@@ -165,7 +176,7 @@ namespace DAZ_Installer
             lb.Image = noImageFound;
 
             if (libraryItems.Count != libraryItems.Capacity) libraryItems.Add(lb);
-            
+
             return lb;
         }
 
@@ -178,7 +189,8 @@ namespace DAZ_Installer
             {
                 var i = thumbnails.Images.IndexOfKey(fileName);
                 return thumbnails.Images[i];
-            } else
+            }
+            else
             {
                 // 125, 119
                 using var icon = Image.FromFile(filePath);
@@ -201,7 +213,7 @@ namespace DAZ_Installer
 
         // Used whenever a change has been made
         // 
-        
+
         // Try page update
         internal void TryPageUpdate()
         {
@@ -222,11 +234,12 @@ namespace DAZ_Installer
                 UpdatePageCount();
                 if (InvokeRequired) Invoke(libraryPanel1.UpdateMainContent);
                 else libraryPanel1.UpdateMainContent();
-            } catch { }
+            }
+            catch { }
         }
         public void ForcePageUpdate()
         {
-            if (InvokeRequired) {Invoke(ForcePageUpdate); return; }
+            if (InvokeRequired) { Invoke(ForcePageUpdate); return; }
             DPCommon.WriteToLog("force page update called.");
             ClearPageContents();
             ClearSearchItems();
@@ -236,18 +249,22 @@ namespace DAZ_Installer
             // Example - There are no library items on current page (invalid page) and no pages above it.
             UpdatePageCount();
             libraryPanel1.UpdateMainContent();
-            
+
         }
 
         // Used for handling page events.
         // TODO: Potential previous page == the same dispite mode.
-        public void UpdatePage(uint page) {
+        public void UpdatePage(uint page)
+        {
             DPCommon.WriteToLog("page update called.");
             // if (page == libraryPanel1.PreviousPage) return;
-            
-            if (!searchMode) {
-                DPDatabase.GetProductRecordsQ(DPSortMethod.None, page, 25, callback: OnLibraryQueryUpdate);
-            } else {
+
+            if (!searchMode)
+            {
+                DPDatabase.GetProductRecordsQ(SortMethod, page, 25, callback: OnLibraryQueryUpdate);
+            }
+            else
+            {
                 TryPageUpdate();
             }
         }
@@ -272,7 +289,7 @@ namespace DAZ_Installer
                 var lb = AddNewLibraryItem(record);
                 lb.ProductRecord = record;
 
-                lb.Image = File.Exists(record.ThumbnailPath) ? AddReferenceImage(record.ThumbnailPath) 
+                lb.Image = File.Exists(record.ThumbnailPath) ? AddReferenceImage(record.ThumbnailPath)
                                                             : noImageFound;
 
             }
@@ -286,17 +303,18 @@ namespace DAZ_Installer
             // Loop while i is less than records count and count is less than 25.
             var startIndex = (libraryPanel1.CurrentPage - 1) * 25;
             var count = 0;
-            for (var i = startIndex; i < SearchRecords.Length && count < 25; i++, count++) {
+            for (var i = startIndex; i < SearchRecords.Length && count < 25; i++, count++)
+            {
                 var record = SearchRecords[i];
                 var lb = AddNewSearchItem(record);
                 lb.ProductRecord = record;
-                
-                lb.Image = File.Exists(record.ThumbnailPath) ? AddReferenceImage(record.ThumbnailPath) 
+
+                lb.Image = File.Exists(record.ThumbnailPath) ? AddReferenceImage(record.ThumbnailPath)
                                                             : noImageFound;
             }
             libraryPanel1.EditMode = false;
         }
-        
+
 
         private void toolStripStatusLabel1_Click(object sender, EventArgs e)
         {
@@ -314,9 +332,11 @@ namespace DAZ_Installer
         {
             if (e.KeyCode == Keys.Enter)
             {
-                if (searchBox.Text.Length != 0) {
-                    lastSearchID = (uint) Random.Shared.Next(1,int.MaxValue);
-                    DPDatabase.SearchQ(searchBox.Text, DPSortMethod.Relevance, callback: OnSearchUpdate);
+                if (searchBox.Text.Length != 0)
+                {
+                    lastSearchID = (uint)Random.Shared.Next(1, int.MaxValue);
+                    lastSearchQuery = searchBox.Text;
+                    DPDatabase.SearchQ(searchBox.Text, SortMethod, callback: OnSearchUpdate);
                 }
             }
         }
@@ -350,10 +370,10 @@ namespace DAZ_Installer
                 var newProductRecords = new DPProductRecord[ProductRecords.Length + 1];
                 ProductRecords.CopyTo(newProductRecords, 0);
                 ProductRecords = newProductRecords;
-                ProductRecords[ProductRecords.Length -1] = record;
+                ProductRecords[ProductRecords.Length - 1] = record;
                 TryPageUpdate();
             }
-            
+
             // Otherwise, we may need to change the page count and current page.
             if ((uint)Math.Ceiling((DPDatabase.ProductRecordCount + 1) / 25f) != libraryPanel1.PageCount)
             {
@@ -397,11 +417,12 @@ namespace DAZ_Installer
                     break;
                 }
             }
-            UPDATE:
+        UPDATE:
             TryPageUpdate();
         }
 
-        private void OnModifiedProductRecord(DPProductRecord updatedRecord, uint oldID) {
+        private void OnModifiedProductRecord(DPProductRecord updatedRecord, uint oldID)
+        {
             if (searchMode)
             {
                 var index = Array.FindIndex(SearchRecords, r => r.ID == oldID);
@@ -410,7 +431,8 @@ namespace DAZ_Installer
                 if (lb is null) return;
                 UpdateLibraryItem(lb, updatedRecord);
                 SearchRecords[index] = updatedRecord;
-            } else
+            }
+            else
             {
                 var index = Array.FindIndex(ProductRecords, r => r.ID == oldID);
                 if (index == -1) return;
@@ -431,7 +453,7 @@ namespace DAZ_Installer
                 Invoke(UpdateLibraryItem, lb, record);
                 return;
             }
-            libraryPanel1.EditMode = true; 
+            libraryPanel1.EditMode = true;
             lb.TitleText = record.ProductName;
             lb.Tags = record.Tags;
             lb.ProductRecord = record;
@@ -448,6 +470,13 @@ namespace DAZ_Installer
                 return;
             }
             lb.Enabled = lb.Visible = false;
+        }
+
+        private void sortByCombo_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            SortMethod = (DPSortMethod)Enum.Parse(typeof(DPSortMethod), sortByCombo.Text);
+            if (searchMode) DPDatabase.SearchQ(lastSearchQuery, SortMethod, callback: OnSearchUpdate);
+            else DPDatabase.GetProductRecordsQ(SortMethod, libraryPanel1.CurrentPage, 25, callback: OnLibraryQueryUpdate);
         }
     }
 }

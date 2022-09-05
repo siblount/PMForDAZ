@@ -39,6 +39,7 @@ namespace DAZ_Installer
             this.statusStrip1 = new System.Windows.Forms.StatusStrip();
             this.loadStripStatusLabel = new System.Windows.Forms.ToolStripStatusLabel();
             this.stripProgressBar = new System.Windows.Forms.ToolStripProgressBar();
+            this.sortByCombo = new System.Windows.Forms.ComboBox();
             this.statusStrip1.SuspendLayout();
             this.SuspendLayout();
             // 
@@ -117,10 +118,24 @@ namespace DAZ_Installer
             this.stripProgressBar.Name = "stripProgressBar";
             this.stripProgressBar.Size = new System.Drawing.Size(110, 18);
             // 
+            // sortByCombo
+            // 
+            this.sortByCombo.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
+            this.sortByCombo.AutoCompleteMode = System.Windows.Forms.AutoCompleteMode.Append;
+            this.sortByCombo.AutoCompleteSource = System.Windows.Forms.AutoCompleteSource.ListItems;
+            this.sortByCombo.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
+            this.sortByCombo.FormattingEnabled = true;
+            this.sortByCombo.Location = new System.Drawing.Point(292, 32);
+            this.sortByCombo.Name = "sortByCombo";
+            this.sortByCombo.Size = new System.Drawing.Size(95, 23);
+            this.sortByCombo.TabIndex = 4;
+            this.sortByCombo.SelectedIndexChanged += new System.EventHandler(this.sortByCombo_SelectedIndexChanged);
+            // 
             // Library
             // 
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Inherit;
             this.BackColor = System.Drawing.Color.White;
+            this.Controls.Add(this.sortByCombo);
             this.Controls.Add(this.statusStrip1);
             this.Controls.Add(this.libraryPanel1);
             this.Controls.Add(this.titleLbl);
@@ -147,5 +162,6 @@ namespace DAZ_Installer
         private System.Windows.Forms.StatusStrip statusStrip1;
         internal System.Windows.Forms.ToolStripStatusLabel loadStripStatusLabel;
         internal System.Windows.Forms.ToolStripProgressBar stripProgressBar;
+        private System.Windows.Forms.ComboBox sortByCombo;
     }
 }
