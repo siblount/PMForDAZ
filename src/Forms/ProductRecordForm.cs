@@ -292,7 +292,7 @@ namespace DAZ_Installer
 
         private uint DeleteFiles(string destinationPath)
         {
-            var deleteCount = 0;
+            uint deleteCount = 0;
             foreach (var file in extractionRecord.Files)
             {
                 var deletePath = Path.Combine(extractionRecord.DestinationPath, file);
