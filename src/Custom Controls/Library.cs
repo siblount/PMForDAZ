@@ -65,9 +65,16 @@ namespace DAZ_Installer
         // Called on a different thread.
         private void LoadLibraryItemImages()
         {
-            thumbnails.Images.Add(Properties.Resources.NoImageFound);
-
-            noImageFound = thumbnails.Images[0];
+            lock (thumbnails.Images)
+            {
+                thumbnails.Images.Clear(); // added due to thumbnails.Images[0] (which should be NoImageFound) being a random image
+                                           // when the user installs another image and program updates the library. another way
+                                           // would be a simple initalize bool so we wouldn't need to clear() and this func 
+                                           // should always be called first.
+                thumbnails.Images.Add(Properties.Resources.NoImageFound);
+                noImageFound = thumbnails.Images[0];
+            }
+            
             mainImagesLoaded = true;
             DPCommon.WriteToLog("Loaded images.");
 
@@ -185,29 +192,36 @@ namespace DAZ_Installer
             if (filePath == null) return noImageFound;
             // Key = FileName
             var fileName = Path.GetFileName(filePath);
-            if (thumbnails.Images.ContainsKey(fileName))
+            lock (thumbnails.Images)
             {
-                var i = thumbnails.Images.IndexOfKey(fileName);
-                return thumbnails.Images[i];
-            }
-            else
-            {
-                // 125, 119
-                using var icon = Image.FromFile(filePath);
-                thumbnails.Images.Add(icon);
-                // Get the last index.
-                var i = thumbnails.Images.Count - 1;
-                thumbnails.Images.SetKeyName(i, fileName);
-                return thumbnails.Images[i];
+                if (thumbnails.Images.ContainsKey(fileName))
+                {
+                    var i = thumbnails.Images.IndexOfKey(fileName);
+                    return thumbnails.Images[i];
+                }
+                else
+                {
+                    // 125, 119
+                    using var icon = Image.FromFile(filePath);
+                    thumbnails.Images.Add(icon);
+                    // Get the last index.
+                    var i = thumbnails.Images.Count - 1;
+                    thumbnails.Images.SetKeyName(i, fileName);
+                    return thumbnails.Images[i];
+                }
+
             }
         }
 
         public void RemoveReferenceImage(string imageName)
         {
-            if (thumbnails.Images.ContainsKey(imageName))
+            lock (thumbnails.Images)
             {
-                thumbnails.Images.RemoveByKey(imageName);
-                thumbnails.Images.Keys.Remove(imageName);
+                if (thumbnails.Images.ContainsKey(imageName))
+                {
+                    thumbnails.Images.RemoveByKey(imageName);
+                    thumbnails.Images.Keys.Remove(imageName);
+                }
             }
         }
 
