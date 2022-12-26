@@ -57,7 +57,7 @@ namespace DAZ_Installer
             this.label1.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
             this.label1.AutoEllipsis = true;
-            this.label1.Font = new System.Drawing.Font("Segoe UI", 18F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
+            this.label1.Font = new System.Drawing.Font("Segoe UI Variable Display Semil", 18F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
             this.label1.Location = new System.Drawing.Point(128, 10);
             this.label1.Margin = new System.Windows.Forms.Padding(0);
             this.label1.Name = "label1";
@@ -93,6 +93,7 @@ namespace DAZ_Installer
             | System.Windows.Forms.AnchorStyles.Right)));
             this.showFoldersBtn.FlatAppearance.BorderSize = 0;
             this.showFoldersBtn.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.showFoldersBtn.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
             this.showFoldersBtn.ImageAlign = System.Drawing.ContentAlignment.MiddleLeft;
             this.showFoldersBtn.Location = new System.Drawing.Point(135, 78);
             this.showFoldersBtn.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);

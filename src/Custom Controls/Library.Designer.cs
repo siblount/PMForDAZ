@@ -60,11 +60,11 @@ namespace DAZ_Installer
             // titleLbl
             // 
             this.titleLbl.AutoSize = true;
-            this.titleLbl.Font = new System.Drawing.Font("Segoe UI", 16.2F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
+            this.titleLbl.Font = new System.Drawing.Font("Segoe UI Variable Display Semil", 17.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
             this.titleLbl.Location = new System.Drawing.Point(34, 22);
             this.titleLbl.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
             this.titleLbl.Name = "titleLbl";
-            this.titleLbl.Size = new System.Drawing.Size(79, 30);
+            this.titleLbl.Size = new System.Drawing.Size(80, 31);
             this.titleLbl.TabIndex = 1;
             this.titleLbl.Text = "Library";
             // 
@@ -124,6 +124,7 @@ namespace DAZ_Installer
             this.sortByCombo.AutoCompleteMode = System.Windows.Forms.AutoCompleteMode.Append;
             this.sortByCombo.AutoCompleteSource = System.Windows.Forms.AutoCompleteSource.ListItems;
             this.sortByCombo.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
+            this.sortByCombo.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
             this.sortByCombo.FormattingEnabled = true;
             this.sortByCombo.Location = new System.Drawing.Point(292, 32);
             this.sortByCombo.Name = "sortByCombo";

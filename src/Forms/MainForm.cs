@@ -3,13 +3,7 @@
 
 using DAZ_Installer.DP;
 using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Data;
 using System.Drawing;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows.Forms;
 
 namespace DAZ_Installer
@@ -17,7 +11,6 @@ namespace DAZ_Installer
     public partial class MainForm : Form
     {
         public static Color initialSidePanelColor;
-        public static Color darkerSidePanelColor = Color.FromArgb(50, Color.FromKnownColor(KnownColor.ForestGreen));
         public static MainForm activeForm;
 
         internal static UserControl[] userControls = new UserControl[4];
@@ -29,6 +22,8 @@ namespace DAZ_Installer
             InitializeComponent();
             activeForm = this;
             InitalizePages();
+
+            if (Environment.OSVersion.Version.Build >= 22000) DPGlobal.isWindows11 = true;
         }
 
         private void InitalizePages()
@@ -74,13 +69,13 @@ namespace DAZ_Installer
         private void sidePanelButtonMouseEnter(object sender, EventArgs e)
         {
             Label button = (Label)sender;
-            button.BackColor = darkerSidePanelColor;
+            button.ForeColor = Color.FromKnownColor(KnownColor.Coral);
         }
 
         private void sidePanelButtonMouseExit(object sender, EventArgs e)
         {
             Label button = (Label)sender;
-            button.BackColor = initialSidePanelColor;
+            button.ForeColor = Color.FromKnownColor(KnownColor.White);
         }
 
         private void extractLbl_Click(object sender, EventArgs e)
@@ -141,7 +136,6 @@ namespace DAZ_Installer
             }
             return null;
         }
-
 
     }
 }

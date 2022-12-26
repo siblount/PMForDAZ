@@ -17,7 +17,6 @@ namespace DAZ_Installer
 {
     public partial class Home : UserControl
     {
-        public static Color initialHomePanelColor;
         public static Home HomePage;
         public Home()
         {
@@ -25,22 +24,7 @@ namespace DAZ_Installer
             HomePage = this;
         }
 
-        private void homePage_Load(object sender, EventArgs e)
-        {
-            initialHomePanelColor = dragHerePanel.BackColor;
-        }
-
-        private void dragHerePanel_MouseEnter(object sender, EventArgs e)
-        {
-            dragHerePanel.BackColor = Color.FromArgb(255, initialHomePanelColor);
-        }
-
-        private void dragHerePanel_MouseLeave(object sender, EventArgs e)
-        {
-            dragHerePanel.BackColor = initialHomePanelColor;
-        }
-
-        private void dragHerePanel_Click(object sender, EventArgs e)
+        private void dropBtn_Click(object sender, EventArgs e)
         {
             HandleOpenDialogue();
         }
@@ -61,18 +45,18 @@ namespace DAZ_Installer
             clearListBtn_Click(null, null);
         }
 
-        private void dragHerePanel_DragEnter(object sender, DragEventArgs e)
+        private void dropBtn_DragEnter(object sender, DragEventArgs e)
         {
-            dropText.Text = "Drop here!";
+            dropBtn.Text = "Drop here!";
             e.Effect = DPCommon.dropEffect;
         }
 
-        private void dragHerePanel_DragLeave(object sender, EventArgs e)
+        private void dropBtn_DragLeave(object sender, EventArgs e)
         {
-            dropText.Text = "Click here to select file(s) or drag them here.";
+            dropBtn.Text = "Click here to select file(s) or drag them here.";
         }
 
-        private void dragHerePanel_DragDrop(object sender, DragEventArgs e)
+        private void dropBtn_DragDrop(object sender, DragEventArgs e)
         {
             string[] tmp = (string[]) e.Data.GetData(DataFormats.FileDrop, false);
             Queue<string> invalidFiles = new();
@@ -106,11 +90,9 @@ namespace DAZ_Installer
                     MessageBoxIcon.Warning);
             }
             if (listView1.Items.Count != 0 )
-            {
-                dragHerePanel.Visible = false;
-                dragHerePanel.Enabled = false;  
-            }
-            dropText.Text = "Click here to select file(s) or drag them here.";
+                dropBtn.Visible = dropBtn.Enabled = false;  
+
+            dropBtn.Text = "Click here to select file(s) or drag them here.";
         }
 
         private void removeToolStripMenuItem_Click(object sender, EventArgs e)
@@ -129,12 +111,8 @@ namespace DAZ_Installer
 
         private void controlDragPanel(bool visible)
         {
-            dragHerePanel.Visible = visible;
-            dragHerePanel.Enabled = visible;
-            if (visible)
-            {
-                dragHerePanel.BringToFront();
-            }
+            dropBtn.Visible = dropBtn.Enabled = visible;
+            if (visible) dropBtn.BringToFront();
         }
 
         private void HandleOpenDialogue()

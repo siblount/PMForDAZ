@@ -74,7 +74,7 @@ namespace DAZ_Installer
             this.productNameLbl.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
             this.productNameLbl.AutoEllipsis = true;
-            this.productNameLbl.Font = new System.Drawing.Font("Segoe UI", 16F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point);
+            this.productNameLbl.Font = new System.Drawing.Font("Segoe UI Variable Display Semib", 15.75F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point);
             this.productNameLbl.Location = new System.Drawing.Point(10, 22);
             this.productNameLbl.Name = "productNameLbl";
             this.productNameLbl.Size = new System.Drawing.Size(461, 32);
@@ -147,7 +147,7 @@ namespace DAZ_Installer
             | System.Windows.Forms.AnchorStyles.Right)));
             this.dateExtractedLbl.AutoEllipsis = true;
             this.dateExtractedLbl.Cursor = System.Windows.Forms.Cursors.IBeam;
-            this.dateExtractedLbl.Location = new System.Drawing.Point(14, 54);
+            this.dateExtractedLbl.Location = new System.Drawing.Point(14, 56);
             this.dateExtractedLbl.Name = "dateExtractedLbl";
             this.dateExtractedLbl.Size = new System.Drawing.Size(458, 15);
             this.dateExtractedLbl.TabIndex = 10;
@@ -327,6 +327,9 @@ namespace DAZ_Installer
             // 
             // toolStrip1
             // 
+            this.toolStrip1.AllowMerge = false;
+            this.toolStrip1.GripMargin = new System.Windows.Forms.Padding(0);
+            this.toolStrip1.GripStyle = System.Windows.Forms.ToolStripGripStyle.Hidden;
             this.toolStrip1.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.toolStripButton1});
             this.toolStrip1.Location = new System.Drawing.Point(0, 0);
@@ -350,14 +353,14 @@ namespace DAZ_Installer
             // deleteRecordToolStripMenuItem
             // 
             this.deleteRecordToolStripMenuItem.Name = "deleteRecordToolStripMenuItem";
-            this.deleteRecordToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
+            this.deleteRecordToolStripMenuItem.Size = new System.Drawing.Size(152, 22);
             this.deleteRecordToolStripMenuItem.Text = "Delete record";
             this.deleteRecordToolStripMenuItem.Click += new System.EventHandler(this.deleteRecordToolStripMenuItem_Click);
             // 
             // deleteProductToolStripMenuItem
             // 
             this.deleteProductToolStripMenuItem.Name = "deleteProductToolStripMenuItem";
-            this.deleteProductToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
+            this.deleteProductToolStripMenuItem.Size = new System.Drawing.Size(152, 22);
             this.deleteProductToolStripMenuItem.Text = "Delete product";
             this.deleteProductToolStripMenuItem.Click += new System.EventHandler(this.deleteProductToolStripMenuItem_Click);
             // 
@@ -374,6 +377,7 @@ namespace DAZ_Installer
             this.Controls.Add(this.dateExtractedLbl);
             this.Controls.Add(this.destinationPathLbl);
             this.Controls.Add(this.tabControl1);
+            this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
             this.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.MaximizeBox = false;
             this.MinimizeBox = false;

@@ -29,6 +29,7 @@
         private void InitializeComponent()
         {
             this.components = new System.ComponentModel.Container();
+            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(DatabaseView));
             this.bindingSource1 = new System.Windows.Forms.BindingSource(this.components);
             this.dataGrid = new System.Windows.Forms.DataGridView();
             this.tableLbl = new System.Windows.Forms.Label();
@@ -77,7 +78,7 @@
             this.changeTableBtn.Location = new System.Drawing.Point(544, 2);
             this.changeTableBtn.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.changeTableBtn.Name = "changeTableBtn";
-            this.changeTableBtn.Size = new System.Drawing.Size(145, 21);
+            this.changeTableBtn.Size = new System.Drawing.Size(148, 22);
             this.changeTableBtn.TabIndex = 2;
             this.changeTableBtn.Text = "Change Table";
             this.changeTableBtn.UseVisualStyleBackColor = true;
@@ -92,6 +93,7 @@
             this.Controls.Add(this.tableLbl);
             this.Controls.Add(this.tableNames);
             this.Controls.Add(this.dataGrid);
+            this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
             this.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.Name = "DatabaseView";
             this.Text = "Database Viewer";

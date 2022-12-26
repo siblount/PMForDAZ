@@ -29,6 +29,7 @@ namespace DAZ_Installer
         /// </summary>
         private void InitializeComponent()
         {
+            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(MainForm));
             this.tableLayoutPanel1 = new System.Windows.Forms.TableLayoutPanel();
             this.pictureBox1 = new System.Windows.Forms.PictureBox();
             this.homeLabel = new System.Windows.Forms.Label();
@@ -48,7 +49,7 @@ namespace DAZ_Installer
             // 
             // tableLayoutPanel1
             // 
-            this.tableLayoutPanel1.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(192)))), ((int)(((byte)(255)))), ((int)(((byte)(192)))));
+            this.tableLayoutPanel1.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(53)))), ((int)(((byte)(50)))), ((int)(((byte)(56)))));
             this.tableLayoutPanel1.ColumnCount = 1;
             this.tableLayoutPanel1.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 100F));
             this.tableLayoutPanel1.Controls.Add(this.pictureBox1, 0, 0);
@@ -71,9 +72,9 @@ namespace DAZ_Installer
             // 
             // pictureBox1
             // 
-            this.pictureBox1.BackColor = System.Drawing.Color.Transparent;
+            this.pictureBox1.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(53)))), ((int)(((byte)(50)))), ((int)(((byte)(56)))));
             this.pictureBox1.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.pictureBox1.Image = global::DAZ_Installer.Properties.Resources.logo;
+            this.pictureBox1.Image = global::DAZ_Installer.Properties.Resources.Logo2_256x;
             this.pictureBox1.Location = new System.Drawing.Point(3, 2);
             this.pictureBox1.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.pictureBox1.Name = "pictureBox1";
@@ -85,9 +86,10 @@ namespace DAZ_Installer
             // homeLabel
             // 
             this.homeLabel.AutoSize = true;
-            this.homeLabel.BackColor = System.Drawing.Color.Transparent;
+            this.homeLabel.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(53)))), ((int)(((byte)(50)))), ((int)(((byte)(56)))));
             this.homeLabel.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.homeLabel.Font = new System.Drawing.Font("Segoe UI", 18F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
+            this.homeLabel.Font = new System.Drawing.Font("Segoe UI Variable Text Light", 18F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
+            this.homeLabel.ForeColor = System.Drawing.Color.White;
             this.homeLabel.Location = new System.Drawing.Point(3, 68);
             this.homeLabel.Name = "homeLabel";
             this.homeLabel.Size = new System.Drawing.Size(111, 68);
@@ -102,7 +104,8 @@ namespace DAZ_Installer
             // 
             this.extractLbl.AutoSize = true;
             this.extractLbl.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.extractLbl.Font = new System.Drawing.Font("Segoe UI", 18F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
+            this.extractLbl.Font = new System.Drawing.Font("Segoe UI Variable Text Light", 18F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
+            this.extractLbl.ForeColor = System.Drawing.Color.White;
             this.extractLbl.Location = new System.Drawing.Point(3, 136);
             this.extractLbl.Name = "extractLbl";
             this.extractLbl.Size = new System.Drawing.Size(111, 68);
@@ -117,7 +120,8 @@ namespace DAZ_Installer
             // 
             this.libraryLbl.AutoSize = true;
             this.libraryLbl.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.libraryLbl.Font = new System.Drawing.Font("Segoe UI", 18F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
+            this.libraryLbl.Font = new System.Drawing.Font("Segoe UI Variable Text Light", 18F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
+            this.libraryLbl.ForeColor = System.Drawing.Color.White;
             this.libraryLbl.Location = new System.Drawing.Point(3, 204);
             this.libraryLbl.Name = "libraryLbl";
             this.libraryLbl.Size = new System.Drawing.Size(111, 68);
@@ -132,7 +136,8 @@ namespace DAZ_Installer
             // 
             this.settingsLbl.AutoSize = true;
             this.settingsLbl.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.settingsLbl.Font = new System.Drawing.Font("Segoe UI", 18F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
+            this.settingsLbl.Font = new System.Drawing.Font("Segoe UI Variable Text Light", 18F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
+            this.settingsLbl.ForeColor = System.Drawing.Color.White;
             this.settingsLbl.Location = new System.Drawing.Point(3, 272);
             this.settingsLbl.Name = "settingsLbl";
             this.settingsLbl.Size = new System.Drawing.Size(111, 72);
@@ -211,6 +216,7 @@ namespace DAZ_Installer
             this.ClientSize = new System.Drawing.Size(659, 344);
             this.Controls.Add(this.mainPanel);
             this.Controls.Add(this.tableLayoutPanel1);
+            this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
             this.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.MinimumSize = new System.Drawing.Size(675, 383);
             this.Name = "MainForm";

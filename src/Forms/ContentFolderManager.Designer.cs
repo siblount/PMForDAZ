@@ -29,6 +29,7 @@
         private void InitializeComponent()
         {
             this.components = new System.ComponentModel.Container();
+            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(ContentFolderManager));
             this.contentFolderTxtBox = new System.Windows.Forms.TextBox();
             this.label1 = new System.Windows.Forms.Label();
             this.addBtn = new System.Windows.Forms.Button();
@@ -46,10 +47,11 @@
             // 
             this.contentFolderTxtBox.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
-            this.contentFolderTxtBox.Location = new System.Drawing.Point(157, 12);
+            this.contentFolderTxtBox.Location = new System.Drawing.Point(137, 9);
+            this.contentFolderTxtBox.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.contentFolderTxtBox.MaxLength = 245;
             this.contentFolderTxtBox.Name = "contentFolderTxtBox";
-            this.contentFolderTxtBox.Size = new System.Drawing.Size(671, 27);
+            this.contentFolderTxtBox.Size = new System.Drawing.Size(588, 23);
             this.contentFolderTxtBox.TabIndex = 0;
             this.contentFolderTxtBox.WordWrap = false;
             this.contentFolderTxtBox.KeyUp += new System.Windows.Forms.KeyEventHandler(this.contentFolderTxtBox_KeyUp);
@@ -57,18 +59,19 @@
             // label1
             // 
             this.label1.AutoSize = true;
-            this.label1.Location = new System.Drawing.Point(12, 15);
+            this.label1.Location = new System.Drawing.Point(10, 11);
             this.label1.Name = "label1";
-            this.label1.Size = new System.Drawing.Size(142, 20);
+            this.label1.Size = new System.Drawing.Size(114, 15);
             this.label1.TabIndex = 1;
             this.label1.Text = "Add Content Folder:";
             // 
             // addBtn
             // 
             this.addBtn.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
-            this.addBtn.Location = new System.Drawing.Point(834, 11);
+            this.addBtn.Location = new System.Drawing.Point(730, 8);
+            this.addBtn.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.addBtn.Name = "addBtn";
-            this.addBtn.Size = new System.Drawing.Size(67, 29);
+            this.addBtn.Size = new System.Drawing.Size(59, 22);
             this.addBtn.TabIndex = 2;
             this.addBtn.Text = "Add";
             this.addBtn.UseVisualStyleBackColor = true;
@@ -83,9 +86,10 @@
             this.columnHeader1});
             this.contentFoldersView.ContextMenuStrip = this.listViewContextMenu;
             this.contentFoldersView.HeaderStyle = System.Windows.Forms.ColumnHeaderStyle.None;
-            this.contentFoldersView.Location = new System.Drawing.Point(12, 45);
+            this.contentFoldersView.Location = new System.Drawing.Point(10, 34);
+            this.contentFoldersView.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.contentFoldersView.Name = "contentFoldersView";
-            this.contentFoldersView.Size = new System.Drawing.Size(889, 311);
+            this.contentFoldersView.Size = new System.Drawing.Size(778, 234);
             this.contentFoldersView.TabIndex = 3;
             this.contentFoldersView.UseCompatibleStateImageBehavior = false;
             this.contentFoldersView.View = System.Windows.Forms.View.Details;
@@ -102,27 +106,27 @@
             this.resetToDefaultToolStripMenuItem,
             this.copyToolStripMenuItem});
             this.listViewContextMenu.Name = "listViewContextMenu";
-            this.listViewContextMenu.Size = new System.Drawing.Size(186, 76);
+            this.listViewContextMenu.Size = new System.Drawing.Size(158, 70);
             this.listViewContextMenu.Opening += new System.ComponentModel.CancelEventHandler(this.listViewContextMenu_Opening);
             // 
             // removeToolStripMenuItem
             // 
             this.removeToolStripMenuItem.Name = "removeToolStripMenuItem";
-            this.removeToolStripMenuItem.Size = new System.Drawing.Size(185, 24);
+            this.removeToolStripMenuItem.Size = new System.Drawing.Size(157, 22);
             this.removeToolStripMenuItem.Text = "Remove";
             this.removeToolStripMenuItem.Click += new System.EventHandler(this.removeToolStripMenuItem_Click);
             // 
             // resetToDefaultToolStripMenuItem
             // 
             this.resetToDefaultToolStripMenuItem.Name = "resetToDefaultToolStripMenuItem";
-            this.resetToDefaultToolStripMenuItem.Size = new System.Drawing.Size(185, 24);
+            this.resetToDefaultToolStripMenuItem.Size = new System.Drawing.Size(157, 22);
             this.resetToDefaultToolStripMenuItem.Text = "Reset to Default";
             this.resetToDefaultToolStripMenuItem.Click += new System.EventHandler(this.resetToDefaultToolStripMenuItem_Click);
             // 
             // copyToolStripMenuItem
             // 
             this.copyToolStripMenuItem.Name = "copyToolStripMenuItem";
-            this.copyToolStripMenuItem.Size = new System.Drawing.Size(185, 24);
+            this.copyToolStripMenuItem.Size = new System.Drawing.Size(157, 22);
             this.copyToolStripMenuItem.Text = "Copy";
             this.copyToolStripMenuItem.Click += new System.EventHandler(this.copyToolStripMenuItem_Click);
             // 
@@ -131,23 +135,25 @@
             this.noteLbl.Anchor = System.Windows.Forms.AnchorStyles.Bottom;
             this.noteLbl.AutoSize = true;
             this.noteLbl.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point);
-            this.noteLbl.Location = new System.Drawing.Point(157, 360);
+            this.noteLbl.Location = new System.Drawing.Point(137, 270);
             this.noteLbl.Name = "noteLbl";
-            this.noteLbl.Size = new System.Drawing.Size(578, 20);
+            this.noteLbl.Size = new System.Drawing.Size(455, 15);
             this.noteLbl.TabIndex = 5;
             this.noteLbl.Text = "Note: You must apply changes in the Settings page in order to save your changes.";
             // 
             // ContentFolderManager
             // 
-            this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 20F);
+            this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(913, 389);
+            this.ClientSize = new System.Drawing.Size(799, 292);
             this.Controls.Add(this.noteLbl);
             this.Controls.Add(this.contentFoldersView);
             this.Controls.Add(this.addBtn);
             this.Controls.Add(this.label1);
             this.Controls.Add(this.contentFolderTxtBox);
-            this.MinimumSize = new System.Drawing.Size(400, 200);
+            this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
+            this.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.MinimumSize = new System.Drawing.Size(352, 160);
             this.Name = "ContentFolderManager";
             this.Text = "Modify Content Folders";
             this.listViewContextMenu.ResumeLayout(false);

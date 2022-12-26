@@ -64,10 +64,10 @@ namespace DAZ_Installer
             // titleLbl
             // 
             this.titleLbl.AutoSize = true;
-            this.titleLbl.Font = new System.Drawing.Font("Segoe UI", 16.2F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
+            this.titleLbl.Font = new System.Drawing.Font("Segoe UI Variable Display Semil", 17.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
             this.titleLbl.Location = new System.Drawing.Point(27, 18);
             this.titleLbl.Name = "titleLbl";
-            this.titleLbl.Size = new System.Drawing.Size(90, 30);
+            this.titleLbl.Size = new System.Drawing.Size(93, 31);
             this.titleLbl.TabIndex = 2;
             this.titleLbl.Text = "Settings";
             this.titleLbl.TextAlign = System.Drawing.ContentAlignment.TopCenter;
@@ -111,7 +111,7 @@ namespace DAZ_Installer
             this.destinationPathCombo.Location = new System.Drawing.Point(187, 35);
             this.destinationPathCombo.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.destinationPathCombo.Name = "destinationPathCombo";
-            this.destinationPathCombo.Size = new System.Drawing.Size(243, 23);
+            this.destinationPathCombo.Size = new System.Drawing.Size(226, 23);
             this.destinationPathCombo.TabIndex = 3;
             this.destinationPathCombo.TextChanged += new System.EventHandler(this.destinationPathCombo_TextChanged);
             this.destinationPathCombo.Leave += new System.EventHandler(this.destinationPathCombo_Leave);
@@ -147,7 +147,7 @@ namespace DAZ_Installer
             this.downloadThumbnailsComboBox.Location = new System.Drawing.Point(187, 8);
             this.downloadThumbnailsComboBox.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.downloadThumbnailsComboBox.Name = "downloadThumbnailsComboBox";
-            this.downloadThumbnailsComboBox.Size = new System.Drawing.Size(278, 23);
+            this.downloadThumbnailsComboBox.Size = new System.Drawing.Size(261, 23);
             this.downloadThumbnailsComboBox.TabIndex = 1;
             this.downloadThumbnailsComboBox.SelectedIndexChanged += new System.EventHandler(this.downloadThumbnailsComboBox_SelectedIndexChanged);
             this.downloadThumbnailsComboBox.TextChanged += new System.EventHandler(this.downloadThumbnailsComboBox_TextChanged);
@@ -161,7 +161,7 @@ namespace DAZ_Installer
             this.fileHandlingCombo.Location = new System.Drawing.Point(187, 274);
             this.fileHandlingCombo.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.fileHandlingCombo.Name = "fileHandlingCombo";
-            this.fileHandlingCombo.Size = new System.Drawing.Size(278, 23);
+            this.fileHandlingCombo.Size = new System.Drawing.Size(261, 23);
             this.fileHandlingCombo.TabIndex = 5;
             this.fileHandlingCombo.TextChanged += new System.EventHandler(this.fileHandlingCombo_TextChanged);
             // 
@@ -208,7 +208,7 @@ namespace DAZ_Installer
             this.allowOverwritingCombo.Location = new System.Drawing.Point(187, 398);
             this.allowOverwritingCombo.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.allowOverwritingCombo.Name = "allowOverwritingCombo";
-            this.allowOverwritingCombo.Size = new System.Drawing.Size(277, 23);
+            this.allowOverwritingCombo.Size = new System.Drawing.Size(260, 23);
             this.allowOverwritingCombo.TabIndex = 20;
             this.allowOverwritingCombo.TextChanged += new System.EventHandler(this.allowOverwritingCombo_TextChanged);
             // 
@@ -226,7 +226,7 @@ namespace DAZ_Installer
             // chooseTempPathBtn
             // 
             this.chooseTempPathBtn.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
-            this.chooseTempPathBtn.Location = new System.Drawing.Point(435, 59);
+            this.chooseTempPathBtn.Location = new System.Drawing.Point(418, 59);
             this.chooseTempPathBtn.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.chooseTempPathBtn.Name = "chooseTempPathBtn";
             this.chooseTempPathBtn.Size = new System.Drawing.Size(30, 20);
@@ -238,7 +238,7 @@ namespace DAZ_Installer
             // chooseDestPathBtn
             // 
             this.chooseDestPathBtn.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
-            this.chooseDestPathBtn.Location = new System.Drawing.Point(435, 35);
+            this.chooseDestPathBtn.Location = new System.Drawing.Point(418, 35);
             this.chooseDestPathBtn.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.chooseDestPathBtn.Name = "chooseDestPathBtn";
             this.chooseDestPathBtn.Size = new System.Drawing.Size(30, 21);
@@ -256,7 +256,7 @@ namespace DAZ_Installer
             this.installPrevProductsCombo.Location = new System.Drawing.Point(188, 355);
             this.installPrevProductsCombo.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.installPrevProductsCombo.Name = "installPrevProductsCombo";
-            this.installPrevProductsCombo.Size = new System.Drawing.Size(277, 23);
+            this.installPrevProductsCombo.Size = new System.Drawing.Size(260, 23);
             this.installPrevProductsCombo.TabIndex = 16;
             this.installPrevProductsCombo.TextChanged += new System.EventHandler(this.installPrevProducts_TextChanged);
             // 
@@ -279,7 +279,7 @@ namespace DAZ_Installer
             this.removeSourceFilesCombo.Location = new System.Drawing.Point(187, 311);
             this.removeSourceFilesCombo.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.removeSourceFilesCombo.Name = "removeSourceFilesCombo";
-            this.removeSourceFilesCombo.Size = new System.Drawing.Size(277, 23);
+            this.removeSourceFilesCombo.Size = new System.Drawing.Size(260, 23);
             this.removeSourceFilesCombo.TabIndex = 14;
             this.removeSourceFilesCombo.TextChanged += new System.EventHandler(this.removeSourceFiles_TextChanged);
             // 
@@ -297,7 +297,7 @@ namespace DAZ_Installer
             // modifyContentRedirectsBtn
             // 
             this.modifyContentRedirectsBtn.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
-            this.modifyContentRedirectsBtn.Location = new System.Drawing.Point(406, 248);
+            this.modifyContentRedirectsBtn.Location = new System.Drawing.Point(389, 248);
             this.modifyContentRedirectsBtn.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.modifyContentRedirectsBtn.Name = "modifyContentRedirectsBtn";
             this.modifyContentRedirectsBtn.Size = new System.Drawing.Size(59, 22);
@@ -309,7 +309,7 @@ namespace DAZ_Installer
             // modifyContentFoldersBtn
             // 
             this.modifyContentFoldersBtn.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
-            this.modifyContentFoldersBtn.Location = new System.Drawing.Point(406, 154);
+            this.modifyContentFoldersBtn.Location = new System.Drawing.Point(389, 154);
             this.modifyContentFoldersBtn.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.modifyContentFoldersBtn.Name = "modifyContentFoldersBtn";
             this.modifyContentFoldersBtn.Size = new System.Drawing.Size(59, 22);
@@ -325,7 +325,7 @@ namespace DAZ_Installer
             this.tempTxtBox.Location = new System.Drawing.Point(187, 59);
             this.tempTxtBox.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.tempTxtBox.Name = "tempTxtBox";
-            this.tempTxtBox.Size = new System.Drawing.Size(243, 23);
+            this.tempTxtBox.Size = new System.Drawing.Size(226, 23);
             this.tempTxtBox.TabIndex = 11;
             this.tempTxtBox.KeyUp += new System.Windows.Forms.KeyEventHandler(this.tempTxtBox_KeyUp);
             this.tempTxtBox.Leave += new System.EventHandler(this.tempTxtBox_Leave);
@@ -339,7 +339,7 @@ namespace DAZ_Installer
             this.contentFolderRedirectsListBox.Location = new System.Drawing.Point(187, 180);
             this.contentFolderRedirectsListBox.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.contentFolderRedirectsListBox.Name = "contentFolderRedirectsListBox";
-            this.contentFolderRedirectsListBox.Size = new System.Drawing.Size(278, 64);
+            this.contentFolderRedirectsListBox.Size = new System.Drawing.Size(261, 64);
             this.contentFolderRedirectsListBox.TabIndex = 0;
             // 
             // contentFoldersListBox
@@ -351,7 +351,7 @@ namespace DAZ_Installer
             this.contentFoldersListBox.Location = new System.Drawing.Point(187, 86);
             this.contentFoldersListBox.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.contentFoldersListBox.Name = "contentFoldersListBox";
-            this.contentFoldersListBox.Size = new System.Drawing.Size(278, 64);
+            this.contentFoldersListBox.Size = new System.Drawing.Size(261, 64);
             this.contentFoldersListBox.TabIndex = 1;
             // 
             // label5

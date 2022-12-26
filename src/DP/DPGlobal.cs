@@ -13,6 +13,7 @@ namespace DAZ_Installer.DP
         internal static int mainThreadID = 0;
         public static bool appClosing { get; set; } = false;
         public static event Action<FormClosingEventArgs> AppClosing;
+        public static bool isWindows11 = false;
 
         public static void HandleAppClosing(FormClosingEventArgs e)
         {
