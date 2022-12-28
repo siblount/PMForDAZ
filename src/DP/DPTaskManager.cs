@@ -18,6 +18,8 @@ namespace DAZ_Installer.DP
         internal delegate void QueueAction<in T1, in T2>(T1 arg1, T2 arg2, CancellationToken token);
         internal delegate void QueueAction<in T1, in T2, in T3>(T1 arg1, T2 arg2, T3 arg3, CancellationToken token);
         internal delegate void QueueAction<in T1, in T2, in T3, in T4>(T1 arg1, T2 arg2, T3 arg3, T4 arg4, CancellationToken token);
+        internal delegate void QueueAction<in T1, in T2, in T3, in T4, in T5>(T1 arg1, T2 arg2, T3 arg3, T4 arg4, T5 arg5, CancellationToken token);
+
 
 
         private CancellationTokenSource _source;
@@ -155,6 +157,23 @@ namespace DAZ_Installer.DP
             return task;
         }
 
+        public Task AddToQueue<T1, T2, T3, T4, T5>(QueueAction<T1, T2, T3, T4, T5> action, T1 arg1, T2 arg2, T3 arg3, T4 arg4, T5 arg5)
+        {
+            CancellationToken t = _token;
+            Task task = lastTask;
+
+            if (lastTask == null)
+            {
+                task = lastTask = Task.Factory.StartNew(() => action(arg1, arg2, arg3, arg4, arg5, t));
+            }
+            else
+            {
+                task = lastTask = lastTask.ContinueWith((_) => action(arg1, arg2, arg3, arg4, arg5, t),
+                                                    t, _continuationOptions, _scheduler);
+            }
+            return task;
+        }
+
         public Task AddToQueue<ReturnType>(Func<CancellationToken, ReturnType> func)
         {
             CancellationToken t = _token;
@@ -233,9 +252,25 @@ namespace DAZ_Installer.DP
             }
             return task;
         }
+        public Task AddToQueue<ReturnType, T1, T2, T3, T4, T5>(Func<T1, T2, T3, T4, T5, CancellationToken, ReturnType> func,
+                                                       T1 arg1, T2 arg2, T3 arg3, T4 arg4, T5 arg5)
+        {
+            CancellationToken t = _token;
+            Task task = lastTask;
+            if (lastTask == null)
+            {
+                task = lastTask = Task.Factory.StartNew(() => func(arg1, arg2, arg3, arg4, arg5, t));
+            }
+            else
+            {
+                task = lastTask = lastTask.ContinueWith((_) => func(arg1, arg2, arg3, arg4, arg5, t),
+                                                    t, _continuationOptions, _scheduler);
+            }
+            return task;
+        }
         #endregion
 
-        
+
 
     }
 }
