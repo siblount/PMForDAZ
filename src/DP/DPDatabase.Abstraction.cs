@@ -389,13 +389,12 @@ namespace DAZ_Installer.DP
             }
             catch (Exception ex)
             {
-                DPCommon.WriteToLog($"Failed to create and begin transcation. REASON: {ex}");
+                DPCommon.WriteToLog($"Failed to create and begin transaction. REASON: {ex}");
                 return false;
             } finally {
                 if (c is null)
                 {
                     sqlCommand?.Dispose();
-                    transaction?.Dispose();
                     connection?.Dispose();
                 }
                     
@@ -450,7 +449,7 @@ namespace DAZ_Installer.DP
                 if (c is null) {
                     connection?.Dispose();
                     sqlCommand?.Dispose();
-                    transaction?.Dispose();
+                    
                 }
             }
 
@@ -469,31 +468,28 @@ namespace DAZ_Installer.DP
             bool or, SQLiteConnection? c, CancellationToken t)
         {
             // Build columns.
-            string whereCommand = "";
-
+            List<string> args = new List<string>(conditions.Length);
+            var vals = new object[conditions.Length];
+            StringBuilder builder = new StringBuilder(250);
+            builder.Append($"DELETE FROM {tableName}");
+            
             for (var i = 0; i < conditions.Length; i++)
             {
                 var tuple = conditions[i];
                 var column = tuple.Item1;
                 var item = tuple.Item2;
+                var arg = $"@A{i}";
                 if (i == 0)
-                {
-                    whereCommand += $"WHERE {column} IN ({ConvertParamsToString(item)})";
-                }
+                    builder.Append($" WHERE \"{column}\" = {arg}");
                 else
                 {
-                    if (or)
-                    {
-                        whereCommand += $"OR WHERE {column} IN ({ConvertParamsToString(item)})";
-                    }
-                    else
-                    {
-                        whereCommand += $"AND WHERE {column} IN ({ConvertParamsToString(item)})";
-                    }
+                    builder.Append(or ? " OR WHERE" : " AND WHERE");
+                    builder.Append($"\"{column}\" = {arg}");
                 }
+                args.Add(arg);
+                vals[i] = item;
             }
-
-            string deleteCommand = $"DELETE FROM {tableName} {whereCommand};";
+            builder.Append(';');
             SQLiteConnection connection = null;
             SQLiteTransaction transaction = null;
             SQLiteCommand sqlCommand = null;
@@ -504,13 +500,14 @@ namespace DAZ_Installer.DP
                 transaction = connection.BeginTransaction();
                 try
                 {
-                    sqlCommand = new SQLiteCommand(deleteCommand, connection, transaction);
+                    sqlCommand = new SQLiteCommand(builder.ToString(), connection, transaction);
+                    FillParamsToConnection(sqlCommand, args, vals);
                     sqlCommand.ExecuteNonQuery();
                     transaction.Commit();
                     TableUpdated?.Invoke(tableName);
                 } catch (Exception ex)
                 {
-                    DPCommon.WriteToLog($"Failed to delete from {tableName} {whereCommand}. REASON: {ex}");
+                    DPCommon.WriteToLog($"Failed to delete from {tableName}. REASON: {ex}");
                     transaction.Rollback();
                     return false;
                 }
@@ -518,11 +515,10 @@ namespace DAZ_Installer.DP
             }
             catch (Exception ex)
             {
-                DPCommon.WriteToLog($"Failed to create connection and transcation. REASON: {ex}");
+                DPCommon.WriteToLog($"Failed to create connection and transaction. REASON: {ex}");
             } finally {
                 if (c is null) {
                     connection?.Dispose();
-                    transaction?.Dispose();
                     sqlCommand?.Dispose();
                 }
             }
@@ -571,7 +567,6 @@ namespace DAZ_Installer.DP
             } finally {
                 if (c is null) {
                     connection?.Dispose();
-                    transaction?.Dispose();
                     sqlCommand?.Dispose();
                 }
             }
@@ -767,7 +762,6 @@ namespace DAZ_Installer.DP
             } finally {
                 if (c is null) {
                     connection?.Dispose();
-                    transaction?.Dispose();
                     sqlCommand?.Dispose();
                 }
             }
@@ -815,7 +809,6 @@ namespace DAZ_Installer.DP
             } finally {
                 if (c is null) {
                     connection?.Dispose();
-                    transaction?.Dispose();
                     sqlCommand?.Dispose();
                 }
             }
@@ -886,7 +879,6 @@ namespace DAZ_Installer.DP
             } finally {
                 if (c is null) {
                     connection?.Dispose();
-                    transaction?.Dispose();
                     sqlCommand?.Dispose();
                 }
             }
@@ -1014,7 +1006,6 @@ namespace DAZ_Installer.DP
             } finally {
                 if (c is null) {
                     connection?.Dispose();
-                    transaction?.Dispose();
                     sqlCommand?.Dispose();
                 }
             }
@@ -1062,9 +1053,9 @@ namespace DAZ_Installer.DP
                     }
                     if (!RemoveTags(pid, connection, t)) return false;
                     // Temporarly disable triggers.
-                    DeleteTriggers();
+                    TempDeleteTriggers(connection, t);
                     InsertTags(tags, pid, connection, t);
-                    CreateTriggers();
+                    RestoreTriggers(connection, t);
                     sqlCommand.ExecuteNonQuery();
                     transaction.Commit();
                     TableUpdated?.Invoke("ProductRecords");
@@ -1085,12 +1076,13 @@ namespace DAZ_Installer.DP
             }
             finally
             {
+                RestoreTriggers(connection, t);
                 if (c is null)
                 {
                     connection?.Dispose();
-                    transaction?.Dispose();
                     sqlCommand?.Dispose();
                 }
+                try { transaction?.Dispose(); } catch { } // not sure if this is needed if connection is disposed and transaction didn't commit.
             }
             return true;
         }
@@ -1159,7 +1151,6 @@ namespace DAZ_Installer.DP
                 if (c is null)
                 {
                     connection?.Dispose();
-                    transaction?.Dispose();
                     sqlCommand?.Dispose();
                 }
             }
