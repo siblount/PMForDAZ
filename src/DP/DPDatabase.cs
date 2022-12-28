@@ -536,6 +536,118 @@ namespace DAZ_Installer.DP
             }
             return true;
         }
+        /// <summary>
+        /// Temporarily deletes triggers from the database. 
+        /// Use this for all other code excluding initialization. <para/>
+        /// To restore triggers, use <c>RestoreTriggers()</c> instead of <c>CreateTriggers()</c>.
+        /// </summary>
+        /// <param name="c">The SQLiteConnection to use, if any. Recommended to use a connection, otherwise use <c>DeleteTriggers()</c> instead.</param>
+        /// <param name="token">Cancel token. Required, cannot be null. Use CancellationToken.None instead (though not recommended).</param>
+        /// <returns>Whether deleting triggers was a success.</returns>
+        private static bool TempDeleteTriggers(SQLiteConnection c, CancellationToken token)
+        {
+            if (token.IsCancellationRequested) return false;
+            const string removeTriggersCommand =
+                        @"DROP TRIGGER IF EXISTS delete_on_extraction_removal;
+                        DROP TRIGGER IF EXISTS delete_on_product_removal;
+                        DROP TRIGGER IF EXISTS update_on_extraction_add;
+                        DROP TRIGGER IF EXISTS update_product_count;";
+            SQLiteConnection connection = null;
+            SQLiteCommand deleteCommand = null;
+            try
+            {
+                connection = CreateAndOpenConnection(c);
+                deleteCommand = new SQLiteCommand(removeTriggersCommand, connection);
+                deleteCommand.ExecuteNonQuery();
+                DatabaseUpdated?.Invoke();
+            }
+            catch (Exception ex)
+            {
+                DPCommon.WriteToLog($"An error occurred removing triggers. REASON: {ex}");
+                return false;
+            } finally
+            {
+                if (c == null)
+                {
+                    connection?.Dispose();
+                    deleteCommand?.Dispose();
+                }
+            }
+            return true;
+        }
+
+        /// <summary>
+        /// Restores the triggers previously removed by <c>TempDeleteTriggers()</c>.
+        /// </summary>
+        /// <param name="c">The SQLiteConnection to use, if any. Recommended to use a connection, otherwise use <c>DeleteTriggers()</c> instead.</param>
+        /// <param name="token">Cancel token. Required, cannot be null. Use CancellationToken.None instead and if you wish to restore triggers that 
+        /// cannot be cancelled.</param>
+        /// <returns>Whether restoring the triggers was a success.</returns>
+        private static bool RestoreTriggers(SQLiteConnection c, CancellationToken token)
+        {
+            if (token.IsCancellationRequested) return false;
+            const string deleteOnProductRemoveTriggerCommand =
+                        @"CREATE TRIGGER IF NOT EXISTS delete_on_product_removal
+                            AFTER DELETE ON ProductRecords FOR EACH ROW
+                        BEGIN
+                            UPDATE DatabaseInfo SET ""Product Record Count"" = (SELECT COUNT(*) FROM ProductRecords);
+                            DELETE FROM ExtractionRecords WHERE ID = old.""Extraction Record ID"";
+                            DELETE FROM TAGS WHERE ""Product Record ID"" = old.ID;
+                        END;";
+            const string deleteOnExtractionRemoveTriggerCommand =
+                        @"CREATE TRIGGER IF NOT EXISTS delete_on_extraction_removal
+                            AFTER DELETE ON ExtractionRecords FOR EACH ROW
+                        BEGIN
+                            UPDATE DatabaseInfo SET ""Extraction Record Count"" = (SELECT COUNT(*) FROM ExtractionRecords);
+                            UPDATE ProductRecords SET ""Extraction Record ID"" = NULL WHERE ""Extraction Record ID"" = old.ID;
+                        END;";
+
+            const string updateOnExtractionInsertionTriggerCommand = @"
+                        CREATE TRIGGER IF NOT EXISTS update_on_extraction_add
+	                        AFTER INSERT ON ExtractionRecords FOR EACH ROW
+                        BEGIN
+	                        UPDATE DatabaseInfo SET ""Extraction Record Count"" = (SELECT COUNT(*) FROM ExtractionRecords);
+                            UPDATE ExtractionRecords SET ""Product Record ID"" = (SELECT ID FROM ProductRecords ORDER BY ID DESC LIMIT 1) WHERE ID = NEW.ID;
+                            UPDATE ProductRecords SET ""Extraction Record ID"" = NEW.ID WHERE ID IN (SELECT ID FROM ProductRecords ORDER BY ID DESC LIMIT 1);
+                        END;";
+
+            const string updateProductCountTriggerCommand = @"
+                        CREATE TRIGGER IF NOT EXISTS update_product_count
+	                        AFTER INSERT ON ProductRecords
+                        BEGIN
+	                        UPDATE DatabaseInfo SET ""Product Record Count"" = (SELECT COUNT(*) FROM ProductRecords);
+                        END";
+
+            SQLiteConnection connection = null;
+            SQLiteCommand createCommand = null;
+            try
+            {
+                connection = CreateAndOpenConnection(c);
+                createCommand = new SQLiteCommand(deleteOnProductRemoveTriggerCommand, connection);         
+                createCommand.ExecuteNonQuery();
+                createCommand.CommandText = deleteOnExtractionRemoveTriggerCommand;
+                createCommand.ExecuteNonQuery();
+                createCommand.CommandText = updateOnExtractionInsertionTriggerCommand;
+                createCommand.ExecuteNonQuery();
+                createCommand.CommandText = updateProductCountTriggerCommand;
+                createCommand.ExecuteNonQuery();
+                DatabaseUpdated?.Invoke();
+            }
+            catch (Exception ex)
+            {
+                DPCommon.WriteToLog($"An error occurred creating triggers. REASON: {ex}");
+                return false;
+            } finally
+            {
+                if (c == null)
+                {
+                    connection?.Dispose();
+                    createCommand?.Dispose();
+                }
+            }
+            return true;
+
+        }
 
         // TO DO: Refresh database code.
         private static void RefreshDatabase(CancellationToken t) {
