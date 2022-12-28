@@ -9,6 +9,10 @@ using System.Windows.Forms;
 using DAZ_Installer.DP;
 using System.Threading.Tasks;
 using DAZ_Installer.Utilities;
+using DAZ_Installer.Properties;
+using DAZ_Installer.Forms;
+using System.Diagnostics;
+using System.Linq;
 
 namespace DAZ_Installer
 {
@@ -17,10 +21,13 @@ namespace DAZ_Installer
         private DPProductRecord record;
         private DPExtractionRecord extractionRecord;
         private uint[] maxFontWidthPerListView = new uint[5];
+        private HashSet<string> tagsSet = new HashSet<string>();
         public ProductRecordForm()
         {
             InitializeComponent();
             fileTreeView.StateImageList = Extract.ExtractPage.archiveFolderIcons;
+            if (DPGlobal.isWindows11) 
+                applyChangesBtn.Size = new Size(applyChangesBtn.Size.Width, applyChangesBtn.Size.Height + 2);
         }
 
         public ProductRecordForm(DPProductRecord productRecord) : this()
@@ -33,18 +40,31 @@ namespace DAZ_Installer
         public void InitializeProductRecordInfo(DPProductRecord record)
         {
             this.record = record;
-            productNameLbl.Text = record.ProductName;
+            productNameTxtBox.Text = record.ProductName;
+            authorLbl.Text += string.IsNullOrEmpty(record.Author) ? "Not detected" : record.Author; 
             tagsView.BeginUpdate();
             Array.ForEach(record.Tags, tag => tagsView.Items.Add(tag));
+            tagsSet = new HashSet<string>(record.Tags);
             tagsView.EndUpdate();
             if (record.ThumbnailPath != null && File.Exists(record.ThumbnailPath))
             {
                 thumbnailBox.Image = Library.self.AddReferenceImage(record.ThumbnailPath);
+                thumbnailBox.ImageLocation = record.ThumbnailPath;
             }
             dateExtractedLbl.Text += record.Time.ToLocalTime().ToString();
             CalculateMaxWidthPerListView();
             UpdateColumnWidths();
+            DPDatabase.ProductRecordModified += OnProductRecordModified;
 
+        }
+
+        private void OnProductRecordModified(DPProductRecord newProductRecord, uint id)
+        {
+            if (id == record.ID)
+            {
+                MessageBox.Show("Product record successfully updated!", "Product record updated successfully.");
+            }
+            record = newProductRecord;
         }
 
         public void InitializeExtractionRecordInfo(DPExtractionRecord record)
@@ -308,6 +328,296 @@ namespace DAZ_Installer
                 }
             }
             return deleteCount;
+        }
+
+        private string[] CreateTagsArray()
+        {
+            var tags = new string[tagsView.Items.Count];
+            for (var i = 0; i < tags.Length; i++)
+            {
+                tags[i] = tagsView.Items[i].Text;
+            }
+            return tags;
+        }
+
+        private string[] CreateFinalTagsArray()
+        {
+            var tags = new HashSet<string>(tagsView.Items.Count);
+            for (var i = 0; i < tagsView.Items.Count; i++)
+                tags.Add(tagsView.Items[i].Text);
+            tags.Remove(record.ProductName);
+            var oldProductNameRegexMatches = DPAbstractArchive.ProductNameRegex.Matches(record.ProductName);
+            var newProductNameRegexMatches = DPAbstractArchive.ProductNameRegex.Matches(productNameTxtBox.Text);
+            for (var i = 0; i < oldProductNameRegexMatches.Count; i++)
+                tags.Remove(oldProductNameRegexMatches[i].Value);
+            for (var i = 0; i < newProductNameRegexMatches.Count; i++)
+                tags.Add(newProductNameRegexMatches[i].Value);
+            tags.Add(productNameTxtBox.Text);
+            return tags.ToArray();
+        }
+        private string GetThumbnailPath()
+        {
+            if (thumbnailBox.Image == Resources.NoImageFound) return null;
+            else return thumbnailBox.ImageLocation;
+        }
+
+        private void applyChangesBtn_Click(object sender, EventArgs e)
+        {
+            var r = MessageBox.Show("Are you sure you wish up apply changes? You cannot revert changes.", "Confirmation", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+            if (r == DialogResult.No) return;
+            var p = new DPProductRecord(productNameTxtBox.Text, CreateFinalTagsArray(), record.Author, record.SKU, record.Time, GetThumbnailPath(), record.EID, record.ID);
+            DPDatabase.UpdateRecord(record.ID, p, extractionRecord);
+        }
+
+        private void editTagsToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            var tagsManager = new TagsManager(CreateTagsArray());
+            tagsManager.ShowDialog();
+
+            tagsView.BeginUpdate();
+            tagsView.Items.Clear();
+            tagsSet.Clear();
+            tagsSet = new HashSet<string>(tagsManager.tags);
+            foreach (var tag in tagsSet)
+            {
+                tagsView.Items.Add(tag);
+            }
+            tagsView.EndUpdate();
+        }
+
+        private void pasteNewTagsToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            var txt = Clipboard.GetText();
+            var tags = new List<string>(txt.Split('\n'));
+            foreach (var tag in tags)
+            {
+                if (string.IsNullOrEmpty(tag) || string.IsNullOrWhiteSpace(tag)) continue;
+                tagsSet.Add(tag);
+            }
+            tagsView.BeginUpdate();
+            tagsView.Items.Clear();
+            foreach (var tag in tagsSet)
+            {
+                tagsView.Items.Add(tag);
+            }
+            tagsView.EndUpdate();
+        }
+
+        private void removeTagToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            tagsView.BeginUpdate();
+            var c = new ListViewItem[tagsView.SelectedItems.Count];
+            tagsView.SelectedItems.CopyTo(c, 0);
+            for (var i = 0; i < c.Length; i++)
+            {
+                tagsSet.Remove(c[i].Text);
+                tagsView.Items.Remove(c[i]);
+            }
+            tagsView.EndUpdate();
+            
+        }
+
+        private void tagsStrip_Opening(object _, System.ComponentModel.CancelEventArgs __)
+        {
+            removeTagToolStripMenuItem.Enabled = copyToolStripMenuItem.Enabled = tagsView.SelectedItems.Count != 0;
+            pasteNewTagsToolStripMenuItem.Enabled = Clipboard.ContainsText();
+            replaceToolStripMenuItem.Enabled = tagsView.SelectedItems.Count == 1 && Clipboard.ContainsText();
+        }
+
+        private void replaceToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            var txt = Clipboard.GetText().Trim().Split('\n');
+            if (txt.Length > 1 && !string.IsNullOrEmpty(txt[1]) && !string.IsNullOrWhiteSpace(txt[1]))
+            {
+                MessageBox.Show($"Replace failed. Make sure your clipboard contains only one line of text. Detected {txt.Length} lines of text in clipboard.", "Too many lines", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
+            tagsView.BeginUpdate();
+            tagsSet.Remove(tagsView.SelectedItems[0].Text);
+            tagsView.SelectedItems[0].Text = txt[0];
+            tagsView.EndUpdate();
+        }
+
+        private void copyToolStripMenuItem_Click(object __, EventArgs _)
+        {
+            var a = new string[tagsView.SelectedItems.Count];
+            for (var i = 0; i < a.Length; i++)
+            {
+                a[i] = tagsView.SelectedItems[i].Text;
+            }
+            try
+            {
+                Clipboard.SetText(string.Join('\n', a));
+            } catch { }
+        }
+
+        private void tagsView_KeyUp(object sender, KeyEventArgs e)
+        {
+            if (e.Modifiers == Keys.Control)
+            {
+                if (e.KeyCode == Keys.C && tagsView.SelectedItems.Count != 0)
+                    copyToolStripMenuItem_Click(null, null);
+                else if (e.KeyCode == Keys.A) // Select all
+                {
+                    tagsView.BeginUpdate();
+                    for (var i = 0; i < tagsView.Items.Count; i++)
+                        tagsView.Items[i].Selected = true;
+                    tagsView.EndUpdate();
+                }
+            }
+            
+            if (e.KeyCode == Keys.Delete && tagsView.SelectedItems.Count != 0)
+                removeTagToolStripMenuItem_Click(null, null);
+
+        }
+
+        private void genericStrip_Opening(object sender, System.ComponentModel.CancelEventArgs e)
+        {
+            var selectedTab = tabControl1.SelectedTab;
+            var combinedPath = string.Empty;
+            copyToolStripMenuItem1.Enabled = copyPathToolStripMenuItem.Enabled = openInFileExplorerToolStripMenuItem.Enabled = false;
+            if (selectedTab == fileHierachyPage)
+            {
+                if (fileTreeView.SelectedNode == null) return;
+                combinedPath = Path.Combine(extractionRecord.DestinationPath, fileTreeView.SelectedNode.FullPath);
+                copyToolStripMenuItem1.Enabled = copyPathToolStripMenuItem.Enabled = true;
+            }
+            else if (selectedTab == contentFoldersPage)
+            {
+                if (contentFoldersList.SelectedItems.Count == 0) return;
+                combinedPath = Path.Combine(extractionRecord.DestinationPath, contentFoldersList.SelectedItems[0].Text);
+                copyToolStripMenuItem1.Enabled = copyPathToolStripMenuItem.Enabled = true;
+            }
+            else if (selectedTab == fileListPage)
+            {
+                if (filesExtractedList.SelectedItems.Count == 0) return;
+                combinedPath = Path.Combine(extractionRecord.DestinationPath, filesExtractedList.SelectedItems[0].Text);
+                copyToolStripMenuItem1.Enabled = copyPathToolStripMenuItem.Enabled = true;
+            }
+            else if (selectedTab == erroredFilesPage)
+            {
+                if (erroredFilesList.SelectedItems.Count == 0) return;
+                combinedPath = Path.Combine(extractionRecord.DestinationPath, erroredFilesList.SelectedItems[0].Text);
+                copyToolStripMenuItem.Enabled = copyPathToolStripMenuItem.Enabled = true;
+            } else if (selectedTab == errorMessagesPage)
+            {
+                if (errorMessagesList.SelectedItems.Count == 0) return;
+                copyToolStripMenuItem.Enabled = true;
+            }
+            else return;
+            
+            openInFileExplorerToolStripMenuItem.Enabled = File.Exists(combinedPath) || Directory.Exists(combinedPath);
+        }
+
+        private void copyToolStripMenuItem1_Click(object sender, EventArgs e)
+        {
+            var selectedTab = tabControl1.SelectedTab;
+            if (selectedTab == fileHierachyPage)
+                Clipboard.SetText(fileTreeView.SelectedNode.Text);
+            else if (selectedTab == contentFoldersPage)
+            {
+                List<string> list = new List<string>(contentFoldersList.SelectedItems.Count);
+                for (var i = 0; i < contentFoldersList.SelectedItems.Count; i++)
+                    list.Add(contentFoldersList.SelectedItems[i].Text);
+                Clipboard.SetText(string.Join('\n', list));
+            }
+            else if (selectedTab == fileListPage)
+            {
+                List<string> list = new List<string>(filesExtractedList.SelectedItems.Count);
+                for (var i = 0; i < filesExtractedList.SelectedItems.Count; i++)
+                    list.Add(filesExtractedList.SelectedItems[i].Text);
+                Clipboard.SetText(string.Join('\n', list));
+            }
+            else if (selectedTab == erroredFilesPage)
+            {
+                List<string> list = new List<string>(erroredFilesList.SelectedItems.Count);
+                for (var i = 0; i < erroredFilesList.SelectedItems.Count; i++)
+                    list.Add(erroredFilesList.SelectedItems[i].Text);
+                Clipboard.SetText(string.Join('\n', list));
+            } else if (selectedTab == errorMessagesPage)
+            {
+                List<string> list = new List<string>(errorMessagesList.SelectedItems.Count);
+                for (var i = 0; i < errorMessagesList.SelectedItems.Count; i++)
+                    list.Add(errorMessagesList.SelectedItems[i].Text);
+                Clipboard.SetText(string.Join('\n', list));
+            }
+        }
+
+        private void copyPathToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            var selectedTab = tabControl1.SelectedTab;
+            if (selectedTab == fileHierachyPage)
+                Clipboard.SetText(Path.Combine(extractionRecord.DestinationPath, fileTreeView.SelectedNode.FullPath));
+            else if (selectedTab == contentFoldersPage)
+            {
+                List<string> list = new List<string>(contentFoldersList.SelectedItems.Count);
+                for (var i = 0; i < contentFoldersList.SelectedItems.Count; i++)
+                    list.Add(Path.Combine(extractionRecord.DestinationPath, contentFoldersList.SelectedItems[i].Text));
+                Clipboard.SetText(string.Join('\n', list));
+            }
+            else if (selectedTab == fileListPage)
+            {
+                List<string> list = new List<string>(filesExtractedList.SelectedItems.Count);
+                for (var i = 0; i < filesExtractedList.SelectedItems.Count; i++)
+                    list.Add(Path.Combine(extractionRecord.DestinationPath, filesExtractedList.SelectedItems[i].Text));
+                Clipboard.SetText(string.Join('\n', list));
+            }
+            else if (selectedTab == erroredFilesPage)
+            {
+                List<string> list = new List<string>(erroredFilesList.SelectedItems.Count);
+                for (var i = 0; i < erroredFilesList.SelectedItems.Count; i++)
+                    list.Add(Path.Combine(extractionRecord.DestinationPath, erroredFilesList.SelectedItems[i].Text));
+                Clipboard.SetText(string.Join('\n', list));
+            }
+        }
+
+        private void openInFileExplorerToolStripMenuItem_Click(object _, EventArgs __)
+        {
+            var selectedTab = tabControl1.SelectedTab;
+            if (selectedTab == fileHierachyPage)
+                Process.Start(@"explorer.exe", $"/select, \"{Path.Combine(extractionRecord.DestinationPath, fileTreeView.SelectedNode.FullPath).Replace('/','\\')}\"");
+            else if (selectedTab == contentFoldersPage)
+                Process.Start(@"explorer.exe", $"/select, \"{Path.Combine(extractionRecord.DestinationPath, contentFoldersList.SelectedItems[0].Text).Replace('/', '\\')}\"");
+            else if (selectedTab == fileListPage)
+                Process.Start(@"explorer.exe", $"/select, \"{Path.Combine(extractionRecord.DestinationPath, filesExtractedList.SelectedItems[0].Text).Replace('/', '\\')}\"");
+            else if (selectedTab == erroredFilesPage)
+                Process.Start(@"explorer.exe", $"/select, \"{Path.Combine(extractionRecord.DestinationPath, erroredFilesList.SelectedItems[0].Text).Replace('/', '\\')}\"");
+        }
+
+        private void copyImageToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            if (thumbnailBox.Image == Resources.NoImageFound) return;
+            try
+            {
+                Clipboard.SetImage(thumbnailBox.Image);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Failed to copy image to clipboard. REASON: {ex}", "Copy image failed", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                DPCommon.WriteToLog($"Failed to copy image to clipboard. REASON: {ex}");
+            }
+        }
+
+        private void copyImagePathToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            if (thumbnailBox.Image == Resources.NoImageFound || string.IsNullOrEmpty(thumbnailBox.ImageLocation)) return;
+            try
+            {
+                Clipboard.SetText(thumbnailBox.ImageLocation);
+            }
+            catch { }
+        }
+
+        private void openInFileExplorerToolStripMenuItem1_Click(object sender, EventArgs e)
+        {
+            if (thumbnailBox.Image == Resources.NoImageFound || string.IsNullOrEmpty(thumbnailBox.ImageLocation)) return;
+            Process.Start(@"explorer.exe", $"/select, \"{thumbnailBox.ImageLocation.Replace('/', '\\')}\"");
+        }
+
+        private void removeImageToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            thumbnailBox.ImageLocation = null;
+            thumbnailBox.Image = Resources.NoImageFound;
         }
     }
 }

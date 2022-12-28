@@ -29,12 +29,21 @@ namespace DAZ_Installer
         /// </summary>
         private void InitializeComponent()
         {
+            this.components = new System.ComponentModel.Container();
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(ProductRecordForm));
-            this.productNameLbl = new System.Windows.Forms.Label();
             this.thumbnailBox = new System.Windows.Forms.PictureBox();
+            this.thumbnailStrip = new System.Windows.Forms.ContextMenuStrip(this.components);
+            this.copyImageToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.copyImagePathToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.openInFileExplorerToolStripMenuItem1 = new System.Windows.Forms.ToolStripMenuItem();
+            this.removeImageToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.browseImageBtn = new System.Windows.Forms.Button();
             this.contentFoldersList = new System.Windows.Forms.ListView();
             this.columnHeader4 = new System.Windows.Forms.ColumnHeader();
+            this.genericStrip = new System.Windows.Forms.ContextMenuStrip(this.components);
+            this.copyToolStripMenuItem1 = new System.Windows.Forms.ToolStripMenuItem();
+            this.copyPathToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.openInFileExplorerToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.filesExtractedList = new System.Windows.Forms.ListView();
             this.columnHeader2 = new System.Windows.Forms.ColumnHeader();
             this.dateExtractedLbl = new System.Windows.Forms.Label();
@@ -45,6 +54,12 @@ namespace DAZ_Installer
             this.destinationPathLbl = new System.Windows.Forms.Label();
             this.tagsView = new System.Windows.Forms.ListView();
             this.columnHeader1 = new System.Windows.Forms.ColumnHeader();
+            this.tagsStrip = new System.Windows.Forms.ContextMenuStrip(this.components);
+            this.editTagsToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.removeTagToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.copyToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.pasteNewTagsToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.replaceToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.applyChangesBtn = new System.Windows.Forms.Button();
             this.tabControl1 = new System.Windows.Forms.TabControl();
             this.tagsPage = new System.Windows.Forms.TabPage();
@@ -58,7 +73,12 @@ namespace DAZ_Installer
             this.toolStripButton1 = new System.Windows.Forms.ToolStripDropDownButton();
             this.deleteRecordToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.deleteProductToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.productNameTxtBox = new System.Windows.Forms.TextBox();
+            this.authorLbl = new System.Windows.Forms.Label();
             ((System.ComponentModel.ISupportInitialize)(this.thumbnailBox)).BeginInit();
+            this.thumbnailStrip.SuspendLayout();
+            this.genericStrip.SuspendLayout();
+            this.tagsStrip.SuspendLayout();
             this.tabControl1.SuspendLayout();
             this.tagsPage.SuspendLayout();
             this.fileHierachyPage.SuspendLayout();
@@ -69,29 +89,56 @@ namespace DAZ_Installer
             this.toolStrip1.SuspendLayout();
             this.SuspendLayout();
             // 
-            // productNameLbl
-            // 
-            this.productNameLbl.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
-            | System.Windows.Forms.AnchorStyles.Right)));
-            this.productNameLbl.AutoEllipsis = true;
-            this.productNameLbl.Font = new System.Drawing.Font("Segoe UI Variable Display Semib", 15.75F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point);
-            this.productNameLbl.Location = new System.Drawing.Point(10, 22);
-            this.productNameLbl.Name = "productNameLbl";
-            this.productNameLbl.Size = new System.Drawing.Size(461, 32);
-            this.productNameLbl.TabIndex = 0;
-            this.productNameLbl.Text = "Product Name";
-            // 
             // thumbnailBox
             // 
             this.thumbnailBox.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
+            this.thumbnailBox.ContextMenuStrip = this.thumbnailStrip;
             this.thumbnailBox.Image = global::DAZ_Installer.Properties.Resources.NoImageFound;
-            this.thumbnailBox.Location = new System.Drawing.Point(477, 24);
+            this.thumbnailBox.Location = new System.Drawing.Point(515, 25);
             this.thumbnailBox.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.thumbnailBox.Name = "thumbnailBox";
-            this.thumbnailBox.Size = new System.Drawing.Size(195, 114);
+            this.thumbnailBox.Size = new System.Drawing.Size(127, 114);
             this.thumbnailBox.SizeMode = System.Windows.Forms.PictureBoxSizeMode.Zoom;
             this.thumbnailBox.TabIndex = 2;
             this.thumbnailBox.TabStop = false;
+            // 
+            // thumbnailStrip
+            // 
+            this.thumbnailStrip.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.copyImageToolStripMenuItem,
+            this.copyImagePathToolStripMenuItem,
+            this.openInFileExplorerToolStripMenuItem1,
+            this.removeImageToolStripMenuItem});
+            this.thumbnailStrip.Name = "thumbnailStrip";
+            this.thumbnailStrip.Size = new System.Drawing.Size(182, 92);
+            // 
+            // copyImageToolStripMenuItem
+            // 
+            this.copyImageToolStripMenuItem.Name = "copyImageToolStripMenuItem";
+            this.copyImageToolStripMenuItem.Size = new System.Drawing.Size(181, 22);
+            this.copyImageToolStripMenuItem.Text = "Copy image";
+            this.copyImageToolStripMenuItem.Click += new System.EventHandler(this.copyImageToolStripMenuItem_Click);
+            // 
+            // copyImagePathToolStripMenuItem
+            // 
+            this.copyImagePathToolStripMenuItem.Name = "copyImagePathToolStripMenuItem";
+            this.copyImagePathToolStripMenuItem.Size = new System.Drawing.Size(181, 22);
+            this.copyImagePathToolStripMenuItem.Text = "Copy image path";
+            this.copyImagePathToolStripMenuItem.Click += new System.EventHandler(this.copyImagePathToolStripMenuItem_Click);
+            // 
+            // openInFileExplorerToolStripMenuItem1
+            // 
+            this.openInFileExplorerToolStripMenuItem1.Name = "openInFileExplorerToolStripMenuItem1";
+            this.openInFileExplorerToolStripMenuItem1.Size = new System.Drawing.Size(181, 22);
+            this.openInFileExplorerToolStripMenuItem1.Text = "Open in file explorer";
+            this.openInFileExplorerToolStripMenuItem1.Click += new System.EventHandler(this.openInFileExplorerToolStripMenuItem1_Click);
+            // 
+            // removeImageToolStripMenuItem
+            // 
+            this.removeImageToolStripMenuItem.Name = "removeImageToolStripMenuItem";
+            this.removeImageToolStripMenuItem.Size = new System.Drawing.Size(181, 22);
+            this.removeImageToolStripMenuItem.Text = "Remove image";
+            this.removeImageToolStripMenuItem.Click += new System.EventHandler(this.removeImageToolStripMenuItem_Click);
             // 
             // browseImageBtn
             // 
@@ -109,6 +156,7 @@ namespace DAZ_Installer
             // 
             this.contentFoldersList.Columns.AddRange(new System.Windows.Forms.ColumnHeader[] {
             this.columnHeader4});
+            this.contentFoldersList.ContextMenuStrip = this.genericStrip;
             this.contentFoldersList.Dock = System.Windows.Forms.DockStyle.Fill;
             this.contentFoldersList.HeaderStyle = System.Windows.Forms.ColumnHeaderStyle.None;
             this.contentFoldersList.Location = new System.Drawing.Point(0, 0);
@@ -123,10 +171,45 @@ namespace DAZ_Installer
             // 
             this.columnHeader4.Width = 320;
             // 
+            // genericStrip
+            // 
+            this.genericStrip.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.copyToolStripMenuItem1,
+            this.copyPathToolStripMenuItem,
+            this.openInFileExplorerToolStripMenuItem});
+            this.genericStrip.Name = "genericStrip";
+            this.genericStrip.Size = new System.Drawing.Size(182, 70);
+            this.genericStrip.Opening += new System.ComponentModel.CancelEventHandler(this.genericStrip_Opening);
+            // 
+            // copyToolStripMenuItem1
+            // 
+            this.copyToolStripMenuItem1.Enabled = false;
+            this.copyToolStripMenuItem1.Name = "copyToolStripMenuItem1";
+            this.copyToolStripMenuItem1.Size = new System.Drawing.Size(181, 22);
+            this.copyToolStripMenuItem1.Text = "Copy";
+            this.copyToolStripMenuItem1.Click += new System.EventHandler(this.copyToolStripMenuItem1_Click);
+            // 
+            // copyPathToolStripMenuItem
+            // 
+            this.copyPathToolStripMenuItem.Enabled = false;
+            this.copyPathToolStripMenuItem.Name = "copyPathToolStripMenuItem";
+            this.copyPathToolStripMenuItem.Size = new System.Drawing.Size(181, 22);
+            this.copyPathToolStripMenuItem.Text = "Copy path";
+            this.copyPathToolStripMenuItem.Click += new System.EventHandler(this.copyPathToolStripMenuItem_Click);
+            // 
+            // openInFileExplorerToolStripMenuItem
+            // 
+            this.openInFileExplorerToolStripMenuItem.Enabled = false;
+            this.openInFileExplorerToolStripMenuItem.Name = "openInFileExplorerToolStripMenuItem";
+            this.openInFileExplorerToolStripMenuItem.Size = new System.Drawing.Size(181, 22);
+            this.openInFileExplorerToolStripMenuItem.Text = "Open in file explorer";
+            this.openInFileExplorerToolStripMenuItem.Click += new System.EventHandler(this.openInFileExplorerToolStripMenuItem_Click);
+            // 
             // filesExtractedList
             // 
             this.filesExtractedList.Columns.AddRange(new System.Windows.Forms.ColumnHeader[] {
             this.columnHeader2});
+            this.filesExtractedList.ContextMenuStrip = this.genericStrip;
             this.filesExtractedList.Dock = System.Windows.Forms.DockStyle.Fill;
             this.filesExtractedList.HeaderStyle = System.Windows.Forms.ColumnHeaderStyle.None;
             this.filesExtractedList.Location = new System.Drawing.Point(0, 0);
@@ -147,7 +230,7 @@ namespace DAZ_Installer
             | System.Windows.Forms.AnchorStyles.Right)));
             this.dateExtractedLbl.AutoEllipsis = true;
             this.dateExtractedLbl.Cursor = System.Windows.Forms.Cursors.IBeam;
-            this.dateExtractedLbl.Location = new System.Drawing.Point(14, 56);
+            this.dateExtractedLbl.Location = new System.Drawing.Point(14, 71);
             this.dateExtractedLbl.Name = "dateExtractedLbl";
             this.dateExtractedLbl.Size = new System.Drawing.Size(458, 15);
             this.dateExtractedLbl.TabIndex = 10;
@@ -157,6 +240,7 @@ namespace DAZ_Installer
             // 
             this.erroredFilesList.Columns.AddRange(new System.Windows.Forms.ColumnHeader[] {
             this.columnHeader3});
+            this.erroredFilesList.ContextMenuStrip = this.genericStrip;
             this.erroredFilesList.Dock = System.Windows.Forms.DockStyle.Fill;
             this.erroredFilesList.HeaderStyle = System.Windows.Forms.ColumnHeaderStyle.None;
             this.erroredFilesList.Location = new System.Drawing.Point(0, 0);
@@ -175,6 +259,7 @@ namespace DAZ_Installer
             // 
             this.errorMessagesList.Columns.AddRange(new System.Windows.Forms.ColumnHeader[] {
             this.columnHeader5});
+            this.errorMessagesList.ContextMenuStrip = this.genericStrip;
             this.errorMessagesList.Dock = System.Windows.Forms.DockStyle.Fill;
             this.errorMessagesList.HeaderStyle = System.Windows.Forms.ColumnHeaderStyle.None;
             this.errorMessagesList.Location = new System.Drawing.Point(0, 0);
@@ -195,9 +280,9 @@ namespace DAZ_Installer
             | System.Windows.Forms.AnchorStyles.Right)));
             this.destinationPathLbl.AutoEllipsis = true;
             this.destinationPathLbl.Cursor = System.Windows.Forms.Cursors.IBeam;
-            this.destinationPathLbl.Location = new System.Drawing.Point(14, 81);
+            this.destinationPathLbl.Location = new System.Drawing.Point(14, 86);
             this.destinationPathLbl.Name = "destinationPathLbl";
-            this.destinationPathLbl.Size = new System.Drawing.Size(458, 83);
+            this.destinationPathLbl.Size = new System.Drawing.Size(458, 78);
             this.destinationPathLbl.TabIndex = 14;
             this.destinationPathLbl.Text = "Destination Path: ";
             // 
@@ -205,6 +290,7 @@ namespace DAZ_Installer
             // 
             this.tagsView.Columns.AddRange(new System.Windows.Forms.ColumnHeader[] {
             this.columnHeader1});
+            this.tagsView.ContextMenuStrip = this.tagsStrip;
             this.tagsView.Dock = System.Windows.Forms.DockStyle.Fill;
             this.tagsView.HeaderStyle = System.Windows.Forms.ColumnHeaderStyle.None;
             this.tagsView.Location = new System.Drawing.Point(3, 2);
@@ -214,10 +300,62 @@ namespace DAZ_Installer
             this.tagsView.TabIndex = 13;
             this.tagsView.UseCompatibleStateImageBehavior = false;
             this.tagsView.View = System.Windows.Forms.View.Details;
+            this.tagsView.KeyUp += new System.Windows.Forms.KeyEventHandler(this.tagsView_KeyUp);
             // 
             // columnHeader1
             // 
             this.columnHeader1.Width = 280;
+            // 
+            // tagsStrip
+            // 
+            this.tagsStrip.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.editTagsToolStripMenuItem,
+            this.removeTagToolStripMenuItem,
+            this.copyToolStripMenuItem,
+            this.pasteNewTagsToolStripMenuItem,
+            this.replaceToolStripMenuItem});
+            this.tagsStrip.Name = "tagsStrip";
+            this.tagsStrip.Size = new System.Drawing.Size(161, 114);
+            this.tagsStrip.Opening += new System.ComponentModel.CancelEventHandler(this.tagsStrip_Opening);
+            // 
+            // editTagsToolStripMenuItem
+            // 
+            this.editTagsToolStripMenuItem.Name = "editTagsToolStripMenuItem";
+            this.editTagsToolStripMenuItem.Size = new System.Drawing.Size(160, 22);
+            this.editTagsToolStripMenuItem.Text = "Edit tags";
+            this.editTagsToolStripMenuItem.Click += new System.EventHandler(this.editTagsToolStripMenuItem_Click);
+            // 
+            // removeTagToolStripMenuItem
+            // 
+            this.removeTagToolStripMenuItem.Enabled = false;
+            this.removeTagToolStripMenuItem.Name = "removeTagToolStripMenuItem";
+            this.removeTagToolStripMenuItem.Size = new System.Drawing.Size(160, 22);
+            this.removeTagToolStripMenuItem.Text = "Remove";
+            this.removeTagToolStripMenuItem.Click += new System.EventHandler(this.removeTagToolStripMenuItem_Click);
+            // 
+            // copyToolStripMenuItem
+            // 
+            this.copyToolStripMenuItem.Enabled = false;
+            this.copyToolStripMenuItem.Name = "copyToolStripMenuItem";
+            this.copyToolStripMenuItem.Size = new System.Drawing.Size(160, 22);
+            this.copyToolStripMenuItem.Text = "Copy";
+            this.copyToolStripMenuItem.Click += new System.EventHandler(this.copyToolStripMenuItem_Click);
+            // 
+            // pasteNewTagsToolStripMenuItem
+            // 
+            this.pasteNewTagsToolStripMenuItem.Enabled = false;
+            this.pasteNewTagsToolStripMenuItem.Name = "pasteNewTagsToolStripMenuItem";
+            this.pasteNewTagsToolStripMenuItem.Size = new System.Drawing.Size(160, 22);
+            this.pasteNewTagsToolStripMenuItem.Text = "Paste new tag(s)";
+            this.pasteNewTagsToolStripMenuItem.Click += new System.EventHandler(this.pasteNewTagsToolStripMenuItem_Click);
+            // 
+            // replaceToolStripMenuItem
+            // 
+            this.replaceToolStripMenuItem.Enabled = false;
+            this.replaceToolStripMenuItem.Name = "replaceToolStripMenuItem";
+            this.replaceToolStripMenuItem.Size = new System.Drawing.Size(160, 22);
+            this.replaceToolStripMenuItem.Text = "Replace";
+            this.replaceToolStripMenuItem.Click += new System.EventHandler(this.replaceToolStripMenuItem_Click);
             // 
             // applyChangesBtn
             // 
@@ -229,6 +367,7 @@ namespace DAZ_Installer
             this.applyChangesBtn.TabIndex = 14;
             this.applyChangesBtn.Text = "Apply Changes";
             this.applyChangesBtn.UseVisualStyleBackColor = true;
+            this.applyChangesBtn.Click += new System.EventHandler(this.applyChangesBtn_Click);
             // 
             // tabControl1
             // 
@@ -274,6 +413,7 @@ namespace DAZ_Installer
             // 
             // fileTreeView
             // 
+            this.fileTreeView.ContextMenuStrip = this.genericStrip;
             this.fileTreeView.Dock = System.Windows.Forms.DockStyle.Fill;
             this.fileTreeView.Location = new System.Drawing.Point(3, 2);
             this.fileTreeView.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
@@ -364,19 +504,45 @@ namespace DAZ_Installer
             this.deleteProductToolStripMenuItem.Text = "Delete product";
             this.deleteProductToolStripMenuItem.Click += new System.EventHandler(this.deleteProductToolStripMenuItem_Click);
             // 
+            // productNameTxtBox
+            // 
+            this.productNameTxtBox.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
+            | System.Windows.Forms.AnchorStyles.Right)));
+            this.productNameTxtBox.BackColor = System.Drawing.SystemColors.Control;
+            this.productNameTxtBox.BorderStyle = System.Windows.Forms.BorderStyle.None;
+            this.productNameTxtBox.Font = new System.Drawing.Font("Segoe UI Variable Display Semib", 15.75F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point);
+            this.productNameTxtBox.Location = new System.Drawing.Point(14, 24);
+            this.productNameTxtBox.Name = "productNameTxtBox";
+            this.productNameTxtBox.Size = new System.Drawing.Size(454, 28);
+            this.productNameTxtBox.TabIndex = 19;
+            this.productNameTxtBox.Text = "Product Name";
+            // 
+            // authorLbl
+            // 
+            this.authorLbl.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
+            | System.Windows.Forms.AnchorStyles.Right)));
+            this.authorLbl.AutoEllipsis = true;
+            this.authorLbl.Cursor = System.Windows.Forms.Cursors.IBeam;
+            this.authorLbl.Location = new System.Drawing.Point(14, 55);
+            this.authorLbl.Name = "authorLbl";
+            this.authorLbl.Size = new System.Drawing.Size(458, 16);
+            this.authorLbl.TabIndex = 20;
+            this.authorLbl.Text = "Author: ";
+            // 
             // ProductRecordForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(684, 340);
+            this.Controls.Add(this.authorLbl);
             this.Controls.Add(this.toolStrip1);
             this.Controls.Add(this.applyChangesBtn);
             this.Controls.Add(this.thumbnailBox);
-            this.Controls.Add(this.productNameLbl);
             this.Controls.Add(this.browseImageBtn);
             this.Controls.Add(this.dateExtractedLbl);
             this.Controls.Add(this.destinationPathLbl);
             this.Controls.Add(this.tabControl1);
+            this.Controls.Add(this.productNameTxtBox);
             this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
             this.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.MaximizeBox = false;
@@ -385,6 +551,9 @@ namespace DAZ_Installer
             this.Name = "ProductRecordForm";
             this.Text = "Product Record Form";
             ((System.ComponentModel.ISupportInitialize)(this.thumbnailBox)).EndInit();
+            this.thumbnailStrip.ResumeLayout(false);
+            this.genericStrip.ResumeLayout(false);
+            this.tagsStrip.ResumeLayout(false);
             this.tabControl1.ResumeLayout(false);
             this.tagsPage.ResumeLayout(false);
             this.fileHierachyPage.ResumeLayout(false);
@@ -429,5 +598,22 @@ namespace DAZ_Installer
         private System.Windows.Forms.ToolStripDropDownButton toolStripButton1;
         private System.Windows.Forms.ToolStripMenuItem deleteRecordToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem deleteProductToolStripMenuItem;
+        private System.Windows.Forms.TextBox productNameTxtBox;
+        private System.Windows.Forms.ContextMenuStrip tagsStrip;
+        private System.Windows.Forms.ToolStripMenuItem removeTagToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem copyToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem pasteNewTagsToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem editTagsToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem replaceToolStripMenuItem;
+        private System.Windows.Forms.ContextMenuStrip genericStrip;
+        private System.Windows.Forms.ToolStripMenuItem copyToolStripMenuItem1;
+        private System.Windows.Forms.ToolStripMenuItem copyPathToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem openInFileExplorerToolStripMenuItem;
+        private System.Windows.Forms.ContextMenuStrip thumbnailStrip;
+        private System.Windows.Forms.ToolStripMenuItem copyImageToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem copyImagePathToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem openInFileExplorerToolStripMenuItem1;
+        private System.Windows.Forms.ToolStripMenuItem removeImageToolStripMenuItem;
+        private System.Windows.Forms.Label authorLbl;
     }
 }
