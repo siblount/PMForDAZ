@@ -209,7 +209,21 @@ namespace DAZ_Installer.DP
         /// <param name="columns"></param>
         public static void UpdateValuesQ(string tableName, object[] values, string[] columns, int id)
         {
-            _mainTaskManager.AddToQueue(UpdateValues, tableName, columns, values, null as SQLiteConnection);
+            _mainTaskManager.AddToQueue(UpdateValues, tableName, columns, values, id, null as SQLiteConnection);
+        }
+
+        /// <summary>
+        /// Updates a product record and extraction record. This is currently used for applying changes from the product
+        /// record form.
+        /// </summary>
+        /// <param name="id"></param>
+        /// <param name="newProductRecord"></param>
+        /// <param name="newExtractionRecord"></param>
+        public static void UpdateRecord(uint id, DPProductRecord newProductRecord, DPExtractionRecord newExtractionRecord)
+        {
+            _mainTaskManager.AddToQueue(UpdateProductRecord, id, newProductRecord, null as SQLiteConnection);
+            _mainTaskManager.AddToQueue(UpdateExtractionRecord, id, newExtractionRecord, null as SQLiteConnection);
+
         }
 
         /// <summary>
@@ -277,7 +291,7 @@ namespace DAZ_Installer.DP
         /// <param name="pid"></param>
         public static void RemoveTagsQ(uint pid)
         {
-            _mainTaskManager.AddToQueue(RemoveTags, pid);
+            _mainTaskManager.AddToQueue(RemoveTags, pid, null as SQLiteConnection);
         }
         /// <summary>
         /// Gets the extraction records associated with the extraction record ID specified by <paramref name="eid"/> 

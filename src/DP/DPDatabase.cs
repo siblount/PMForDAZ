@@ -94,7 +94,7 @@ namespace DAZ_Installer.DP
         /// <summary>
         /// This event is invoked whenever a extraction record has been modified.
         /// </summary>
-        public static event Action<uint, DPExtractionRecord?> ExtractionRecordModified;
+        public static event Action<DPExtractionRecord?, uint> ExtractionRecordModified;
         /// <summary>
         /// This event is invoked whenever a new extraction record has been added.
         /// </summary>
@@ -411,7 +411,6 @@ namespace DAZ_Installer.DP
         }
         /// <summary>
         /// Adds the triggers required for application to properly execute into the database.
-        /// Does not check if they exist. May throw an error if the tables already exist.
         /// </summary>
         /// <returns>Whether creating triggers was a success.</returns>
         private static bool CreateTriggers() {
