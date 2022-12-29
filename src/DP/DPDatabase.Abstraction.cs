@@ -1058,8 +1058,6 @@ namespace DAZ_Installer.DP
                     RestoreTriggers(connection, t);
                     sqlCommand.ExecuteNonQuery();
                     transaction.Commit();
-                    TableUpdated?.Invoke("ProductRecords");
-                    ProductRecordModified?.Invoke(newRecord, pid);
                 }
                 catch (Exception ex)
                 {
@@ -1130,8 +1128,6 @@ namespace DAZ_Installer.DP
                     }
                     sqlCommand.ExecuteNonQuery();
                     transaction.Commit();
-                    TableUpdated?.Invoke("ExtractionRecords");
-                    ExtractionRecordModified?.Invoke(newRecord, eid);
                 }
                 catch (Exception ex)
                 {
