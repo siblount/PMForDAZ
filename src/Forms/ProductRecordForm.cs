@@ -366,7 +366,7 @@ namespace DAZ_Installer
             var r = MessageBox.Show("Are you sure you wish up apply changes? You cannot revert changes.", "Confirmation", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
             if (r == DialogResult.No) return;
             var p = new DPProductRecord(productNameTxtBox.Text, CreateFinalTagsArray(), record.Author, record.SKU, record.Time, GetThumbnailPath(), record.EID, record.ID);
-            DPDatabase.UpdateRecord(record.ID, p, extractionRecord);
+            DPDatabase.UpdateRecordQ(record.ID, p, extractionRecord);
         }
 
         private void editTagsToolStripMenuItem_Click(object sender, EventArgs e)
@@ -618,6 +618,11 @@ namespace DAZ_Installer
         {
             thumbnailBox.ImageLocation = null;
             thumbnailBox.Image = Resources.NoImageFound;
+        }
+
+        private void ProductRecordForm_FormClosed(object sender, FormClosedEventArgs e)
+        {
+            DPDatabase.ProductRecordModified -= OnProductRecordModified;
         }
     }
 }

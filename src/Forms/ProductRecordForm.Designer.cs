@@ -550,6 +550,7 @@ namespace DAZ_Installer
             this.MinimumSize = new System.Drawing.Size(571, 303);
             this.Name = "ProductRecordForm";
             this.Text = "Product Record Form";
+            this.FormClosed += new System.Windows.Forms.FormClosedEventHandler(this.ProductRecordForm_FormClosed);
             ((System.ComponentModel.ISupportInitialize)(this.thumbnailBox)).EndInit();
             this.thumbnailStrip.ResumeLayout(false);
             this.genericStrip.ResumeLayout(false);
