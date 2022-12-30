@@ -238,13 +238,9 @@ namespace DAZ_Installer.DP
         private static void UpdateRelativePaths(DPAbstractArchive archive)
         {
             foreach (var content in archive.RootContents)
-            {
-                content.RelativePath = content.Path;
-            }
+                content.RelativePath = content.RelativeTargetPath = content.Path;
             foreach (var folder in archive.Folders.Values)
-            {
-                folder.UpdateChildrenRelativePaths();
-            }
+                folder.UpdateChildrenRelativePaths(settingsToUse);
         }
 
         public static void DetermineFilesToExtract(DPAbstractArchive archive)
@@ -264,7 +260,7 @@ namespace DAZ_Installer.DP
                         {
                             try
                             {
-                                file.TargetPath = Path.Combine(DestinationPath, manifestDestinations[file.Path]);
+                                file.TargetPath = GetTargetPath(file, overridePath: manifestDestinations[file.Path]);
                                 file.WillExtract = true;
                                 // TO DO: Add directories if does not exist.
                                 Directory.CreateDirectory(Path.GetDirectoryName(file.TargetPath));
@@ -292,12 +288,12 @@ namespace DAZ_Installer.DP
                     if (folder.isContentFolder || folder.isPartOfContentFolder)
                     {
                         // Update children's relative path.
-                        folder.UpdateChildrenRelativePaths();
+                        folder.UpdateChildrenRelativePaths(settingsToUse);
 
                         foreach (var child in folder.GetFiles())
                         {
                             // Get destination path.
-                            var dPath = Path.Combine(DestinationPath, child.RelativePath ?? child.Path);
+                            var dPath = GetTargetPath(child);
                             // Update child destination path.
                             child.TargetPath = dPath;
                             child.WillExtract = true;
@@ -315,7 +311,7 @@ namespace DAZ_Installer.DP
                         {
                             var arc = (DPAbstractArchive)file;
                             arc.WillExtract = true;
-                            arc.TargetPath = Path.Combine(TempLocation, arc.RelativePath ?? arc.Path);
+                            arc.TargetPath = GetTargetPath(arc, true);
                             // Add to queue.
                             workingArchive.InternalArchives.Add(arc);
                         }
@@ -330,13 +326,35 @@ namespace DAZ_Installer.DP
                     {
                         var arc = (DPAbstractArchive)content;
                         arc.WillExtract = true;
-                        arc.TargetPath = Path.Combine(TempLocation, arc.RelativePath ?? arc.Path);
+                        arc.TargetPath = GetTargetPath(arc, true);
                         // Add to queue.
                         workingArchive.InternalArchives.Add(arc);
                     }
                 }
             }
 
+        }
+
+        /// <summary>
+        /// This function returns the target path based on whether it is saving to it's destination or to a
+        /// temporary location, whether the <paramref name="file"/> has a relative path or not, and whether
+        /// the file's parent is in folderRedirects. <para/>
+        /// Additionally, there is <paramref name="overridePath"/> which will be used for combining paths internally;
+        /// <b>however</b>, this will be ignored if the parent name is in the user's folder redirects.
+        /// </summary>
+        /// <param name="file">The file to get a target path for.</param>
+        /// <param name="saveToTemp">Determines whether to get a target path saving to a temporary location.</param>
+        /// <param name="overridePath">The path to combine with instead of usual combining. </param>
+        /// <returns>The target path for the specified file. </returns>
+        private static string GetTargetPath(DPAbstractFile file, bool saveToTemp = false, string overridePath = null)
+        {
+            var filePathPart = !string.IsNullOrEmpty(overridePath) ? overridePath : file.RelativeTargetPath;
+
+            if (file.Parent is null || !settingsToUse.folderRedirects.ContainsKey(Path.GetFileName(file.Parent.Path)))
+                return Path.Combine(saveToTemp ? TempLocation : DestinationPath, filePathPart);
+
+            return Path.Combine(saveToTemp ? TempLocation : DestinationPath, 
+                file.RelativeTargetPath ?? file.Parent.CalculateChildRelativeTargetPath(file, settingsToUse));
         }
         // TODO: Handle situations where the destination no longer exists or has no access.
         private static bool DestinationHasEnoughSpace() {
