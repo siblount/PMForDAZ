@@ -44,11 +44,6 @@ namespace DAZ_Installer.DP {
         /// <value>The file name of the <c>Path</c> of this archive with the extension.</value>
         internal string HierachyName { get; set; }
         /// <summary>
-        /// The file name of this archive. Equivalent to Path.GetFileName(Path);
-        /// </summary>
-        /// <value>The file name of the <c>Path</c> of this archive with the extension.</value>
-        internal string FileName { get; set; }
-        /// <summary>
         /// The name that will be used for the list view. The list name is the working archive's <c>FileName</c> + $"\\{Path}".
         /// </summary>
         /// <value>The working archive's FileName + $"\\{Path}".</value>
@@ -160,6 +155,7 @@ namespace DAZ_Installer.DP {
             if (relativePathBase != null)
             {
                 RelativePath = IOPath.GetRelativePath(relativePathBase, Path);
+                RelativePath = RelativePath.Replace(PathHelper.GetSeperator(RelativePath), PathHelper.GetSeperator(Path));
             }
             else RelativePath = FileName;
             if (DPProcessor.workingArchive != this && DPProcessor.workingArchive != null)
