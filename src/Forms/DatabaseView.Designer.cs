@@ -66,6 +66,8 @@
             // 
             // tableNames
             // 
+            this.tableNames.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
+            | System.Windows.Forms.AnchorStyles.Right)));
             this.tableNames.FormattingEnabled = true;
             this.tableNames.Location = new System.Drawing.Point(58, 2);
             this.tableNames.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
@@ -75,6 +77,7 @@
             // 
             // changeTableBtn
             // 
+            this.changeTableBtn.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
             this.changeTableBtn.Location = new System.Drawing.Point(544, 2);
             this.changeTableBtn.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.changeTableBtn.Name = "changeTableBtn";
