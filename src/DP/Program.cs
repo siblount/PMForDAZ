@@ -18,13 +18,15 @@ namespace DAZ_Installer
         static void Main()
         {
             if (CheckInstances()) return;
-            
+            using var mutex = new Mutex(false, "DAZ_Installer Instance");
+            mutex.WaitOne(0);
             // Set the main thread ID to this one.
             DP.DPGlobal.mainThreadID = Thread.CurrentThread.ManagedThreadId;
             Application.SetHighDpiMode(HighDpiMode.SystemAware);
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
             Application.Run(new MainForm());
+            mutex.ReleaseMutex();
         }
 
         /// <summary>
