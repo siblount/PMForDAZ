@@ -2,6 +2,7 @@
 // You may find a full copy of this license at root project directory\LICENSE
 
 using DAZ_Installer.DP;
+using DAZ_Installer.Forms;
 using System;
 using System.Drawing;
 using System.Windows.Forms;
@@ -137,5 +138,9 @@ namespace DAZ_Installer
             return null;
         }
 
+        private void pictureBox1_Click(object sender, EventArgs e)
+        {
+            new AboutForm().ShowDialog();
+        }
     }
 }
