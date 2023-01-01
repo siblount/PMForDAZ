@@ -17,8 +17,6 @@ namespace DAZ_Installer
     public partial class Library : UserControl
     {
         public static Library self;
-        protected static Image arrowRight;
-        protected static Image arrowDown;
         protected static Image noImageFound;
         protected static Size lastClientSize;
         protected const byte maxImagesLoad = byte.MaxValue;
@@ -327,13 +325,6 @@ namespace DAZ_Installer
                                                             : noImageFound;
             }
             libraryPanel1.EditMode = false;
-        }
-
-
-        private void toolStripStatusLabel1_Click(object sender, EventArgs e)
-        {
-            Forms.DatabaseView databaseView = new Forms.DatabaseView();
-            databaseView.ShowDialog();
         }
 
         private void searchBox_TextChanged(object sender, EventArgs e)
