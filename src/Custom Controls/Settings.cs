@@ -9,6 +9,7 @@ using System.Threading.Tasks;
 using System.Windows.Forms;
 using DAZ_Installer.DP;
 using DAZ_Installer.Forms;
+using Microsoft.VisualBasic.FileIO;
 
 namespace DAZ_Installer
 {
@@ -49,6 +50,7 @@ namespace DAZ_Installer
             SetupDeleteSourceFiles();
             SetupPreviouslyInstalledProducts();
             SetupAllowOverwriting();
+            SetupRemoveAction();
 
             loadingPanel.Visible = false;
             loadingPanel.Dispose();
@@ -152,6 +154,20 @@ namespace DAZ_Installer
                 allowOverwritingCombo.Items.Add(option);
             }
             allowOverwritingCombo.SelectedItem = Enum.GetName(DPSettings.currentSettingsObject.OverwriteFiles);
+        }
+
+        private void SetupRemoveAction()
+        {
+            removeActionCombo.Items.AddRange(new string[]{ "Delete permanently", "Move to Recycle Bin"});
+            switch (DPSettings.currentSettingsObject.DeleteAction)
+            {
+                case RecycleOption.DeletePermanently:
+                    removeActionCombo.SelectedItem = "Delete permanently";
+                    return;
+                default:
+                    removeActionCombo.SelectedItem = "Move to Recycle Bin";
+                    return;
+            }
         }
 
         private void tableLayoutPanel1_Paint(object sender, PaintEventArgs e)
@@ -407,5 +423,7 @@ namespace DAZ_Installer
                 applySettingsBtn.Enabled = true;
             }
         }
+
+        private void openDatabaseBtn_Click(object _, EventArgs __) => new DatabaseView().ShowDialog();
     }
 }
