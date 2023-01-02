@@ -45,6 +45,7 @@ namespace DAZ_Installer
             InitializeComponent();
             self = this;
             SetupSortMethodCombo();
+            LoadLibraryItemImages();
         }
 
         // Called only when visible. Can be loaded but but visible.
@@ -52,8 +53,7 @@ namespace DAZ_Installer
         {
 
             libraryPanel1.CurrentPage = 1;
-            Task.Run(LoadLibraryItemImages)
-                .ContinueWith(t => LoadLibraryItems());
+            Task.Run(LoadLibraryItems);
             libraryPanel1.AddPageChangeListener(UpdatePage);
             DPDatabase.ProductRecordAdded += OnAddedProductRecord;
             DPDatabase.ProductRecordRemoved += OnRemovedProductRecord;
@@ -63,19 +63,12 @@ namespace DAZ_Installer
         // Called on a different thread.
         private void LoadLibraryItemImages()
         {
-            lock (thumbnails.Images)
-            {
-                thumbnails.Images.Clear(); // added due to thumbnails.Images[0] (which should be NoImageFound) being a random image
-                                           // when the user installs another image and program updates the library. another way
-                                           // would be a simple initalize bool so we wouldn't need to clear() and this func 
-                                           // should always be called first.
-                thumbnails.Images.Add(Properties.Resources.NoImageFound);
-                noImageFound = thumbnails.Images[0];
-            }
+            thumbnails.Images.Clear();
+            thumbnails.Images.Add(Properties.Resources.NoImageFound);
+            noImageFound = thumbnails.Images[0];
             
             mainImagesLoaded = true;
             DPCommon.WriteToLog("Loaded images.");
-
         }
 
         private void LoadLibraryItems()
