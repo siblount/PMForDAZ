@@ -188,18 +188,14 @@ namespace DAZ_Installer
             if (!updateResult) return;
 
             // Try saving settings.
-            var saveResult = DPSettings.currentSettingsObject.SaveSettings(out string errorMsg);
+            var saveResult = DPSettings.currentSettingsObject.SaveSettings();
 
             // If something failed...
             if (!saveResult)
-            {
-                errorMsg += "\nSee log for more info.";
-                MessageBox.Show(errorMsg, "Error saving settings", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show("An error occurred while saving settings. You're settings have NOT been saved. Please try saving again.", 
+                    "Error saving settings", MessageBoxButtons.OK, MessageBoxIcon.Error);
 
-            } else
-            {
-                applySettingsBtn.Enabled = false;
-            }
+            applySettingsBtn.Enabled = false;
         }
 
         private bool UpdateSettings()
