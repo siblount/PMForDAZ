@@ -1218,7 +1218,7 @@ namespace DAZ_Installer.DP
             {
                 var s = values[i];
                 if (string.IsNullOrWhiteSpace(s)) continue;
-                builder.Append(s.Length > maxSize ? s[..maxSize] : s);
+                builder.Append(s.Length > maxSize ? s[..(maxSize - 1)] : s);
                 builder.Append(seperator);
             }
             builder.Remove(builder.Length - seperator.Length, seperator.Length);
