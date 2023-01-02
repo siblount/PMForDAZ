@@ -2,7 +2,6 @@
 using System.Data;
 using System.Collections.Generic;
 using System.Data.SQLite;
-using System.Threading.Tasks;
 
 namespace DAZ_Installer.DP
 {

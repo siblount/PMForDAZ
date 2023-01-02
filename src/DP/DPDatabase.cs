@@ -8,7 +8,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Data.SQLite;
 using System.IO;
-using DAZ_Installer.External;
 
 namespace DAZ_Installer.DP
 {

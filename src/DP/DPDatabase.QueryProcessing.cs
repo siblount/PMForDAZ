@@ -2,12 +2,9 @@
 // You may find a full copy of this license at root project directory\LICENSE
 using System;
 using System.Data;
-using System.Collections.Generic;
 using System.Text;
-using System.Linq;
 using System.Threading;
 using System.Data.SQLite;
-using System.IO;
 using DAZ_Installer.External;
 
 namespace DAZ_Installer.DP

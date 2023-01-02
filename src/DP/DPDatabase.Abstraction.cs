@@ -7,11 +7,6 @@ using System.Text;
 using System.Threading;
 using System.Data.SQLite;
 using System.IO;
-using DAZ_Installer.External;
-using System.Data.Entity.Core.Objects;
-using System.Linq;
-using static System.Windows.Forms.VisualStyles.VisualStyleElement.TaskbarClock;
-using System.Security.Cryptography;
 
 namespace DAZ_Installer.DP
 {
@@ -917,10 +912,15 @@ namespace DAZ_Installer.DP
                 connection = CreateAndOpenConnection(c);
                 if (connection == null) return;
 
-                object[] pObjs = new object[] { productName, JoinString(", ", tags), author, sku, time.ToFileTimeUtc(), thumbnailPath };
-                object[] eObjs = new object[] { archiveFileName, JoinString(", ", files),
-                JoinString(", ", folders), destPath, JoinString(", ", erroredFiles),
-                JoinString(", ", erroredMessages) };
+                // Shorten strings if applicable.
+                productName = productName?.Length > 70 ? productName.Substring(0, 70) : productName;
+                author = author?.Length > 30 ? author.Substring(0, 30) : author;
+                sku = sku?.Length > 10 ? sku.Substring(0, 10) : sku;
+
+                object[] pObjs = new object[] { productName, JoinString(", ", 70, tags), author, sku, time.ToFileTimeUtc(), thumbnailPath };
+                object[] eObjs = new object[] { archiveFileName, JoinString(", ", 384, files),
+                JoinString(", ", 384, folders), destPath, JoinString(", ", 384, erroredFiles),
+                JoinString(", ", 65536, erroredMessages) };
 
                 // If both operations are successful, emit signal.
                 if (InsertValuesToTable("ProductRecords", pColumns, pObjs, connection, t))
@@ -1026,7 +1026,13 @@ namespace DAZ_Installer.DP
                 return false;
             newRecord.Deconstruct(out var productName, out var tags, out var author, out var sku,
                                  out var time, out var thumbnailPath, out var eid, out var _);
-            object[] pObjs = new object[] { productName, JoinString(", ", tags), author, sku, time.ToFileTimeUtc(), thumbnailPath, eid };
+
+            // Shorten strings if applicable.
+            productName = productName?.Length > 70 ? productName.Substring(0, 70) : productName;
+            author = author?.Length > 30 ? author.Substring(0, 30) : author;
+            sku = sku?.Length > 10 ? sku.Substring(0, 10) : sku;
+
+            object[] pObjs = new object[] { productName, JoinString(", ", 70, tags), author, sku, time.ToFileTimeUtc(), thumbnailPath, eid };
             SQLiteConnection connection = null;
             SQLiteTransaction transaction = null;
             SQLiteCommand sqlCommand = null;
@@ -1099,9 +1105,9 @@ namespace DAZ_Installer.DP
                 return false;
             newRecord.Deconstruct(out var archiveFileName, out var destPath, out var files,
                 out var erroredFiles, out var erroredMessages, out var folders, out var newPID);
-            object[] eObjs = new object[] { archiveFileName, JoinString(", ", files),
-                JoinString(", ", folders), destPath, JoinString(", ", erroredFiles),
-                JoinString(", ", erroredMessages), newPID };
+            object[] eObjs = new object[] { archiveFileName, JoinString(", ", 384, files),
+                JoinString(", ", 384, folders), destPath, JoinString(", ", 384, erroredFiles),
+                JoinString(", ", 65536, erroredMessages), newPID };
             SQLiteConnection connection = null;
             SQLiteTransaction transaction = null;
             SQLiteCommand sqlCommand = null;
@@ -1192,24 +1198,28 @@ namespace DAZ_Installer.DP
         }
         /// <summary>
         /// Similar to string.Join() but will skip values that are null or empty (after trim).
+        /// <para/>
         /// <paramref name="values"/> can be null and will return null. Otherwise, seperator must not 
         /// be null, otherwise an exception will be thrown.
+        /// <para/>
+        /// Additionally, you can set the max size of each string value. The default is 256. Meaning, for each
+        /// tag, the value will be trimmed to 256 characters if the value exceeds that size.
         /// </summary>
         /// <param name="seperator">The seperator to add in between values in string. Cannot be null.</param>
+        /// <param name="maxSize">The maximum string size of each value. Default is 256.</param>
         /// <param name="values">The values to join.</param>
         /// <returns>The values combined into a string seperated by the sepertor or null if values is null.</returns>
-        private static string? JoinString(string seperator, params string[] values)
+        private static string? JoinString(string seperator, int maxSize = 256, params string[] values)
         {
             if (values == null || values.Length == 0) return null;
 
             StringBuilder builder = new StringBuilder(512);
             for (int i = 0; i < values.Length; i++)
             {
-                if (values[i] == null) continue;
-                if (values[i].Trim() != string.Empty)
-                {
-                    builder.Append(values[i] + seperator);
-                }
+                var s = values[i];
+                if (string.IsNullOrWhiteSpace(s)) continue;
+                builder.Append(s.Length > maxSize ? s[..maxSize] : s);
+                builder.Append(seperator);
             }
             builder.Remove(builder.Length - seperator.Length, seperator.Length);
             return builder.ToString();
