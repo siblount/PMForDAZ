@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Runtime.ConstrainedExecution;
 using System.Text;
 using System.Windows.Forms;
 using Microsoft.VisualBasic.FileIO;
@@ -74,7 +75,11 @@ namespace DAZ_Installer.DP
         {
             if (initalized) return;
             var exists = File.Exists(SETTINGS_PATH);
-            if (!exists) goto FINISH;
+            if (!exists)
+            {
+                currentSettingsObject.FinishInitialization();
+                return;
+            }
 
             var settingsObj = ParseSettings(File.ReadAllText(SETTINGS_PATH));
             if (settingsObj == null)
@@ -82,8 +87,12 @@ namespace DAZ_Installer.DP
                     "Failed to process settings", MessageBoxButtons.OK, MessageBoxIcon.Error);
             else
                 currentSettingsObject = settingsObj;
+            currentSettingsObject.FinishInitialization();
+            
+        }
 
-            FINISH:
+        public void FinishInitialization()
+        {
             ValidateDirectoryPaths();
             detectedDazContentPaths = DPRegistry.ContentDirectories;
             DPProcessor.ClearTemp();
