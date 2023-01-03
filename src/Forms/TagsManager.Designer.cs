@@ -54,7 +54,7 @@
             this.label1.Name = "label1";
             this.label1.Size = new System.Drawing.Size(275, 36);
             this.label1.TabIndex = 2;
-            this.label1.Text = "Each tag is seperated by a new line. Use the text editor below to modify tags.";
+            this.label1.Text = "Each tag is seperated by a new line, each maxed at 70 characters.";
             // 
             // tagsTxtBox
             // 

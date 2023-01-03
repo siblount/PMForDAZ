@@ -389,9 +389,15 @@ namespace DAZ_Installer
         {
             var txt = Clipboard.GetText();
             var tags = new List<string>(txt.Split('\n'));
+            bool dismissedTags = false;
             foreach (var tag in tags)
             {
-                if (string.IsNullOrEmpty(tag) || string.IsNullOrWhiteSpace(tag)) continue;
+                if (string.IsNullOrWhiteSpace(tag)) continue;
+                if (tag.Length > 80)
+                {
+                    dismissedTags = true;
+                    continue;
+                }
                 tagsSet.Add(tag);
             }
             tagsView.BeginUpdate();
@@ -401,6 +407,9 @@ namespace DAZ_Installer
                 tagsView.Items.Add(tag);
             }
             tagsView.EndUpdate();
+            if (dismissedTags)
+                MessageBox.Show("Some tags were not added due to the size of the text being greater than 80 characters.", 
+                    "Some tags omitted", MessageBoxButtons.OK, MessageBoxIcon.Warning);
         }
 
         private void removeTagToolStripMenuItem_Click(object sender, EventArgs e)
@@ -427,9 +436,15 @@ namespace DAZ_Installer
         private void replaceToolStripMenuItem_Click(object sender, EventArgs e)
         {
             var txt = Clipboard.GetText().Trim().Split('\n');
-            if (txt.Length > 1 && !string.IsNullOrEmpty(txt[1]) && !string.IsNullOrWhiteSpace(txt[1]))
+            if (txt.Length > 1 && !string.IsNullOrWhiteSpace(txt[1]))
             {
                 MessageBox.Show($"Replace failed. Make sure your clipboard contains only one line of text. Detected {txt.Length} lines of text in clipboard.", "Too many lines", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
+            if (txt[0].Length > 70)
+            {
+                MessageBox.Show("Replace failed due to text being longer than 70 characters. Make sure the text in your clipboard is no more than 70 characters.", 
+                    "Too many characters", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return;
             }
             tagsView.BeginUpdate();

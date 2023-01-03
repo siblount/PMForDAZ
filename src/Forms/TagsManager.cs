@@ -36,6 +36,11 @@ namespace DAZ_Installer.Forms
                 {
                     c++;
                     tags[i] = tags[tags.Count - 1 - i];
+                } else if (tag.Length > 70)
+                {
+                    MessageBox.Show("Some lines are greater than 70 characters, please make sure each line is no more than 70 characters and try again.", 
+                        "Tags too long", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    return;
                 }
             }
             tags.RemoveRange(tags.Count - 1 - c, c);
