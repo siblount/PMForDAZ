@@ -110,10 +110,12 @@ namespace DAZ_Installer
             this.openInFileExplorerToolStripMenuItem1,
             this.removeImageToolStripMenuItem});
             this.thumbnailStrip.Name = "thumbnailStrip";
-            this.thumbnailStrip.Size = new System.Drawing.Size(182, 92);
+            this.thumbnailStrip.Size = new System.Drawing.Size(182, 114);
+            this.thumbnailStrip.Opening += new System.ComponentModel.CancelEventHandler(this.thumbnailStrip_Opening);
             // 
             // copyImageToolStripMenuItem
             // 
+            this.copyImageToolStripMenuItem.Enabled = false;
             this.copyImageToolStripMenuItem.Name = "copyImageToolStripMenuItem";
             this.copyImageToolStripMenuItem.Size = new System.Drawing.Size(181, 22);
             this.copyImageToolStripMenuItem.Text = "Copy image";
@@ -121,6 +123,7 @@ namespace DAZ_Installer
             // 
             // copyImagePathToolStripMenuItem
             // 
+            this.copyImagePathToolStripMenuItem.Enabled = false;
             this.copyImagePathToolStripMenuItem.Name = "copyImagePathToolStripMenuItem";
             this.copyImagePathToolStripMenuItem.Size = new System.Drawing.Size(181, 22);
             this.copyImagePathToolStripMenuItem.Text = "Copy image path";
@@ -128,6 +131,7 @@ namespace DAZ_Installer
             // 
             // openInFileExplorerToolStripMenuItem1
             // 
+            this.openInFileExplorerToolStripMenuItem1.Enabled = false;
             this.openInFileExplorerToolStripMenuItem1.Name = "openInFileExplorerToolStripMenuItem1";
             this.openInFileExplorerToolStripMenuItem1.Size = new System.Drawing.Size(181, 22);
             this.openInFileExplorerToolStripMenuItem1.Text = "Open in file explorer";
@@ -135,6 +139,7 @@ namespace DAZ_Installer
             // 
             // removeImageToolStripMenuItem
             // 
+            this.removeImageToolStripMenuItem.Enabled = false;
             this.removeImageToolStripMenuItem.Name = "removeImageToolStripMenuItem";
             this.removeImageToolStripMenuItem.Size = new System.Drawing.Size(181, 22);
             this.removeImageToolStripMenuItem.Text = "Remove image";

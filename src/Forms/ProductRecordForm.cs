@@ -639,5 +639,12 @@ namespace DAZ_Installer
         {
             DPDatabase.ProductRecordModified -= OnProductRecordModified;
         }
+
+        private void thumbnailStrip_Opening(object sender, System.ComponentModel.CancelEventArgs e)
+        {
+            removeImageToolStripMenuItem.Enabled = copyImagePathToolStripMenuItem.Enabled = 
+                copyImageToolStripMenuItem.Enabled = openInFileExplorerToolStripMenuItem.Enabled = 
+                !string.IsNullOrEmpty(thumbnailBox.ImageLocation);
+        }
     }
 }
