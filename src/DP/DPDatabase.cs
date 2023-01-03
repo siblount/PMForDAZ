@@ -8,7 +8,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Data.SQLite;
 using System.IO;
-using DAZ_Installer.External;
 
 namespace DAZ_Installer.DP
 {
@@ -94,7 +93,7 @@ namespace DAZ_Installer.DP
         /// <summary>
         /// This event is invoked whenever a extraction record has been modified.
         /// </summary>
-        public static event Action<uint, DPExtractionRecord?> ExtractionRecordModified;
+        public static event Action<DPExtractionRecord?, uint> ExtractionRecordModified;
         /// <summary>
         /// This event is invoked whenever a new extraction record has been added.
         /// </summary>
@@ -153,7 +152,9 @@ namespace DAZ_Installer.DP
                     // Create the database.
                     CreateDatabase();
                     // Update database info.
-                    InsertDefaultValuesToTable("DatabaseInfo", null, CancellationToken.None);
+                    using var connection = CreateInitialConnection();
+                    if (connection == null) return false;
+                    InsertDefaultValuesToTable("DatabaseInfo", connection, CancellationToken.None);
                 }
                 DatabaseUpdated?.Invoke();
                 DPGlobal.AppClosing += OnAppClose;
@@ -191,6 +192,27 @@ namespace DAZ_Installer.DP
                 connection.ConnectionString = builder.ConnectionString;
                 return connection; 
             } catch (Exception e)
+            {
+                DPCommon.WriteToLog($"Failed to create connection. REASON: {e}");
+            }
+            return null;
+        }
+        /// <summary>
+        /// Creates and returns a connection with the connection string setup. Should only be used for the Initialization function.
+        /// </summary>
+        /// <returns>An SQLiteConnection if successfully created, otherwise null.</returns>
+        private static SQLiteConnection? CreateInitialConnection()
+        {
+            try
+            {
+                var connection = new SQLiteConnection();
+                var builder = new SQLiteConnectionStringBuilder();
+                builder.DataSource = Path.GetFullPath(_expectedDatabasePath);
+                builder.Pooling = true;
+                connection.ConnectionString = builder.ConnectionString;
+                return connection;
+            }
+            catch (Exception e)
             {
                 DPCommon.WriteToLog($"Failed to create connection. REASON: {e}");
             }
@@ -309,7 +331,7 @@ namespace DAZ_Installer.DP
             )";
             try
             {
-                using (var connection = CreateConnection())
+                using (var connection = CreateInitialConnection())
                 {
                     var success = OpenConnection(connection);
                     if (!success) return false;
@@ -363,7 +385,7 @@ namespace DAZ_Installer.DP
 
             try
             {
-                using (var connection = CreateConnection())
+                using (var connection = CreateInitialConnection())
                 {
                     var success = OpenConnection(connection);
                     if (!success) return false;
@@ -388,7 +410,6 @@ namespace DAZ_Installer.DP
         }
         /// <summary>
         /// Adds the triggers required for application to properly execute into the database.
-        /// Does not check if they exist. May throw an error if the tables already exist.
         /// </summary>
         /// <returns>Whether creating triggers was a success.</returns>
         private static bool CreateTriggers() {
@@ -426,7 +447,7 @@ namespace DAZ_Installer.DP
 
             try
             {
-                using (var connection = CreateConnection())
+                using (var connection = CreateInitialConnection())
                 {
                     var success = OpenConnection(connection);
                     if (!success) return false;
@@ -465,7 +486,7 @@ namespace DAZ_Installer.DP
                                             PRAGMA journal_size_limit=32768;
                                             PRAGMA page_size=512;";
             try {
-                using (var connection = CreateConnection())
+                using (var connection = CreateInitialConnection())
                 {
                     var success = OpenConnection(connection);
                     if (!success) return false;
@@ -498,7 +519,7 @@ namespace DAZ_Installer.DP
 
             try
             {
-                using (var connection = CreateConnection())
+                using (var connection = CreateInitialConnection())
                 {
                     var success = OpenConnection(connection);
                     if (!success) return false;
@@ -513,6 +534,118 @@ namespace DAZ_Installer.DP
                 return false;
             }
             return true;
+        }
+        /// <summary>
+        /// Temporarily deletes triggers from the database. 
+        /// Use this for all other code excluding initialization. <para/>
+        /// To restore triggers, use <c>RestoreTriggers()</c> instead of <c>CreateTriggers()</c>.
+        /// </summary>
+        /// <param name="c">The SQLiteConnection to use, if any. Recommended to use a connection, otherwise use <c>DeleteTriggers()</c> instead.</param>
+        /// <param name="token">Cancel token. Required, cannot be null. Use CancellationToken.None instead (though not recommended).</param>
+        /// <returns>Whether deleting triggers was a success.</returns>
+        private static bool TempDeleteTriggers(SQLiteConnection c, CancellationToken token)
+        {
+            if (token.IsCancellationRequested) return false;
+            const string removeTriggersCommand =
+                        @"DROP TRIGGER IF EXISTS delete_on_extraction_removal;
+                        DROP TRIGGER IF EXISTS delete_on_product_removal;
+                        DROP TRIGGER IF EXISTS update_on_extraction_add;
+                        DROP TRIGGER IF EXISTS update_product_count;";
+            SQLiteConnection connection = null;
+            SQLiteCommand deleteCommand = null;
+            try
+            {
+                connection = CreateAndOpenConnection(c);
+                deleteCommand = new SQLiteCommand(removeTriggersCommand, connection);
+                deleteCommand.ExecuteNonQuery();
+                DatabaseUpdated?.Invoke();
+            }
+            catch (Exception ex)
+            {
+                DPCommon.WriteToLog($"An error occurred removing triggers. REASON: {ex}");
+                return false;
+            } finally
+            {
+                if (c == null)
+                {
+                    connection?.Dispose();
+                    deleteCommand?.Dispose();
+                }
+            }
+            return true;
+        }
+
+        /// <summary>
+        /// Restores the triggers previously removed by <c>TempDeleteTriggers()</c>.
+        /// </summary>
+        /// <param name="c">The SQLiteConnection to use, if any. Recommended to use a connection, otherwise use <c>DeleteTriggers()</c> instead.</param>
+        /// <param name="token">Cancel token. Required, cannot be null. Use CancellationToken.None instead and if you wish to restore triggers that 
+        /// cannot be cancelled.</param>
+        /// <returns>Whether restoring the triggers was a success.</returns>
+        private static bool RestoreTriggers(SQLiteConnection c, CancellationToken token)
+        {
+            if (token.IsCancellationRequested) return false;
+            const string deleteOnProductRemoveTriggerCommand =
+                        @"CREATE TRIGGER IF NOT EXISTS delete_on_product_removal
+                            AFTER DELETE ON ProductRecords FOR EACH ROW
+                        BEGIN
+                            UPDATE DatabaseInfo SET ""Product Record Count"" = (SELECT COUNT(*) FROM ProductRecords);
+                            DELETE FROM ExtractionRecords WHERE ID = old.""Extraction Record ID"";
+                            DELETE FROM TAGS WHERE ""Product Record ID"" = old.ID;
+                        END;";
+            const string deleteOnExtractionRemoveTriggerCommand =
+                        @"CREATE TRIGGER IF NOT EXISTS delete_on_extraction_removal
+                            AFTER DELETE ON ExtractionRecords FOR EACH ROW
+                        BEGIN
+                            UPDATE DatabaseInfo SET ""Extraction Record Count"" = (SELECT COUNT(*) FROM ExtractionRecords);
+                            UPDATE ProductRecords SET ""Extraction Record ID"" = NULL WHERE ""Extraction Record ID"" = old.ID;
+                        END;";
+
+            const string updateOnExtractionInsertionTriggerCommand = @"
+                        CREATE TRIGGER IF NOT EXISTS update_on_extraction_add
+	                        AFTER INSERT ON ExtractionRecords FOR EACH ROW
+                        BEGIN
+	                        UPDATE DatabaseInfo SET ""Extraction Record Count"" = (SELECT COUNT(*) FROM ExtractionRecords);
+                            UPDATE ExtractionRecords SET ""Product Record ID"" = (SELECT ID FROM ProductRecords ORDER BY ID DESC LIMIT 1) WHERE ID = NEW.ID;
+                            UPDATE ProductRecords SET ""Extraction Record ID"" = NEW.ID WHERE ID IN (SELECT ID FROM ProductRecords ORDER BY ID DESC LIMIT 1);
+                        END;";
+
+            const string updateProductCountTriggerCommand = @"
+                        CREATE TRIGGER IF NOT EXISTS update_product_count
+	                        AFTER INSERT ON ProductRecords
+                        BEGIN
+	                        UPDATE DatabaseInfo SET ""Product Record Count"" = (SELECT COUNT(*) FROM ProductRecords);
+                        END";
+
+            SQLiteConnection connection = null;
+            SQLiteCommand createCommand = null;
+            try
+            {
+                connection = CreateAndOpenConnection(c);
+                createCommand = new SQLiteCommand(deleteOnProductRemoveTriggerCommand, connection);         
+                createCommand.ExecuteNonQuery();
+                createCommand.CommandText = deleteOnExtractionRemoveTriggerCommand;
+                createCommand.ExecuteNonQuery();
+                createCommand.CommandText = updateOnExtractionInsertionTriggerCommand;
+                createCommand.ExecuteNonQuery();
+                createCommand.CommandText = updateProductCountTriggerCommand;
+                createCommand.ExecuteNonQuery();
+                DatabaseUpdated?.Invoke();
+            }
+            catch (Exception ex)
+            {
+                DPCommon.WriteToLog($"An error occurred creating triggers. REASON: {ex}");
+                return false;
+            } finally
+            {
+                if (c == null)
+                {
+                    connection?.Dispose();
+                    createCommand?.Dispose();
+                }
+            }
+            return true;
+
         }
 
         // TO DO: Refresh database code.

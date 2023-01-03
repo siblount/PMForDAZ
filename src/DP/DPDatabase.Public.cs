@@ -2,7 +2,6 @@
 using System.Data;
 using System.Collections.Generic;
 using System.Data.SQLite;
-using System.Threading.Tasks;
 
 namespace DAZ_Installer.DP
 {
@@ -209,7 +208,28 @@ namespace DAZ_Installer.DP
         /// <param name="columns"></param>
         public static void UpdateValuesQ(string tableName, object[] values, string[] columns, int id)
         {
-            _mainTaskManager.AddToQueue(UpdateValues, tableName, columns, values, null as SQLiteConnection);
+            _mainTaskManager.AddToQueue(UpdateValues, tableName, columns, values, id, null as SQLiteConnection);
+        }
+
+        /// <summary>
+        /// Updates a product record and extraction record. This is currently used for applying changes from the product
+        /// record form.
+        /// </summary>
+        /// <param name="id"></param>
+        /// <param name="newProductRecord"></param>
+        /// <param name="newExtractionRecord"></param>
+        public static void UpdateRecordQ(uint id, DPProductRecord newProductRecord, DPExtractionRecord newExtractionRecord, Action<uint> callback = null)
+        {
+            _mainTaskManager.AddToQueue(t =>
+            {
+                var success = UpdateProductRecord(id, newProductRecord, null, t);
+                if (!success) return;
+                success = UpdateExtractionRecord(id, newExtractionRecord, null, t);
+                if (!success) return;
+                callback?.Invoke(newProductRecord.ID);
+                ProductRecordModified?.Invoke(newProductRecord, id);
+                ExtractionRecordModified?.Invoke(newExtractionRecord, id);
+            });
         }
 
         /// <summary>
@@ -225,7 +245,6 @@ namespace DAZ_Installer.DP
         }
         /// <summary>
         /// Removes all product records that satisfy the condition specified by <paramref name="condition"/>.
-        /// Not fully implemented. Do not use.
         /// </summary>
         /// <param name="condition">The prerequisite for removing a row that must be met.</param>
         public static void RemoveProductRecordsQ(Tuple<string, object> condition)
@@ -235,7 +254,6 @@ namespace DAZ_Installer.DP
         }
         /// <summary>
         /// Removes all product records that satisfy the conditions specified by <paramref name="conditions"/>.
-        /// Not fully implemented. Do not use.
         /// </summary>
         /// <param name="conditions">The prerequisites for removing a row that must be met.</param>
         public static void RemoveProductRecordsQ(Tuple<string, object>[] conditions)
@@ -244,7 +262,6 @@ namespace DAZ_Installer.DP
         }
         /// <summary>
         /// Removes all rows that satisfy the condition specified by <paramref name="condition"/>.
-        /// Not fully implemented. Do not use.
         /// </summary>
         /// <param name="tableName">The table to remove rows from.</param>
         /// <param name="condition">The prerequisite for removing a row that must be met.</param>
@@ -255,7 +272,6 @@ namespace DAZ_Installer.DP
         }
         /// <summary>
         /// Removes all rows that satisfy the conditions specified by <paramref name="conditions"/>.
-        /// Not fully implemented. Do not use.
         /// </summary>
         /// <param name="tableName">The table to remove rows from.</param>
         /// <param name="conditions">The prerequisite for removing a row that must be met.</param>
@@ -277,7 +293,7 @@ namespace DAZ_Installer.DP
         /// <param name="pid"></param>
         public static void RemoveTagsQ(uint pid)
         {
-            _mainTaskManager.AddToQueue(RemoveTags, pid);
+            _mainTaskManager.AddToQueue(RemoveTags, pid, null as SQLiteConnection);
         }
         /// <summary>
         /// Gets the extraction records associated with the extraction record ID specified by <paramref name="eid"/> 

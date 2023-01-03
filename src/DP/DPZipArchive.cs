@@ -36,17 +36,25 @@ namespace DAZ_Installer.DP {
             }
             var i = 0;
             foreach (var file in archive.Entries) {
-                DPFile dpfile = null;
-                DPAbstractArchive arc = InternalArchives.Find(a => a.Path == file.FullName);
-                if (DPFile.FindFileInDPFiles(file.FullName, out dpfile)) {
-                    if (dpfile.WillExtract)
+                try
+                {
+                    DPFile dpfile = null;
+                    DPAbstractArchive arc = InternalArchives.Find(a => a.Path == file.FullName);
+                    if (DPFile.FindFileInDPFiles(file.FullName, out dpfile))
                     {
-                        ExtractFile(file, dpfile);
-                        HandleProgressionZIP(archive, ++i, max);
+                        if (dpfile.WillExtract)
+                        {
+                            ExtractFile(file, dpfile);
+                            HandleProgressionZIP(archive, ++i, max);
+                        }
                     }
+                    if (arc != null && arc.WillExtract)
+                        ExtractFile(file, arc);
+                } catch (Exception ex)
+                {
+                    DPCommon.WriteToLog($"Failed to extract {file.FullName}. REASON: {ex}");
                 }
-                if (arc != null && arc.WillExtract) 
-                    ExtractFile(file, arc);
+
             }
             HandleProgressionZIP(archive, max, max);
         }
@@ -106,11 +114,17 @@ namespace DAZ_Installer.DP {
         internal override void ReadMetaFiles()
         {
             foreach (var file in DSXFiles) {
-                var entry = archive.GetEntry(file.Path);
-                if (entry == null) continue;
-                ExtractFile(entry, file);
-                if (file.WasExtracted) {
-                    file.CheckContents();
+                try
+                {
+                    var entry = archive.GetEntry(file.Path);
+                    if (entry == null) continue;
+                    ExtractFile(entry, file);
+                    if (file.WasExtracted) {
+                        file.CheckContents();
+                    }
+                } catch (Exception ex)
+                {
+                    DPCommon.WriteToLog($"Unable to read meta file {file.Path}. REASON: {ex}");
                 }
             }
         }

@@ -68,6 +68,8 @@ namespace DAZ_Installer
         {
             InitializeComponent();
             ExtractPage = this;
+            tabControl1.TabPages.Remove(queuePage);
+            queuePage.Dispose();
         }
 
         internal void AddToList(DPAbstractArchive archive)
@@ -264,20 +266,6 @@ namespace DAZ_Installer
         }
         #endregion
 
-        private void queueList_SelectedIndexChanged(object sender, EventArgs e)
-        {
-
-        }
-
-        private void treeView1_AfterSelect(object sender, TreeViewEventArgs e)
-        {
-
-        }
-
-        private void splitContainer1_Panel2_Paint(object sender, PaintEventArgs e)
-        {
-
-        }
     }
 
 }

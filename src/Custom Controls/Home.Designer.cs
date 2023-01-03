@@ -32,8 +32,6 @@ namespace DAZ_Installer
             this.components = new System.ComponentModel.Container();
             this.titleLbl = new System.Windows.Forms.Label();
             this.extractBtn = new System.Windows.Forms.Button();
-            this.dragHerePanel = new System.Windows.Forms.Panel();
-            this.dropText = new System.Windows.Forms.Label();
             this.addMoreFilesBtn = new System.Windows.Forms.Button();
             this.clearListBtn = new System.Windows.Forms.Button();
             this.listView1 = new System.Windows.Forms.ListView();
@@ -43,15 +41,17 @@ namespace DAZ_Installer
             this.addMoreItemsToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.openFileDialog1 = new System.Windows.Forms.OpenFileDialog();
             this.tableLayoutPanel1 = new System.Windows.Forms.TableLayoutPanel();
-            this.dragHerePanel.SuspendLayout();
+            this.dropBtn = new System.Windows.Forms.Button();
             this.homeListContextMenuStrip.SuspendLayout();
             this.tableLayoutPanel1.SuspendLayout();
             this.SuspendLayout();
             // 
             // titleLbl
             // 
+            this.titleLbl.BackColor = System.Drawing.Color.White;
             this.titleLbl.Dock = System.Windows.Forms.DockStyle.Top;
-            this.titleLbl.Font = new System.Drawing.Font("Segoe UI", 16F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
+            this.titleLbl.Font = new System.Drawing.Font("Segoe UI Variable Text Light", 18F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
+            this.titleLbl.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(31)))), ((int)(((byte)(31)))), ((int)(((byte)(31)))));
             this.titleLbl.Location = new System.Drawing.Point(0, 0);
             this.titleLbl.Name = "titleLbl";
             this.titleLbl.Size = new System.Drawing.Size(542, 55);
@@ -69,45 +69,6 @@ namespace DAZ_Installer
             this.extractBtn.Text = "Extract File(s)";
             this.extractBtn.UseVisualStyleBackColor = true;
             this.extractBtn.Click += new System.EventHandler(this.button1_Click);
-            // 
-            // dragHerePanel
-            // 
-            this.dragHerePanel.AllowDrop = true;
-            this.dragHerePanel.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
-            | System.Windows.Forms.AnchorStyles.Left) 
-            | System.Windows.Forms.AnchorStyles.Right)));
-            this.dragHerePanel.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(80)))), ((int)(((byte)(231)))), ((int)(((byte)(254)))), ((int)(((byte)(232)))));
-            this.dragHerePanel.Controls.Add(this.dropText);
-            this.dragHerePanel.Cursor = System.Windows.Forms.Cursors.Hand;
-            this.dragHerePanel.Location = new System.Drawing.Point(18, 55);
-            this.dragHerePanel.Name = "dragHerePanel";
-            this.dragHerePanel.Size = new System.Drawing.Size(509, 249);
-            this.dragHerePanel.TabIndex = 3;
-            this.dragHerePanel.Click += new System.EventHandler(this.dragHerePanel_Click);
-            this.dragHerePanel.DragDrop += new System.Windows.Forms.DragEventHandler(this.dragHerePanel_DragDrop);
-            this.dragHerePanel.DragEnter += new System.Windows.Forms.DragEventHandler(this.dragHerePanel_DragEnter);
-            this.dragHerePanel.DragLeave += new System.EventHandler(this.dragHerePanel_DragLeave);
-            this.dragHerePanel.MouseEnter += new System.EventHandler(this.dragHerePanel_MouseEnter);
-            this.dragHerePanel.MouseLeave += new System.EventHandler(this.dragHerePanel_MouseLeave);
-            // 
-            // dropText
-            // 
-            this.dropText.AllowDrop = true;
-            this.dropText.BackColor = System.Drawing.Color.Transparent;
-            this.dropText.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.dropText.Font = new System.Drawing.Font("Segoe UI", 16F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
-            this.dropText.Location = new System.Drawing.Point(0, 0);
-            this.dropText.Name = "dropText";
-            this.dropText.Size = new System.Drawing.Size(509, 249);
-            this.dropText.TabIndex = 0;
-            this.dropText.Text = "Click here to select file(s) or drag them here.";
-            this.dropText.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
-            this.dropText.Click += new System.EventHandler(this.dragHerePanel_Click);
-            this.dropText.DragDrop += new System.Windows.Forms.DragEventHandler(this.dragHerePanel_DragDrop);
-            this.dropText.DragEnter += new System.Windows.Forms.DragEventHandler(this.dragHerePanel_DragEnter);
-            this.dropText.DragLeave += new System.EventHandler(this.dragHerePanel_DragLeave);
-            this.dropText.MouseEnter += new System.EventHandler(this.dragHerePanel_MouseEnter);
-            this.dropText.MouseLeave += new System.EventHandler(this.dragHerePanel_MouseLeave);
             // 
             // addMoreFilesBtn
             // 
@@ -147,7 +108,7 @@ namespace DAZ_Installer
             this.listView1.TabIndex = 4;
             this.listView1.UseCompatibleStateImageBehavior = false;
             this.listView1.View = System.Windows.Forms.View.Details;
-            this.listView1.DragDrop += new System.Windows.Forms.DragEventHandler(this.dragHerePanel_DragDrop);
+            this.listView1.DragDrop += new System.Windows.Forms.DragEventHandler(this.dropBtn_DragDrop);
             this.listView1.DragEnter += new System.Windows.Forms.DragEventHandler(this.listView1_DragEnter);
             // 
             // columnHeader1
@@ -211,18 +172,39 @@ namespace DAZ_Installer
             this.tableLayoutPanel1.Size = new System.Drawing.Size(509, 249);
             this.tableLayoutPanel1.TabIndex = 5;
             // 
+            // dropBtn
+            // 
+            this.dropBtn.AllowDrop = true;
+            this.dropBtn.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
+            | System.Windows.Forms.AnchorStyles.Left) 
+            | System.Windows.Forms.AnchorStyles.Right)));
+            this.dropBtn.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(192)))), ((int)(((byte)(255)))), ((int)(((byte)(192)))));
+            this.dropBtn.Cursor = System.Windows.Forms.Cursors.Hand;
+            this.dropBtn.FlatAppearance.BorderSize = 0;
+            this.dropBtn.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.dropBtn.Font = new System.Drawing.Font("Segoe UI Variable Display Semil", 18F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
+            this.dropBtn.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(32)))), ((int)(((byte)(32)))), ((int)(((byte)(32)))));
+            this.dropBtn.Location = new System.Drawing.Point(18, 55);
+            this.dropBtn.Name = "dropBtn";
+            this.dropBtn.Size = new System.Drawing.Size(509, 249);
+            this.dropBtn.TabIndex = 6;
+            this.dropBtn.Text = "Click here to select file(s) or drag them here.";
+            this.dropBtn.UseVisualStyleBackColor = false;
+            this.dropBtn.Click += new System.EventHandler(this.dropBtn_Click);
+            this.dropBtn.DragDrop += new System.Windows.Forms.DragEventHandler(this.dropBtn_DragDrop);
+            this.dropBtn.DragEnter += new System.Windows.Forms.DragEventHandler(this.dropBtn_DragEnter);
+            this.dropBtn.DragLeave += new System.EventHandler(this.dropBtn_DragLeave);
+            // 
             // Home
             // 
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Inherit;
             this.AutoSize = true;
             this.BackColor = System.Drawing.Color.White;
-            this.Controls.Add(this.dragHerePanel);
+            this.Controls.Add(this.dropBtn);
             this.Controls.Add(this.titleLbl);
             this.Controls.Add(this.tableLayoutPanel1);
             this.Name = "Home";
             this.Size = new System.Drawing.Size(542, 344);
-            this.Load += new System.EventHandler(this.homePage_Load);
-            this.dragHerePanel.ResumeLayout(false);
             this.homeListContextMenuStrip.ResumeLayout(false);
             this.tableLayoutPanel1.ResumeLayout(false);
             this.ResumeLayout(false);
@@ -233,8 +215,6 @@ namespace DAZ_Installer
 
         private System.Windows.Forms.Label titleLbl;
         private System.Windows.Forms.Button extractBtn;
-        private System.Windows.Forms.Panel dragHerePanel;
-        private System.Windows.Forms.Label dropText;
         private System.Windows.Forms.OpenFileDialog openFileDialog1;
         internal System.Windows.Forms.ListView listView1;
         private System.Windows.Forms.ContextMenuStrip homeListContextMenuStrip;
@@ -244,5 +224,6 @@ namespace DAZ_Installer
         private System.Windows.Forms.Button clearListBtn;
         private System.Windows.Forms.ColumnHeader columnHeader1;
         private System.Windows.Forms.TableLayoutPanel tableLayoutPanel1;
+        private System.Windows.Forms.Button dropBtn;
     }
 }

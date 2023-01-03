@@ -174,7 +174,7 @@ namespace DAZ_Installer
             this.fileHierachyPage.Margin = new System.Windows.Forms.Padding(4, 2, 4, 2);
             this.fileHierachyPage.Name = "fileHierachyPage";
             this.fileHierachyPage.Padding = new System.Windows.Forms.Padding(4, 2, 4, 2);
-            this.fileHierachyPage.Size = new System.Drawing.Size(483, 111);
+            this.fileHierachyPage.Size = new System.Drawing.Size(483, 69);
             this.fileHierachyPage.TabIndex = 1;
             this.fileHierachyPage.Text = "File Hierachy";
             this.fileHierachyPage.UseVisualStyleBackColor = true;
@@ -186,7 +186,7 @@ namespace DAZ_Installer
             this.fileHierachyTree.Location = new System.Drawing.Point(4, 2);
             this.fileHierachyTree.Margin = new System.Windows.Forms.Padding(4, 2, 4, 2);
             this.fileHierachyTree.Name = "fileHierachyTree";
-            this.fileHierachyTree.Size = new System.Drawing.Size(475, 107);
+            this.fileHierachyTree.Size = new System.Drawing.Size(475, 65);
             this.fileHierachyTree.StateImageList = this.archiveFolderIcons;
             this.fileHierachyTree.TabIndex = 0;
             // 
@@ -206,7 +206,7 @@ namespace DAZ_Installer
             this.queuePage.Margin = new System.Windows.Forms.Padding(4, 2, 4, 2);
             this.queuePage.Name = "queuePage";
             this.queuePage.Padding = new System.Windows.Forms.Padding(4, 2, 4, 2);
-            this.queuePage.Size = new System.Drawing.Size(483, 111);
+            this.queuePage.Size = new System.Drawing.Size(483, 69);
             this.queuePage.TabIndex = 2;
             this.queuePage.Text = "Queue";
             this.queuePage.UseVisualStyleBackColor = true;
@@ -217,7 +217,7 @@ namespace DAZ_Installer
             this.queueControl1.Location = new System.Drawing.Point(4, 2);
             this.queueControl1.Margin = new System.Windows.Forms.Padding(4, 2, 4, 2);
             this.queueControl1.Name = "queueControl1";
-            this.queueControl1.Size = new System.Drawing.Size(475, 107);
+            this.queueControl1.Size = new System.Drawing.Size(475, 65);
             this.queueControl1.TabIndex = 0;
             // 
             // panel1
@@ -235,7 +235,7 @@ namespace DAZ_Installer
             // 
             this.mainProcLbl.AutoEllipsis = true;
             this.mainProcLbl.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.mainProcLbl.Font = new System.Drawing.Font("Segoe UI", 16.2F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
+            this.mainProcLbl.Font = new System.Drawing.Font("Segoe UI Variable Display Semil", 17.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
             this.mainProcLbl.Location = new System.Drawing.Point(0, 0);
             this.mainProcLbl.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
             this.mainProcLbl.Name = "mainProcLbl";

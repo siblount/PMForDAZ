@@ -29,12 +29,17 @@ namespace DAZ_Installer
         /// </summary>
         private void InitializeComponent()
         {
+            this.components = new System.ComponentModel.Container();
             this.imageBox = new System.Windows.Forms.PictureBox();
             this.label1 = new System.Windows.Forms.Label();
             this.tagsLayoutPanel = new System.Windows.Forms.FlowLayoutPanel();
             this.invisibleLabel = new System.Windows.Forms.Label();
             this.showFoldersBtn = new System.Windows.Forms.Button();
+            this.libraryItemMenuStrip = new System.Windows.Forms.ContextMenuStrip(this.components);
+            this.removeRecordToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.removeProductToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             ((System.ComponentModel.ISupportInitialize)(this.imageBox)).BeginInit();
+            this.libraryItemMenuStrip.SuspendLayout();
             this.SuspendLayout();
             // 
             // imageBox
@@ -52,7 +57,7 @@ namespace DAZ_Installer
             this.label1.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
             this.label1.AutoEllipsis = true;
-            this.label1.Font = new System.Drawing.Font("Segoe UI", 18F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
+            this.label1.Font = new System.Drawing.Font("Segoe UI Variable Display Semil", 18F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
             this.label1.Location = new System.Drawing.Point(128, 10);
             this.label1.Margin = new System.Windows.Forms.Padding(0);
             this.label1.Name = "label1";
@@ -88,6 +93,7 @@ namespace DAZ_Installer
             | System.Windows.Forms.AnchorStyles.Right)));
             this.showFoldersBtn.FlatAppearance.BorderSize = 0;
             this.showFoldersBtn.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.showFoldersBtn.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
             this.showFoldersBtn.ImageAlign = System.Drawing.ContentAlignment.MiddleLeft;
             this.showFoldersBtn.Location = new System.Drawing.Point(135, 78);
             this.showFoldersBtn.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
@@ -100,12 +106,35 @@ namespace DAZ_Installer
             this.showFoldersBtn.UseVisualStyleBackColor = true;
             this.showFoldersBtn.Click += new System.EventHandler(this.showFoldersBtn_Click);
             // 
+            // libraryItemMenuStrip
+            // 
+            this.libraryItemMenuStrip.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.removeRecordToolStripMenuItem,
+            this.removeProductToolStripMenuItem});
+            this.libraryItemMenuStrip.Name = "libraryItemMenuStrip";
+            this.libraryItemMenuStrip.Size = new System.Drawing.Size(163, 48);
+            // 
+            // removeRecordToolStripMenuItem
+            // 
+            this.removeRecordToolStripMenuItem.Name = "removeRecordToolStripMenuItem";
+            this.removeRecordToolStripMenuItem.Size = new System.Drawing.Size(162, 22);
+            this.removeRecordToolStripMenuItem.Text = "Remove record";
+            this.removeRecordToolStripMenuItem.Click += new System.EventHandler(this.removeRecordToolStripMenuItem_Click);
+            // 
+            // removeProductToolStripMenuItem
+            // 
+            this.removeProductToolStripMenuItem.Name = "removeProductToolStripMenuItem";
+            this.removeProductToolStripMenuItem.Size = new System.Drawing.Size(162, 22);
+            this.removeProductToolStripMenuItem.Text = "Remove product";
+            this.removeProductToolStripMenuItem.Click += new System.EventHandler(this.removeProductToolStripMenuItem_Click);
+            // 
             // LibraryItem
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.AutoSize = true;
             this.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(192)))), ((int)(((byte)(255)))), ((int)(((byte)(192)))));
+            this.ContextMenuStrip = this.libraryItemMenuStrip;
             this.Controls.Add(this.showFoldersBtn);
             this.Controls.Add(this.invisibleLabel);
             this.Controls.Add(this.tagsLayoutPanel);
@@ -115,6 +144,7 @@ namespace DAZ_Installer
             this.Name = "LibraryItem";
             this.Size = new System.Drawing.Size(472, 116);
             ((System.ComponentModel.ISupportInitialize)(this.imageBox)).EndInit();
+            this.libraryItemMenuStrip.ResumeLayout(false);
             this.ResumeLayout(false);
             this.PerformLayout();
 
@@ -127,5 +157,8 @@ namespace DAZ_Installer
         private System.Windows.Forms.FlowLayoutPanel tagsLayoutPanel;
         private System.Windows.Forms.Label invisibleLabel;
         private System.Windows.Forms.Button showFoldersBtn;
+        private System.Windows.Forms.ContextMenuStrip libraryItemMenuStrip;
+        private System.Windows.Forms.ToolStripMenuItem removeRecordToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem removeProductToolStripMenuItem;
     }
 }

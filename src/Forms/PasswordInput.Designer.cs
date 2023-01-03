@@ -29,6 +29,7 @@ namespace DAZ_Installer
         /// </summary>
         private void InitializeComponent()
         {
+            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(PasswordInput));
             this.tableLayoutPanel1 = new System.Windows.Forms.TableLayoutPanel();
             this.mainLbl = new System.Windows.Forms.Label();
             this.maskedTextBox1 = new System.Windows.Forms.MaskedTextBox();
@@ -48,12 +49,13 @@ namespace DAZ_Installer
             this.tableLayoutPanel1.Controls.Add(this.tableLayoutPanel2, 0, 2);
             this.tableLayoutPanel1.Dock = System.Windows.Forms.DockStyle.Fill;
             this.tableLayoutPanel1.Location = new System.Drawing.Point(0, 0);
+            this.tableLayoutPanel1.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.tableLayoutPanel1.Name = "tableLayoutPanel1";
             this.tableLayoutPanel1.RowCount = 3;
             this.tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 100F));
-            this.tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 31F));
-            this.tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 87F));
-            this.tableLayoutPanel1.Size = new System.Drawing.Size(495, 201);
+            this.tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 23F));
+            this.tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 65F));
+            this.tableLayoutPanel1.Size = new System.Drawing.Size(433, 151);
             this.tableLayoutPanel1.TabIndex = 0;
             // 
             // mainLbl
@@ -62,7 +64,7 @@ namespace DAZ_Installer
             this.mainLbl.Font = new System.Drawing.Font("Segoe UI", 11F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
             this.mainLbl.Location = new System.Drawing.Point(3, 0);
             this.mainLbl.Name = "mainLbl";
-            this.mainLbl.Size = new System.Drawing.Size(489, 83);
+            this.mainLbl.Size = new System.Drawing.Size(427, 63);
             this.mainLbl.TabIndex = 0;
             this.mainLbl.Text = "Loading...";
             this.mainLbl.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
@@ -70,9 +72,10 @@ namespace DAZ_Installer
             // maskedTextBox1
             // 
             this.maskedTextBox1.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.maskedTextBox1.Location = new System.Drawing.Point(3, 86);
+            this.maskedTextBox1.Location = new System.Drawing.Point(3, 65);
+            this.maskedTextBox1.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.maskedTextBox1.Name = "maskedTextBox1";
-            this.maskedTextBox1.Size = new System.Drawing.Size(489, 27);
+            this.maskedTextBox1.Size = new System.Drawing.Size(427, 23);
             this.maskedTextBox1.TabIndex = 1;
             this.maskedTextBox1.UseSystemPasswordChar = true;
             // 
@@ -83,21 +86,23 @@ namespace DAZ_Installer
             this.tableLayoutPanel2.Controls.Add(this.submitBtn, 0, 0);
             this.tableLayoutPanel2.Controls.Add(this.cancelBtn, 0, 1);
             this.tableLayoutPanel2.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.tableLayoutPanel2.Location = new System.Drawing.Point(3, 117);
+            this.tableLayoutPanel2.Location = new System.Drawing.Point(3, 88);
+            this.tableLayoutPanel2.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.tableLayoutPanel2.Name = "tableLayoutPanel2";
             this.tableLayoutPanel2.RowCount = 2;
             this.tableLayoutPanel2.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 50F));
             this.tableLayoutPanel2.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 50F));
-            this.tableLayoutPanel2.Size = new System.Drawing.Size(489, 81);
+            this.tableLayoutPanel2.Size = new System.Drawing.Size(427, 61);
             this.tableLayoutPanel2.TabIndex = 2;
             // 
             // submitBtn
             // 
             this.submitBtn.DialogResult = System.Windows.Forms.DialogResult.OK;
             this.submitBtn.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.submitBtn.Location = new System.Drawing.Point(3, 3);
+            this.submitBtn.Location = new System.Drawing.Point(3, 2);
+            this.submitBtn.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.submitBtn.Name = "submitBtn";
-            this.submitBtn.Size = new System.Drawing.Size(483, 34);
+            this.submitBtn.Size = new System.Drawing.Size(421, 26);
             this.submitBtn.TabIndex = 0;
             this.submitBtn.Text = "Submit\r\n";
             this.submitBtn.UseVisualStyleBackColor = true;
@@ -107,9 +112,10 @@ namespace DAZ_Installer
             // 
             this.cancelBtn.DialogResult = System.Windows.Forms.DialogResult.Cancel;
             this.cancelBtn.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.cancelBtn.Location = new System.Drawing.Point(3, 43);
+            this.cancelBtn.Location = new System.Drawing.Point(3, 32);
+            this.cancelBtn.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.cancelBtn.Name = "cancelBtn";
-            this.cancelBtn.Size = new System.Drawing.Size(483, 35);
+            this.cancelBtn.Size = new System.Drawing.Size(421, 27);
             this.cancelBtn.TabIndex = 1;
             this.cancelBtn.Text = "Cancel";
             this.cancelBtn.UseVisualStyleBackColor = true;
@@ -118,13 +124,15 @@ namespace DAZ_Installer
             // PasswordInput
             // 
             this.AcceptButton = this.submitBtn;
-            this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 20F);
+            this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.CancelButton = this.cancelBtn;
-            this.ClientSize = new System.Drawing.Size(495, 201);
+            this.ClientSize = new System.Drawing.Size(433, 151);
             this.Controls.Add(this.tableLayoutPanel1);
+            this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
+            this.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.MaximizeBox = false;
-            this.MinimumSize = new System.Drawing.Size(18, 200);
+            this.MinimumSize = new System.Drawing.Size(18, 160);
             this.Name = "PasswordInput";
             this.Text = "Unlock archive";
             this.TopMost = true;

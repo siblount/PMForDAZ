@@ -12,6 +12,10 @@ namespace DAZ_Installer.DP {
     /// </summary>
     internal abstract class DPAbstractFile {
         /// <summary>
+        /// The file name of a file or folder; equivalent to <c>Path.GetFileName()</c>.
+        /// </summary>
+        internal string FileName { get; set; }
+        /// <summary>
         /// The full path of the file (or folder) in the archive space.
         /// However, if the derived type is a <c>DPArchive</c>, the path can be the path
         /// in the file system space or archive space. If the archive has <c>IsInnerArchive</c> set to
@@ -26,7 +30,14 @@ namespace DAZ_Installer.DP {
         /// </summary>
         internal string? RelativePath { get; set; }
         /// <summary>
-        /// The full directory path at which the file will be go to in the file system.
+        /// The relative directory path at which will be used to determine which the file will go to in the system. <para/>
+        /// This property is used to determine the target path of a file. <para/>
+        /// The value will be equal to <see cref="RelativePath"/>
+        /// if the <see cref="FileName"/> is not in <see cref="DPSettings.folderRedirects"/>.
+        /// </summary>
+        internal string RelativeTargetPath { get; set; }
+        /// <summary>
+        /// The full directory path at which the file go to in the file system.
         /// </summary>
         internal string TargetPath { get; set; }
         /// <summary>
@@ -144,6 +155,7 @@ namespace DAZ_Installer.DP {
         internal DPAbstractFile(string _path) {
             UID = DPIDManager.GetNewID();
             Path = _path;
+            FileName = IOPath.GetFileName(_path);
         }
         
         

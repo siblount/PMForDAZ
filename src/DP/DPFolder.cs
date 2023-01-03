@@ -24,8 +24,10 @@ namespace DAZ_Installer.DP
         {
             UID = DPIDManager.GetNewID();
             // Check if path is root.
-            // GetDirectoryName returns "" if looks like filename.  
+            // GetDirectoryName returns "" if it ends with a slash.
+            // Ex: D:/folderName/ will return ""; whereas D:/folderName will return "folderName"
             Path = PathHelper.GetDirectoryPath(path);
+            FileName = IOPath.GetFileName(Path);
 
             //if (relativePathBase != null)
             //{
@@ -73,16 +75,20 @@ namespace DAZ_Installer.DP
             return firstFolder;
         }
 
-        internal void UpdateChildrenRelativePaths()
+        internal void UpdateChildrenRelativePaths(DPSettings settings)
         {
             // Needs to be relative to the content folder.
             if (isContentFolder)
             {
                 foreach (var child in children.Values)
                 {
-                    var relativePath = PathHelper.GetRelativePath(child.Path, Path);
-                    child.RelativePath = relativePath;
+                    // This prevents the code for running twice on a child that was previously processed when ManifestAndAuto is on.
+                    if (!string.IsNullOrEmpty(child.RelativePath) && !string.IsNullOrEmpty(child.RelativeTargetPath))
+                        continue;
+                    child.RelativePath = CalculateChildRelativePath(child);
+                    child.RelativeTargetPath = CalculateChildRelativeTargetPath(child, settings);
                 }
+
             }
             else
             {
@@ -91,12 +97,44 @@ namespace DAZ_Installer.DP
                 {
                     foreach (var child in children.Values)
                     {
-                        var relativePath = PathHelper.GetRelativePath(child.Path, contentFolder.Path);
-                        child.RelativePath = relativePath;
+                        // This prevents the code for running twice on a child that was previously processed when ManifestAndAuto is on.
+                        if (!string.IsNullOrEmpty(child.RelativePath) && !string.IsNullOrEmpty(contentFolder.RelativeTargetPath))
+                            continue;
+                        child.RelativePath = contentFolder.CalculateChildRelativePath(child);
+                        child.RelativeTargetPath = CalculateChildRelativeTargetPath(child, settings);
                     }
                 }
             }
 
+        }
+
+        /// <summary>
+        /// Calculates the path of a child relative to this folder.
+        /// </summary>
+        /// <param name="child">The child of this folder.</param>
+        /// <returns>A string representing the relative path of the child relative to this folder.</returns>
+        internal string CalculateChildRelativePath(DPAbstractFile child) => PathHelper.GetRelativePath(child.Path, Path);
+
+        /// <summary>
+        /// Calculates the target path of a child relative to this folder. Requires the settings object to
+        /// check if the folder name is in <see cref="DPSettings.folderRedirects"/>.
+        /// </summary>
+        /// <param name="child">The child of this folder.</param>
+        /// <param name="settings">The settings object in use.</param>
+        /// <returns>A string representing the target path of the child relative to this folder.</returns>
+        internal string CalculateChildRelativeTargetPath(DPAbstractFile child, DPSettings settings)
+        {
+            var containsKey = settings.folderRedirects.ContainsKey(FileName);
+            if (!containsKey || (isContentFolder && !containsKey)) return child.RelativePath;
+
+            var i = Path.LastIndexOf(PathHelper.GetSeperator(Path));
+            var newPath = PathHelper.NormalizePath(
+                i != -1 ? Path.Substring(0, i + 1) + settings.folderRedirects[FileName] : settings.folderRedirects[FileName]
+            );
+            var childNewPath = PathHelper.NormalizePath(child.Path);
+            childNewPath = childNewPath.Replace(IOPath.GetDirectoryName(childNewPath), newPath);
+
+            return PathHelper.GetRelativePath(childNewPath, newPath);
         }
 
         internal DPFolder GetContentFolder()

@@ -91,6 +91,7 @@ namespace DAZ_Installer
             // 
             this.pageLbl.AutoSize = true;
             this.pageLbl.Dock = System.Windows.Forms.DockStyle.Left;
+            this.pageLbl.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
             this.pageLbl.Location = new System.Drawing.Point(76, 3);
             this.pageLbl.Name = "pageLbl";
             this.pageLbl.Size = new System.Drawing.Size(65, 36);

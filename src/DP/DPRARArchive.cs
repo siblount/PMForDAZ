@@ -187,26 +187,50 @@ namespace DAZ_Installer.DP
             foreach (var file in DazFiles) {
                 // We only want daz files that successfully extracted.
                 if (!file.WasExtracted) continue;
-                try {
-                    using (var reader = new StreamReader(file.ExtractedPath, Encoding.UTF8, true)) {
+                try
+                {
+                    using (var reader = new StreamReader(file.ExtractedPath, Encoding.UTF8, true))
+                    {
                         file.ReadContents(reader);
                     }
-                } catch {}
+                }
+                catch (Exception ex)
+                {
+                    DPCommon.WriteToLog($"An unexpected error occured in ReadContentFiles(). REASON: {ex}");
+                }
             }
         }
 
         internal override void ReadMetaFiles()
         {
-            using (RAR handler = new RAR(IsInnerArchive ? ExtractedPath : Path))
+            try
             {
-                foreach (var file in DSXFiles)
+                using (RAR handler = new RAR(IsInnerArchive ? ExtractedPath : Path))
                 {
-                    // Extract the file and update the product info and content info structs.
-                    if (ExtractFile(handler))
+                    handler.Open();
+                    var extractedFileCount = 0;
+                    foreach (var file in DSXFiles)
                     {
-                        file.CheckContents();
+                        if (file.WasExtracted)
+                        {
+                            file.CheckContents();
+                            extractedFileCount++;
+                        }
+                    }
+                    if (extractedFileCount == DSXFiles.Count) return;
+
+                    while (handler.ReadHeader())
+                    {
+                        var dsxfile = DSXFiles.Find(f => f.Path == handler.CurrentFile.FileName);
+                        if (dsxfile is null) continue;
+                        ExtractFile(handler);
+                        if (dsxfile.WasExtracted)
+                            dsxfile.CheckContents();
                     }
                 }
+            } catch (Exception ex)
+            {
+                DPCommon.WriteToLog($"An unexpected error occured in ReadMetaFiles(). REASON: {ex}");
             }
         }
         internal override void Extract() {
@@ -345,7 +369,6 @@ namespace DAZ_Installer.DP
                         DPCommon.WriteToLog($"Unable to extract file and change file attributes for {fileName}. REASON: {ex}");
                     }
                 }
-
                 return false;
             }
             return true;

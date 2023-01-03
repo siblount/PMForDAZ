@@ -30,7 +30,7 @@ namespace DAZ_Installer.DP {
             // 1..9
             foreach (var line in contents.Slice(1, 8))
             {
-                if (line is null) continue;
+                if (string.IsNullOrEmpty(line) || string.IsNullOrWhiteSpace(line)) continue;
                 try
                 {
                     var propertyName = GetPropertyName(line);
@@ -63,6 +63,7 @@ namespace DAZ_Installer.DP {
         }
 
         // Not accurate but it's okay.
+        // throws error when msg is "", colonIndex returns -1 which results in out of index error.
         public static ReadOnlySpan<char> GetPropertyName(ReadOnlySpan<char> msg) {
             var colonIndex = msg.IndexOf(':');
             var propertyName = msg.Slice(0,colonIndex-1);
