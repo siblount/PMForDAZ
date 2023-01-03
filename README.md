@@ -1,22 +1,22 @@
 # DAZ Product Installer
 
-This is an application currently only for Windows users to install their products regardless of the vendor's format; it accepts unique file structures and archive formats.
+This is an application currently only for Windows users to install their products regardless of the vendor's format; it accepts common file structures and archive formats.
 
 ### Watch a preview here (click on image):
-[![Daz Product Installer Alpha Preview Video](https://i.postimg.cc/RhBnRmF3/image.png)](https://www.youtube.com/watch?v=FwLc-dcl8W0)
+[![Daz Product Installer Alpha Preview Video](https://i.postimg.cc/VL7qpd4B/image.png)](https://www.youtube.com/watch?v=FwLc-dcl8W0)
 
 ## What does this project aim to do?
 Firstly, it aims to be a **free** and **open-source*** application to gain trust of users, allow others to contribute, and release a product that is useful for all.
 Additonally, it - 
- - Make an application that is able to process any archive (ZIP, RAR, 7z).
- - Quickly install products regardless of file structures. **This is very useful for Renderosity and other vendor websites**.
+ - Make an application that is able to process commonly used archive types (ZIP, RAR, 7z).
+ - Quickly install products with common packaging formats. **This is very useful for Renderosity and other vendor websites**.
  - Also be a library to store processed/installed products.
  - Be a database to search for products for users who have a lot of products.
- - Be a product management tool for products that are from Renderosity and other vendors (For example).
+ - Be a product management tool for products that are purchased from other vendors (such as Daz, Renderosity, etc).
 
 
 ## Project Status
-Alpha
+P-Alpha
 
 Currently, the application can:
   - ✅ Recognize and intelligently install products regardless of file structure.
@@ -27,10 +27,11 @@ Currently, the application can:
   - ✅ Choose your preferences (ie: install locations, temp location, product handling, etc).
   - ✅ Hold records of installation files (database).
   - ✅ Search products you've downloaded.
+  - ✅ Manage content / delete or move on request.
 
 The application cannot at this stage:
   - ❌ Merge "part" archives into a single record.
-  - ❌ Manage content / delete or move on request.
+  - ❌ Move content on request.
   - ❌ Handle certain MANIFEST tasks such as "EXECUTE"..
   - ❌ Handle password-protected archives appropriately (RAR, 7z).
 
