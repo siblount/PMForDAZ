@@ -2,12 +2,12 @@ using System;
 using System.Collections.Generic;
 
 namespace DAZ_Installer.Core {
-    internal class DPDSXElementCollection
+    public class DPDSXElementCollection
     {
-        internal Dictionary<string, LinkedList<DPDSXElement>> selfClosingElements = new Dictionary<string, LinkedList<DPDSXElement>>(3);
-        internal Dictionary<string, LinkedList<DPDSXElement>> nonSelfClosingElements = new Dictionary<string, LinkedList<DPDSXElement>>(3);
+        public Dictionary<string, LinkedList<DPDSXElement>> selfClosingElements = new Dictionary<string, LinkedList<DPDSXElement>>(3);
+        public Dictionary<string, LinkedList<DPDSXElement>> nonSelfClosingElements = new Dictionary<string, LinkedList<DPDSXElement>>(3);
         private int count = 0;
-        internal void AddElement(DPDSXElement element)
+        public void AddElement(DPDSXElement element)
         {
             count++;
             var newLinkedList = new LinkedList<DPDSXElement>();
@@ -28,7 +28,7 @@ namespace DAZ_Installer.Core {
             }
         }
 
-        internal DPDSXElement[] GetAllElements()
+        public DPDSXElement[] GetAllElements()
         {
             List<DPDSXElement> elements = new List<DPDSXElement>(count);
             foreach (var list in selfClosingElements.Values) {
@@ -40,7 +40,7 @@ namespace DAZ_Installer.Core {
             return elements.ToArray();
         }
 
-        internal DPDSXElement[] FindElementViaTag(string tagName)
+        public DPDSXElement[] FindElementViaTag(string tagName)
         {
             if (nonSelfClosingElements.ContainsKey(tagName)) {
                 return new List<DPDSXElement>(nonSelfClosingElements[tagName]).ToArray();

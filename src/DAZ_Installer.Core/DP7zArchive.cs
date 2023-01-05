@@ -8,11 +8,12 @@ using System.Text;
 using System.IO.Compression;
 using System.Windows.Forms;
 using IOPath = System.IO.Path;
-using DAZ_Installer.Utilities;
 using System.Threading.Tasks;
 using System.Threading;
+using DAZ_Installer.Core.Utilities;
 
-namespace DAZ_Installer.Core {
+namespace DAZ_Installer.Core
+{
     // Notes: 
     // Directories are listed with "l -slt" with the D attribute. Files are with the A attribute.
     // Attributes: R - Read-only, H - Hidden, S - System, A - Archive (file), D - Directory
@@ -20,7 +21,7 @@ namespace DAZ_Installer.Core {
     // For more info: https://jpsoft.com/help/attrswitch.htm - Attribute Switches section
     // In the event where there is no more room, 7z will stop extracting even if there is more to
     // extract.
-    internal class DP7zArchive : DPAbstractArchive
+    public class DP7zArchive : DPAbstractArchive
     {
         private bool _hasEncryptedFiles = false;
         private bool _hasEncryptedHeader = false;
@@ -42,17 +43,17 @@ namespace DAZ_Installer.Core {
 
         private struct Entity
         {
-            internal string Path;
-            internal bool isDirectory;
+            public string Path;
+            public bool isDirectory;
 
-            internal bool IsEmpty => Path == null;
+            public bool IsEmpty => Path == null;
         }
 
-        internal DP7zArchive(string _path,  bool innerArchive = false, string? relativePathBase = null) : base(_path, innerArchive, relativePathBase) {}
+        public DP7zArchive(string _path,  bool innerArchive = false, string? relativePathBase = null) : base(_path, innerArchive, relativePathBase) {}
         
         #region Override Methods
         // It's best for 7z to extract everything to the temp directory.
-        internal override void Extract()
+        public override void Extract()
         {
             mode = Mode.Extract;
             if (_processHasStarted && (!_process?.HasExited ?? false)) _process.Kill();
@@ -80,7 +81,7 @@ namespace DAZ_Installer.Core {
         }
         
 
-        internal override void Peek()
+        public override void Peek()
         {
             mode = Mode.Peek;
             _process = Setup7ZProcess();
@@ -94,7 +95,7 @@ namespace DAZ_Installer.Core {
             }
         }
 
-        internal override void ReadContentFiles()
+        public override void ReadContentFiles()
         {
             foreach (var file in DazFiles)
             {
@@ -135,7 +136,7 @@ namespace DAZ_Installer.Core {
             }
         }
 
-        internal override void ReadMetaFiles()
+        public override void ReadMetaFiles()
         {
             try
             {
@@ -150,7 +151,7 @@ namespace DAZ_Installer.Core {
             }
         }
 
-        internal override void ReleaseArchiveHandles()
+        public override void ReleaseArchiveHandles()
         {
             _process?.Kill(true);
             _process?.Dispose();

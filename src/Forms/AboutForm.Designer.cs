@@ -1,4 +1,4 @@
-﻿namespace DAZ_Installer.Forms
+﻿namespace DAZ_Installer.WinApp.Forms
 {
     partial class AboutForm
     {

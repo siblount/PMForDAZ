@@ -7,11 +7,10 @@ using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
-using DAZ_Installer.DP;
-using DAZ_Installer.Forms;
+using DAZ_Installer.WinApp.Forms;
 using Microsoft.VisualBasic.FileIO;
 
-namespace DAZ_Installer
+namespace DAZ_Installer.WinApp.Pages
 {
     public partial class Settings : UserControl
     {

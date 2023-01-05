@@ -2,11 +2,13 @@
 // You may find a full copy of this license at root project directory\LICENSE
 using System;
 using System.IO;
+using DAZ_Installer.Core.Utilities;
 
-namespace DAZ_Installer.Core {
-    internal class DPDazFile : DPFile {
-        internal DPContentInfo ContentInfo = new DPContentInfo();
-        internal DPDazFile(string _path, DPFolder? __parent) : base(_path, __parent) {
+namespace DAZ_Installer.Core
+{
+    public class DPDazFile : DPFile {
+        public DPContentInfo ContentInfo = new DPContentInfo();
+        public DPDazFile(string _path, DPFolder? __parent) : base(_path, __parent) {
             DPProcessor.workingArchive.DazFiles.Add(this);
         }
 
@@ -14,7 +16,7 @@ namespace DAZ_Installer.Core {
         /// Reads and updates <c>ContentInfo</c> struct.
         /// </summary>
         /// <param name="stream">The file stream to read from.</param>
-        internal void ReadContents(StreamReader stream) {
+        public void ReadContents(StreamReader stream) {
             var tenLines = new string[10];
             for (var i = 0; i < 10; i++) 
                 tenLines[i] = stream.ReadLine();

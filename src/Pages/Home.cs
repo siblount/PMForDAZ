@@ -11,9 +11,9 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
-using DAZ_Installer.DP;
+using DAZ_Installer.WinApp;
 
-namespace DAZ_Installer
+namespace DAZ_Installer.WinApp.Pages
 {
     public partial class Home : UserControl
     {

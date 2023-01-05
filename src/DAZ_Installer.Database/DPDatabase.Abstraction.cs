@@ -7,7 +7,7 @@ using System.Text;
 using System.Threading;
 using System.Data.SQLite;
 using System.IO;
-using DAZ_Installer.Database;
+using DAZ_Installer.Core.Utilities;
 
 namespace DAZ_Installer.Database
 {

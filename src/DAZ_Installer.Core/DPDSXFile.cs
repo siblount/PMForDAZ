@@ -4,17 +4,20 @@ using System;
 using IOPath = System.IO.Path;
 using System.IO;
 using System.Collections.Generic;
-namespace DAZ_Installer.Core {
+using DAZ_Installer.Core.Utilities;
+
+namespace DAZ_Installer.Core
+{
     /// <summary>
     /// A special class that marks the DPFile as .dsx file which typically is a Supplement file or a Manifest file.
     /// </summary>
-    internal class DPDSXFile : DPFile {
-        internal bool isSupplementFile, isManifestFile = false;
-        internal bool isSupportingFile = false;
-        internal bool contentChecked = false;
-        internal DPContentInfo ContentInfo = new DPContentInfo();
+    public class DPDSXFile : DPFile {
+        public bool isSupplementFile, isManifestFile = false;
+        public bool isSupportingFile = false;
+        public bool contentChecked = false;
+        public DPContentInfo ContentInfo = new DPContentInfo();
         
-        internal DPDSXFile(string _path, DPFolder? __parent) : base(_path, __parent) {
+        public DPDSXFile(string _path, DPFolder? __parent) : base(_path, __parent) {
             DPProcessor.workingArchive.DSXFiles.Add(this);
             Tags.Clear(); // Do not include us.
         }
@@ -22,7 +25,7 @@ namespace DAZ_Installer.Core {
         /// <summary>
         /// Reads the contents of this file and updates the <c>ContentInfo</c> variables.
         /// </summary>
-        internal void CheckContents() {
+        public void CheckContents() {
             var parser = new DPDSXParser(ExtractedPath);
             var collection = parser.GetDSXFile();
             var search = collection.FindElementViaTag("ProductName");
@@ -50,7 +53,7 @@ namespace DAZ_Installer.Core {
         /// Returns a dictionary containing files to extract and their destination. 
         /// Key is the file path in the archive, and value is the path relative to Content folder.
         /// </returns>
-        internal Dictionary<string, string> GetManifestDestinations() {
+        public Dictionary<string, string> GetManifestDestinations() {
             var dict = new Dictionary<string, string>();
             try {
                 var parser = new DPDSXParser(ExtractedPath);

@@ -10,11 +10,11 @@ namespace DAZ_Installer.Core {
     /// This means that all files, and archives (which are files) should extend
     /// this class.
     /// </summary>
-    internal abstract class DPAbstractFile {
+    public abstract class DPAbstractFile {
         /// <summary>
         /// The file name of a file or folder; equivalent to <c>Path.GetFileName()</c>.
         /// </summary>
-        internal string FileName { get; set; }
+        public string FileName { get; set; }
         /// <summary>
         /// The full path of the file (or folder) in the archive space.
         /// However, if the derived type is a <c>DPArchive</c>, the path can be the path
@@ -22,64 +22,64 @@ namespace DAZ_Installer.Core {
         /// true, then the path is the path of the archive. Otherwise, it is the path in
         /// file system space.
         /// </summary>
-        internal string Path { get; set; }
+        public string Path { get; set; }
         /// <summary>
         /// The full relative path of the file (or folder) relative to the determined content folder (if any). 
         /// If no content folder is detected, relative path will be null.
         /// Currently, relative path is not set for folders.
         /// </summary>
-        internal string? RelativePath { get; set; }
+        public string? RelativePath { get; set; }
         /// <summary>
         /// The relative directory path at which will be used to determine which the file will go to in the system. <para/>
         /// This property is used to determine the target path of a file. <para/>
         /// The value will be equal to <see cref="RelativePath"/>
         /// if the <see cref="FileName"/> is not in <see cref="DPSettings.folderRedirects"/>.
         /// </summary>
-        internal string RelativeTargetPath { get; set; }
+        public string RelativeTargetPath { get; set; }
         /// <summary>
         /// The full directory path at which the file go to in the file system.
         /// </summary>
-        internal string TargetPath { get; set; }
+        public string TargetPath { get; set; }
         /// <summary>
         /// The extension of the file in lowercase characters and without the dot. ext can be empty.
         /// </summary>
-        internal string Ext { get; set; }
+        public string Ext { get; set; }
         /// <summary>
         /// A boolean value to determine if the current file will be extracted.
         /// </summary>
-        internal bool WillExtract { get; set; }
+        public bool WillExtract { get; set; }
         /// <summary>
         /// The folder the file (or folder) is a child of. Can be null.
         /// </summary>
-        internal DPFolder? Parent { get => _parent; set => UpdateParent(value); }
+        public DPFolder? Parent { get => _parent; set => UpdateParent(value); }
         /// <summary>
         /// The location of the file in the file system after it has been extracted. Can be null.
         /// </summary>
-        internal string ExtractedPath { get; set; }
+        public string ExtractedPath { get; set; }
         /// <summary>
         /// The unique identifier for the file (or folder).
         /// </summary>
-        internal uint UID { get; set; }
+        public uint UID { get; set; }
         /// <summary>
         /// The associated list view item if any.
         /// </summary>
-        internal ListViewItem? AssociatedListItem { get; set; }
+        public ListViewItem? AssociatedListItem { get; set; }
         /// <summary>
         /// The associated tree node if any.
         /// </summary>
-        internal TreeNode? AssociatedTreeNode { get; set; }
+        public TreeNode? AssociatedTreeNode { get; set; }
         /// <summary>
         /// A boolean value to determine if the file was successfully extracted.
         /// </summary>
-        internal bool WasExtracted { get; set; }
+        public bool WasExtracted { get; set; }
         /// <summary>
         /// A boolean value to determine if this file had errored.
         /// </summary>
-        internal bool errored { get; set; }
+        public bool errored { get; set; }
         /// <summary>
         /// The archive this file is associated to. Can be null.
         /// </summary>
-        internal DPAbstractArchive? AssociatedArchive { get; set; }
+        public DPAbstractArchive? AssociatedArchive { get; set; }
         
         protected DPFolder? _parent;
 
@@ -88,7 +88,7 @@ namespace DAZ_Installer.Core {
         /// Updates the parent of the file (or archive). This method is virtual and is overloaded by DPFolder.
         /// </summary>
         /// <param name="newParent">The folder that will be the new parent of the file (or archive). </param>
-        internal virtual void UpdateParent(DPFolder? newParent) {
+        public virtual void UpdateParent(DPFolder? newParent) {
             // If we were null, but now we're not...
             if (_parent == null && newParent != null) {
                 // Remove ourselves from root content of the working archive.
@@ -143,7 +143,7 @@ namespace DAZ_Installer.Core {
         /// Returns the extension of a given name without the dot and lowered to all lowercase.
         /// </summary>
         /// <param name="name">The name to get the extension from.</param>
-        internal static string GetExtension(ReadOnlySpan<char> name)
+        public static string GetExtension(ReadOnlySpan<char> name)
         {
             var ext = IOPath.GetExtension(name);
             if (ext.Length > 0) ext = ext.Slice(1);
@@ -152,7 +152,7 @@ namespace DAZ_Installer.Core {
             return ext.ToString();
         }
 
-        internal DPAbstractFile(string _path) {
+        public DPAbstractFile(string _path) {
             UID = DPIDManager.GetNewID();
             Path = _path;
             FileName = IOPath.GetFileName(_path);

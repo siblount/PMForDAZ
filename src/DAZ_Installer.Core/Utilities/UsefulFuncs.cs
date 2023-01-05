@@ -9,20 +9,22 @@ using System.Text;
 using System.Windows.Forms;
 using System.Threading;
 
-namespace DAZ_Installer.DP
+namespace DAZ_Installer.Core.Utilities
 {
-    internal struct DPCommon
+    public struct DPCommon
     {
-        internal static bool IsOnMainThread { get => 
-                DPGlobal.mainThreadID == 
-                Thread.CurrentThread.ManagedThreadId; 
+        public static bool IsOnMainThread
+        {
+            get =>
+                DPGlobal.mainThreadID ==
+                Thread.CurrentThread.ManagedThreadId;
         }
-        internal static DragDropEffects dropEffect = DragDropEffects.All;
+        public static DragDropEffects dropEffect = DragDropEffects.All;
         public static string Up(string str)
         {
             if (str == string.Empty)
             {
-                return String.Empty;
+                return string.Empty;
             }
             if (Path.HasExtension(str))
             {
@@ -95,8 +97,8 @@ namespace DAZ_Installer.DP
             }
 
         }
-        
-        
+
+
         public static void WriteToLog(params object[] args)
         {
 #if DEBUG
@@ -106,9 +108,9 @@ namespace DAZ_Installer.DP
         }
     }
 
-    internal readonly struct ArrayHelper
+    public readonly struct ArrayHelper
     {
-        internal static int GetIndex(object[] array, object obj)
+        public static int GetIndex(object[] array, object obj)
         {
             for (var i = 0; i < array.Length; i++)
             {
@@ -119,7 +121,7 @@ namespace DAZ_Installer.DP
             }
             return -1;
         }
-        internal static int GetIndex<T>(T[] array, T obj)
+        public static int GetIndex<T>(T[] array, T obj)
         {
             if (obj == null) return -1;
             for (var i = 0; i < array.Length; i++)
@@ -137,7 +139,7 @@ namespace DAZ_Installer.DP
         /// </summary>
         /// <param name="array">The array to search for an open slot.</param>
         /// <returns> Returns the index of the next available slot. Returns -1 if no open slot is found.</returns>
-        internal static int GetNextOpenSlot(object[] array)
+        public static int GetNextOpenSlot(object[] array)
         {
             for (var i = 0; i < array.Length; i++)
             {
@@ -148,7 +150,7 @@ namespace DAZ_Installer.DP
             }
             return -1;
         }
-        internal static int GetNextOpenSlot(List<object> array)
+        public static int GetNextOpenSlot(List<object> array)
         {
             for (var i = 0; i < array.Count; i++)
             {
@@ -160,7 +162,7 @@ namespace DAZ_Installer.DP
             return -1;
         }
 
-        internal static bool Contains(string[] array, string obj)
+        public static bool Contains(string[] array, string obj)
         {
             for (var i = 0; i < array.Length; i++)
             {
@@ -170,7 +172,7 @@ namespace DAZ_Installer.DP
             return false;
         }
 
-        internal static bool Contains(ICollection<string> array, string obj)
+        public static bool Contains(ICollection<string> array, string obj)
         {
             foreach (var _obj in array)
             {
@@ -178,10 +180,10 @@ namespace DAZ_Installer.DP
             }
             return false;
         }
-        internal static void ClearArray(object[] array) => Array.Clear(array);
+        public static void ClearArray(object[] array) => Array.Clear(array);
     }
 
-    internal readonly struct PathHelper
+    public readonly struct PathHelper
     {
         /// <summary>
         /// Returns the relative path of the given path.
@@ -189,7 +191,7 @@ namespace DAZ_Installer.DP
         /// <param name="path"></param> - The absolute path (or partial path) to compare.
         /// <param name="relativeTo"></param> - The absolute path of the path to compare to minus the sublevel..
         /// <returns>The relative path of the given path.</returns>
-        internal static string GetRelativePath(ReadOnlySpan<char> path, ReadOnlySpan<char> relativeTo)
+        public static string GetRelativePath(ReadOnlySpan<char> path, ReadOnlySpan<char> relativeTo)
         {
             char rSeperator = GetSeperator(relativeTo);
             char pSeperator = GetSeperator(path);
@@ -207,7 +209,7 @@ namespace DAZ_Installer.DP
             return pathBuilder.Length == 0 ? string.Empty : pathBuilder.ToString().TrimEnd(rSeperator);
         }
 
-        internal static char GetSeperator(ReadOnlySpan<char> path)
+        public static char GetSeperator(ReadOnlySpan<char> path)
         {
             var forwardSlash = path.LastIndexOf('\\') != -1;
             var backwardSlash = path.LastIndexOf('/') != -1;
@@ -220,7 +222,7 @@ namespace DAZ_Installer.DP
         }
 
 
-        internal static string GetLastDir(string path, bool isFilePath)
+        public static string GetLastDir(string path, bool isFilePath)
         {
             char seperator = GetSeperator(path);
             if (!isFilePath)
@@ -238,20 +240,20 @@ namespace DAZ_Installer.DP
             }
         }
 
-        internal static string GetParent(string path)
+        public static string GetParent(string path)
         {
             char seperator = GetSeperator(path);
             var lastSeperatorIndex = path.LastIndexOf(seperator);
             return lastSeperatorIndex != -1 ? path.Substring(0, lastSeperatorIndex) : path;
         }
 
-        internal static string GetFileName(string path)
+        public static string GetFileName(string path)
         {
             char seperator = GetSeperator(path);
             return path.Split(seperator).Last();
         }
 
-        internal static string GetAbsoluteUpPath(string path)
+        public static string GetAbsoluteUpPath(string path)
         {
             var seperator = GetSeperator(path);
             var strBuilder = "";
@@ -263,20 +265,20 @@ namespace DAZ_Installer.DP
             return strBuilder.TrimEnd(seperator);
         }
 
-        internal static byte GetNumOfLevelsAbove(string path, string relativeTo)
+        public static byte GetNumOfLevelsAbove(string path, string relativeTo)
         {
             var relPath = GetRelativePath(path, relativeTo);
             var seperator = GetSeperator(relPath);
             return (byte)relPath.Count((c) => c == seperator);
         }
 
-        internal static byte GetNumOfLevels(string path)
+        public static byte GetNumOfLevels(string path)
         {
             var seperator = GetSeperator(path);
             return (byte)path.Count((c) => c == seperator);
         }
 
-        internal static string SwitchSeperators(string path)
+        public static string SwitchSeperators(string path)
         {
             try
             {
@@ -300,7 +302,7 @@ namespace DAZ_Installer.DP
             return path;
         }
 
-        internal static string GetDirectoryPath(string path)
+        public static string GetDirectoryPath(string path)
         {
             var seperator = GetSeperator(path);
             var strBuilder = "";
@@ -320,7 +322,7 @@ namespace DAZ_Installer.DP
         /// </summary>
         /// <param name="path">The path to cleanize. Cannot be null.</param>
         /// <returns></returns>
-        internal static string NormalizePath(string path) => path.Replace('/', '\\');
+        public static string NormalizePath(string path) => path.Replace('/', '\\');
     }
 
 }

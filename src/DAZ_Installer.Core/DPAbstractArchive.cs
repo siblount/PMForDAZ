@@ -7,15 +7,16 @@ using System.Collections.Generic;
 using IOPath = System.IO.Path;
 using System.IO;
 using System;
+using DAZ_Installer.Core.Utilities;
 
-
-namespace DAZ_Installer.Core {
+namespace DAZ_Installer.Core
+{
     /// <summary>
     /// Defines the archive type of an archive.
     /// </summary>
     // TODO: Add a type for Multi-Product and Multi-Bundle to help determine whether
     // an archive should be added to the database/library
-    internal enum ArchiveType
+    public enum ArchiveType
     {
         Product, Bundle, Unknown
     }
@@ -23,14 +24,14 @@ namespace DAZ_Installer.Core {
     /// <summary>
     /// Defines the archive format of an archive.
     /// </summary>
-    internal enum ArchiveFormat {
+    public enum ArchiveFormat {
         SevenZ, WinZip, RAR, Unknown
     }
     /// <summary>
     /// Abstract class for all supported archive files. 
     /// Currently the supported archive files are RAR, WinZip, and 7z (partially).
     /// </summary>
-    internal abstract class DPAbstractArchive : DPAbstractFile {
+    public abstract class DPAbstractArchive : DPAbstractFile {
         /// <summary>
         /// The current mode of the archive file; describes whether the archie is 
         /// peeking (seeking files) or extracting (seeking and extracting files).
@@ -42,44 +43,44 @@ namespace DAZ_Installer.Core {
         /// The name that will be used for the hierachy. Equivalent to Path.GetFileName(Path);
         /// </summary>
         /// <value>The file name of the <c>Path</c> of this archive with the extension.</value>
-        internal string HierachyName { get; set; }
+        public string HierachyName { get; set; }
         /// <summary>
         /// The name that will be used for the list view. The list name is the working archive's <c>FileName</c> + $"\\{Path}".
         /// </summary>
         /// <value>The working archive's FileName + $"\\{Path}".</value>
-        internal string ListName { get; set; }
+        public string ListName { get; set; }
         /// <summary>
         /// A list of archives that are children of this archive.
         /// </summary>
-        internal List<DPAbstractArchive> InternalArchives { get; init; } = new List<DPAbstractArchive>();
+        public List<DPAbstractArchive> publicArchives { get; init; } = new List<DPAbstractArchive>();
         /// <summary>
         /// The archive that is the parent of this archive. This can be null.
         /// </summary>
-        internal DPAbstractArchive? ParentArchive { get; set; }
+        public DPAbstractArchive? ParentArchive { get; set; }
         /// <summary>
         /// A file that has been detected as a manifest file. This can be null.
         /// </summary>
-        internal DPDSXFile? ManifestFile { get; set; }
+        public DPDSXFile? ManifestFile { get; set; }
         /// <summary>
         /// A file that has been detected as a supplement file. This can be null.
         /// </summary>
-        internal DPDSXFile? SupplementFile { get; set; }
+        public DPDSXFile? SupplementFile { get; set; }
         /// <summary>
         /// A boolean value to describe if this archive is a child of another archive. Default is false.
         /// </summary>
-        internal bool IsInnerArchive { get; set; } = false;
+        public bool IsInnerArchive { get; set; } = false;
         /// <summary>
         /// The type of this archive. Default is <c>ArchiveType.Unknown</c>.
         /// </summary>
-        internal ArchiveType Type { get; set; } = ArchiveType.Unknown;
+        public ArchiveType Type { get; set; } = ArchiveType.Unknown;
         /// <summary>
         /// A list of files that errored during the extraction stage.
         /// </summary>
-        internal LinkedList<string> ErroredFiles { get; set; } = new LinkedList<string>();
+        public LinkedList<string> ErroredFiles { get; set; } = new LinkedList<string>();
         /// <summary>
         /// The product info connected to this archive.
         /// </summary>
-        internal DPProductInfo ProductInfo = new DPProductInfo();
+        public DPProductInfo ProductInfo = new DPProductInfo();
 
         /// <summary>
         /// A map of all of the folders parented to this archive.
@@ -108,32 +109,32 @@ namespace DAZ_Installer.Core {
         /// A list of all .dsx files in this archive.
         /// </summary>
         /// <typeparam name="DPDSXFile">A file that is either a manifest, supplementary, or support file (.dsx).</typeparam>
-        internal List<DPDSXFile> DSXFiles { get; } = new List<DPDSXFile>();
+        public List<DPDSXFile> DSXFiles { get; } = new List<DPDSXFile>();
         /// <summary>
         /// A list of all readable daz files in this archive. This consists of types with extension: .duf, .dsf.
         /// </summary>
         /// <typeparam name="DPDazFile">A file with the extension .duf OR .dsf.</typeparam>
         /// <returns></returns>
-        internal List<DPDazFile> DazFiles { get; } = new List<DPDazFile>();
+        public List<DPDazFile> DazFiles { get; } = new List<DPDazFile>();
 
         /// <summary>
         /// A boolean to determine if the processor can read the contents of the archive without extracting to disk.
         /// </summary>
-        internal virtual bool CanReadWithoutExtracting { get; init; } = false;
+        public virtual bool CanReadWithoutExtracting { get; init; } = false;
         /// <summary>
         /// The true uncompressed size of the archive contents in bytes.
         /// </summary>
-        internal ulong TrueArchiveSize { get; set; } = 0;
+        public ulong TrueArchiveSize { get; set; } = 0;
         /// <summary>
         /// The expected tag count for this archive. This value is updated when an applicable file has discovered new tags.
         /// </summary>
-        internal uint ExpectedTagCount { get; set; } = 0;
+        public uint ExpectedTagCount { get; set; } = 0;
 
         /// <summary>
         /// The progress combo that is visible on the extraction page. This is typically null when the file is firsted discovered
         /// inside another archive (and therefore before it is processed) and/or after the extraction has completed.
         /// </summary>
-        internal DPProgressCombo? ProgressCombo { get; set; }
+        public DPProgressCombo? ProgressCombo { get; set; }
 
         /// <summary>
         /// Identifies what mode the archive is currently in. The default is Mode.Extract.
@@ -144,8 +145,8 @@ namespace DAZ_Installer.Core {
         /// The regex expression used for creating a product name.
         /// </summary>
         /// <returns></returns>
-        internal static Regex ProductNameRegex = new Regex(@"([^+|\-|_|\s]+)", RegexOptions.Compiled);
-        internal DPAbstractArchive(string _path, bool innerArchive = false, string? relativePathBase = null) : base(_path)
+        public static Regex ProductNameRegex = new Regex(@"([^+|\-|_|\s]+)", RegexOptions.Compiled);
+        public DPAbstractArchive(string _path, bool innerArchive = false, string? relativePathBase = null) : base(_path)
         {
             IsInnerArchive = innerArchive; // Order matters.
             // Make a file but we don't want to check anything.
@@ -173,35 +174,35 @@ namespace DAZ_Installer.Core {
         /// <summary>
         /// Peeks the archive contents if possible and will extract the archive contents to the destination path. 
         /// </summary>
-        internal abstract void Extract();
+        public abstract void Extract();
 
         /// <summary>
         /// Previews the archive by discovering files in this archive.
         /// </summary>
-        internal abstract void Peek();
+        public abstract void Peek();
         
         /// <summary>
         /// Reads the files listed in <c>DSXFiles</c>. If <c>CanReadWithoutExtracting</c> is true, the file won't be extracted.
         /// Otherwise, the file will be extracted to the <c>TEMP_LOCATION</c> of <c>DPProcessor</c>. 
         /// </summary>
-        internal abstract void ReadMetaFiles();
+        public abstract void ReadMetaFiles();
         
         /// <summary>
         /// Reads files that have the extension .dsf and .duf after it has been extracted. 
         /// </summary>
-        internal abstract void ReadContentFiles();
+        public abstract void ReadContentFiles();
         /// <summary>
         /// Calls the derived archive class to dispose of the file handle.
         /// </summary>
-        internal abstract void ReleaseArchiveHandles();
+        public abstract void ReleaseArchiveHandles();
         #endregion
-        #region Internal Methods
+        #region public Methods
         /// <summary>
         ///  Checks whether or not the given ext is what is expected. Checks file headers.
         /// </summary>
         /// <returns>Returns an extension of the appropriate archive extraction method. Otherwise, null.</returns>
 
-        internal static ArchiveFormat DetermineArchiveFormatPrecise(string location) {
+        public static ArchiveFormat DetermineArchiveFormatPrecise(string location) {
             try
             {
                 using FileStream stream = File.OpenRead(location);
@@ -235,7 +236,7 @@ namespace DAZ_Installer.Core {
         /// </summary>
         /// <param name="path">The path of the archive.</param>
         /// <returns>A ArchiveFormat enum determining the archive format.</returns>
-        internal static ArchiveFormat DetermineArchiveFormat(string ext) {
+        public static ArchiveFormat DetermineArchiveFormat(string ext) {
             // ADDITONAL NOTE: This is called for determing archive files inside of an
             // archive file.
             ext = ext.ToLower();
@@ -252,7 +253,7 @@ namespace DAZ_Installer.Core {
             }
         }
 
-        internal static DPAbstractArchive CreateNewArchive(string fileName, bool innerArchive = false, string? relativePathBase = null) {
+        public static DPAbstractArchive CreateNewArchive(string fileName, bool innerArchive = false, string? relativePathBase = null) {
             string ext = GetExtension(fileName);
             switch (DetermineArchiveFormat(ext)) {
                 case ArchiveFormat.RAR:
@@ -279,7 +280,7 @@ namespace DAZ_Installer.Core {
             return foundFiles.ToArray();
         }
 
-        internal DPProductRecord CreateRecords()
+        public DPProductRecord CreateRecords()
         {
             string imageLocation = string.Empty;
 
@@ -326,7 +327,7 @@ namespace DAZ_Installer.Core {
             return null;
         }
 
-        internal DPAbstractFile? FindFileViaNameContains(string name)
+        public DPAbstractFile? FindFileViaNameContains(string name)
         {
             foreach (var file in Contents)
             {
@@ -349,7 +350,7 @@ namespace DAZ_Installer.Core {
         /// <summary>
         /// This function should be called after all the files have been extracted. If no content folders have been found, this is a bundle.
         /// </summary>
-        internal ArchiveType DetermineArchiveType()
+        public ArchiveType DetermineArchiveType()
         {
             foreach (var folder in Folders.Values)
             {
@@ -365,7 +366,7 @@ namespace DAZ_Installer.Core {
             return ArchiveType.Unknown;
         }
 
-        internal void GetTags()
+        public void GetTags()
         {
             // First is always author.
             // Next is folder names.
@@ -374,7 +375,7 @@ namespace DAZ_Installer.Core {
             ReadMetaFiles();
             var tagsSet = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             tagsSet.EnsureCapacity(GetEstimateTagCount() + productNameTokens.Length +
-                (Folders.Count * 2) + ((Contents.Count - InternalArchives.Count) * 2));
+                (Folders.Count * 2) + ((Contents.Count - publicArchives.Count) * 2));
             foreach (var file in DazFiles)
             {
                 var contentInfo = file.ContentInfo;
@@ -399,7 +400,7 @@ namespace DAZ_Installer.Core {
         
         }
 
-        internal int GetEstimateTagCount() {
+        public int GetEstimateTagCount() {
             int count = 0;
             foreach (var content in Contents) {
                 if (content is DPFile) {
@@ -410,7 +411,7 @@ namespace DAZ_Installer.Core {
             return count;
         }
 
-        internal DPFolder FindParent(DPAbstractFile obj)
+        public DPFolder FindParent(DPAbstractFile obj)
         {
             var fileName = PathHelper.GetFileName(obj.Path);
             if (fileName == string.Empty) fileName = IOPath.GetFileName(obj.Path.TrimEnd(PathHelper.GetSeperator(obj.Path)));
@@ -427,9 +428,9 @@ namespace DAZ_Installer.Core {
             return null;
         }
 
-        internal bool FolderExists(string fPath) => Folders.ContainsKey(fPath);
+        public bool FolderExists(string fPath) => Folders.ContainsKey(fPath);
 
-        internal bool RecursivelyFindFolder(string relativePath, out DPFolder folder)
+        public bool RecursivelyFindFolder(string relativePath, out DPFolder folder)
         {
 
             foreach (var _folder in Folders.Values)
@@ -445,7 +446,7 @@ namespace DAZ_Installer.Core {
         }
 
 
-        internal string[] SplitProductName() {
+        public string[] SplitProductName() {
             var matches = ProductNameRegex.Matches(ProductInfo.ProductName);
             List<string> tokens = new List<string>(matches.Count);
             foreach (Match match in matches) {

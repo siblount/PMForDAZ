@@ -3,7 +3,7 @@
 
 namespace DAZ_Installer.Core
 {
-    internal struct DPIDManager
+    public struct DPIDManager
     {
         private static uint lastID = 1;
 
@@ -11,7 +11,7 @@ namespace DAZ_Installer.Core
         ///
         /// </summary>
         /// <returns>A unique new tag.</returns>
-        internal static uint GetNewID() => lastID++;
+        public static uint GetNewID() => lastID++;
 
     }
 }

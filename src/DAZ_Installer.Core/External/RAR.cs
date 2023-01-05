@@ -2,7 +2,7 @@
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Collections;
-using DAZ_Installer.DP;
+using DAZ_Installer.Core.Utilities;
 
 namespace DAZ_Installer.External
 {
@@ -55,7 +55,7 @@ namespace DAZ_Installer.External
             Extract = 1
         }
 
-        internal enum RarError : uint
+        public enum RarError : uint
         {
             EndOfArchive = 10,
             InsufficientMemory = 11,
@@ -70,25 +70,25 @@ namespace DAZ_Installer.External
             BufferTooSmall = 20,
             UnknownError = 21,
             MissingPassword = 22,
-            InternalError = 23,
+            publicError = 23,
             BadPassword = 24
         }
 
-        internal enum Operation : uint
+        public enum Operation : uint
         {
             Skip = 0,
             Test = 1,
             Extract = 2
         }
 
-        internal enum VolumeMessage : uint
+        public enum VolumeMessage : uint
         {
             Ask = 0,
             Notify = 1
         }
 
         [Flags]
-        internal enum ArchiveFlags : uint
+        public enum ArchiveFlags : uint
         {
             Volume = 0x1,                                       // Volume attribute (archive volume)
             CommentPresent = 0x2,                       // Archive comment present
@@ -101,7 +101,7 @@ namespace DAZ_Installer.External
             FirstVolume = 0x100                         // 0x0100  - First volume (set only by RAR 3.0 and later)
         }
 
-        internal enum CallbackMessages : uint
+        public enum CallbackMessages : uint
         {
             VolumeChange = 0,
             ProcessData = 1,
@@ -755,7 +755,7 @@ namespace DAZ_Installer.External
                 case RarError.MissingPassword:
                 case RarError.BadPassword:
                     throw new IOException("Password was incorrect.");
-                case RarError.InternalError:
+                case RarError.publicError:
                     throw new IOException("Reference error.");
 
             }

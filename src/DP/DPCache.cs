@@ -2,7 +2,7 @@
 // You may find a full copy of this license at root project directory\LICENSE
 using System.Collections.Generic;
 
-namespace DAZ_Installer.DP
+namespace DAZ_Installer.WinApp
 {
     /// <summary>
     /// A special dictionary that extends Dictionary and includes a Queue to restrict cache size.

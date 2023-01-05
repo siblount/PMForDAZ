@@ -6,15 +6,16 @@ using System.Collections.Generic;
 using System.IO;
 using System.Drawing;
 using System.Windows.Forms;
-using DAZ_Installer.DP;
-using System.Threading.Tasks;
-using DAZ_Installer.Utilities;
-using DAZ_Installer.Properties;
-using DAZ_Installer.Forms;
 using System.Diagnostics;
 using System.Linq;
+using DAZ_Installer.Core;
+using DAZ_Installer.Database;
+using DAZ_Installer.Utilities;
+using DAZ_Installer.WinApp.Pages;
+using DAZ_Installer.WinApp.Properties;
+using DAZ_Installer.Core.Utilities;
 
-namespace DAZ_Installer
+namespace DAZ_Installer.WinApp.Forms
 {
     public partial class ProductRecordForm : Form
     {

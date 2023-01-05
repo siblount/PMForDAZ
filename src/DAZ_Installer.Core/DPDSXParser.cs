@@ -6,21 +6,22 @@ using System.IO;
 using System.Collections.Generic;
 using System.Text;
 using System.Threading.Tasks;
+using DAZ_Installer.Core.Utilities;
 
 namespace DAZ_Installer.Core
 {
-    internal class DPDSXParser
+    public class DPDSXParser
     {
         protected readonly StreamReader stream;
         protected int lastIndex = 0;
         protected DPDSXElementCollection workingFileContents = new DPDSXElementCollection();
         protected const int BUFFER_SIZE = 16384; // in chars. 32 KB.
         protected int chunk = 0;
-        internal bool hasErrored;
-        internal string fileName = string.Empty;
+        public bool hasErrored;
+        public string fileName = string.Empty;
         protected Task asyncTask { get; set; } = null;
         protected bool Disposed = false;
-        internal DPDSXParser(string path)
+        public DPDSXParser(string path)
         {
             fileName = Path.GetFileName(fileName);
             try
@@ -293,7 +294,7 @@ namespace DAZ_Installer.Core
             return -1;
         }
 
-        internal DPDSXElementCollection GetDSXFile()
+        public DPDSXElementCollection GetDSXFile()
         {
             asyncTask.Wait();
             return workingFileContents;

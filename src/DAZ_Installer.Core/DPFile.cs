@@ -11,7 +11,7 @@ using System.IO.Compression;
 
 namespace DAZ_Installer.Core
 {
-    internal class DPFile : DPAbstractFile
+    public class DPFile : DPAbstractFile
     {
 
         // Public static members
@@ -28,11 +28,11 @@ namespace DAZ_Installer.Core
         /// <summary>
         /// Currently just the file name split by whitespace.
         /// </summary>
-        internal List<string> Tags { get; set; }
+        public List<string> Tags { get; set; }
         /// <summary>
         /// Parent of current file. When setting parent to a folder, property will call addChild() and handle contents appropriately.
         /// </summary>
-        internal string ListName { get; set; }
+        public string ListName { get; set; }
         
 
         // TO DO : Add get tags func.
@@ -61,7 +61,7 @@ namespace DAZ_Installer.Core
             InitializeTagsList();
         }
 
-        internal static DPFile CreateNewFile(string path, DPFolder? parent) {
+        public static DPFile CreateNewFile(string path, DPFolder? parent) {
             var ext = GetExtension(path);
             if (ext == "dsf" || ext == "duf") {
                 return new DPDazFile(path, parent);

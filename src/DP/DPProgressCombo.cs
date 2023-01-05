@@ -4,7 +4,7 @@ using System.Windows.Forms;
 using System.Drawing;
 using System.Collections.Generic;
 
-namespace DAZ_Installer.DP {
+namespace DAZ_Installer.WinApp {
     internal class DPProgressCombo {
         internal static Stack<DPProgressCombo> ProgressCombos = new Stack<DPProgressCombo>(3);
         internal TableLayoutPanel Panel {get; private set; }

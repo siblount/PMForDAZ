@@ -7,9 +7,10 @@ using System.Collections.Generic;
 using System.IO;
 using System.ComponentModel;
 using System.Windows.Forms;
-using DAZ_Installer.DP;
+using DAZ_Installer.Core;
+using DAZ_Installer.Core.Utilities;
 
-namespace DAZ_Installer
+namespace DAZ_Installer.WinApp.Pages
 {
 
     public partial class Extract : UserControl

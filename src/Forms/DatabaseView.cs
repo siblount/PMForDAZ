@@ -1,12 +1,12 @@
 ﻿// This code is licensed under the Keep It Free License V1.
 // You may find a full copy of this license at root project directory\LICENSE
 
-using DAZ_Installer.DP;
+using DAZ_Installer.Database;
 using System;
 using System.Data;
 using System.Windows.Forms;
 
-namespace DAZ_Installer.Forms
+namespace DAZ_Installer.WinApp.Forms
 {
     public partial class DatabaseView : Form
     {
@@ -34,10 +34,10 @@ namespace DAZ_Installer.Forms
 
         private void DatabaseView_Load(object sender, EventArgs e)
         {
-            DP.DPDatabase.TableUpdated += OnTableChanged;
-            if (DP.DPDatabase.tableNames != null)
+            DPDatabase.TableUpdated += OnTableChanged;
+            if (DPDatabase.tableNames != null)
             {
-                tableNames.Items.AddRange(DP.DPDatabase.tableNames);
+                tableNames.Items.AddRange(DPDatabase.tableNames);
                 tableNames.SelectedIndex = 0;
             }
         }
@@ -45,13 +45,13 @@ namespace DAZ_Installer.Forms
         private void changeTableBtn_Click(object sender, EventArgs e)
         {
             if (tableNames.Text.Trim().Length != 0)
-                DP.DPDatabase.ViewTableQ(tableNames.Text, 0, ShowEverything);
+                DPDatabase.ViewTableQ(tableNames.Text, 0, ShowEverything);
         }
 
         private void OnTableChanged(string tableName)
         {
             if (tableName != tableNames.Text) return;
-            DP.DPDatabase.ViewTableQ(tableName, callback: ShowEverything);
+            DPDatabase.ViewTableQ(tableName, callback: ShowEverything);
         }
     }
 }

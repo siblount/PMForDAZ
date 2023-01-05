@@ -8,6 +8,7 @@ using System.Windows.Forms;
 using DAZ_Installer.External;
 using IOPath = System.IO.Path;
 using System.IO;
+using DAZ_Installer.Core.Utilities;
 
 namespace DAZ_Installer.Core
 {
@@ -21,8 +22,8 @@ namespace DAZ_Installer.Core
     */
     // TO DO: Add tag property.
 
-    
-    internal class DPRARArchive : DPAbstractArchive
+
+    public class DPRARArchive : DPAbstractArchive
     {
         public bool passwordFailed = false;
         public bool cancelledOperation = false;
@@ -30,10 +31,10 @@ namespace DAZ_Installer.Core
         private List<string> lastVolumes { get; } = new List<string>();
         private Dictionary<string, string> volumePairs = new Dictionary<string, string>(); // First key is the OLD nonworking one, Second key is the working one.
 
-        internal override bool CanReadWithoutExtracting { get => false; }
+        public override bool CanReadWithoutExtracting { get => false; }
         protected char[] password;
 
-        protected char internalDictSeperator = '\\';
+        protected char publicDictSeperator = '\\';
 
         public DPRARArchive(string _path,  bool innerArchive = false, string? relativePathBase = null) : base(_path, innerArchive, relativePathBase)
         {
@@ -181,7 +182,7 @@ namespace DAZ_Installer.Core
         #endregion
         #region Override Methods
 
-        internal override void ReadContentFiles()
+        public override void ReadContentFiles()
         {
             // At this point, the files should have been extracted.
             foreach (var file in DazFiles) {
@@ -201,7 +202,7 @@ namespace DAZ_Installer.Core
             }
         }
 
-        internal override void ReadMetaFiles()
+        public override void ReadMetaFiles()
         {
             try
             {
@@ -233,7 +234,7 @@ namespace DAZ_Installer.Core
                 DPCommon.WriteToLog($"An unexpected error occured in ReadMetaFiles(). REASON: {ex}");
             }
         }
-        internal override void Extract() {
+        public override void Extract() {
             mode = Mode.Extract;
             ProgressCombo ??= new DPProgressCombo();
             using (var RARHandler = new RAR(IsInnerArchive ? ExtractedPath : Path)) {
@@ -267,7 +268,7 @@ namespace DAZ_Installer.Core
             }
             ProgressCombo?.Remove();
         }
-        internal override void Peek()
+        public override void Peek()
         {
             mode = Mode.Peek;
             using (var RARHandler = new RAR(IsInnerArchive ? ExtractedPath : Path)) {
@@ -306,7 +307,7 @@ namespace DAZ_Installer.Core
             }
         }
 
-        internal override void ReleaseArchiveHandles() { }
+        public override void ReleaseArchiveHandles() { }
         #endregion
 
         private bool ExtractFile(RAR handler) {

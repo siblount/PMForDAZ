@@ -5,20 +5,20 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace DAZ_Installer.DP
+namespace DAZ_Installer.Core
 {
     // Notes about Tasks, TaskFactory:
     // (1) Token still works even after being disposed.
     // (2) Source still semi-works after dispose call. Token is "disposed".
     // (3) Tasks will continue to run unless you explicitly use the token and current task scheduler.
-    internal struct DPTaskManager
+    public struct DPTaskManager
     {
-        internal delegate void QueueAction(CancellationToken token);
-        internal delegate void QueueAction<in T>(T arg1, CancellationToken token);
-        internal delegate void QueueAction<in T1, in T2>(T1 arg1, T2 arg2, CancellationToken token);
-        internal delegate void QueueAction<in T1, in T2, in T3>(T1 arg1, T2 arg2, T3 arg3, CancellationToken token);
-        internal delegate void QueueAction<in T1, in T2, in T3, in T4>(T1 arg1, T2 arg2, T3 arg3, T4 arg4, CancellationToken token);
-        internal delegate void QueueAction<in T1, in T2, in T3, in T4, in T5>(T1 arg1, T2 arg2, T3 arg3, T4 arg4, T5 arg5, CancellationToken token);
+        public delegate void QueueAction(CancellationToken token);
+        public delegate void QueueAction<in T>(T arg1, CancellationToken token);
+        public delegate void QueueAction<in T1, in T2>(T1 arg1, T2 arg2, CancellationToken token);
+        public delegate void QueueAction<in T1, in T2, in T3>(T1 arg1, T2 arg2, T3 arg3, CancellationToken token);
+        public delegate void QueueAction<in T1, in T2, in T3, in T4>(T1 arg1, T2 arg2, T3 arg3, T4 arg4, CancellationToken token);
+        public delegate void QueueAction<in T1, in T2, in T3, in T4, in T5>(T1 arg1, T2 arg2, T3 arg3, T4 arg4, T5 arg5, CancellationToken token);
 
 
 

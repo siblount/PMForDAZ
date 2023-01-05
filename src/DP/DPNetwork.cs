@@ -9,8 +9,10 @@ using System.Drawing.Imaging;
 using System.Threading.Tasks;
 using System.IO;
 using HtmlAgilityPack;
+using DAZ_Installer.Core;
+using DAZ_Installer.Core.Utilities;
 
-namespace DAZ_Installer.DP
+namespace DAZ_Installer.WinApp
 {
     internal static class DPNetwork
     {

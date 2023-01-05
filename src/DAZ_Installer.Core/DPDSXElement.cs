@@ -5,29 +5,29 @@ using System;
 using System.Collections.Generic;
 
 namespace DAZ_Installer.Core {
-    internal class DPDSXElement
+    public class DPDSXElement
     {
-        internal readonly Dictionary<string, string> attributes = new Dictionary<string, string>();
-        internal Memory<char> InnerText = new char[] { };
-        internal string TagName = string.Empty;
-        internal Memory<char> TotalMessage = new char[] { };
-        internal bool IsSelfClosingElement = false;
-        internal bool MessageIncludesEnding = false;
-        internal int BeginningIndex = -1;
-        internal int EndIndex = -1;
+        public readonly Dictionary<string, string> attributes = new Dictionary<string, string>();
+        public Memory<char> InnerText = new char[] { };
+        public string TagName = string.Empty;
+        public Memory<char> TotalMessage = new char[] { };
+        public bool IsSelfClosingElement = false;
+        public bool MessageIncludesEnding = false;
+        public int BeginningIndex = -1;
+        public int EndIndex = -1;
 
-        internal DPDSXElement Parent;
-        internal DPDSXElement NextSibling;
-        internal DPDSXElement PreviousSibling;
-        internal List<DPDSXElement> Children = new List<DPDSXElement>();
-        internal DPDSXElementCollection File;
-        internal DPDSXElement() { }
+        public DPDSXElement Parent;
+        public DPDSXElement NextSibling;
+        public DPDSXElement PreviousSibling;
+        public List<DPDSXElement> Children = new List<DPDSXElement>();
+        public DPDSXElementCollection File;
+        public DPDSXElement() { }
         /// <summary>
         /// DSXElements within the given index range will have its parent set to this DSXElement and added to children array.
         /// </summary>
         /// <param name="beginningIndex">The total beginning index of the buffer array.</param>
         /// <param name="endIndex">The total end index of the buffer array.</param>
-        internal void ParentChildrenWithinIndexRange()
+        public void ParentChildrenWithinIndexRange()
         {
             var workingSibling = NextSibling;
             while (workingSibling != null && IndexInRange(BeginningIndex, EndIndex, workingSibling))

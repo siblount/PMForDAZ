@@ -7,9 +7,9 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
-using DAZ_Installer.DP;
+using DAZ_Installer.WinApp;
 
-namespace DAZ_Installer.Forms
+namespace DAZ_Installer.WinApp.Forms
 {
     public partial class ContentFolderAliasManager : Form
     {

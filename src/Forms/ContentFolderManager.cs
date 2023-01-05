@@ -4,9 +4,8 @@ using System.ComponentModel;
 using System.IO;
 using System.Text;
 using System.Windows.Forms;
-using DAZ_Installer.DP;
 
-namespace DAZ_Installer.Forms
+namespace DAZ_Installer.WinApp.Forms
 {
     public partial class ContentFolderManager : Form
     {

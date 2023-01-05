@@ -7,27 +7,27 @@ using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using DAZ_Installer.Core.Utilities;
 
-
-namespace DAZ_Installer.Core
+namespace DAZ_Installer.WinApp
 {
     class DPExtractJob
     {
-        internal string[] filesToProcess { get; init; }
-        internal bool completed { get; set; } = false;
-        internal HashSet<string> doNotProcess { get; } = new HashSet<string>();
-        internal static DPExtractJob workingJob { get; set; }
-        internal static DPTaskManager extractJobs = new DPTaskManager();
-        internal static List<DPExtractJob> jobs { get; } = new List<DPExtractJob>(3);
-        internal HashSet<string> filesToNotProcess { get; } = new HashSet<string>();
+        public string[] filesToProcess { get; init; }
+        public bool completed { get; set; } = false;
+        public HashSet<string> doNotProcess { get; } = new HashSet<string>();
+        public static DPExtractJob workingJob { get; set; }
+        public static DPTaskManager extractJobs = new DPTaskManager();
+        public static List<DPExtractJob> jobs { get; } = new List<DPExtractJob>(3);
+        public HashSet<string> filesToNotProcess { get; } = new HashSet<string>();
         // TODO: Check if a product is already in list.
 
-        //internal DPExtractJob(string[] files)
+        //public DPExtractJob(string[] files)
         //{
         //    filesToProcess = files;
         //}
 
-        internal DPExtractJob(ListView.ListViewItemCollection files)
+        public DPExtractJob(ListView.ListViewItemCollection files)
         {
             jobs.Add(this);
             List<string> _files = new List<string>(files.Count);
@@ -39,7 +39,7 @@ namespace DAZ_Installer.Core
             filesToProcess = _files.ToArray();
         }
 
-        internal void DoJob()
+        public void DoJob()
         {
             if (workingJob != null && !workingJob.completed && jobs.IndexOf(this) != 0)
             {

@@ -4,23 +4,24 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using DAZ_Installer.Core.Utilities;
 using IOPath = System.IO.Path;
 namespace DAZ_Installer.Core
 {
-    internal class DPFolder : DPAbstractFile
+    public class DPFolder : DPAbstractFile
     {
 
-        internal List<DPFolder> subfolders = new List<DPFolder>();
+        public List<DPFolder> subfolders = new List<DPFolder>();
         private Dictionary<string, DPAbstractFile> children = new Dictionary<string, DPAbstractFile>();
-        internal bool isContentFolder { get; set;}
+        public bool isContentFolder { get; set;}
         /// <summary>
         ///  Determined later in ProcessArchive().
         /// </summary>
-        internal bool isPartOfContentFolder
+        public bool isPartOfContentFolder
         {
             get => (Parent?.isPartOfContentFolder ?? false) || (Parent?.isContentFolder ?? false);
         }
-        internal DPFolder(string path, DPFolder parent) : base(path)
+        public DPFolder(string path, DPFolder parent) : base(path)
         {
             UID = DPIDManager.GetNewID();
             // Check if path is root.
@@ -39,7 +40,7 @@ namespace DAZ_Installer.Core
 
         }
 
-        internal static DPFolder CreateFolderForFile(string dpFilePath)
+        public static DPFolder CreateFolderForFile(string dpFilePath)
         {
             var workingStr = DPCommon.Up(dpFilePath);
             DPFolder firstFolder = null;
@@ -75,7 +76,7 @@ namespace DAZ_Installer.Core
             return firstFolder;
         }
 
-        internal void UpdateChildrenRelativePaths(DPSettings settings)
+        public void UpdateChildrenRelativePaths(DPSettings settings)
         {
             // Needs to be relative to the content folder.
             if (isContentFolder)
@@ -113,7 +114,7 @@ namespace DAZ_Installer.Core
         /// </summary>
         /// <param name="child">The child of this folder.</param>
         /// <returns>A string representing the relative path of the child relative to this folder.</returns>
-        internal string CalculateChildRelativePath(DPAbstractFile child) => PathHelper.GetRelativePath(child.Path, Path);
+        public string CalculateChildRelativePath(DPAbstractFile child) => PathHelper.GetRelativePath(child.Path, Path);
 
         /// <summary>
         /// Calculates the target path of a child relative to this folder. Requires the settings object to
@@ -122,7 +123,7 @@ namespace DAZ_Installer.Core
         /// <param name="child">The child of this folder.</param>
         /// <param name="settings">The settings object in use.</param>
         /// <returns>A string representing the target path of the child relative to this folder.</returns>
-        internal string CalculateChildRelativeTargetPath(DPAbstractFile child, DPSettings settings)
+        public string CalculateChildRelativeTargetPath(DPAbstractFile child, DPSettings settings)
         {
             var containsKey = settings.folderRedirects.ContainsKey(FileName);
             if (!containsKey || (isContentFolder && !containsKey)) return child.RelativePath;
@@ -137,7 +138,7 @@ namespace DAZ_Installer.Core
             return PathHelper.GetRelativePath(childNewPath, newPath);
         }
 
-        internal DPFolder GetContentFolder()
+        public DPFolder GetContentFolder()
         {
             if (Parent == null) return null;
             DPFolder workingFolder = this;
@@ -152,7 +153,7 @@ namespace DAZ_Installer.Core
         /// Handles the addition of the file to children property and subfolders property (if child is a DPFolder).
         /// </summary>
         /// <param name="child">DPFolder, DPArchive, DPFile</param>
-        internal void addChild(DPAbstractFile child)
+        public void addChild(DPAbstractFile child)
         {
             if (child.GetType() == typeof(DPFolder))
             {
@@ -163,7 +164,7 @@ namespace DAZ_Installer.Core
             children.TryAdd(child.Path, child);
         }
 
-        internal void removeChild(DPAbstractFile child)
+        public void removeChild(DPAbstractFile child)
         {
             if (child.GetType() == typeof(DPFolder))
             {
@@ -174,12 +175,12 @@ namespace DAZ_Installer.Core
             children.Remove(child.Path);
         }
 
-        internal DPAbstractFile[] GetFiles()
+        public DPAbstractFile[] GetFiles()
         {
             return children.Values.ToArray();
         }
 
-        internal DPFolder FindFolder(string _path)
+        public DPFolder FindFolder(string _path)
         {
             if (Path == _path) return this;
             else
@@ -192,7 +193,7 @@ namespace DAZ_Installer.Core
             }
             return null;
         }
-        internal static DPFolder[] FindChildFolders(string _path, DPFolder self)
+        public static DPFolder[] FindChildFolders(string _path, DPFolder self)
         {
             var folderArr = new List<DPFolder>();
             foreach (var folder in DPProcessor.workingArchive.Folders.Values)
@@ -213,7 +214,7 @@ namespace DAZ_Installer.Core
         /// </summary>
         /// <param name="newParent">The new parent for this folder.</param>
 
-        internal override void UpdateParent(DPFolder? newParent) {
+        public override void UpdateParent(DPFolder? newParent) {
             // If we were null, but now we're not...
             if (_parent == null && newParent != null) {
                 // Remove ourselves from root folders list of the working archive.

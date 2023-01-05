@@ -11,7 +11,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 
-namespace DAZ_Installer
+namespace DAZ_Installer.WinApp.Forms
 {
     public partial class PasswordInput : Form
     {

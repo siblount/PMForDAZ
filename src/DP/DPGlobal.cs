@@ -6,11 +6,11 @@ using System.Collections.Generic;
 using System.Windows.Forms;
 using System.Threading;
 
-namespace DAZ_Installer.Core
+namespace DAZ_Installer.WinApp
 {
     public static class DPGlobal
     {
-        public static int mainThreadID = 0;
+        internal static int mainThreadID = 0;
         public static bool appClosing { get; set; } = false;
         public static event Action<FormClosingEventArgs> AppClosing;
         public static bool isWindows11 = false;

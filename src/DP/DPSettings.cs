@@ -10,7 +10,7 @@ using System.Windows.Forms;
 using Microsoft.VisualBasic.FileIO;
 using Newtonsoft.Json;
 
-namespace DAZ_Installer.DP
+namespace DAZ_Installer.WinApp
 {
     public enum SettingOptions
     {

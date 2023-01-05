@@ -7,9 +7,8 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using System.Collections.Generic;
-using DAZ_Installer.DP;
 
-namespace DAZ_Installer
+namespace DAZ_Installer.WinApp.Pages
 {
     /// <summary>
     /// The Library class is responsible for the loading, adding & removing LibraryItems. It is also responsible for controlling the LibraryPanel and effectively managing image resources. It also controls search interactions. 

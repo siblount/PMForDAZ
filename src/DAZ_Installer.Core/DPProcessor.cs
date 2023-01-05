@@ -6,13 +6,14 @@ using System.Linq;
 using System.Windows.Forms;
 using System.IO;
 using System.Collections.Generic;
+using DAZ_Installer.Core.Utilities;
 
-namespace DAZ_Installer.DP
+namespace DAZ_Installer.Core
 {
     // GOAL: Extract files through RAR. While it discovers files, add it to list.
     // Then, deeply analyze each file; determine best approach; and execute best approach (or ask).
     // Lastly, clean up.
-    internal static class DPProcessor
+    public static class DPProcessor
     {
         // SecureString - System.Security
         // We use these variables in case the user changes the settings in mist of an extraction process
@@ -112,9 +113,9 @@ namespace DAZ_Installer.DP
             } catch { DPCommon.WriteToLog("Failed to get tags."); }
             analyzeCombo?.Remove();
 
-            for (var i = 0; i < archiveFile.InternalArchives.Count; i++)
+            for (var i = 0; i < archiveFile.publicArchives.Count; i++)
             {
-                var arc = archiveFile.InternalArchives[i];
+                var arc = archiveFile.publicArchives[i];
                 if (arc.WasExtracted) ProcessInnerArchive(arc);
             }
 
@@ -215,9 +216,9 @@ namespace DAZ_Installer.DP
                 archiveFile.GetTags();
             } catch { DPCommon.WriteToLog("Failed to get tags."); }
             analyzeCombo?.Remove();
-            for (var i = 0; i < archiveFile.InternalArchives.Count; i++)
+            for (var i = 0; i < archiveFile.publicArchives.Count; i++)
             {
-                var arc = archiveFile.InternalArchives[i];
+                var arc = archiveFile.publicArchives[i];
                 if (arc.WasExtracted) ProcessInnerArchive(arc);
             }
 
@@ -313,7 +314,7 @@ namespace DAZ_Installer.DP
                             arc.WillExtract = true;
                             arc.TargetPath = GetTargetPath(arc, true);
                             // Add to queue.
-                            workingArchive.InternalArchives.Add(arc);
+                            workingArchive.publicArchives.Add(arc);
                         }
                     }
                 }
@@ -328,7 +329,7 @@ namespace DAZ_Installer.DP
                         arc.WillExtract = true;
                         arc.TargetPath = GetTargetPath(arc, true);
                         // Add to queue.
-                        workingArchive.InternalArchives.Add(arc);
+                        workingArchive.publicArchives.Add(arc);
                     }
                 }
             }
@@ -339,7 +340,7 @@ namespace DAZ_Installer.DP
         /// This function returns the target path based on whether it is saving to it's destination or to a
         /// temporary location, whether the <paramref name="file"/> has a relative path or not, and whether
         /// the file's parent is in folderRedirects. <para/>
-        /// Additionally, there is <paramref name="overridePath"/> which will be used for combining paths internally;
+        /// Additionally, there is <paramref name="overridePath"/> which will be used for combining paths publicly;
         /// <b>however</b>, this will be ignored if the parent name is in the user's folder redirects.
         /// </summary>
         /// <param name="file">The file to get a target path for.</param>
@@ -402,7 +403,7 @@ namespace DAZ_Installer.DP
 
 
         // TODO: Clear temp needs to remove as much space as possible. It will error when we have file handles.
-        internal static void ClearTemp() {
+        public static void ClearTemp() {
             try {
                 // Note: UnauthorizedAccess is called when a file has the read-only attribute.
                 // TODO: Async call to change file attributes and delete them.

@@ -48,7 +48,6 @@
   <ItemGroup>
     <PackageReference Include="HtmlAgilityPack" Version="1.11.46" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.2" />
-    <PackageReference Include="System.Data.SQLite" Version="1.0.117" />
   </ItemGroup>
 
   <ItemGroup>
@@ -82,6 +81,12 @@
 
   <ItemGroup>
     <Folder Include="Properties\DataSources\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="DAZ_Installer.Core\DAZ_Installer.Core.csproj" />
+    <ProjectReference Include="DAZ_Installer.Database\DAZ_Installer.Database.csproj" />
+    <ProjectReference Include="DAZ_Installer.UI\DAZ_Installer.UI.csproj" />
   </ItemGroup>
 
   <ItemGroup>

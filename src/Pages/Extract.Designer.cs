@@ -1,5 +1,5 @@
 ﻿
-namespace DAZ_Installer
+namespace DAZ_Installer.WinApp.Pages
 {
     partial class Extract
     {

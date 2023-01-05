@@ -5,14 +5,16 @@ using System.IO;
 using System.IO.Compression;
 using System.Text;
 using System;
+using DAZ_Installer.Core.Utilities;
 
-namespace DAZ_Installer.Core {
-    internal class DPZipArchive : DPAbstractArchive
+namespace DAZ_Installer.Core
+{
+    public class DPZipArchive : DPAbstractArchive
     {
-        internal override bool CanReadWithoutExtracting { get => true; }
+        public override bool CanReadWithoutExtracting { get => true; }
         private ZipArchive archive;
 
-        internal DPZipArchive(string _path,  bool innerArchive = false, string? relativePathBase = null) : base(_path, innerArchive, relativePathBase) {
+        public DPZipArchive(string _path,  bool innerArchive = false, string? relativePathBase = null) : base(_path, innerArchive, relativePathBase) {
             
         }
 
@@ -24,7 +26,7 @@ namespace DAZ_Installer.Core {
 
         #region Override Methods
 
-        internal override void Extract()
+        public override void Extract()
         {
             mode = Mode.Extract;
             var max = GetExpectedFilesToExtract();
@@ -39,7 +41,7 @@ namespace DAZ_Installer.Core {
                 try
                 {
                     DPFile dpfile = null;
-                    DPAbstractArchive arc = InternalArchives.Find(a => a.Path == file.FullName);
+                    DPAbstractArchive arc = publicArchives.Find(a => a.Path == file.FullName);
                     if (DPFile.FindFileInDPFiles(file.FullName, out dpfile))
                     {
                         if (dpfile.WillExtract)
@@ -59,7 +61,7 @@ namespace DAZ_Installer.Core {
             HandleProgressionZIP(archive, max, max);
         }
 
-        internal override void Peek()
+        public override void Peek()
         {
             archive = ZipFile.OpenRead(IsInnerArchive ? ExtractedPath : Path);
             foreach (var entry in archive.Entries) {
@@ -84,7 +86,7 @@ namespace DAZ_Installer.Core {
             }
         }
 
-        internal override void ReadContentFiles()
+        public override void ReadContentFiles()
         {
             foreach (var file in DazFiles) {
                 if (!file.WasExtracted) continue;
@@ -111,7 +113,7 @@ namespace DAZ_Installer.Core {
             }
         }
 
-        internal override void ReadMetaFiles()
+        public override void ReadMetaFiles()
         {
             foreach (var file in DSXFiles) {
                 try
@@ -129,14 +131,14 @@ namespace DAZ_Installer.Core {
             }
         }
 
-        internal override void ReleaseArchiveHandles()
+        public override void ReleaseArchiveHandles()
         {
             archive?.Dispose();
         }
 
         #endregion
 
-        internal int GetExpectedFilesToExtract() {
+        public int GetExpectedFilesToExtract() {
             int count = 0;
             foreach (var content in Contents) {
                 if (content.WillExtract) count++;
