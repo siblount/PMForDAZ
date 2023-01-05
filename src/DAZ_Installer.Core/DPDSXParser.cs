@@ -7,7 +7,7 @@ using System.Collections.Generic;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace DAZ_Installer.DP
+namespace DAZ_Installer.Core
 {
     internal class DPDSXParser
     {

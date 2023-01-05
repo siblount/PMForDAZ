@@ -9,7 +9,7 @@ using DAZ_Installer.External;
 using IOPath = System.IO.Path;
 using System.IO;
 
-namespace DAZ_Installer.DP
+namespace DAZ_Installer.Core
 {
     // ZIP Transversal Check
     /*

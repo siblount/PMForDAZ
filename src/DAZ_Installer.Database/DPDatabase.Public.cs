@@ -2,8 +2,9 @@
 using System.Data;
 using System.Collections.Generic;
 using System.Data.SQLite;
+using DAZ_Installer.Core;
 
-namespace DAZ_Installer.DP
+namespace DAZ_Installer.Database
 {
     public static partial class DPDatabase
     {

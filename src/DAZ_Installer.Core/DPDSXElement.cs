@@ -4,7 +4,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace DAZ_Installer.DP {
+namespace DAZ_Installer.Core {
     internal class DPDSXElement
     {
         internal readonly Dictionary<string, string> attributes = new Dictionary<string, string>();

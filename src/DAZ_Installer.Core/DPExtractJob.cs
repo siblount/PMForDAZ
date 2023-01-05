@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 using System.Windows.Forms;
 
 
-namespace DAZ_Installer.DP
+namespace DAZ_Installer.Core
 {
     class DPExtractJob
     {

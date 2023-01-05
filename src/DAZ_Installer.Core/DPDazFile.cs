@@ -3,7 +3,7 @@
 using System;
 using System.IO;
 
-namespace DAZ_Installer.DP {
+namespace DAZ_Installer.Core {
     internal class DPDazFile : DPFile {
         internal DPContentInfo ContentInfo = new DPContentInfo();
         internal DPDazFile(string _path, DPFolder? __parent) : base(_path, __parent) {

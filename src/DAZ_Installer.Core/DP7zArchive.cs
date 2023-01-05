@@ -12,7 +12,7 @@ using DAZ_Installer.Utilities;
 using System.Threading.Tasks;
 using System.Threading;
 
-namespace DAZ_Installer.DP {
+namespace DAZ_Installer.Core {
     // Notes: 
     // Directories are listed with "l -slt" with the D attribute. Files are with the A attribute.
     // Attributes: R - Read-only, H - Hidden, S - System, A - Archive (file), D - Directory

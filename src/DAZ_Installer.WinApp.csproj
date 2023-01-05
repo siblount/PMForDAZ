@@ -28,8 +28,17 @@
 
   <ItemGroup>
     <Compile Remove="bin_\**" />
+    <Compile Remove="DAZ_Installer.Core\**" />
+    <Compile Remove="DAZ_Installer.Database\**" />
+    <Compile Remove="DAZ_Installer.UI\**" />
     <EmbeddedResource Remove="bin_\**" />
+    <EmbeddedResource Remove="DAZ_Installer.Core\**" />
+    <EmbeddedResource Remove="DAZ_Installer.Database\**" />
+    <EmbeddedResource Remove="DAZ_Installer.UI\**" />
     <None Remove="bin_\**" />
+    <None Remove="DAZ_Installer.Core\**" />
+    <None Remove="DAZ_Installer.Database\**" />
+    <None Remove="DAZ_Installer.UI\**" />
   </ItemGroup>
 
   <ItemGroup>

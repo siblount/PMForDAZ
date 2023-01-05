@@ -6,7 +6,7 @@ using System.IO.Compression;
 using System.Text;
 using System;
 
-namespace DAZ_Installer.DP {
+namespace DAZ_Installer.Core {
     internal class DPZipArchive : DPAbstractArchive
     {
         internal override bool CanReadWithoutExtracting { get => true; }

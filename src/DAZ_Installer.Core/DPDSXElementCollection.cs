@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace DAZ_Installer.DP {
+namespace DAZ_Installer.Core {
     internal class DPDSXElementCollection
     {
         internal Dictionary<string, LinkedList<DPDSXElement>> selfClosingElements = new Dictionary<string, LinkedList<DPDSXElement>>(3);

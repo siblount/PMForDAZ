@@ -2,7 +2,7 @@
 // You may find a full copy of this license at root project directory\LICENSE
 using System;
 
-namespace DAZ_Installer.DP
+namespace DAZ_Installer.Database
 {
     public record DPProductRecord(string ProductName, string[] Tags, string Author, string SKU,
                                     DateTime Time, string ThumbnailPath, uint EID, uint ID)

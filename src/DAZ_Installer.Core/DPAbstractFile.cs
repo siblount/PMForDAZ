@@ -4,7 +4,7 @@ using System;
 using System.Windows.Forms;
 using IOPath = System.IO.Path;
 
-namespace DAZ_Installer.DP {
+namespace DAZ_Installer.Core {
     /// <summary>
     /// Abstract class for all elements found in archives (including archives).
     /// This means that all files, and archives (which are files) should extend

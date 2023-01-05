@@ -2,7 +2,7 @@
 // You may find a full copy of this license at root project directory\LICENSE
 using System.Collections.Generic;
 
-namespace DAZ_Installer.DP {
+namespace DAZ_Installer.Core {
     internal struct DPProductInfo {
         internal string ProductName = string.Empty;
         internal HashSet<string>? Tags = null;

@@ -4,7 +4,7 @@ using System;
 using IOPath = System.IO.Path;
 using System.IO;
 using System.Collections.Generic;
-namespace DAZ_Installer.DP {
+namespace DAZ_Installer.Core {
     /// <summary>
     /// A special class that marks the DPFile as .dsx file which typically is a Supplement file or a Manifest file.
     /// </summary>

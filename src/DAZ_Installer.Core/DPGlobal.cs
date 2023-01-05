@@ -6,7 +6,7 @@ using System.Collections.Generic;
 using System.Windows.Forms;
 using System.Threading;
 
-namespace DAZ_Installer.DP
+namespace DAZ_Installer.Core
 {
     static class DPGlobal
     {

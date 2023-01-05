@@ -7,8 +7,9 @@ using System.Text;
 using System.Threading;
 using System.Data.SQLite;
 using System.IO;
+using DAZ_Installer.Database;
 
-namespace DAZ_Installer.DP
+namespace DAZ_Installer.Database
 {
     public static partial class DPDatabase
     {

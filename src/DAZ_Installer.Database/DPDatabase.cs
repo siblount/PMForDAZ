@@ -1,15 +1,10 @@
 ﻿// This code is licensed under the Keep It Free License V1.
 // You may find a full copy of this license at root project directory\LICENSE
 
-using System;
 using System.Data;
-using System.Collections.Generic;
-using System.Threading;
-using System.Threading.Tasks;
 using System.Data.SQLite;
-using System.IO;
 
-namespace DAZ_Installer.DP
+namespace DAZ_Installer.Database
 {
     /// <summary>
     /// This class will handle all database operations such as initializing the database, creating tables, rows, deleting, etc.

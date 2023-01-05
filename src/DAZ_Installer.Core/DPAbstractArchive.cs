@@ -9,7 +9,7 @@ using System.IO;
 using System;
 
 
-namespace DAZ_Installer.DP {
+namespace DAZ_Installer.Core {
     /// <summary>
     /// Defines the archive type of an archive.
     /// </summary>

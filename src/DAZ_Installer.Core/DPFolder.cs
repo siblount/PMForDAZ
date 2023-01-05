@@ -5,7 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using IOPath = System.IO.Path;
-namespace DAZ_Installer.DP
+namespace DAZ_Installer.Core
 {
     internal class DPFolder : DPAbstractFile
     {

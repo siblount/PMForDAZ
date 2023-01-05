@@ -1,0 +1,25 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net6.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <UseWindowsForms>true</UseWindowsForms>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Update="LibraryItem.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Update="LibraryPanel.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Update="PageButtonControl.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Update="QueueControl.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+  </ItemGroup>
+
+</Project>

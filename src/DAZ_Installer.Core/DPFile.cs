@@ -9,7 +9,7 @@ using System.IO;
 using IOPath = System.IO.Path;
 using System.IO.Compression;
 
-namespace DAZ_Installer.DP
+namespace DAZ_Installer.Core
 {
     internal class DPFile : DPAbstractFile
     {
