@@ -2,9 +2,8 @@
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Collections;
-using DAZ_Installer.Core.Utilities;
 
-namespace DAZ_Installer.External
+namespace DAZ_Installer.Core.External
 {
     // GC Collect
     public class RAR : IDisposable
