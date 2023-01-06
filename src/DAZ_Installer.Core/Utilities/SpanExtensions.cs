@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace DAZ_Installer.Utilities
+namespace DAZ_Installer.Core
 {
     internal static class SpanExtensions
     {
