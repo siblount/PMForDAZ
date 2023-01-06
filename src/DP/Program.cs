@@ -5,12 +5,19 @@ using System;
 using System.Threading;
 using System.Windows.Forms;
 using System.Diagnostics;
+using DAZ_Installer.WinApp.Forms;
 
 namespace DAZ_Installer
 {
     static class Program
     {
         public static bool IsRunByIDE => Debugger.IsAttached;
+        public static DragDropEffects DropEffect = DragDropEffects.All;
+        public static int MainThreadID { get; private set; } = 0;
+        public static bool IsOnMainThread
+        {
+            get => MainThreadID == Thread.CurrentThread.ManagedThreadId;
+        }
         /// <summary>
         ///  The main entry point for the application.
         /// </summary>
@@ -21,7 +28,7 @@ namespace DAZ_Installer
             using var mutex = new Mutex(false, "DAZ_Installer Instance");
             mutex.WaitOne(0);
             // Set the main thread ID to this one.
-            DP.DPGlobal.mainThreadID = Thread.CurrentThread.ManagedThreadId;
+            MainThreadID = Thread.CurrentThread.ManagedThreadId;
             Application.SetHighDpiMode(HighDpiMode.SystemAware);
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
