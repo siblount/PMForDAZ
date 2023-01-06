@@ -8,32 +8,27 @@ using System.IO;
 using System.ComponentModel;
 using System.Windows.Forms;
 using DAZ_Installer.Core;
-using DAZ_Installer.Core.Utilities;
+using System.Linq;
 
 namespace DAZ_Installer.WinApp.Pages
 {
 
     public partial class Extract : UserControl
     {
-        /// <summary> 
-        /// Returns the integer of the first available slot in List<object>. Returns -1 if not available. 
-        /// </summary>
         public static Extract ExtractPage;
-        internal static Dictionary<ListViewItem, DPAbstractFile> associatedListItems = new(4096);
-        internal static Dictionary<TreeNode, DPAbstractFile> associatedTreeNodes = new(4096);
+        internal static Dictionary<DPAbstractFile, ListViewItem> associatedListItems = new(2048);
+        internal static Dictionary<DPAbstractFile, TreeNode> associatedTreeNodes = new(2048);
 
-        public void resetMainTable()
+        public void ResetMainTable()
         {
             mainTableLayoutPanel.SuspendLayout();
             try
             {
                 if (mainTableLayoutPanel.Controls.Count != 0)
                 {
-                    var arr = DPCommon.RecursivelyGetControls(mainTableLayoutPanel);
+                    var arr = RecursivelyGetControls(mainTableLayoutPanel);
                     foreach (var control in arr)
-                    {
                         control.Dispose();
-                    }
                 }
             }
             catch { }
@@ -42,10 +37,10 @@ namespace DAZ_Installer.WinApp.Pages
             mainTableLayoutPanel.ColumnCount = 1;
             mainTableLayoutPanel.RowStyles.Add(new RowStyle());
             mainTableLayoutPanel.RowCount = 1;
-            updateMainTableRowSizing();
+            UpdateMainTableRowSizing();
             mainTableLayoutPanel.ResumeLayout();
         }
-        public void updateMainTableRowSizing()
+        public void UpdateMainTableRowSizing()
         {
             // TO DO : Invoke.
             mainTableLayoutPanel.SuspendLayout();
@@ -79,14 +74,14 @@ namespace DAZ_Installer.WinApp.Pages
             foreach (var content in archive.Contents)
             {
                 var item = fileListView.Items.Add($"{archive.FileName}\\{content.Path}");
-                content.AssociatedListItem = item;
-                associatedListItems.Add(item, content);
+                item.Tag = content;
+                associatedListItems[content] = item;
             }
             fileListView.Columns[0].AutoResize(ColumnHeaderAutoResizeStyle.ColumnContent);
             fileListView.EndUpdate();
         }
 
-        private void ProcessChildNodes(DPFolder folder, ref TreeNode parentNode)
+        private void ProcessChildNodes(DPFolder folder, TreeNode parentNode)
         {
             var fileName = Path.GetFileName(folder.Path);
             TreeNode folder1 = null;
@@ -108,75 +103,64 @@ namespace DAZ_Installer.WinApp.Pages
                 if (InvokeRequired)
                 {
                     var node = (TreeNode) Invoke(new Func<string, TreeNode>(folder1.Nodes.Add), fileName);
-                    file.AssociatedTreeNode = node;
+                    node.Tag = file;
+                    associatedTreeNodes[file] = node;
                     AddIcon(node, file.Ext);
                 }
                 else
                 {
                     var node = folder1.Nodes.Add(fileName);
-                    file.AssociatedTreeNode = node;
+                    node.Tag = file;
+                    associatedTreeNodes[file] = node;
                     AddIcon(node, file.Ext);
                 }
             }
             foreach (var subfolder in folder.subfolders)
-            {
-                ProcessChildNodes(subfolder, ref folder1);
-            }
+                ProcessChildNodes(subfolder, folder1);
         }
 
         internal void AddToHierachy(DPAbstractArchive workingArchive)
         {
+            if (InvokeRequired)
+            {
+                Invoke(AddToHierachy, workingArchive);
+                return;
+            }
+
             fileHierachyTree.BeginUpdate();
+
             // Add root node for DPArchive.
             var fileName = workingArchive.HierachyName;
             TreeNode rootNode = null;
-            if (InvokeRequired)
-            {
-                var func = new Func<string, TreeNode>(fileHierachyTree.Nodes.Add);
-                rootNode = (TreeNode) Invoke(func,fileName);
-                workingArchive.AssociatedTreeNode = rootNode;
-                AddIcon(rootNode, workingArchive.Ext);
-
-            } else
-            {
-                rootNode = fileHierachyTree.Nodes.Add(fileName);
-                workingArchive.AssociatedTreeNode = rootNode;
-                AddIcon(rootNode, workingArchive.Ext);
-            }
+            rootNode = fileHierachyTree.Nodes.Add(fileName);
+            rootNode.Tag = workingArchive;
+            associatedTreeNodes[workingArchive] = rootNode;
+            AddIcon(rootNode, workingArchive.Ext);
 
 
             // Add any files that aren't in any folder.
             foreach (var file in workingArchive.RootContents)
             {
                 fileName = Path.GetFileName(file.Path);
-                if (InvokeRequired)
-                {
-                    var node = (TreeNode) Invoke(new Func<string, TreeNode>(rootNode.Nodes.Add), fileName);
-                    file.AssociatedTreeNode = node;
-                    AddIcon(node, file.Ext);
-                } else
-                {
-                    var node = rootNode.Nodes.Add(fileName);
-                    file.AssociatedTreeNode = node;
-                    AddIcon(node, file.Ext);
-                }
+                var node = rootNode.Nodes.Add(fileName);
+                node.Tag = file;
+                associatedTreeNodes[file] = node;
+                AddIcon(node, file.Ext);
             }
 
             // Recursively add files & folder within each folder.
             foreach (var folder in workingArchive.RootFolders)
-            {
-                ProcessChildNodes(folder, ref rootNode);
-            }
-            fileHierachyTree.ExpandAll();
+                ProcessChildNodes(folder, rootNode);
+
             fileHierachyTree.EndUpdate();
         }
 
-        // Object to satisfy Invoke.
         private void AddIcon(TreeNode node, string ext)
         {
             if (InvokeRequired)
             {
                 Invoke(AddIcon, node, ext);
+                return;
             }
             if (string.IsNullOrEmpty(ext))
                 node.StateImageIndex = 0;
@@ -189,27 +173,33 @@ namespace DAZ_Installer.WinApp.Pages
         public void ResetExtractPage()
         {
             // Later show nothing to extract panel.
-            resetMainTable();
+            ResetMainTable();
             fileListView.Items.Clear();
             fileHierachyTree.Nodes.Clear();
             associatedListItems.Clear();
             associatedTreeNodes.Clear();
         }
-        /// <summary>
-        /// Creates a progress bar and adds it to the table. [0] - TableLayout, [1] - label, [2] - ProgressBar
-        /// </summary>
-        /// <returns>An array of controls</returns>
-        /// 
-        internal void AddNewProgressCombo(DPProgressCombo combo) {
-            mainTableLayoutPanel.SuspendLayout();
-            if (mainTableLayoutPanel.Controls.Count != 0)
+
+        public static Control[] RecursivelyGetControls(Control obj)
+        {
+            if (obj.Controls.Count == 0) return null;
+            else
             {
-                mainTableLayoutPanel.RowCount += 1;
-                mainTableLayoutPanel.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+                var workingArr = new List<Control>(obj.Controls.Count);
+                foreach (Control control in obj.Controls)
+                {
+                    var result = RecursivelyGetControls(control);
+                    if (result != null)
+                    {
+                        foreach (Control childControl in result)
+                            workingArr.Add(childControl);
+                    }
+                    workingArr.Add(control);
+                }
+                var controlArr = workingArr.ToArray();
+                return controlArr;
             }
-            mainTableLayoutPanel.Controls.Add(combo.Panel);
-            updateMainTableRowSizing();
-            mainTableLayoutPanel.ResumeLayout(true);
+
         }
 
         private void mainProcLbl_Click(object sender, EventArgs e)
@@ -233,7 +223,7 @@ namespace DAZ_Installer.WinApp.Pages
             for (var i = 0; i < mainTableLayoutPanel.RowCount; i++) 
                 mainTableLayoutPanel.RowStyles.Add(new RowStyle());
             mainTableLayoutPanel.ResumeLayout();
-            updateMainTableRowSizing();
+            UpdateMainTableRowSizing();
         }
         
         #endregion
@@ -242,22 +232,21 @@ namespace DAZ_Installer.WinApp.Pages
         private void selectInHierachyToolStripMenuItem_Click(object sender, EventArgs e)
         {
             // Get the associated file with listviewitem.
-            associatedListItems.TryGetValue(fileListView.SelectedItems[0], out DPAbstractFile file);
-            if (file != null)
-            {
-                fileHierachyTree.SelectedNode = file.AssociatedTreeNode;
-            }
+            var file = fileListView.SelectedItems[0].Tag as DPAbstractFile;
+            
+            if (file != null && associatedTreeNodes.TryGetValue(file, out var node))
+                fileHierachyTree.SelectedNode = node;
             // Switch tab.
             tabControl1.SelectTab(fileHierachyPage);
-
         }
 
         private void fileListContextStrip_Opening(object sender, CancelEventArgs e)
         {
             var filesSelected = fileListView.SelectedItems.Count != 0;
-            inspectFileListMenuItem.Visible = filesSelected;
+            inspectFileListMenuItem.Visible = false && filesSelected;
             openInExplorerToolStripMenuItem.Visible = filesSelected;
-            selectInHierachyToolStripMenuItem.Visible = filesSelected;
+            selectInHierachyToolStripMenuItem.Visible = filesSelected && 
+                associatedTreeNodes.TryGetValue(fileListView.SelectedItems[0].Tag as DPAbstractFile, out var _);
             noFilesSelectedToolStripMenuItem.Visible = !filesSelected;
         }
 
@@ -267,6 +256,17 @@ namespace DAZ_Installer.WinApp.Pages
         }
         #endregion
 
+        private void selectInFileListToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            // Get the associated file with listviewitem.
+            var file = fileHierachyTree.SelectedNode.Tag as DPAbstractFile;
+
+            if (file != null && associatedListItems.TryGetValue(file, out var node))
+                node.Selected = true;
+
+            // Switch tab.
+            tabControl1.SelectTab(fileListPage);
+        }
     }
 
 }

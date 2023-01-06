@@ -45,7 +45,6 @@ namespace DAZ_Installer.WinApp.Pages
             this.fileHierachyTree = new System.Windows.Forms.TreeView();
             this.archiveFolderIcons = new System.Windows.Forms.ImageList(this.components);
             this.queuePage = new System.Windows.Forms.TabPage();
-            this.queueControl1 = new DAZ_Installer.Custom_Controls.QueueControl();
             this.panel1 = new System.Windows.Forms.Panel();
             this.mainProcLbl = new System.Windows.Forms.Label();
             this.fileHierachyContextStrip = new System.Windows.Forms.ContextMenuStrip(this.components);
@@ -56,7 +55,6 @@ namespace DAZ_Installer.WinApp.Pages
             this.fileListPage.SuspendLayout();
             this.fileListContextStrip.SuspendLayout();
             this.fileHierachyPage.SuspendLayout();
-            this.queuePage.SuspendLayout();
             this.panel1.SuspendLayout();
             this.fileHierachyContextStrip.SuspendLayout();
             this.SuspendLayout();
@@ -201,7 +199,6 @@ namespace DAZ_Installer.WinApp.Pages
             // 
             // queuePage
             // 
-            this.queuePage.Controls.Add(this.queueControl1);
             this.queuePage.Location = new System.Drawing.Point(4, 24);
             this.queuePage.Margin = new System.Windows.Forms.Padding(4, 2, 4, 2);
             this.queuePage.Name = "queuePage";
@@ -210,15 +207,6 @@ namespace DAZ_Installer.WinApp.Pages
             this.queuePage.TabIndex = 2;
             this.queuePage.Text = "Queue";
             this.queuePage.UseVisualStyleBackColor = true;
-            // 
-            // queueControl1
-            // 
-            this.queueControl1.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.queueControl1.Location = new System.Drawing.Point(4, 2);
-            this.queueControl1.Margin = new System.Windows.Forms.Padding(4, 2, 4, 2);
-            this.queueControl1.Name = "queueControl1";
-            this.queueControl1.Size = new System.Drawing.Size(475, 65);
-            this.queueControl1.TabIndex = 0;
             // 
             // panel1
             // 
@@ -253,24 +241,25 @@ namespace DAZ_Installer.WinApp.Pages
             this.selectInFileListToolStripMenuItem,
             this.openInExplorerToolStripMenuItem1});
             this.fileHierachyContextStrip.Name = "fileHierachyContextStrip";
-            this.fileHierachyContextStrip.Size = new System.Drawing.Size(163, 70);
+            this.fileHierachyContextStrip.Size = new System.Drawing.Size(181, 92);
             // 
             // inspectToolStripMenuItem
             // 
             this.inspectToolStripMenuItem.Name = "inspectToolStripMenuItem";
-            this.inspectToolStripMenuItem.Size = new System.Drawing.Size(162, 22);
+            this.inspectToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
             this.inspectToolStripMenuItem.Text = "Inspect";
             // 
             // selectInFileListToolStripMenuItem
             // 
             this.selectInFileListToolStripMenuItem.Name = "selectInFileListToolStripMenuItem";
-            this.selectInFileListToolStripMenuItem.Size = new System.Drawing.Size(162, 22);
+            this.selectInFileListToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
             this.selectInFileListToolStripMenuItem.Text = "Select in File List";
+            this.selectInFileListToolStripMenuItem.Click += new System.EventHandler(this.selectInFileListToolStripMenuItem_Click);
             // 
             // openInExplorerToolStripMenuItem1
             // 
             this.openInExplorerToolStripMenuItem1.Name = "openInExplorerToolStripMenuItem1";
-            this.openInExplorerToolStripMenuItem1.Size = new System.Drawing.Size(162, 22);
+            this.openInExplorerToolStripMenuItem1.Size = new System.Drawing.Size(180, 22);
             this.openInExplorerToolStripMenuItem1.Text = "Open in Explorer";
             // 
             // Extract
@@ -287,7 +276,6 @@ namespace DAZ_Installer.WinApp.Pages
             this.fileListPage.ResumeLayout(false);
             this.fileListContextStrip.ResumeLayout(false);
             this.fileHierachyPage.ResumeLayout(false);
-            this.queuePage.ResumeLayout(false);
             this.panel1.ResumeLayout(false);
             this.fileHierachyContextStrip.ResumeLayout(false);
             this.ResumeLayout(false);
