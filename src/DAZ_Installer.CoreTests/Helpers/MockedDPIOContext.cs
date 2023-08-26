@@ -5,11 +5,13 @@ using NSubstitute;
 namespace DAZ_Installer.Core.Tests
 {
     [Obsolete("For testing purposes only")]
-    internal class MockedDPIOContext : DPAbstractIOContext
+    public class MockedDPIOContext : DPAbstractIOContext
     {
         public bool PartialMock = true;
-        public override long AvailableFreeSpace => long.MaxValue;
-        public override long TotalFreeSpace => long.MaxValue;
+        public override long AvailableFreeSpace => availableFreeSpace;
+        public long availableFreeSpace = long.MaxValue;
+        public override long TotalFreeSpace => availableTotalSpace;
+        public long availableTotalSpace = long.MaxValue;
         /// <inheritdoc/>
         public MockedDPIOContext() { }
         /// <inheritdoc/>
