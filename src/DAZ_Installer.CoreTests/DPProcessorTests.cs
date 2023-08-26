@@ -4,6 +4,7 @@ using MSTestLogger = Microsoft.VisualStudio.TestTools.UnitTesting.Logging.Logger
 using Serilog;
 using DAZ_Installer.Core.Extraction;
 using DAZ_Installer.IO.Fakes;
+using NSubstitute.Extensions;
 
 #pragma warning disable 618
 namespace DAZ_Installer.Core.Tests
@@ -121,9 +122,8 @@ namespace DAZ_Installer.Core.Tests
             DPProcessorTestHelpers.AttachCommonEventHandlers(p, ao);
             p.ArchiveExit += (_, p) => Assert.IsFalse(p.Processed);
             ctxFactory.WhenForAnyArgs(x => x.CreateContext(default, default)).DoNotCallBase();
-            var fakedIOContext = Substitute.ForPartsOf<FakeDPIOContext>();
-            fakedIOContext.AvailableFreeSpace.Returns(0);
-            fakedIOContext.TotalFreeSpace.Returns(0);
+            var fakedIOContext = new MockedDPIOContext();
+            fakedIOContext.availableFreeSpace = fakedIOContext.availableTotalSpace = 0;
             p.ContextFactory.CreateContext(default, default).ReturnsForAnyArgs(fakedIOContext);
             p.ProcessArchive(a, DefaultProcessSettings);
         }
