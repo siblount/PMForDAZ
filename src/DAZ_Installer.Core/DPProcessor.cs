@@ -457,7 +457,7 @@ namespace DAZ_Installer.Core
         private bool HandleOnDestinationNotEnoughSpace()
         {
             if (DestinationHasEnoughSpace()) return true;
-            while (!cancel || !DestinationHasEnoughSpace())
+            while (!cancel && !DestinationHasEnoughSpace())
             {
                 var args = new DPProcessorErrorArgs(null, "Destination does not have enough space.");
                 args.Continuable = true;
