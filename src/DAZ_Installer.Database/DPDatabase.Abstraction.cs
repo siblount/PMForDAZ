@@ -1,17 +1,13 @@
 ﻿// This code is licensed under the Keep It Free License V1.
 // You may find a full copy of this license at root project directory\LICENSE
-using System;
+using Serilog;
 using System.Data;
-using System.Collections.Generic;
-using System.Text;
-using System.Threading;
 using System.Data.SQLite;
-using System.IO;
-using DAZ_Installer.Core.Utilities;
+using System.Text;
 
 namespace DAZ_Installer.Database
 {
-    public static partial class DPDatabase
+    public partial class DPDatabase
     {
         #region Reads
         /// <summary>
@@ -19,20 +15,20 @@ namespace DAZ_Installer.Database
         /// </summary>
         /// <param name="connection">A connection to reuse, if any.</param>
         /// <param name="t">Cancel token. Required, cannot be null. Use CancellationToken.None instead (though not recommended).</param>
-        private static void UpdateProductRecordCount(SQLiteConnection? connection, CancellationToken t)
+        private void UpdateProductRecordCount(SQLiteConnection? connection, CancellationToken t)
         {
             const string getCmd = @"SELECT ""Product Record Count"" FROM DatabaseInfo;";
             if (t.IsCancellationRequested) return;
             try
             {
-                using (var cmd = new SQLiteCommand(getCmd, connection))
-                    ProductRecordCount = Convert.ToUInt32(cmd.ExecuteScalar());
+                using SQLiteCommand cmd = new(getCmd, connection);
+                ProductRecordCount = Convert.ToUInt32(cmd.ExecuteScalar());
             }
             catch (Exception e)
             {
-                DPCommon.WriteToLog($"An unexpected error occurred while attempting to get product record count. REASON: {e}");
+                Logger.ForContext<DPDatabase>().Error(e, "An unexpected error occurred while attempting to get product record count.");
             }
-            DPCommon.WriteToLog("Product Record Count: ", ProductRecordCount);
+            // DPCommon.WriteToLog("Product Record Count: ", ProductRecordCount);
         }
 
         /// <summary>
@@ -40,19 +36,19 @@ namespace DAZ_Installer.Database
         /// </summary>
         /// <param name="connection">A connection to reuse, if any.</param>
         /// <param name="t">Cancel token. Required, cannot be null. Use CancellationToken.None instead (though not recommended).</param>
-        private static void UpdateExtractionRecordCount(SQLiteConnection? connection, CancellationToken t)
+        private void UpdateExtractionRecordCount(SQLiteConnection? connection, CancellationToken t)
         {
             const string getCmd = @"SELECT ""Extraction Record Count"" FROM DatabaseInfo;";
             try
             {
-                using (var cmd = new SQLiteCommand(getCmd, connection))
-                    ExtractionRecordCount = Convert.ToUInt32(cmd.ExecuteScalar());
+                using SQLiteCommand cmd = new(getCmd, connection);
+                ExtractionRecordCount = Convert.ToUInt32(cmd.ExecuteScalar());
             }
             catch (Exception e)
             {
-                DPCommon.WriteToLog($"An unexpected error occurred while attempting to get extraction record count. REASON: {e}");
+                // DPCommon.WriteToLog($"An unexpected error occurred while attempting to get extraction record count. REASON: {e}");
             }
-            DPCommon.WriteToLog("Extraction Record Count: ", ExtractionRecordCount);
+            // DPCommon.WriteToLog("Extraction Record Count: ", ExtractionRecordCount);
 
         }
         /// <summary>
@@ -62,11 +58,11 @@ namespace DAZ_Installer.Database
         /// <param name="command">The command that is ready to execute. Cannot be null.</param>
         /// <param name="t">Cancel token. Required, cannot be null. Use CancellationToken.None instead (though not recommended).</param>
         /// <returns>An array of product records found from search.</returns>
-        private static DPProductRecord[] SearchProductRecordsViaTagsS(SQLiteCommand command, CancellationToken t)
+        private DPProductRecord[] SearchProductRecordsViaTagsS(SQLiteCommand command, CancellationToken t)
         {
             if (t.IsCancellationRequested) return Array.Empty<DPProductRecord>();
-            var reader = command.ExecuteReader();
-            var searchResults = new List<DPProductRecord>(25);
+            SQLiteDataReader reader = command.ExecuteReader();
+            List<DPProductRecord> searchResults = new(25);
             string productName, author, thumbnailPath, sku;
             string[] tags;
             DateTime dateCreated;
@@ -82,7 +78,7 @@ namespace DAZ_Installer.Database
                 tags = rawTags.Trim().Split(", ");
                 author = reader["Author"] as string; // May return NULL
                 thumbnailPath = reader["Thumbnail Full Path"] as string; // May return NULL
-                extractionID = Convert.ToUInt32(reader["Extraction Record ID"] is DBNull ? 
+                extractionID = Convert.ToUInt32(reader["Extraction Record ID"] is DBNull ?
                     0 : reader["Extraction Record ID"]);
                 dateCreated = DateTime.FromFileTimeUtc((long)reader["Date Created"]);
                 sku = reader["SKU"] as string; // May return NULL
@@ -100,12 +96,11 @@ namespace DAZ_Installer.Database
         /// <param name="tableName">The table to get columns from.</param>
         /// <param name="c">The SQLiteConnection to use, if any.</param>
         /// <param name="t">Cancel token. Required, cannot be null. Use CancellationToken.None instead (though not recommended).</param>
-        private static string[] GetColumns(string tableName, SQLiteConnection? c, 
+        private string[] GetColumns(string tableName, SQLiteConnection? c,
             CancellationToken t)
         {
             if (t.IsCancellationRequested || tableName.Length == 0) return Array.Empty<string>();
-            if (_columnsCache.ContainsKey(tableName)) return _columnsCache[tableName];
-            SQLiteConnection connection = null;
+            SQLiteConnection? connection = null;
             SQLiteCommand sqlCommand = null;
             try
             {
@@ -115,25 +110,24 @@ namespace DAZ_Installer.Database
 
                 var randomCommand = $"SELECT * FROM {tableName} LIMIT 1;";
                 sqlCommand = new SQLiteCommand(randomCommand, connection);
-                var reader = sqlCommand.ExecuteReader();
-                var table = reader.GetSchemaTable();
+                SQLiteDataReader reader = sqlCommand.ExecuteReader();
+                DataTable table = reader.GetSchemaTable();
 
-                List<string> columns = new List<string>();
+                List<string> columns = new();
                 foreach (DataRow row in table.Rows)
                 {
                     if (t.IsCancellationRequested) return Array.Empty<string>();
                     columns.Add((string)row.ItemArray[0]);
                 }
-
-                // Cache it.
-                _columnsCache[tableName] = columns.ToArray();
-                return _columnsCache[tableName];
             }
             catch (Exception e)
             {
-                DPCommon.WriteToLog($"An unexpected error occurred attempting to get columns for table: {tableName}. REASON: {e}");
-            } finally {
-                if (c is null) {
+                // DPCommon.WriteToLog($"An unexpected error occurred attempting to get columns for table: {tableName}. REASON: {e}");
+            }
+            finally
+            {
+                if (c is null)
+                {
                     connection?.Dispose();
                     sqlCommand?.Dispose();
                 }
@@ -146,11 +140,11 @@ namespace DAZ_Installer.Database
         /// </summary>
         /// <param name="c">The SQLiteConnection to use, if any.</param>
         /// <param name="cancellationToken">Cancel token. Required, cannot be null. Use CancellationToken.None instead (though not recommended).</param>
-        private static string[] GetTables(SQLiteConnection? c, CancellationToken cancellationToken)
+        private string[] GetTables(SQLiteConnection? c, CancellationToken cancellationToken)
         {
             if (cancellationToken.IsCancellationRequested) return Array.Empty<string>();
-            var tables = new List<string>();
-            SQLiteConnection connection = null;
+            List<string> tables = new();
+            SQLiteConnection? connection = null;
             SQLiteCommand sqlCommand = null;
 
             try
@@ -159,7 +153,7 @@ namespace DAZ_Installer.Database
                 if (connection == null) return Array.Empty<string>();
                 var randomCommand = $"SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%'";
                 sqlCommand = new SQLiteCommand(randomCommand, connection);
-                using (var reader = sqlCommand.ExecuteReader())
+                using (SQLiteDataReader reader = sqlCommand.ExecuteReader())
                 {
                     while (reader.Read())
                         tables.Add(reader.GetString(0));
@@ -170,9 +164,12 @@ namespace DAZ_Installer.Database
             }
             catch (Exception e)
             {
-                DPCommon.WriteToLog($"An unexpected error occurred attempting to get table names. REASON: {e}");
-            } finally {
-                if (c is null) {
+                // DPCommon.WriteToLog($"An unexpected error occurred attempting to get table names. REASON: {e}");
+            }
+            finally
+            {
+                if (c is null)
+                {
                     connection?.Dispose();
                     sqlCommand?.Dispose();
                 }
@@ -187,48 +184,49 @@ namespace DAZ_Installer.Database
         /// <param name="id">The extraction record ID to fetch from database.</param>
         /// <param name="c">The SQLiteConnection to use, if any.</param>
         /// <param name="t">Cancel token. Required, cannot be null. Use CancellationToken.None instead (though not recommended).</param>
-        private static DPExtractionRecord? GetExtractionRecord(uint id, SQLiteConnection? c, CancellationToken t)
+        private DPExtractionRecord? GetExtractionRecord(uint id, SQLiteConnection? c, CancellationToken t)
         {
             if (t.IsCancellationRequested) return null;
 
             var getCmd = $"SELECT * FROM ExtractionRecords WHERE ID = {id};";
-            SQLiteConnection connection = null;
+            SQLiteConnection? connection = null;
             SQLiteCommand cmd = null;
             try
             {
                 connection = CreateAndOpenConnection(c, true);
                 if (connection == null) return null;
                 cmd = new SQLiteCommand(getCmd, connection);
-                using (var reader = cmd.ExecuteReader())
+                using SQLiteDataReader reader = cmd.ExecuteReader();
+                while (reader.Read())
                 {
-                    while (reader.Read())
-                    {
-                        string[] files, folders, erroredFiles, errorMessages;
-                        string archiveFileName = reader["Archive Name"] as string;
-                        string filesStr = reader["Files"] as string;
-                        string foldersStr = reader["Folders"] as string;
-                        string destinationPath = reader["Destination Path"] as string;
-                        string erroredFilesStr = reader["Errored Files"] as string;
-                        string errorMessagesStr = reader["Error Messages"] as string;
-                        uint pid = Convert.ToUInt32(reader["Product Record ID"]);
+                    string[] files, folders, erroredFiles, errorMessages;
+                    var archiveFileName = reader["Archive Name"] as string;
+                    var filesStr = reader["Files"] as string;
+                    var foldersStr = reader["Folders"] as string;
+                    var destinationPath = reader["Destination Path"] as string;
+                    var erroredFilesStr = reader["Errored Files"] as string;
+                    var errorMessagesStr = reader["Error Messages"] as string;
+                    var pid = Convert.ToUInt32(reader["Product Record ID"]);
 
-                        files = filesStr != null ? files = filesStr.Split(", ") : Array.Empty<string>();
-                        folders = foldersStr != null ? folders = foldersStr.Split(", ") : Array.Empty<string>();
-                        erroredFiles = erroredFilesStr != null ? erroredFiles = erroredFilesStr.Split(", ") : Array.Empty<string>();
-                        errorMessages = errorMessagesStr != null ? errorMessages = erroredFilesStr.Split(", ") : Array.Empty<string>();
+                    files = filesStr?.Split(", ") ?? Array.Empty<string>();
+                    folders = foldersStr?.Split(", ") ?? Array.Empty<string>();
+                    erroredFiles = erroredFilesStr?.Split(", ") ?? Array.Empty<string>();
+                    errorMessages = errorMessagesStr?.Split(", ") ?? Array.Empty<string>();
 
-                        var record = new DPExtractionRecord(archiveFileName, destinationPath, files, erroredFiles, errorMessages, folders, pid);
-                        // RecordQueryCompleted?.Invoke(record);
-                        return record;
-                    }
+                    DPExtractionRecord record = new(archiveFileName, destinationPath, files, erroredFiles, errorMessages, folders, pid);
+                    // RecordQueryCompleted?.Invoke(record);
+                    return record;
                 }
-                DPCommon.WriteToLog("Failed to get extraction record possibly due to extraction record was deleted.");
+                // DPCommon.WriteToLog("Failed to get extraction record possibly due to extraction record was deleted.");
             }
             catch (Exception ex)
             {
-                DPCommon.WriteToLog($"Failed to get extraction record. REASON: {ex}");
-            } finally {
-                if (c is null) {
+                // DPCommon.WriteToLog($"Failed to get extraction record. REASON: {ex}");
+            }
+            finally
+            {
+                if (c is null)
+                {
                     connection?.Dispose();
                     cmd?.Dispose();
                 }
@@ -244,14 +242,14 @@ namespace DAZ_Installer.Database
         /// <param name="c">The SQLiteCOnnection to use, if any.</param>
         /// <param name="t">Cancel token. Required, cannot be null. Use CancellationToken.None instead (though not recommended).</param>
         /// <returns>A hashset containing successfully extracted archive file names.</returns>
-        private static HashSet<string>? GetArchiveFileNameList(SQLiteConnection? c, CancellationToken t)
+        private HashSet<string>? GetArchiveFileNameList(SQLiteConnection? c, CancellationToken t)
         {
             SQLiteConnection _connection = null;
             SQLiteCommand cmd = null;
             SQLiteDataReader reader = null;
             HashSet<string> names = null;
             var getCmd = @"SELECT ""Archive Name"" FROM ExtractionRecords;";
-            var constring = "Data Source = " + Path.GetFullPath(_expectedDatabasePath) + ";Read Only=True";
+            var constring = "Data Source = " + System.IO.Path.GetFullPath(Path) + ";Read Only=True";
             try
             {
                 _connection = CreateAndOpenConnection(c, true);
@@ -268,9 +266,12 @@ namespace DAZ_Installer.Database
             }
             catch (Exception ex)
             {
-                DPCommon.WriteToLog($"Failed to get archive file name list. REASON: {ex}");
-            } finally {
-                if (c is null) {
+                // DPCommon.WriteToLog($"Failed to get archive file name list. REASON: {ex}");
+            }
+            finally
+            {
+                if (c is null)
+                {
                     _connection?.Dispose();
                     cmd?.Dispose();
                     reader?.DisposeAsync();
@@ -286,11 +287,11 @@ namespace DAZ_Installer.Database
         /// <param name="conn">The SQLiteConnection to use, if any.</param>
         /// <param name="t">Cancel token. Required, cannot be null. Use CancellationToken.None instead (though not recommended).</param>
         /// <returns>The last product record ID in the database.</returns>
-        private static uint GetLastProductID(SQLiteConnection? conn, CancellationToken t)
+        private uint GetLastProductID(SQLiteConnection? conn, CancellationToken t)
         {
             if (t.IsCancellationRequested) return 0;
             var c = "SELECT ID FROM ProductRecords ORDER BY ID DESC LIMIT 1;";
-            SQLiteConnection connection = null;
+            SQLiteConnection? connection = null;
             SQLiteCommand cmd = null;
             try
             {
@@ -300,7 +301,7 @@ namespace DAZ_Installer.Database
             }
             catch (Exception ex)
             {
-                DPCommon.WriteToLog($"Failed to get last product ID. REASON: {ex}");
+                // DPCommon.WriteToLog($"Failed to get last product ID. REASON: {ex}");
             }
             return 0;
         }
@@ -313,11 +314,11 @@ namespace DAZ_Installer.Database
         /// <param name="c">The SQLiteConnection to use, if any.</param>
         /// <param name="token">Cancel token. Required, cannot be null. Use CancellationToken.None instead (though not recommended).</param>
         /// <returns>A dataset containing all of the values from the table specified. May return null.</returns>
-        private static DataSet? GetAllValuesFromTable(string tableName, SQLiteConnection? c, 
+        private DataSet? GetAllValuesFromTable(string tableName, SQLiteConnection? c,
             CancellationToken token)
         {
             DataSet dataset = null;
-            SQLiteConnection connection = null;
+            SQLiteConnection? connection = null;
             SQLiteCommand sqlCommand = null;
             if (token.IsCancellationRequested) return dataset;
             try
@@ -325,7 +326,7 @@ namespace DAZ_Installer.Database
                 connection = CreateAndOpenConnection(c, true);
                 var getCommand = $"SELECT * FROM {tableName}";
                 sqlCommand = new SQLiteCommand(getCommand, connection);
-                SQLiteDataAdapter adapter = new SQLiteDataAdapter(sqlCommand);
+                SQLiteDataAdapter adapter = new(sqlCommand);
                 dataset = new DataSet(tableName);
                 adapter.Fill(dataset);
                 //ViewUpdated?.Invoke(dataset);
@@ -344,7 +345,7 @@ namespace DAZ_Installer.Database
         /// <param name="c">The SQLiteConnection to use, if any.</param>
         /// <param name="t">Cancel token. Required, cannot be null. Use CancellationToken.None instead (though not recommended).</param>
         /// <returns>Whether the removal was a success (true) or not (false).</returns>
-        private static bool RemoveAllRecords(SQLiteConnection? c, CancellationToken t)
+        private bool RemoveAllRecords(SQLiteConnection? c, CancellationToken t)
         {
             if (t.IsCancellationRequested) return false;
 
@@ -352,7 +353,7 @@ namespace DAZ_Installer.Database
             // Faster way is to drop the table & re-make it.
             // TODO: Drop table and remake it.
             var deleteCommand = $"DELETE FROM ProductRecords; DELETE FROM ExtractionRecords;";
-            SQLiteConnection connection = null;
+            SQLiteConnection? connection = null;
             SQLiteTransaction transaction = null;
             SQLiteCommand sqlCommand = null;
             try
@@ -375,9 +376,10 @@ namespace DAZ_Installer.Database
                             TableUpdated?.Invoke("ProductRecords");
                             TableUpdated?.Invoke("ExtractionRecords");
                         }
-                    } catch (Exception ex)
+                    }
+                    catch (Exception ex)
                     {
-                        DPCommon.WriteToLog($"Failed to delete records. REASON: {ex}");
+                        // DPCommon.WriteToLog($"Failed to delete records. REASON: {ex}");
                         transaction.Rollback();
                         return false;
                     }
@@ -385,15 +387,17 @@ namespace DAZ_Installer.Database
             }
             catch (Exception ex)
             {
-                DPCommon.WriteToLog($"Failed to create and begin transaction. REASON: {ex}");
+                // DPCommon.WriteToLog($"Failed to create and begin transaction. REASON: {ex}");
                 return false;
-            } finally {
+            }
+            finally
+            {
                 if (c is null)
                 {
                     sqlCommand?.Dispose();
                     connection?.Dispose();
                 }
-                    
+
             }
 
             return true;
@@ -407,16 +411,16 @@ namespace DAZ_Installer.Database
         /// <param name="c">The SQLiteConnection to use, if any.</param>
         /// <param name="t">Cancel token. Required, cannot be null. Use CancellationToken.None instead (though not recommended).</param>
         /// <returns>Whether the removal was a success (true) or not (false).</returns>
-        private static bool RemoveProductRecordsViaTag(string[] tags, SQLiteConnection? c,
+        private bool RemoveProductRecordsViaTag(string[] tags, SQLiteConnection? c,
             CancellationToken t)
         {
             if (t.IsCancellationRequested) return false;
             if (tags.Length == 0) return true;
 
-            string args = ConvertParamsToString(tags);
-            string idsCommand = $"SELECT \"Product Record ID\" FROM Tags WHERE Tag IN ({args})";
-            string deleteCommand = $"DELETE FROM ProductRecords WHERE ID IN ({idsCommand});";
-            SQLiteConnection connection = null;
+            var args = ConvertParamsToString(tags);
+            var idsCommand = $"SELECT \"Product Record ID\" FROM Tags WHERE Tag IN ({args})";
+            var deleteCommand = $"DELETE FROM ProductRecords WHERE ID IN ({idsCommand});";
+            SQLiteConnection? connection = null;
             SQLiteCommand sqlCommand = null;
             SQLiteTransaction transaction = null;
             try
@@ -430,22 +434,26 @@ namespace DAZ_Installer.Database
                     sqlCommand.ExecuteNonQuery();
                     transaction.Commit();
                     TableUpdated.Invoke("ProductRecords");
-                } catch (Exception ex)
+                }
+                catch (Exception ex)
                 {
-                    DPCommon.WriteToLog($"Failed to delete from ProductRecords where ID IN {args}. REASON: {ex.Message}");
+                    // DPCommon.WriteToLog($"Failed to delete from ProductRecords where ID IN {args}. REASON: {ex.Message}");
                     transaction.Rollback();
                     return false;
                 }
             }
             catch (Exception ex)
             {
-                DPCommon.WriteToLog($"Failed to create connection and transaction. REASON: {ex}");
+                // DPCommon.WriteToLog($"Failed to create connection and transaction. REASON: {ex}");
                 return false;
-            } finally {
-                if (c is null) {
+            }
+            finally
+            {
+                if (c is null)
+                {
                     connection?.Dispose();
                     sqlCommand?.Dispose();
-                    
+
                 }
             }
 
@@ -460,18 +468,18 @@ namespace DAZ_Installer.Database
         /// <param name="c">The SQLiteConnection to use, if any.</param>
         /// <param name="t">Cancel token. Required, cannot be null. Use CancellationToken.None instead (though not recommended).</param>
         /// <returns>Whether the removal was a success (true) or not (false).</returns>
-        private static bool RemoveValuesWithCondition(string tableName, Tuple<string, object>[] conditions, 
+        private bool RemoveValuesWithCondition(string tableName, Tuple<string, object>[] conditions,
             bool or, SQLiteConnection? c, CancellationToken t)
         {
             // Build columns.
-            List<string> args = new List<string>(conditions.Length);
+            List<string> args = new(conditions.Length);
             var vals = new object[conditions.Length];
-            StringBuilder builder = new StringBuilder(250);
+            StringBuilder builder = new(250);
             builder.Append($"DELETE FROM {tableName}");
-            
+
             for (var i = 0; i < conditions.Length; i++)
             {
-                var tuple = conditions[i];
+                Tuple<string, object> tuple = conditions[i];
                 var column = tuple.Item1;
                 var item = tuple.Item2;
                 var arg = $"@A{i}";
@@ -486,7 +494,7 @@ namespace DAZ_Installer.Database
                 vals[i] = item;
             }
             builder.Append(';');
-            SQLiteConnection connection = null;
+            SQLiteConnection? connection = null;
             SQLiteTransaction transaction = null;
             SQLiteCommand sqlCommand = null;
             try
@@ -501,9 +509,10 @@ namespace DAZ_Installer.Database
                     sqlCommand.ExecuteNonQuery();
                     transaction.Commit();
                     TableUpdated?.Invoke(tableName);
-                } catch (Exception ex)
+                }
+                catch (Exception ex)
                 {
-                    DPCommon.WriteToLog($"Failed to delete from {tableName}. REASON: {ex}");
+                    // DPCommon.WriteToLog($"Failed to delete from {tableName}. REASON: {ex}");
                     transaction.Rollback();
                     return false;
                 }
@@ -511,9 +520,12 @@ namespace DAZ_Installer.Database
             }
             catch (Exception ex)
             {
-                DPCommon.WriteToLog($"Failed to create connection and transaction. REASON: {ex}");
-            } finally {
-                if (c is null) {
+                // DPCommon.WriteToLog($"Failed to create connection and transaction. REASON: {ex}");
+            }
+            finally
+            {
+                if (c is null)
+                {
                     connection?.Dispose();
                     sqlCommand?.Dispose();
                 }
@@ -528,13 +540,13 @@ namespace DAZ_Installer.Database
         /// <param name="c">The SQLiteConnection to use, if any.</param>
         /// <param name="t">Cancel token. Required, cannot be null. Use CancellationToken.None instead (though not recommended).</param>
         /// <returns>Whether the removal was a success (true) or not (false).</returns>
-        private static bool RemoveAllFromTable(string tableName, SQLiteConnection? c, CancellationToken t)
+        private bool RemoveAllFromTable(string tableName, SQLiteConnection? c, CancellationToken t)
         {
             if (t.IsCancellationRequested) return false;
 
-            
+
             var deleteCommand = $"DELETE FROM {tableName};"; // Faster way is to drop the table & re-make it.
-            SQLiteConnection connection = null;
+            SQLiteConnection? connection = null;
             SQLiteTransaction transaction = null;
             SQLiteCommand sqlCommand = null;
             try
@@ -548,9 +560,10 @@ namespace DAZ_Installer.Database
                     sqlCommand.ExecuteNonQuery();
                     transaction.Commit();
                     TableUpdated?.Invoke(tableName);
-                } catch (Exception ex)
+                }
+                catch (Exception ex)
                 {
-                    DPCommon.WriteToLog($"Failed delete all values for table: {tableName}. REASON: {ex.Message}");
+                    // DPCommon.WriteToLog($"Failed delete all values for table: {tableName}. REASON: {ex.Message}");
                     transaction.Rollback();
                     return false;
                 }
@@ -558,10 +571,13 @@ namespace DAZ_Installer.Database
             }
             catch (Exception ex)
             {
-                DPCommon.WriteToLog($"Failed to create connection and transaction. REASON: {ex}");
+                // DPCommon.WriteToLog($"Failed to create connection and transaction. REASON: {ex}");
                 return false;
-            } finally {
-                if (c is null) {
+            }
+            finally
+            {
+                if (c is null)
+                {
                     connection?.Dispose();
                     sqlCommand?.Dispose();
                 }
@@ -575,7 +591,7 @@ namespace DAZ_Installer.Database
         /// <param name="pid">The product record ID to remove tags associated with it.</param>
         /// <param name="c">The SQLiteConnection to use, if any.</param>
         /// <param name="t">Cancel token. Required, cannot be null. Use CancellationToken.None instead (though not recommended).</param>
-        private static bool RemoveTags(uint pid, SQLiteConnection? c, CancellationToken t)
+        private bool RemoveTags(uint pid, SQLiteConnection? c, CancellationToken t)
         {
             return RemoveValuesWithCondition("Tags",
                     new Tuple<string, object>[] { new Tuple<string, object>("Product Record ID", pid) }
@@ -591,74 +607,32 @@ namespace DAZ_Installer.Database
         /// <param name="tags">An array of tags to insert into the database.</param>
         /// <param name="c">The SQLiteConnection to use, if any.</param>
         /// <param name="t">Cancel token. Required, cannot be null. Use CancellationToken.None instead (though not recommended).</param>
-        private static void InsertTags(string[] tags, SQLiteConnection? conn, CancellationToken t)
+        private void InsertTags(string[] tags, SQLiteConnection? conn, CancellationToken t)
         {
             if (t.IsCancellationRequested) return;
-            SQLiteConnection connection = null;
+            SQLiteConnection? connection = null;
             try
             {
                 connection = CreateAndOpenConnection(conn);
                 if (connection == null) return;
 
-                uint pid = GetLastProductID(connection, t);
+                var pid = GetLastProductID(connection, t);
                 if (pid == 0)
                 {
-                    DPCommon.WriteToLog("Product ID returned 0; no tags added.");
+                    // DPCommon.WriteToLog("Product ID returned 0; no tags added.");
                     return;
                 }
 
-                List<string> tagsStripped = new List<string>(tags.Length);
-                foreach (string tag in tags)
+                List<string> tagsStripped = new(tags.Length);
+                foreach (var tag in tags)
                 {
                     if (string.IsNullOrEmpty(tag)) continue;
-                    string tagTrimmed = tag.Trim();
+                    var tagTrimmed = tag.Trim();
                     if (tagTrimmed.Length == 0) continue;
                     tagsStripped.Add(tagTrimmed);
                 }
 
-                object[][] vals = new object[tagsStripped.Count][];
-                for (var i = 0; i < tagsStripped.Count; i++)
-                {
-                    vals[i] = new object[] { tagsStripped[i], pid };
-                }
-
-                InsertMultipleValuesToTable("Tags", new string[] { "Tag", "Product Record ID" }, 
-                    vals, connection, t);
-
-            } catch (Exception ex)
-            {
-                DPCommon.WriteToLog($"Failed to insert tags. REASON: {ex}");
-            } finally {
-                if (conn is null) connection?.Dispose();
-            }
-
-        }
-        /// <summary>
-        /// Insert tags to the tags table using the specified <paramref name="pid"/>.
-        /// </summary>
-        /// <param name="tags">An array of tags to insert into the database.</param>
-        /// <param name="pid">The product record ID to use.</param>
-        /// <param name="c">The SQLiteConnection to use, if any.</param>
-        /// <param name="t">Cancel token. Required, cannot be null. Use CancellationToken.None instead (though not recommended).</param>
-        private static void InsertTags(string[] tags, uint pid, SQLiteConnection? conn, CancellationToken t)
-        {
-            if (t.IsCancellationRequested || pid == 0) return;
-            SQLiteConnection connection = null;
-            try
-            {
-                connection = CreateAndOpenConnection(conn);
-                if (connection == null) return;
-
-                List<string> tagsStripped = new List<string>(tags.Length);
-                foreach (string tag in tags)
-                {
-                    if (string.IsNullOrEmpty(tag)) continue;
-                    string tagTrimmed = tag.Trim();
-                    if (tagTrimmed.Length == 0) continue;
-                    tagsStripped.Add(tagTrimmed);
-                }
-
-                object[][] vals = new object[tagsStripped.Count][];
+                var vals = new object[tagsStripped.Count][];
                 for (var i = 0; i < tagsStripped.Count; i++)
                 {
                     vals[i] = new object[] { tagsStripped[i], pid };
@@ -670,7 +644,52 @@ namespace DAZ_Installer.Database
             }
             catch (Exception ex)
             {
-                DPCommon.WriteToLog($"Failed to insert tags. REASON: {ex}");
+                // DPCommon.WriteToLog($"Failed to insert tags. REASON: {ex}");
+            }
+            finally
+            {
+                if (conn is null) connection?.Dispose();
+            }
+
+        }
+        /// <summary>
+        /// Insert tags to the tags table using the specified <paramref name="pid"/>.
+        /// </summary>
+        /// <param name="tags">An array of tags to insert into the database.</param>
+        /// <param name="pid">The product record ID to use.</param>
+        /// <param name="c">The SQLiteConnection to use, if any.</param>
+        /// <param name="t">Cancel token. Required, cannot be null. Use CancellationToken.None instead (though not recommended).</param>
+        private void InsertTags(string[] tags, uint pid, SQLiteConnection? conn, CancellationToken t)
+        {
+            if (t.IsCancellationRequested || pid == 0) return;
+            SQLiteConnection? connection = null;
+            try
+            {
+                connection = CreateAndOpenConnection(conn);
+                if (connection == null) return;
+
+                List<string> tagsStripped = new(tags.Length);
+                foreach (var tag in tags)
+                {
+                    if (string.IsNullOrEmpty(tag)) continue;
+                    var tagTrimmed = tag.Trim();
+                    if (tagTrimmed.Length == 0) continue;
+                    tagsStripped.Add(tagTrimmed);
+                }
+
+                var vals = new object[tagsStripped.Count][];
+                for (var i = 0; i < tagsStripped.Count; i++)
+                {
+                    vals[i] = new object[] { tagsStripped[i], pid };
+                }
+
+                InsertMultipleValuesToTable("Tags", new string[] { "Tag", "Product Record ID" },
+                    vals, connection, t);
+
+            }
+            catch (Exception ex)
+            {
+                // DPCommon.WriteToLog($"Failed to insert tags. REASON: {ex}");
             }
             finally
             {
@@ -691,11 +710,11 @@ namespace DAZ_Installer.Database
         /// <param name="c">The SQLiteConnection to use, if any.</param>
         /// <param name="t">Cancel token. Required, cannot be null. Use CancellationToken.None instead (though not recommended).</param>
         /// <returns>Whether the insertion was successful (true) or not (false).</returns>
-        private static bool InsertMultipleValuesToTable(string tableName, string[] columns, object[][] values,
+        private bool InsertMultipleValuesToTable(string tableName, string[] columns, object[][] values,
             SQLiteConnection? c, CancellationToken t)
         {
             if (t.IsCancellationRequested) return false;
-            SQLiteConnection connection = null;
+            SQLiteConnection? connection = null;
             SQLiteTransaction transaction = null;
             SQLiteCommand sqlCommand = null;
             try
@@ -714,9 +733,9 @@ namespace DAZ_Installer.Database
                     columns[i] = '"' + columns[i] + '"';
                 }
                 var columnsToAdd = string.Join(',', columns);
-                StringBuilder builder = new StringBuilder((values.Length) * 20);
-                List<string> args = new List<string>(values.Length * 5);
-                int startNum = 0;
+                StringBuilder builder = new((values.Length) * 20);
+                List<string> args = new(values.Length * 5);
+                var startNum = 0;
                 for (var i = 0; i < values.Length; i++)
                 {
                     var str = "(";
@@ -729,7 +748,7 @@ namespace DAZ_Installer.Database
                     builder.AppendLine(str + ',');
                 }
                 builder.Remove(builder.Length - 3, 2);
-                object[] valsFlattened = new object[startNum];
+                var valsFlattened = new object[startNum];
                 var nextOpen = 0;
                 for (var i = 0; i < values.Length; i++)
                 {
@@ -748,15 +767,19 @@ namespace DAZ_Installer.Database
                 }
                 catch (Exception ex)
                 {
-                    DPCommon.WriteToLog($"Failed to insert values to {columnsToAdd}. REASON: {ex}");
+                    // DPCommon.WriteToLog($"Failed to insert values to {columnsToAdd}. REASON: {ex}");
                     transaction.Rollback();
                     return false;
                 }
-            } catch (Exception ex)
+            }
+            catch (Exception ex)
             {
-                DPCommon.WriteToLog($"An unexpected error occurred while inserting multiple values to table. REASON: {ex}");
-            } finally {
-                if (c is null) {
+                // DPCommon.WriteToLog($"An unexpected error occurred while inserting multiple values to table. REASON: {ex}");
+            }
+            finally
+            {
+                if (c is null)
+                {
                     connection?.Dispose();
                     sqlCommand?.Dispose();
                 }
@@ -772,11 +795,11 @@ namespace DAZ_Installer.Database
         /// <param name="c">The SQLiteConnection to use, if any.</param>
         /// <param name="t">Cancel token. Required, cannot be null. Use CancellationToken.None instead (though not recommended).</param>
         /// <returns>Whether the insertion was successful (true) or not (false).</returns>
-        private static bool InsertDefaultValuesToTable(string tableName, SQLiteConnection? c, 
+        private bool InsertDefaultValuesToTable(string tableName, SQLiteConnection? c,
             CancellationToken t)
         {
             if (t.IsCancellationRequested) return false;
-            SQLiteConnection connection = null;
+            SQLiteConnection? connection = null;
             SQLiteTransaction transaction = null;
             SQLiteCommand sqlCommand = null;
             try
@@ -794,16 +817,20 @@ namespace DAZ_Installer.Database
                 }
                 catch (Exception ex)
                 {
-                    DPCommon.WriteToLog($"Failed to insert default values to {tableName}. REASON: {ex}");
+                    // DPCommon.WriteToLog($"Failed to insert default values to {tableName}. REASON: {ex}");
                     transaction.Rollback();
                     return false;
                 }
-            } catch (Exception ex)
+            }
+            catch (Exception ex)
             {
-                DPCommon.WriteToLog($"An unexpected error occurred while inserting default values. REASON: {ex}");
+                // DPCommon.WriteToLog($"An unexpected error occurred while inserting default values. REASON: {ex}");
                 return false;
-            } finally {
-                if (c is null) {
+            }
+            finally
+            {
+                if (c is null)
+                {
                     connection?.Dispose();
                     sqlCommand?.Dispose();
                 }
@@ -825,11 +852,11 @@ namespace DAZ_Installer.Database
         /// <param name="c">The SQLiteConnection to use, if any.</param>
         /// <param name="t">Cancel token. Required, cannot be null. Use CancellationToken.None instead (though not recommended).</param>
         /// <returns>Whether the insertion was successful (true) or not (false).</returns>
-        private static bool InsertValuesToTable(string tableName, string[] columns, object[] values,
+        private bool InsertValuesToTable(string tableName, string[] columns, object[] values,
             SQLiteConnection? c, CancellationToken t)
         {
             if (t.IsCancellationRequested) return false;
-            SQLiteConnection connection = null;
+            SQLiteConnection? connection = null;
             SQLiteTransaction transaction = null;
             SQLiteCommand sqlCommand = null;
             try
@@ -863,17 +890,21 @@ namespace DAZ_Installer.Database
                 }
                 catch (Exception ex)
                 {
-                    DPCommon.WriteToLog($"Failed to insert values to {columnsToAdd}. REASON: {ex}");
+                    // DPCommon.WriteToLog($"Failed to insert values to {columnsToAdd}. REASON: {ex}");
                     transaction.Rollback();
                     return false;
                 }
 
-            } catch (Exception ex)
+            }
+            catch (Exception ex)
             {
-                DPCommon.WriteToLog($"Failed to insert values to table. REASON: {ex}");
+                // DPCommon.WriteToLog($"Failed to insert values to table. REASON: {ex}");
                 return false;
-            } finally {
-                if (c is null) {
+            }
+            finally
+            {
+                if (c is null)
+                {
                     connection?.Dispose();
                     sqlCommand?.Dispose();
                 }
@@ -894,16 +925,16 @@ namespace DAZ_Installer.Database
         /// <param name="eRecord">The extraction record to insert. Cannot be null.</param>
         /// <param name="c">The SQLiteConnection to use, if any.</param>
         /// <param name="t">Cancel token. Required, cannot be null. Use CancellationToken.None instead (though not recommended).</param>
-        private static void InsertRecords(DPProductRecord pRecord, DPExtractionRecord eRecord, 
+        private void InsertRecords(DPProductRecord? pRecord, DPExtractionRecord? eRecord,
             SQLiteConnection? c, CancellationToken t)
         {
             // Trigger will update the product record's extraction record ID to the newly created record.
-            string[] pColumns = new string[] { "Product Name", "Tags", "Author", "SKU", "Date Created", "Thumbnail Full Path", };
-            string[] eColumns = new string[] { "Archive Name", "Files", "Folders", "Destination Path", "Errored Files", "Error Messages" };
+            var pColumns = new string[] { "Product Name", "Tags", "Author", "SKU", "Date Created", "Thumbnail Full Path", };
+            var eColumns = new string[] { "Archive Name", "Files", "Folders", "Destination Path", "Errored Files", "Error Messages" };
             if (t.IsCancellationRequested || pRecord is null || eRecord is null) return;
-            SQLiteConnection connection = null;
+            SQLiteConnection? connection = null;
             pRecord.Deconstruct(out var productName, out var tags, out var author, out var sku,
-                                 out var time, out var thumbnailPath, out var __, out var _);
+                                 out DateTime time, out var thumbnailPath, out var __, out var _);
             eRecord.Deconstruct(out var archiveFileName, out var destPath, out var files,
                 out var erroredFiles, out var erroredMessages, out var folders, out _);
             // We do not care about UID.
@@ -918,8 +949,8 @@ namespace DAZ_Installer.Database
                 author = author?.Length > 30 ? author.Substring(0, 30) : author;
                 sku = sku?.Length > 10 ? sku.Substring(0, 10) : sku;
 
-                object[] pObjs = new object[] { productName, JoinString(", ", 70, tags), author, sku, time.ToFileTimeUtc(), thumbnailPath };
-                object[] eObjs = new object[] { archiveFileName, JoinString(", ", 384, files),
+                var pObjs = new object[] { productName, JoinString(", ", 70, tags), author, sku, time.ToFileTimeUtc(), thumbnailPath };
+                var eObjs = new object[] { archiveFileName, JoinString(", ", 384, files),
                 JoinString(", ", 384, folders), destPath, JoinString(", ", 384, erroredFiles),
                 JoinString(", ", 65536, erroredMessages) };
 
@@ -934,19 +965,23 @@ namespace DAZ_Installer.Database
                         if (success)
                         {
                             // Create a new extraction record to contain the PID and it's EID.
-                            var newE = new DPExtractionRecord(archiveFileName, destPath, files, erroredFiles, erroredMessages, folders, lastID);
+                            DPExtractionRecord newE = new(archiveFileName, destPath, files, erroredFiles, erroredMessages, folders, lastID);
                             ExtractionRecordAdded?.Invoke(newE);
                         }
                     }
                     // Create new product record to update ID.
-                    var newP = new DPProductRecord(productName, tags, author, sku, time, thumbnailPath, lastID, lastID);
+                    DPProductRecord newP = new(productName, tags, author, sku, time, thumbnailPath, lastID, lastID);
                     ProductRecordAdded?.Invoke(newP, lastID);
                 }
             }
-            catch (Exception ex) {
-                DPCommon.WriteToLog($"An unexpected error occurred while attempting to insert records. REASON: {ex}");
-            } finally {
-                if (c is null) {
+            catch (Exception ex)
+            {
+                // DPCommon.WriteToLog($"An unexpected error occurred while attempting to insert records. REASON: {ex}");
+            }
+            finally
+            {
+                if (c is null)
+                {
                     connection?.Dispose();
                 }
             }
@@ -965,13 +1000,13 @@ namespace DAZ_Installer.Database
         /// <param name="c">The SQLiteConnection to use, if any.</param>
         /// <param name="t">Cancel token. Required, cannot be null. Use CancellationToken.None instead (though not recommended).</param>
         /// <returns>Whether the insertion was successful (true) or not (false).</returns>
-        private static bool UpdateValues(string tableName, string[] columns, object[] newValues, 
+        private bool UpdateValues(string tableName, string[] columns, object[] newValues,
             int id, SQLiteConnection? c, CancellationToken t)
         {
             if (t.IsCancellationRequested) return false;
-            SQLiteConnection connection = null;
-            SQLiteTransaction transaction = null;
-            SQLiteCommand sqlCommand = null;
+            SQLiteConnection? connection = null;
+            SQLiteTransaction transaction = null!;
+            SQLiteCommand sqlCommand = null!;
             try
             {
                 connection = CreateAndOpenConnection(c);
@@ -995,17 +1030,21 @@ namespace DAZ_Installer.Database
                 }
                 catch (Exception ex)
                 {
-                    DPCommon.WriteToLog($"Failed to update {tableName}.{string.Join(", ",columns)} REASON: {ex}");
+                    // DPCommon.WriteToLog($"Failed to update {tableName}.{string.Join(", ",columns)} REASON: {ex}");
                     transaction.Rollback();
                     return false;
                 }
 
-            } catch (Exception ex)
+            }
+            catch (Exception ex)
             {
-                DPCommon.WriteToLog($"An unexpected error occurred while attempting to update values. REASON: {ex}");
+                // DPCommon.WriteToLog($"An unexpected error occurred while attempting to update values. REASON: {ex}");
                 return false;
-            } finally {
-                if (c is null) {
+            }
+            finally
+            {
+                if (c is null)
+                {
                     connection?.Dispose();
                     sqlCommand?.Dispose();
                 }
@@ -1020,21 +1059,21 @@ namespace DAZ_Installer.Database
         /// <param name="c">The SQLiteConnection to use, if any.</param>
         /// <param name="t">Cancel token. Required, cannot be null. Use CancellationToken.None instead (though not recommended).</param>
         /// <returns>Whether the insertion was successful (true) or not (false).</returns>
-        private static bool UpdateProductRecord(uint pid, DPProductRecord newRecord, SQLiteConnection? c, CancellationToken t)
+        private bool UpdateProductRecord(uint pid, DPProductRecord newRecord, SQLiteConnection? c, CancellationToken t)
         {
-            string[] pColumns = new string[] { "Product Name", "Tags", "Author", "SKU", "Date Created", "Thumbnail Full Path", "Extraction Record ID"};
-            if (t.IsCancellationRequested || newRecord == null || newRecord == DPProductRecord.NULL_RECORD || pid < 0) 
+            var pColumns = new string[] { "Product Name", "Tags", "Author", "SKU", "Date Created", "Thumbnail Full Path", "Extraction Record ID" };
+            if (t.IsCancellationRequested || newRecord == null || newRecord == DPProductRecord.NULL_RECORD || pid < 0)
                 return false;
             newRecord.Deconstruct(out var productName, out var tags, out var author, out var sku,
-                                 out var time, out var thumbnailPath, out var eid, out var _);
+                                 out DateTime time, out var thumbnailPath, out var eid, out var _);
 
             // Shorten strings if applicable.
             productName = productName?.Length > 70 ? productName.Substring(0, 70) : productName;
             author = author?.Length > 30 ? author.Substring(0, 30) : author;
             sku = sku?.Length > 10 ? sku.Substring(0, 10) : sku;
 
-            object[] pObjs = new object[] { productName, JoinString(", ", 70, tags), author, sku, time.ToFileTimeUtc(), thumbnailPath, eid };
-            SQLiteConnection connection = null;
+            var pObjs = new object[] { productName, JoinString(", ", 70, tags), author, sku, time.ToFileTimeUtc(), thumbnailPath, eid };
+            SQLiteConnection? connection = null;
             SQLiteTransaction transaction = null;
             SQLiteCommand sqlCommand = null;
             try
@@ -1043,7 +1082,7 @@ namespace DAZ_Installer.Database
                 if (connection == null) return false;
                 transaction = connection.BeginTransaction();
 
-                var updateCommand = new StringBuilder(250); 
+                StringBuilder updateCommand = new(250);
                 updateCommand.Append("UPDATE ProductRecords SET ");
                 for (var i = 0; i < 7; i++)
                 {
@@ -1068,7 +1107,7 @@ namespace DAZ_Installer.Database
                 }
                 catch (Exception ex)
                 {
-                    DPCommon.WriteToLog($"Failed to update {newRecord.ProductName} entry (ProductRecord). REASON: {ex}");
+                    // DPCommon.WriteToLog($"Failed to update {newRecord.ProductName} entry (ProductRecord). REASON: {ex}");
                     transaction.Rollback();
                     return false;
                 }
@@ -1076,7 +1115,7 @@ namespace DAZ_Installer.Database
             }
             catch (Exception ex)
             {
-                DPCommon.WriteToLog($"An unexpected error occurred while attempting to update product record {newRecord.ProductName}. REASON: {ex}");
+                // DPCommon.WriteToLog($"An unexpected error occurred while attempting to update product record {newRecord.ProductName}. REASON: {ex}");
                 return false;
             }
             finally
@@ -1099,17 +1138,17 @@ namespace DAZ_Installer.Database
         /// <param name="c">The SQLiteConnection to use, if any.</param>
         /// <param name="t">Cancel token. Required, cannot be null. Use CancellationToken.None instead (though not recommended).</param>
         /// <returns>Whether the insertion was successful (true) or not (false).</returns>
-        private static bool UpdateExtractionRecord(uint eid, DPExtractionRecord newRecord, SQLiteConnection? c, CancellationToken t)
+        private bool UpdateExtractionRecord(uint eid, DPExtractionRecord newRecord, SQLiteConnection? c, CancellationToken t)
         {
-            string[] eColumns = new string[] { "Archive Name", "Files", "Folders", "Destination Path", "Errored Files", "Error Messages", "Product Record ID" };
+            var eColumns = new string[] { "Archive Name", "Files", "Folders", "Destination Path", "Errored Files", "Error Messages", "Product Record ID" };
             if (t.IsCancellationRequested || newRecord == null || newRecord == DPExtractionRecord.NULL_RECORD || eid < 0)
                 return false;
             newRecord.Deconstruct(out var archiveFileName, out var destPath, out var files,
                 out var erroredFiles, out var erroredMessages, out var folders, out var newPID);
-            object[] eObjs = new object[] { archiveFileName, JoinString(", ", 384, files),
+            var eObjs = new object[] { archiveFileName, JoinString(", ", 384, files),
                 JoinString(", ", 384, folders), destPath, JoinString(", ", 384, erroredFiles),
                 JoinString(", ", 65536, erroredMessages), newPID };
-            SQLiteConnection connection = null;
+            SQLiteConnection? connection = null;
             SQLiteTransaction transaction = null;
             SQLiteCommand sqlCommand = null;
             try
@@ -1118,7 +1157,7 @@ namespace DAZ_Installer.Database
                 if (connection == null) return false;
                 transaction = connection.BeginTransaction();
 
-                var updateCommand = new StringBuilder(250);
+                StringBuilder updateCommand = new(250);
                 updateCommand.Append("UPDATE ExtractionRecords SET ");
                 for (var i = 0; i < 7; i++)
                 {
@@ -1138,7 +1177,7 @@ namespace DAZ_Installer.Database
                 }
                 catch (Exception ex)
                 {
-                    DPCommon.WriteToLog($"Failed to update {newRecord.ArchiveFileName} entry (ExtractionRecord). REASON: {ex}");
+                    // DPCommon.WriteToLog($"Failed to update {newRecord.ArchiveFileName} entry (ExtractionRecord). REASON: {ex}");
                     transaction.Rollback();
                     return false;
                 }
@@ -1146,7 +1185,7 @@ namespace DAZ_Installer.Database
             }
             catch (Exception ex)
             {
-                DPCommon.WriteToLog($"An unexpected error occurred while attempting to update product record {newRecord.ArchiveFileName}. REASON: {ex}");
+                // DPCommon.WriteToLog($"An unexpected error occurred while attempting to update product record {newRecord.ArchiveFileName}. REASON: {ex}");
                 return false;
             }
             finally
@@ -1169,21 +1208,21 @@ namespace DAZ_Installer.Database
         /// journal and merge it into the database file. Additionally, it attempts to delete the journal files
         /// as well.
         /// </summary>
-        private static void TruncateJournal()
+        private void TruncateJournal()
         {
             var pragmaCheckpoint = "PRAGMA wal_checkpoint(TRUNCATE);";
             try
             {
-                using var connection = CreateAndOpenConnection(null, false);
+                using SQLiteConnection? connection = CreateAndOpenConnection(null, false);
                 if (connection == null) return;
-                using var cmd = new SQLiteCommand(pragmaCheckpoint, connection);
+                using SQLiteCommand cmd = new(pragmaCheckpoint, connection);
                 cmd.ExecuteNonQuery();
             }
             catch (Exception ex) { return; } // We don't want to delete if it failed.
 
             // Now check if -wal and -shm are available.
-            var shmFile = Path.GetFullPath(_expectedDatabasePath + "-shm");
-            var walFile = Path.GetFullPath(_expectedDatabasePath + "-wal");
+            var shmFile = System.IO.Path.GetFullPath(Path + "-shm");
+            var walFile = System.IO.Path.GetFullPath(Path + "-wal");
 
             // This is required for the SQLiteConnection to truly release the handle on 
             // the database file.
@@ -1210,12 +1249,12 @@ namespace DAZ_Installer.Database
         /// <param name="maxSize">The maximum string size of each value. Default is 256.</param>
         /// <param name="values">The values to join.</param>
         /// <returns>The values combined into a string seperated by the sepertor or null if values is null.</returns>
-        private static string? JoinString(string seperator, int maxSize = 256, params string[] values)
+        private string? JoinString(string seperator, int maxSize = 256, params string[] values)
         {
             if (values == null || values.Length == 0) return null;
 
-            StringBuilder builder = new StringBuilder(512);
-            for (int i = 0; i < values.Length; i++)
+            StringBuilder builder = new(512);
+            for (var i = 0; i < values.Length; i++)
             {
                 var s = values[i];
                 if (string.IsNullOrWhiteSpace(s)) continue;
@@ -1234,11 +1273,11 @@ namespace DAZ_Installer.Database
         /// <param name="str">A referenced string of a query to add parameter placeholders. May not be null.</param>
         /// <param name="length">The amount of parameters to create.</param>
         /// <returns>An array of parameters generated.</returns>
-        private static string[] CreateParams(ref string str, int length)
+        private string[] CreateParams(ref string str, int length)
         {
-            int maxDigits = (int)Math.Floor(Math.Log10(length)) + 1;
-            StringBuilder sb = new StringBuilder((maxDigits + 4) * length);
-            string[] args = new string[length];
+            var maxDigits = (int)Math.Floor(Math.Log10(length)) + 1;
+            StringBuilder sb = new((maxDigits + 4) * length);
+            var args = new string[length];
             for (var i = 0; i < length; i++)
             {
                 var rawArg = "@A" + i;
@@ -1258,11 +1297,11 @@ namespace DAZ_Installer.Database
         /// <param name="str">A referenced string of a query to add parameter placeholders. May not be null.</param>
         /// <param name="length">The amount of parameters to create. For example, for updating two columns, the length should be 2, not 4.</param>
         /// <returns>An array of parameters generated.</returns>
-        private static string[] CreateAssignmentParams(ref string str, int length)
+        private string[] CreateAssignmentParams(ref string str, int length)
         {
-            int maxDigits = (int)Math.Floor(Math.Log10(length)) + 1;
-            StringBuilder sb = new StringBuilder((maxDigits + 8) * length);
-            string[] args = new string[length * 2];
+            var maxDigits = (int)Math.Floor(Math.Log10(length)) + 1;
+            StringBuilder sb = new((maxDigits + 8) * length);
+            var args = new string[length * 2];
             for (var i = 0; i < length * 2; i += 2)
             {
                 var rawArg = "@A" + i + " = @A" + (i + 1);
@@ -1285,11 +1324,11 @@ namespace DAZ_Installer.Database
         /// <param name="length">The amount of parameters to create.</param>
         /// <returns>An array of parameters generated.</returns>
 
-        private static string[] CreateParams(ref string str, int length, ref int start)
+        private string[] CreateParams(ref string str, int length, ref int start)
         {
-            int maxDigits = (int)Math.Floor(Math.Log10(length + start)) + 1;
-            StringBuilder sb = new StringBuilder((maxDigits + 4) * length);
-            string[] args = new string[length];
+            var maxDigits = (int)Math.Floor(Math.Log10(length + start)) + 1;
+            StringBuilder sb = new((maxDigits + 4) * length);
+            var args = new string[length];
             for (var i = 0; i < length; i++, start++)
             {
                 var rawArg = "@A" + start;
@@ -1309,7 +1348,7 @@ namespace DAZ_Installer.Database
         /// <param name="command">The command to add parameters into. Cannot be null.</param>
         /// <param name="cArgs">The argument placeholders to fill. Cannot be null.</param>
         /// <param name="values">The values to replace placeholders with. Cannot be null.</param>
-        private static void FillParamsToConnection(SQLiteCommand command, IReadOnlyList<string> cArgs, params object[] values)
+        private void FillParamsToConnection(SQLiteCommand command, IReadOnlyList<string> cArgs, params object[] values)
         {
             for (var i = 0; i < cArgs.Count; i++)
             {
@@ -1330,12 +1369,12 @@ namespace DAZ_Installer.Database
         /// <param name="leftVals">The values to replace placeholders with on the left side of the equal sign. Cannot be null.</param>
         /// <param name="rightVals">The values to replace placeholders with on the right side of the equal sign. Cannot be null.</param>
         /// 
-        private static void FillAssignmentParamsToConnection(SQLiteCommand command, IReadOnlyList<string> cArgs, object[] leftVals, object[] rightVals)
+        private void FillAssignmentParamsToConnection(SQLiteCommand command, IReadOnlyList<string> cArgs, object[] leftVals, object[] rightVals)
         {
             if (leftVals.Length != rightVals.Length)
             {
-                DPCommon.WriteToLog("FillAssignmentParamsToConnection() did not fill parameters due to unequal lengths in values.");
-                DPCommon.WriteToLog($"leftVals Length: {leftVals.Length} | rightVals Length: {rightVals.Length} ");
+                // DPCommon.WriteToLog("FillAssignmentParamsToConnection() did not fill parameters due to unequal lengths in values.");
+                // DPCommon.WriteToLog($"leftVals Length: {leftVals.Length} | rightVals Length: {rightVals.Length} ");
             }
             for (int i = 0, j = 0; i < cArgs.Count; i += 2, j++)
             {
@@ -1351,14 +1390,14 @@ namespace DAZ_Installer.Database
         /// <param name="args">Arguments to wrap quotes over.</param>
         /// <returns>A string ready to use for a command.</returns>
 
-        private static string ConvertParamsToString(params object[] args)
+        private string ConvertParamsToString(params object[] args)
         {
             if (args.Length == 0) return string.Empty;
-            string[] sArgs = new string[args.Length];
+            var sArgs = new string[args.Length];
             for (var i = 0; i < args.Length; i++)
             {
                 var arg = args[i];
-                var type = arg.GetType();
+                Type type = arg.GetType();
                 if (type == typeof(string)) sArgs[i] = '"' + (string)arg + '"';
                 else if (type == typeof(char)) sArgs[i] = '"' + (string)arg + '"';
                 else sArgs[i] = Convert.ToString(arg);

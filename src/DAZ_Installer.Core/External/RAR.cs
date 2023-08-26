@@ -1,12 +1,11 @@
-﻿using System;
-using System.IO;
+﻿using System.Collections;
+using DAZ_Installer.Core.Extraction;
 using System.Runtime.InteropServices;
-using System.Collections;
 
-namespace DAZ_Installer.Core.External
+namespace DAZ_Installer.External
 {
     // GC Collect
-    public class RAR : IDisposable
+    public class RAR : IRAR
 
     {
         #region Event Delegate Definitions
@@ -14,27 +13,27 @@ namespace DAZ_Installer.Core.External
         /// <summary>
         /// Represents the method that will handle data available events
         /// </summary>
-        public delegate void DataAvailableHandler(RAR sender, DataAvailableEventArgs e);
+        public delegate void DataAvailableHandler(IRAR sender, DataAvailableEventArgs e);
         /// <summary>
         /// Represents the method that will handle extraction progress events
         /// </summary>
-        public delegate void ExtractionProgressHandler(RAR sender, ExtractionProgressEventArgs e);
+        public delegate void ExtractionProgressHandler(IRAR sender, ExtractionProgressEventArgs e);
         /// <summary>
         /// Represents the method that will handle missing archive volume events
         /// </summary>
-        public delegate void MissingVolumeHandler(RAR sender, MissingVolumeEventArgs e);
+        public delegate void MissingVolumeHandler(IRAR sender, MissingVolumeEventArgs e);
         /// <summary>
         /// Represents the method that will handle new volume events
         /// </summary>
-        public delegate void NewVolumeHandler(RAR sender, NewVolumeEventArgs e);
+        public delegate void NewVolumeHandler(IRAR sender, NewVolumeEventArgs e);
         /// <summary>
         /// Represents the method that will handle new file notifications
         /// </summary>
-        public delegate void NewFileHandler(RAR sender, NewFileEventArgs e);
+        public delegate void NewFileHandler(IRAR sender, NewFileEventArgs e);
         /// <summary>
         /// Represents the method that will handle password required events
         /// </summary>
-        public delegate void PasswordRequiredHandler(RAR sender, PasswordRequiredEventArgs e);
+        public delegate void PasswordRequiredHandler(IRAR sender, PasswordRequiredEventArgs e);
 
         #endregion
         #region RAR DLL enumerations
@@ -298,12 +297,12 @@ namespace DAZ_Installer.Core.External
         #region Private fields
 
         private string archivePathName = string.Empty;
-        private IntPtr archiveHandle = new IntPtr(0);
+        private IntPtr archiveHandle = new(0);
         private bool retrieveComment = true;
         private string password = string.Empty;
         private string comment = string.Empty;
         private ArchiveFlags archiveFlags = 0;
-        private RARHeaderDataEx header = new RARHeaderDataEx();
+        private RARHeaderDataEx header = new();
         private string destinationPath = string.Empty;
         private RARFileInfo currentFile = null;
         private UNRARCallback callback = null;
@@ -312,15 +311,9 @@ namespace DAZ_Installer.Core.External
 
         #region Object lifetime procedures
 
-        public RAR()
-        {
-            callback = new UNRARCallback(RARCallback);
-        }
+        public RAR() => callback = new UNRARCallback(RARCallback);
 
-        public RAR(string archivePathName) : this()
-        {
-            this.archivePathName = archivePathName;
-        }
+        public RAR(string archivePathName) : this() => this.archivePathName = archivePathName;
 
         ~RAR()
         {
@@ -349,51 +342,27 @@ namespace DAZ_Installer.Core.External
         /// </summary>
         public string ArchivePathName
         {
-            get
-            {
-                return archivePathName;
-            }
-            set
-            {
-                archivePathName = value;
-            }
+            get => archivePathName;
+            set => archivePathName = value;
         }
 
         /// <summary>
         /// Archive comment 
         /// </summary>
-        public string Comment
-        {
-            get
-            {
-                return comment;
-            }
-        }
+        public string Comment => comment;
 
         /// <summary>
         /// Current file being processed
         /// </summary>
-        public RARFileInfo CurrentFile
-        {
-            get
-            {
-                return currentFile;
-            }
-        }
+        public RARFileInfo CurrentFile => currentFile;
 
         /// <summary>
         /// Default destination path for extraction
         /// </summary>
         public string DestinationPath
         {
-            get
-            {
-                return destinationPath;
-            }
-            set
-            {
-                destinationPath = value;
-            }
+            get => destinationPath;
+            set => destinationPath = value;
         }
 
         /// <summary>
@@ -401,10 +370,7 @@ namespace DAZ_Installer.Core.External
         /// </summary>
         public string Password
         {
-            get
-            {
-                return password;
-            }
+            get => password;
             set
             {
                 password = value;
@@ -415,7 +381,7 @@ namespace DAZ_Installer.Core.External
         /// <summary>
         /// Archive data
         /// </summary>
-        public RAROpenArchiveDataEx arcData;
+        public RAROpenArchiveDataEx ArchiveData { get; private set; }
 
         #endregion
 
@@ -431,7 +397,7 @@ namespace DAZ_Installer.Core.External
                 return;
 
             // Close archive
-            int result = RARCloseArchive(archiveHandle);
+            var result = RARCloseArchive(archiveHandle);
 
             // Check result
             if (result != 0)
@@ -480,7 +446,7 @@ namespace DAZ_Installer.Core.External
 
             // Prepare extended open archive struct
             ArchivePathName = archivePathName;
-            RAROpenArchiveDataEx openStruct = new RAROpenArchiveDataEx();
+            var openStruct = new RAROpenArchiveDataEx();
             openStruct.Initialize();
             openStruct.ArcName = this.archivePathName + "\0";
             openStruct.ArcNameW = this.archivePathName + "\0";
@@ -498,7 +464,7 @@ namespace DAZ_Installer.Core.External
 
             // Open archive
             handle = RAROpenArchiveEx(ref openStruct);
-            arcData = openStruct;
+            ArchiveData = openStruct;
             // Check for success
             if (openStruct.OpenResult != 0)
             {
@@ -553,7 +519,7 @@ namespace DAZ_Installer.Core.External
 
             // Read next entry
             currentFile = null;
-            int result = RARReadHeaderEx(archiveHandle, ref header);
+            var result = RARReadHeaderEx(archiveHandle, ref header);
 
             // Check for error or end of archive
             if ((RarError)result == RarError.EndOfArchive)
@@ -600,7 +566,7 @@ namespace DAZ_Installer.Core.External
                 }
                 catch (Exception e)
                 {
-                    DPCommon.WriteToLog(e);
+                    // DPCommon.WriteToLog(e);
                     // Headers are encrypted.
                     // Close archive and try again.
                     return false;
@@ -617,14 +583,14 @@ namespace DAZ_Installer.Core.External
         /// <returns></returns>
         public string[] ListFiles()
         {
-            ArrayList fileNames = new ArrayList();
+            var fileNames = new ArrayList();
             while (ReadHeader())
             {
                 if (!currentFile.IsDirectory)
                     fileNames.Add(currentFile.FileName);
                 Skip();
             }
-            string[] files = new string[fileNames.Count];
+            var files = new string[fileNames.Count];
             fileNames.CopyTo(files);
             return files;
         }
@@ -635,7 +601,7 @@ namespace DAZ_Installer.Core.External
         /// <returns></returns>
         public void Skip()
         {
-            int result = RARProcessFileW(archiveHandle, (int)Operation.Skip, string.Empty, string.Empty);
+            var result = RARProcessFileW(archiveHandle, (int)Operation.Skip, string.Empty, string.Empty);
 
             // Check result
             if (result != 0)
@@ -650,7 +616,7 @@ namespace DAZ_Installer.Core.External
         /// <returns></returns>
         public void Test()
         {
-            int result = RARProcessFileW(archiveHandle, (int)Operation.Test, string.Empty, string.Empty);
+            var result = RARProcessFileW(archiveHandle, (int)Operation.Test, string.Empty, string.Empty);
 
             // Check result
             if (result != 0)
@@ -663,30 +629,21 @@ namespace DAZ_Installer.Core.External
         /// Extracts the current file to the default destination path
         /// </summary>
         /// <returns></returns>
-        public void Extract()
-        {
-            Extract(destinationPath, string.Empty);
-        }
+        public void Extract() => Extract(destinationPath, string.Empty);
 
         /// <summary>
         /// Extracts the current file to a specified destination path and filename
         /// </summary>
         /// <param name="destinationName">Path and name of extracted file</param>
         /// <returns></returns>
-        public void Extract(string destinationName)
-        {
-            Extract(string.Empty, destinationName);
-        }
+        public void Extract(string destinationName) => Extract(string.Empty, destinationName);
 
         /// <summary>
         /// Extracts the current file to a specified directory without renaming file
         /// </summary>
         /// <param name="destinationPath"></param>
         /// <returns></returns>
-        public void ExtractToDirectory(string destinationPath)
-        {
-            Extract(destinationPath, string.Empty);
-        }
+        public void ExtractToDirectory(string destinationPath) => Extract(destinationPath, string.Empty);
 
         #endregion
 
@@ -694,7 +651,7 @@ namespace DAZ_Installer.Core.External
 
         private void Extract(string destinationPath, string destinationName)
         {
-            int result = RARProcessFileW(archiveHandle, (int)Operation.Extract, destinationPath, destinationName);
+            var result = RARProcessFileW(archiveHandle, (int)Operation.Extract, destinationPath, destinationName);
 
             // Check result
             if (result != 0)
@@ -705,12 +662,12 @@ namespace DAZ_Installer.Core.External
 
         private DateTime FromMSDOSTime(uint dosTime)
         {
-            int day = 0;
-            int month = 0;
-            int year = 0;
-            int second = 0;
-            int hour = 0;
-            int minute = 0;
+            var day = 0;
+            var month = 0;
+            var year = 0;
+            var second = 0;
+            var hour = 0;
+            var minute = 0;
             ushort hiWord;
             ushort loWord;
             hiWord = (ushort)((dosTime & 0xFFFF0000) >> 16);
@@ -762,9 +719,9 @@ namespace DAZ_Installer.Core.External
 
         private int RARCallback(uint msg, int UserData, IntPtr p1, int p2)
         {
-            string volume = string.Empty;
-            string newVolume = string.Empty;
-            int result = -1;
+            var volume = string.Empty;
+            var newVolume = string.Empty;
+            var result = -1;
 
             switch ((CallbackMessages)msg)
             {
@@ -782,9 +739,9 @@ namespace DAZ_Installer.Core.External
                             if (newVolume != volume)
                             {
                                 // Encode to Unicode.
-                                var lilEndian = System.Text.Encoding.Unicode;
+                                System.Text.Encoding lilEndian = System.Text.Encoding.Unicode;
                                 var bytes = lilEndian.GetBytes(newVolume + "\0");
-                                for (int i = 0; i < bytes.Length; i++)
+                                for (var i = 0; i < bytes.Length; i++)
                                 {
                                     Marshal.WriteByte(p1, i, bytes[i]);
                                 }
@@ -815,21 +772,21 @@ namespace DAZ_Installer.Core.External
         {
             if (NewFile != null)
             {
-                NewFileEventArgs e = new NewFileEventArgs(currentFile);
+                var e = new NewFileEventArgs(currentFile);
                 NewFile(this, e);
             }
         }
 
         protected virtual int OnPasswordRequired(IntPtr p1, int p2)
         {
-            int result = -1;
+            var result = -1;
             if (PasswordRequired != null)
             {
-                PasswordRequiredEventArgs e = new PasswordRequiredEventArgs();
+                var e = new PasswordRequiredEventArgs();
                 PasswordRequired(this, e);
                 if (e.ContinueOperation && e.Password.Length > 0)
                 {
-                    for (int i = 0; i < e.Password.Length && i < p2; i++)
+                    for (var i = 0; i < e.Password.Length && i < p2; i++)
                         Marshal.WriteByte(p1, i, (byte)e.Password[i]);
                     Marshal.WriteByte(p1, e.Password.Length, 0);
                     result = 1;
@@ -843,17 +800,17 @@ namespace DAZ_Installer.Core.External
         }
         protected virtual int OnPasswordRequiredLilE(IntPtr p1, int p2)
         {
-            int result = -1;
+            var result = -1;
             if (PasswordRequired != null)
             {
-                PasswordRequiredEventArgs e = new PasswordRequiredEventArgs();
+                var e = new PasswordRequiredEventArgs();
                 PasswordRequired(this, e);
                 if (e.ContinueOperation && e.Password.Length > 0)
                 {
-                    var lilEndian = System.Text.Encoding.Unicode;
+                    System.Text.Encoding lilEndian = System.Text.Encoding.Unicode;
                     var bytes = lilEndian.GetBytes(e.Password + "\0");
 
-                    for (int i = 0; i < bytes.Length && i < p2; i++) Marshal.WriteByte(p1, i, bytes[i]);
+                    for (var i = 0; i < bytes.Length && i < p2; i++) Marshal.WriteByte(p1, i, bytes[i]);
                     //Marshal.WriteByte(p1, e.Password.Length, (byte)18);
                     result = 1;
                 }
@@ -867,21 +824,21 @@ namespace DAZ_Installer.Core.External
 
         protected virtual int OnDataAvailable(IntPtr p1, int p2)
         {
-            int result = 1;
+            var result = 1;
             if (currentFile != null)
                 currentFile.BytesExtracted += p2;
             if (DataAvailable != null)
             {
-                byte[] data = new byte[p2];
+                var data = new byte[p2];
                 Marshal.Copy(p1, data, 0, p2);
-                DataAvailableEventArgs e = new DataAvailableEventArgs(data);
+                var e = new DataAvailableEventArgs(data);
                 DataAvailable(this, e);
                 if (!e.ContinueOperation)
                     result = -1;
             }
             if (ExtractionProgress != null && currentFile != null)
             {
-                ExtractionProgressEventArgs e = new ExtractionProgressEventArgs();
+                var e = new ExtractionProgressEventArgs();
                 e.FileName = currentFile.FileName;
                 e.FileSize = currentFile.UnpackedSize;
                 e.BytesExtracted = currentFile.BytesExtracted;
@@ -895,10 +852,10 @@ namespace DAZ_Installer.Core.External
 
         protected virtual int OnNewVolume(string volume)
         {
-            int result = 1;
+            var result = 1;
             if (NewVolume != null)
             {
-                NewVolumeEventArgs e = new NewVolumeEventArgs(volume);
+                var e = new NewVolumeEventArgs(volume);
                 NewVolume(this, e);
                 if (!e.ContinueOperation)
                     result = -1;
@@ -908,10 +865,10 @@ namespace DAZ_Installer.Core.External
 
         protected virtual string OnMissingVolume(string volume)
         {
-            string result = string.Empty;
+            var result = string.Empty;
             if (MissingVolume != null)
             {
-                MissingVolumeEventArgs e = new MissingVolumeEventArgs(volume);
+                var e = new MissingVolumeEventArgs(volume);
                 MissingVolume(this, e);
                 if (e.ContinueOperation)
                     result = e.VolumeName;
@@ -929,10 +886,7 @@ namespace DAZ_Installer.Core.External
         public string VolumeName;
         public bool ContinueOperation = true;
 
-        public NewVolumeEventArgs(string volumeName)
-        {
-            VolumeName = volumeName;
-        }
+        public NewVolumeEventArgs(string volumeName) => VolumeName = volumeName;
     }
 
     public class MissingVolumeEventArgs
@@ -940,10 +894,7 @@ namespace DAZ_Installer.Core.External
         public string VolumeName;
         public bool ContinueOperation = false;
 
-        public MissingVolumeEventArgs(string volumeName)
-        {
-            VolumeName = volumeName;
-        }
+        public MissingVolumeEventArgs(string volumeName) => VolumeName = volumeName;
     }
 
     public class DataAvailableEventArgs
@@ -951,10 +902,7 @@ namespace DAZ_Installer.Core.External
         public readonly byte[] Data;
         public bool ContinueOperation = true;
 
-        public DataAvailableEventArgs(byte[] data)
-        {
-            Data = data;
-        }
+        public DataAvailableEventArgs(byte[] data) => Data = data;
     }
 
     public class PasswordRequiredEventArgs
@@ -966,10 +914,7 @@ namespace DAZ_Installer.Core.External
     public class NewFileEventArgs
     {
         public RARFileInfo fileInfo;
-        public NewFileEventArgs(RARFileInfo fileInfo)
-        {
-            this.fileInfo = fileInfo;
-        }
+        public NewFileEventArgs(RARFileInfo fileInfo) => this.fileInfo = fileInfo;
     }
 
     public class ExtractionProgressEventArgs

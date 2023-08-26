@@ -8,9 +8,6 @@ namespace DAZ_Installer.Database.External
     [SQLiteFunction(Name = "REGEXP", Arguments = 2, FuncType = FunctionType.Scalar)]
     internal class SQLRegexFunction : SQLiteFunction
     {
-        public override object Invoke(object[] args)
-        {
-            return Regex.IsMatch(Convert.ToString(args[1]), Convert.ToString(args[0]));
-        }
+        public override object Invoke(object[] args) => Regex.IsMatch(Convert.ToString(args[1]), Convert.ToString(args[0]));
     }
 }

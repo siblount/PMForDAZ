@@ -1,13 +1,8 @@
 ﻿// This code is licensed under the Keep It Free License V1.
 // You may find a full copy of this license at root project directory\LICENSE
 
-using System;
-using System.IO;
-using System.Collections.Generic;
+using DAZ_Installer.Database;
 using System.ComponentModel;
-using System.Windows.Forms;
-using System.Drawing;
-using DAZ_Installer.DP;
 
 namespace DAZ_Installer
 {
@@ -41,9 +36,18 @@ namespace DAZ_Installer
             set => UpdateTags(value);
         }
 
-        internal DPProductRecord ProductRecord { get; set; }
+        [Description("Determines the maximum number of tags to display."), Category("Data"), Browsable(true)]
+        [DefaultValue(4)]
+        public uint MaxTagCount { get; set; } = 4;
+        public DPDatabase? Database { get; set; }
 
-        private readonly List<Label> labels = new List<Label>();
+        public DPProductRecord ProductRecord { get; set; }
+        /// <summary>
+        /// The product record form to 
+        /// </summary>
+        public Type ProductRecordFormType { get; set; }
+
+        private readonly List<Label> labels = new();
         public LibraryItem()
         {
             InitializeComponent();
@@ -58,7 +62,7 @@ namespace DAZ_Installer
         private string[] GetTags()
         {
             var tags = new string[labels.Count];
-            for (int i = 0; i < labels.Count; i++)
+            for (var i = 0; i < labels.Count; i++)
             {
                 tags[i] = labels[i].Text;
             }
@@ -75,9 +79,9 @@ namespace DAZ_Installer
                 var foundEllipsedLabel = false;
                 var t = 0;
 
-                for (var i = 0; i < tags.Length && t < DPSettings.currentSettingsObject.maxTagsToShow; i++)
-                    // TODO: Use AddRange instead of Controls.Add
-                {   
+                for (var i = 0; i < tags.Length && t < MaxTagCount; i++)
+                // TODO: Use AddRange instead of Controls.Add
+                {
                     var tagName = tags[i];
                     if (string.IsNullOrEmpty(tagName) || string.IsNullOrWhiteSpace(tagName))
                         continue;
@@ -92,8 +96,9 @@ namespace DAZ_Installer
                 }
                 tagsLayoutPanel.Controls.AddRange(labels.ToArray());
             }
-            catch (Exception e) {
-                DPCommon.WriteToLog($"Failed to create tags. REASON: {e}");
+            catch (Exception e)
+            {
+                // DPCommon.WriteToLog($"Failed to create tags. REASON: {e}");
             }
 
             tagsLayoutPanel.ResumeLayout();
@@ -120,7 +125,7 @@ namespace DAZ_Installer
             labels.Clear();
             if (restartLayout) tagsLayoutPanel.ResumeLayout();
         }
-        
+
 
         private void tagsLayoutPanel_ClientSizeChanged(object sender, EventArgs e)
         {
@@ -129,10 +134,10 @@ namespace DAZ_Installer
             try
             {
                 var foundEllipsedLabel = false;
-                for (var i = 0; i < labels.Count && i < DPSettings.currentSettingsObject.maxTagsToShow; i++)
+                for (var i = 0; i < labels.Count && i < MaxTagCount; i++)
                 {
-                    var workingLabel = labels[i];
-                    
+                    Label workingLabel = labels[i];
+
                     if (workingLabel.Parent == null)
                     {
                         // Only immediately add to the tag layout panel if it can be seen.
@@ -140,7 +145,8 @@ namespace DAZ_Installer
 
                         // If the label we created is ellipsed, show no more.
                         if (workingLabel.PreferredWidth > workingLabel.Width) foundEllipsedLabel = true;
-                    } else
+                    }
+                    else
                     {
                         if (!foundEllipsedLabel)
                         {
@@ -156,9 +162,9 @@ namespace DAZ_Installer
             }
             catch (Exception ee)
             {
-                DPCommon.WriteToLog($"Failed to create tags. REASON: {ee}");
+                // DPCommon.WriteToLog($"Failed to create tags. REASON: {ee}");
             }
-            tagsLayoutPanel.ResumeLayout(); 
+            tagsLayoutPanel.ResumeLayout();
         }
 
         private void showFoldersBtn_Click(object sender, EventArgs e)
@@ -168,24 +174,26 @@ namespace DAZ_Installer
                 MessageBox.Show("Unable to show record due to product record not available.", "Unable to view", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return;
             }
-            ProductRecordForm recordForm = new ProductRecordForm(ProductRecord);
-            recordForm.ShowDialog();
+            //ProductRecordForm recordForm = new ProductRecordForm(ProductRecord);
+            var form = (Form)Activator.CreateInstance(ProductRecordFormType, ProductRecord)!;
+            form.ShowDialog();
+            //recordForm.ShowDialog();
         }
 
         private void removeRecordToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            var result = MessageBox.Show($"Are you sure you want to remove the record for {ProductRecord.ProductName}? " +
+            DialogResult result = MessageBox.Show($"Are you sure you want to remove the record for {ProductRecord.ProductName}? " +
                 "This wont remove the files on disk. Additionally, the record cannot be restored.", "Remove product record confirmation", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
             if (result == DialogResult.No) return;
-            DPDatabase.RemoveProductRecord(ProductRecord);
+            Database?.RemoveProductRecord(ProductRecord);
         }
 
         private void removeProductToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            var result = MessageBox.Show($"Are you sure you want to remove the record & product files for {ProductRecord.ProductName}? " +
+            DialogResult result = MessageBox.Show($"Are you sure you want to remove the record & product files for {ProductRecord.ProductName}? " +
                 "THIS WILL PERMANENTLY REMOVE ASSOCIATED FILES ON DISK!", "Remove product confirmation", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
             if (result == DialogResult.No) return;
-            DPDatabase.GetExtractionRecordQ(ProductRecord.EID, callback: OnGetExtractionRecord);
+            Database?.GetExtractionRecordQ(ProductRecord.EID, callback: OnGetExtractionRecord);
         }
 
         private void OnGetExtractionRecord(DPExtractionRecord record)
@@ -201,9 +209,10 @@ namespace DAZ_Installer
                 {
                     info.Delete();
                     deleteCount++;
-                } catch (Exception ex)
+                }
+                catch (Exception ex)
                 {
-                    DPCommon.WriteToLog($"Failed to remove product file for {ProductRecord.ProductName}, file: {file}. REASON: {ex}");
+                    // DPCommon.WriteToLog($"Failed to remove product file for {ProductRecord.ProductName}, file: {file}. REASON: {ex}");
                 }
             }
             var delta = record.Files.Length - deleteCount;
@@ -213,7 +222,7 @@ namespace DAZ_Installer
             else if (delta > 0)
                 MessageBox.Show($"Some product files failed to be removed for {ProductRecord.ProductName}.",
                     "Some files failed to be removed", MessageBoxButtons.OK, MessageBoxIcon.Information);
-            else DPDatabase.RemoveProductRecord(ProductRecord);
+            else Database?.RemoveProductRecord(ProductRecord);
         }
     }
 }

@@ -1,10 +1,6 @@
 ﻿// This code is licensed under the Keep It Free License V1.
 // You may find a full copy of this license at root project directory\LICENSE
 
-using System;
-using System.Threading;
-using System.Threading.Tasks;
-
 namespace DAZ_Installer.Core
 {
     // Notes about Tasks, TaskFactory:
@@ -25,15 +21,13 @@ namespace DAZ_Installer.Core
         private CancellationTokenSource _source;
         private TaskFactory _taskFactory;
         private CancellationToken _token;
-        private volatile Task lastTask;
+        private volatile Task? lastTask;
         // (3) Tasks will continue with continueWith() chain unless this is passed in.
         private const TaskContinuationOptions _continuationOptions = TaskContinuationOptions.NotOnCanceled;
-        
+
         // According to documentation, Scheduler may (and usually is) null, if null use Current property.
         // Check each time by using property instead of raw field.
-        private TaskScheduler _scheduler {
-            get => _taskFactory.Scheduler ?? TaskScheduler.Current;
-        }
+        private TaskScheduler _scheduler => _taskFactory.Scheduler ?? TaskScheduler.Current;
 
         public DPTaskManager()
         {
@@ -42,7 +36,7 @@ namespace DAZ_Installer.Core
             _taskFactory = new TaskFactory(_token);
             lastTask = null;
         }
-    
+
         private void Reset()
         {
             _source.Dispose();
@@ -73,22 +67,24 @@ namespace DAZ_Installer.Core
             if (lastTask == null)
             {
                 task = lastTask = Task.Factory.StartNew(action, _token);
-            } else
+            }
+            else
             {
                 task = lastTask = lastTask.ContinueWith((_) => action(), t, _continuationOptions, _scheduler);
             }
             return task;
         }
         public Task AddToQueue(QueueAction action)
-        { 
+        {
             CancellationToken t = _token;
             Task task;
             if (lastTask == null)
             {
                 task = lastTask = Task.Factory.StartNew(() => action(t));
-            } else
+            }
+            else
             {
-                task = lastTask = lastTask.ContinueWith((_) => action(t), t,_continuationOptions, _scheduler);
+                task = lastTask = lastTask.ContinueWith((_) => action(t), t, _continuationOptions, _scheduler);
             }
             return task;
         }
@@ -220,7 +216,7 @@ namespace DAZ_Installer.Core
             }
             return task;
         }
-        public Task AddToQueue<ReturnType, T1, T2, T3>(Func<T1, T2, T3, CancellationToken, ReturnType> func, 
+        public Task AddToQueue<ReturnType, T1, T2, T3>(Func<T1, T2, T3, CancellationToken, ReturnType> func,
                                                         T1 arg1, T2 arg2, T3 arg3)
         {
             CancellationToken t = _token;

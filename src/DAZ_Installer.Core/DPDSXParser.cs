@@ -1,42 +1,38 @@
 ﻿// This code is licensed under the Keep It Free License V1.
 // You may find a full copy of this license at root project directory\LICENSE
 
-using System;
-using System.IO;
-using System.Collections.Generic;
+using Serilog;
 using System.Text;
-using System.Threading.Tasks;
-using DAZ_Installer.Core.Utilities;
 
 namespace DAZ_Installer.Core
 {
     public class DPDSXParser
     {
-        protected readonly StreamReader stream;
+        protected readonly StreamReader stream = null!;
         protected int lastIndex = 0;
-        protected DPDSXElementCollection workingFileContents = new DPDSXElementCollection();
+        protected DPDSXElementCollection workingFileContents = new();
         protected const int BUFFER_SIZE = 16384; // in chars. 32 KB.
         protected int chunk = 0;
         public bool hasErrored;
         public string fileName = string.Empty;
-        protected Task asyncTask { get; set; } = null;
+        protected Task asyncTask { get; set; } = null!;
         protected bool Disposed = false;
-        public DPDSXParser(string path)
+        public DPDSXParser(StreamReader stream)
         {
-            fileName = Path.GetFileName(fileName);
             try
             {
-                stream = new StreamReader(path, Encoding.UTF8, true);
+                this.stream = stream;
                 asyncTask = new Task(ReadFile);
                 asyncTask.Start();
             }
             catch (Exception e)
             {
-                DPCommon.WriteToLog(e);
+                Log.Logger.ForContext<DPDSXParser>().Error(e, "Failed to open file {FileName}", fileName);
                 stream?.Dispose();
                 Disposed = true;
                 hasErrored = true;
             }
+
         }
         ~DPDSXParser()
         {
@@ -46,16 +42,16 @@ namespace DAZ_Installer.Core
         protected void ReadFile()
         {
             var watch = new System.Diagnostics.Stopwatch();
-            int offset = 0;
+            var offset = 0;
             DPDSXElement lastElement = null;
             Span<char> chars = new char[BUFFER_SIZE];
-            DPCommon.WriteToLog($"Reading file {fileName}...");
+            // DPCommon.WriteToLog($"Reading file {fileName}...");
             watch.Start();
             try
             {
                 while (stream.Read(chars) != 0)
                 {
-                    var tmp = GetNextElement(chars, 0, out lastIndex);
+                    DPDSXElement? tmp = GetNextElement(chars, 0, out lastIndex);
                     if (lastElement != null && tmp != null)
                     {
                         workingFileContents.AddElement(tmp);
@@ -71,7 +67,7 @@ namespace DAZ_Installer.Core
                     while (lastElement != null)
                     {
                         var nextIndex = lastIndex;
-                        var element = GetNextElement(chars, nextIndex, out nextIndex);
+                        DPDSXElement? element = GetNextElement(chars, nextIndex, out nextIndex);
                         lastElement.NextSibling = element;
                         if (element != null)
                         {
@@ -85,24 +81,26 @@ namespace DAZ_Installer.Core
                     offset = chars.Length - 1 - lastIndex;
                 }
                 watch.Stop();
-                DPCommon.WriteToLog($"Execution Time: {watch.ElapsedMilliseconds} ms");
-                foreach (var element in workingFileContents.GetAllElements())
+                // DPCommon.WriteToLog($"Execution Time: {watch.ElapsedMilliseconds} ms");
+                foreach (DPDSXElement element in workingFileContents.GetAllElements())
                 {
-                    DPCommon.WriteToLog($"Element Tag Name: {new string(element.TagName)}");
-                    foreach (var attribute in element.attributes)
+                    // DPCommon.WriteToLog($"Element Tag Name: {new string(element.TagName)}");
+                    foreach (KeyValuePair<string, string> attribute in element.attributes)
                     {
-                        DPCommon.WriteToLog($"Attribute Name: {attribute.Key} | Attribute Value: {attribute.Value}");
+                        // DPCommon.WriteToLog($"Attribute Name: {attribute.Key} | Attribute Value: {attribute.Value}");
                     }
                 }
-            } catch (Exception e)
+            }
+            catch (Exception e)
             {
-                DPCommon.WriteToLog($"An error occurred while attempting to read DSX file. REASON: {e}");
-            } finally
+                // DPCommon.WriteToLog($"An error occurred while attempting to read DSX file. REASON: {e}");
+            }
+            finally
             {
                 if (!Disposed) stream?.Dispose();
                 Disposed = true;
             }
-            
+
         }
 
         /// <summary>
@@ -114,7 +112,7 @@ namespace DAZ_Installer.Core
             Memory<char> totalMessage = Memory<char>.Empty; // includes < and >
             lastIndex = -1;
             var workingElement = new DPDSXElement();
-            string attributeName = string.Empty;
+            var attributeName = string.Empty;
             var attributeValue = new StringBuilder(30);
             var tagName = new StringBuilder(30);
             var isInTagCaptureMode = true;
@@ -127,7 +125,7 @@ namespace DAZ_Installer.Core
             {
                 if (nextLessThanIndex != -1)
                 {
-                    
+
                     // stringBuild.Add('<');
                     for (var i = nextLessThanIndex + 1; i < arr.Length; i++)
                     {
@@ -178,8 +176,9 @@ namespace DAZ_Installer.Core
                             }
                         }
                     }
-                    
-                    if (nextLessThanIndex == -1) {
+
+                    if (nextLessThanIndex == -1)
+                    {
                         lastIndex = -1;
                         return null;
                     }
@@ -193,11 +192,12 @@ namespace DAZ_Installer.Core
                     {
                         // var ourTagName = arr[(nextLessThanIndex + 2)..lastIndex];
                         // TODO: Check if ourTagName == workingElement.TagName
-                        var ourTagName = arr.Slice(nextLessThanIndex + 2, lastIndex - nextLessThanIndex + 1);
-                        var ourElements = workingFileContents.FindElementViaTag(new string(ourTagName));
-                        if (ourElements?.Length != 0)
+                        ReadOnlySpan<char> ourTagName = arr.Slice(nextLessThanIndex + 2, lastIndex - nextLessThanIndex + 1);
+                        List<DPDSXElement> ourElements = workingFileContents.FindElementViaTag(new string(ourTagName));
+                        if (ourElements.Count != 0)
                         {
-                            foreach (var element in ourElements) {
+                            foreach (DPDSXElement element in ourElements)
+                            {
                                 element.MessageIncludesEnding = true;
                                 element.TotalMessage = totalMessage;
                                 var closingTagBeginningIndex = GetClosingTagLessThan(element.TotalMessage.Span, element.TotalMessage.Length);
@@ -215,7 +215,7 @@ namespace DAZ_Installer.Core
             }
             catch (Exception e)
             {
-                DPCommon.WriteToLog(e);
+                // DPCommon.WriteToLog(e);
             }
             lastIndex = -1;
             return null;

@@ -1,339 +1,362 @@
 ﻿// This code is licensed under the Keep It Free License V1.
 // You may find a full copy of this license at root project directory\LICENSE
 
-using System;
-using System.Linq;
-using System.Windows.Forms;
-using System.IO;
-using System.Collections.Generic;
-using DAZ_Installer.Core.Utilities;
+using DAZ_Installer.Core.Extraction;
+
+using DAZ_Installer.IO;
+using Serilog;
+using Serilog.Context;
+using System.Collections.Immutable;
+using System.IO.Compression;
+using System.Reflection.Metadata.Ecma335;
+using System.Text;
 
 namespace DAZ_Installer.Core
 {
     // GOAL: Extract files through RAR. While it discovers files, add it to list.
     // Then, deeply analyze each file; determine best approach; and execute best approach (or ask).
     // Lastly, clean up.
-    public static class DPProcessor
+    public class DPProcessor
     {
         // SecureString - System.Security
         // We use these variables in case the user changes the settings in mist of an extraction process
-        public static DPSettings settingsToUse = DPSettings.currentSettingsObject;
-        public static string TempLocation => Path.Combine(settingsToUse.tempPath, @"DazProductInstaller\");
-        public static string DestinationPath => settingsToUse.destinationPath;
-        public static DPAbstractArchive workingArchive;
-        public static HashSet<string> previouslyInstalledArchiveNames { get; private set; } = new HashSet<string>();
-        public static List<string> doNotProcessList { get; } = new List<string>();
-        public static uint workingArchiveFileCount { get; set; } = 0; // can disgard. 
-        public static SettingOptions OverwriteFiles => settingsToUse.OverwriteFiles;
+        public static readonly ImmutableDictionary<string, string> DefaultRedirects = ImmutableDictionary.Create<string, string>(StringComparer.OrdinalIgnoreCase)
+                                                                                                         .AddRange(new KeyValuePair<string, string>[]{ new("docs", "Documentation"),
+                                                                                                                                                       new("Documents", "Documentation") });
+        public static readonly ImmutableHashSet<string> DefaultContentFolders = ImmutableHashSet.Create<string>(StringComparer.OrdinalIgnoreCase)
+                                                                                                .Union(new[] {"aniBlocks", "Animals", "Architecture", "Camera Presets", "data", "DAZ Studio Tutorials", "Documentation", "Documents",
+                                                                                                              "Environments", "General", "Light Presets", "Lights", "People", "Presets", "Props", "Render Presets", "Render Settings", "Runtime",
+                                                                                                              "Scene Builder", "Scene Subsets", "Scenes", "Scripts", "Shader Presets", "Shaders", "Support", "Templates", "Textures", "Vehicles" });
+        public DPProcessSettings settingsToUse = new();
+        public ILogger Logger { get; set; } = Log.Logger.ForContext<DPProcessor>();
+        public IContextFactory ContextFactory { get; set; } = new DPIOContextFactory();
+        public string TempLocation => Path.Combine(settingsToUse.TempPath, @"DazProductInstaller\");
+        public string DestinationPath => settingsToUse.DestinationPath;
+        public DPArchive CurrentArchive { get; private set; } = null!;
+        public ProcessorState State { get => state; private set { state = value; StateChanged?.Invoke(); } }
+        private volatile bool cancel = false;
 
-        static DPProcessor() => DPDatabase.GetInstalledArchiveNamesQ(UpdateInstalledArchiveNames);
+        /// <summary>
+        /// An event that is invoked when a file that is being extracted, moved, or deleted throws an error.
+        /// <seealso cref="ProcessError"/>
+        /// </summary>
+        public event DPProcessorEventHandler<DPErrorArgs>? FileError;
+        /// <summary>
+        /// An event that is invoked when a
+        /// </summary>
+        public event DPProcessorEventHandler<DPProcessorErrorArgs>? ProcessError;
+        public event DPProcessorEventHandler<DPArchiveEnterArgs>? ArchiveEnter;
+        public event DPProcessorEventHandler<DPArchiveExitArgs>? ArchiveExit;
+        public event DPProcessorEventHandler<DPExtractProgressArgs>? ExtractProgress;
+        public event DPProcessorEventHandler<DPExtractProgressArgs>? MoveProgress;
+        public event Action? Finished;
+        public event Action? StateChanged;
+         
+        private ProcessorState state;
+        private DPAbstractIOContext context = DPAbstractIOContext.None;
+        // public event FilePreMove
 
-        public static DPAbstractArchive ProcessInnerArchive(DPAbstractArchive archiveFile)
+        /// <summary>
+        /// Emits the <see cref="ArchiveEnter"/> event and passes the arguments required. <para/>
+        /// References <paramref name="cancel"/> to determine whether <see cref="DPProcessor"/> should
+        /// cancel operations or not.
+        /// </summary>
+        private void EmitOnArchiveEnter()
         {
-            workingArchive = archiveFile;
-            DPFile.DPFiles.Clear();
-            try
-            {
-                Directory.CreateDirectory(TempLocation);
-            }
-            catch (Exception e) { DPCommon.WriteToLog($"Unable to create temp directory. {e}"); }
-            if (previouslyInstalledArchiveNames.Contains(Path.GetFileName(archiveFile.FileName)))
-            {
-                // ,_, 
-                switch (settingsToUse.installPrevProducts)
-                {
-                    case SettingOptions.No:
-                        return null;
-                    case SettingOptions.Prompt:
-                        var result = MessageBox.Show($"It seems that \"{archiveFile.FileName}\" was already processed. " +
-                            $"Do you wish to continue processing this file?", "Archive already processed", MessageBoxButtons.YesNo, MessageBoxIcon.Information);
-                        if (result == DialogResult.No) return null;
-                        break;
-                }
-            }
-            try
-            {
-                archiveFile.Peek();
-            } catch (Exception ex)
-            {
-                archiveFile.errored = true;
-                HandleEarlyExit(archiveFile);
-                DPCommon.WriteToLog($"Unable to peek into inner archive: {Path.GetFileName(archiveFile.Path)}." +
-                    $"REASON: {ex}");
-            }
-            // TO DO: Highlight files in red for files that failed to extract.
-            Extract.ExtractPage.AddToList(archiveFile);
-            Extract.ExtractPage.AddToHierachy(archiveFile);
-            // Check if we have enough room.
-            if (!DestinationHasEnoughSpace())
-            {
-                // TODO: Warn user that there was not enough space and cancel.
-                DPCommon.WriteToLog("Destination did not have enough space. Operation aborted.");
-                HandleEarlyExit(archiveFile);
-                archiveFile.errored = true;
-                return archiveFile;
-            }
-
-            archiveFile.ManifestFile = archiveFile.FindFileViaNameContains("Manifest.dsx") as DPDSXFile; // null if not found
-
-            try
-            {
-                PrepareOperations(archiveFile);
-                DetermineContentFolders(archiveFile);
-                UpdateRelativePaths(archiveFile);
-                DetermineFilesToExtract(archiveFile);
-            } catch (Exception ex)
-            {
-                archiveFile.errored = true;
-                HandleEarlyExit(archiveFile);
-                DPCommon.WriteToLog($"Failed to prepare for extraction for {archiveFile.FileName} (inner archive). REASON: {ex}");
-            }
-            try
-            {
-                archiveFile.Extract();
-            } catch (Exception ex)
-            {
-                archiveFile.errored = true;
-                HandleEarlyExit(archiveFile);
-                DPCommon.WriteToLog($"Failed to extract files for {archiveFile.FileName} (inner archive). REASON: {ex}");
-            }
-
-            DPCommon.WriteToLog("We are done");
-
-            archiveFile.ProgressCombo?.Remove();
-
-            var analyzeCombo = new DPProgressCombo();
-            analyzeCombo.ChangeProgressBarStyle(true);
-            analyzeCombo.UpdateText("Analyzing file contents...");
-            archiveFile.Type = archiveFile.DetermineArchiveType();
-            DPCommon.WriteToLog("Analyzing files...");
-            analyzeCombo.UpdateText("Creating library item...");
-            try {
-                archiveFile.GetTags();
-            } catch { DPCommon.WriteToLog("Failed to get tags."); }
-            analyzeCombo?.Remove();
-
-            for (var i = 0; i < archiveFile.publicArchives.Count; i++)
-            {
-                var arc = archiveFile.publicArchives[i];
-                if (arc.WasExtracted) ProcessInnerArchive(arc);
-            }
-
-            // Create record.
-            var record = archiveFile.CreateRecords();
-            if (record != null) previouslyInstalledArchiveNames.Add(archiveFile.FileName);
-            archiveFile.ReleaseArchiveHandles();
-            // TO DO: Only add if successful extraction, and all files from temp were moved, and/or user didn't cancel operation.
-            DPCommon.WriteToLog($"Archive Type: {archiveFile.Type}");
-            return archiveFile;
+            Logger.Information("Entering archive {arc}", CurrentArchive.FileName);
+            if (ArchiveEnter is null) return;
+            var args = new DPArchiveEnterArgs(CurrentArchive);
+            ArchiveEnter.Invoke(this, args);
+            cancel = args.Cancel;
+        }
+        /// <summary>
+        /// Emits the <see cref="ArchiveExit"/> event and passes the arguments required. <para/>
+        /// </summary>
+        /// <param name="successfullyProcessed">Tell whether the archive had been successfully processed.</param>
+        private void EmitOnArchiveExit(bool successfullyProcessed, DPExtractionReport? report)
+        {
+            if (successfullyProcessed) Logger.Information("Exiting archive with success");
+            else Logger.Warning("Exiting archive with failures");
+            Logger.Debug("Archive exit report: {@Report}", report);
+            ArchiveExit?.Invoke(this, new DPArchiveExitArgs(CurrentArchive, report, successfullyProcessed));
         }
 
-        public static DPAbstractArchive? ProcessArchive(string filePath, DPSettings settings)
+        private void EmitOnProcessError(DPProcessorErrorArgs args)
         {
-            settingsToUse = settings;
-            DPFile.DPFiles.Clear();
+            Logger.Error(args.Ex, args.Explaination);
+            if (ProcessError is null) return;
+            ProcessError.Invoke(this, args);
+            cancel = args.Continuable && args.CancelOperation;
+        }
+
+        private void EmitOnExtractionProgress(DPExtractProgressArgs args) => ExtractProgress?.Invoke(this, args);
+
+        private void processArchiveInternal(DPArchive archiveFile, DPProcessSettings settings)
+        {
+            CurrentArchive = archiveFile;
+
+            EmitOnArchiveEnter();
+            using (LogContext.PushProperty("Archive", archiveFile.FileName))
+            Logger.Information("Processing archive");
+            var arcDebugInfo = new { 
+                NestedArchive = archiveFile.IsInnerArchive, 
+                Name = archiveFile.FileName,
+                Path = archiveFile.IsInnerArchive ? archiveFile.Path : archiveFile?.FileInfo?.Path,
+                archiveFile?.Extractor,
+                ParentArchiveNestedArchive = archiveFile?.AssociatedArchive?.IsInnerArchive,
+                ParentArchiveName = archiveFile?.AssociatedArchive?.FileName,
+                ParentArchivePath = archiveFile?.AssociatedArchive?.IsInnerArchive ?? false ? archiveFile?.AssociatedArchive?.Path : 
+                                                                                              archiveFile?.AssociatedArchive?.FileInfo?.Path,
+                ParentExtractor = archiveFile?.AssociatedArchive?.Extractor,
+            };
+            Logger.Debug("Archive that is about to be processed: {@Arc}", arcDebugInfo);
+            if (cancel) return;
+
+            State = ProcessorState.Starting;
             try
             {
-                Directory.CreateDirectory(TempLocation);
+                context.CreateDirectoryInfo(TempLocation).Create();
             }
-            catch (Exception e) { DPCommon.WriteToLog($"Unable to create directory. {e}"); }
-            if (previouslyInstalledArchiveNames.Contains(Path.GetFileName(Path.GetFileName(filePath))))
+            catch (Exception e)
             {
-                // ,_, 
-                switch (settingsToUse.installPrevProducts)
+                EmitOnProcessError(new DPProcessorErrorArgs(e, "Unable to create temp directory."));
+                if (cancel)
                 {
-                    case SettingOptions.No:
-                        return null;
-                    case SettingOptions.Prompt:
-                        var result = MessageBox.Show($"It seems that \"{Path.GetFileName(filePath)}\" was already processed. Do you wish to continue processing this file?", "Archive already processed", MessageBoxButtons.YesNo, MessageBoxIcon.Information);
-                        if (result == DialogResult.No) return null;
-                        break;
+                    HandleEarlyExit();
+                    return;
                 }
             }
-            // Create new archive.
-            var archiveFile = DPAbstractArchive.CreateNewArchive(filePath, false);
-            if (archiveFile == null) return null;
-            workingArchive = archiveFile;
+
+            State = ProcessorState.Peeking;
             try
             {
-                archiveFile.Peek();
+                archiveFile.PeekContents();
             }
             catch (Exception ex)
             {
-                archiveFile.errored = true;
-                HandleEarlyExit(archiveFile);
-                DPCommon.WriteToLog($"Unable to peek into inner archive: {Path.GetFileName(archiveFile.Path)}." +
-                    $"REASON: {ex}");
+                EmitOnProcessError(new DPProcessorErrorArgs(ex, "Failed to peek into archive."));
+                HandleEarlyExit();
+                return;
             }
-            // TO DO: Highlight files in red for files that failed to extract.
-            Extract.ExtractPage.AddToList(archiveFile);
-            Extract.ExtractPage.AddToHierachy(archiveFile);
-
             // Check if we have enough room.
-            if (!DestinationHasEnoughSpace())
+            if (!HandleOnDestinationNotEnoughSpace())
             {
-                // TODO: Warn user that there was not enough space and cancel.
-                DPCommon.WriteToLog("Destination did not have enough space. Operation aborted.");
-                archiveFile.errored = true;
-                HandleEarlyExit(archiveFile);
-                return archiveFile;
+                HandleEarlyExit();
+                return;
             }
 
-            archiveFile.ManifestFile = archiveFile.FindFileViaNameContains("Manifest.dsx") as DPDSXFile;
+            State = ProcessorState.PreparingExtraction;
+            HashSet<DPFile> filesToExtract;
             try
             {
-                PrepareOperations(archiveFile);
-                DetermineContentFolders(archiveFile);
-                UpdateRelativePaths(archiveFile);
-                DetermineFilesToExtract(archiveFile);
-            } catch (Exception ex)
-            {
-                archiveFile.errored = true;
-                HandleEarlyExit(archiveFile);
-                DPCommon.WriteToLog($"Failed to prepare for extraction for {archiveFile.FileName}. REASON: {ex}");
+                prepareOperations();
+                DetermineContentFolders();
+                UpdateRelativePaths();
+                filesToExtract = DetermineFilesToExtract();
             }
-            // TODO: Ensure that archive progress combo is not null.
+            catch (Exception ex)
+            {
+                EmitOnProcessError(new DPProcessorErrorArgs(ex, "Failed to prepare for extraction"));
+                HandleEarlyExit();
+                return;
+            }
+
+            State = ProcessorState.Extracting;
+            var extractSettings = new DPExtractSettings()
+            {
+                TempPath = settingsToUse.TempPath,
+                Archive = archiveFile,
+                FilesToExtract = filesToExtract,
+                OverwriteFiles = settingsToUse.OverwriteFiles,
+            };
+            DPExtractionReport report;
             try
             {
-                archiveFile.Extract();
-            } catch (Exception ex)
-            {
-                archiveFile.errored = true;
-                HandleEarlyExit(archiveFile);
-                DPCommon.WriteToLog($"Failed to extract files for {archiveFile.FileName}. REASON: {ex}");
+                report = archiveFile.ExtractContents(extractSettings);
             }
-            DPCommon.WriteToLog("We are done");
-
-            archiveFile.ProgressCombo?.Remove();
-
-            var analyzeCombo = new DPProgressCombo();
-            analyzeCombo.ChangeProgressBarStyle(true);
-            analyzeCombo.UpdateText("Analyzing file contents...");
+            catch (Exception ex)
+            {
+                EmitOnProcessError(new DPProcessorErrorArgs(ex, "Failed to extract contents for archive"));
+                HandleEarlyExit();
+                return;
+            }
+            // DPCommon.WriteToLog("We are done");
+            Logger.Information("Analyzing the archive - fetching tags");
+            State = ProcessorState.Analyzing;
             archiveFile.Type = archiveFile.DetermineArchiveType();
-            DPCommon.WriteToLog("Analyzing files...");
-            analyzeCombo.UpdateText("Creating library item...");
-            try {
-                archiveFile.GetTags();
-            } catch { DPCommon.WriteToLog("Failed to get tags."); }
-            analyzeCombo?.Remove();
-            for (var i = 0; i < archiveFile.publicArchives.Count; i++)
+            try
             {
-                var arc = archiveFile.publicArchives[i];
-                if (arc.WasExtracted) ProcessInnerArchive(arc);
+                GetTags(settings);
+            }
+            catch (Exception ex)
+            {
+                EmitOnProcessError(new DPProcessorErrorArgs(ex, "Failed to get tags for archive"));
             }
 
-            DPCommon.WriteToLog($"Archive Type: {archiveFile.Type}");
-            // Create records and save it to disk.
-            // TODO: Add a flag to make sure records aren't created for completely
-            // failed archives (such as an "zip" archive when really it's a jpg file).
-            var record = archiveFile.CreateRecords();
-            if (record != null) previouslyInstalledArchiveNames.Add(archiveFile.FileName);
-            archiveFile.ReleaseArchiveHandles();
+            for (var i = 0; i < archiveFile.Subarchives.Count; i++)
+            {
+                DPArchive arc = archiveFile.Subarchives[i];
+                if (arc.Extracted) processArchiveInternal(arc, settings); // TODO: This can lead to a stack overflow...fix maybe?
+            }
 
-            return archiveFile;
+            // Create record.
+            EmitOnArchiveExit(true, report); // TODO: Use method to determine whether an archive was successfully processed.
+            return;
         }
 
-        public static void UpdateInstalledArchiveNames(HashSet<string> strings) => previouslyInstalledArchiveNames = strings;
-
-
-        private static void UpdateRelativePaths(DPAbstractArchive archive)
+        // TODO: RetryArchive()
+        public void ProcessArchive(string filePath, DPProcessSettings settings)
         {
-            foreach (var content in archive.RootContents)
-                content.RelativePath = content.RelativeTargetPath = content.Path;
-            foreach (var folder in archive.Folders.Values)
+            validateProcessSettings(ref settings);
+            settingsToUse = settings;
+            cancel = false;
+            context = ContextFactory.CreateContext(setupScope(settings), new DriveInfo(settings.DestinationPath));
+            // Create new archive.
+            var archiveFile = DPArchive.CreateNewParentArchive(context.CreateFileInfo(filePath));
+            CurrentArchive = archiveFile;
+
+            processArchiveInternal(archiveFile, settings);
+            context = null!;
+            State = ProcessorState.Idle;
+        }
+
+        /// <summary>
+        /// For testing.
+        /// </summary>
+        /// <param name="arc"></param>
+        /// <param name="settings"></param>
+        internal void ProcessArchive(DPArchive arc, DPProcessSettings settings)
+        {
+            validateProcessSettings(ref settings);
+            settingsToUse = settings;
+            cancel = false;
+            context = ContextFactory.CreateContext(setupScope(settings), new DriveInfo(settings.DestinationPath));
+            CurrentArchive = arc;
+            processArchiveInternal(arc, settings);
+            context = null!;
+            State = ProcessorState.Idle;
+        }
+
+        /// <summary>
+        /// Validates the <see cref="DPProcessSettings"/> object and throws an exception for any non-nullable properties that are null
+        /// and defaults any nullable, null properties to their default values.
+        /// </summary>
+        /// <param name="settings">The settings to check and manipulate (will modify if nullable, null properties are detected)./></param>
+        private static void validateProcessSettings(ref DPProcessSettings settings)
+        {
+            ArgumentNullException.ThrowIfNull(settings.DestinationPath, nameof(settings.DestinationPath));
+            ArgumentNullException.ThrowIfNull(settings.TempPath, nameof(settings.TempPath));
+            ArgumentNullException.ThrowIfNull(settings.ForceFileToDest, nameof(settings.ForceFileToDest));
+            settings.ContentRedirectFolders ??= new(DefaultRedirects, StringComparer.OrdinalIgnoreCase);
+            settings.ContentFolders ??= new(DefaultContentFolders, StringComparer.OrdinalIgnoreCase);
+        }
+
+        /// <summary>
+        /// Creates a scope based off of DPProcessSettings.
+        /// </summary>
+        /// <returns></returns>
+        private static DPFileScopeSettings setupScope(DPProcessSettings settings)
+        {
+            var list = new List<string>(settings.ContentFolders!.Count + settings.ContentRedirectFolders!.Count + 1);
+            list.AddRange(settings.ContentFolders.Select(x => Path.Combine(settings.DestinationPath, x)));
+            list.AddRange(settings.ContentRedirectFolders.Select(x => Path.Combine(settings.DestinationPath, x.Value)));
+            list.Add(settings.TempPath);
+            var filesToAllow = new List<string>(settings.ForceFileToDest.Values);
+            return new DPFileScopeSettings(filesToAllow, list, false, false, true, false);
+        }
+
+        private void UpdateRelativePaths()
+        {
+            foreach (DPFile content in CurrentArchive.RootContents)
+                content.RelativePathToContentFolder = content.RelativeTargetPath = content.Path;
+            foreach (DPFolder folder in CurrentArchive.Folders.Values)
                 folder.UpdateChildrenRelativePaths(settingsToUse);
         }
 
-        public static void DetermineFilesToExtract(DPAbstractArchive archive)
+        private HashSet<DPFile> DetermineFilesToExtract()
         {
             // Handle Manifest first.
-            if (archive.ManifestFile != null && archive.ManifestFile.WasExtracted)
+            var filesToExtract = new HashSet<DPFile>(CurrentArchive.Contents.Count);
+            DetermineFromManifests(filesToExtract);
+            // Determine via file sense next.
+            DetermineViaFileSense(filesToExtract);
+            return filesToExtract;
+        }
+
+        private void DetermineFromManifests(HashSet<DPFile> filesToExtract)
+        {
+            if (settingsToUse.InstallOption != InstallOptions.ManifestAndAuto && settingsToUse.InstallOption != InstallOptions.ManifestOnly) return;
+            foreach (DPDSXFile? manifest in CurrentArchive!.ManifestFiles.Where(f => f.Extracted))
             {
-                if (settingsToUse.handleInstallation == InstallOptions.ManifestAndAuto ||
-                    settingsToUse.handleInstallation == InstallOptions.ManifestOnly)
+                Dictionary<string, string> manifestDestinations = manifest.GetManifestDestinations();
+
+                foreach (DPFile file in CurrentArchive.Contents.Values)
                 {
-                    var manifest = archive.ManifestFile;
-                    var manifestDestinations = manifest.GetManifestDestinations();
-
-                    foreach (var file in archive.Contents)
+                    try
                     {
-                        if (manifestDestinations.ContainsKey(file.Path))
-                        {
-                            try
-                            {
-                                file.TargetPath = GetTargetPath(file, overridePath: manifestDestinations[file.Path]);
-                                file.WillExtract = true;
-                                // TO DO: Add directories if does not exist.
-                                Directory.CreateDirectory(Path.GetDirectoryName(file.TargetPath));
-                            }
-                            catch (Exception ex) {
-                                DPCommon.WriteToLog($"An error occured while attempting to create directory. REASON: {ex}");
-                                file.errored = true;
-                            }
-                        }
-                        else
-                        {
-                            file.WillExtract = settingsToUse.handleInstallation != InstallOptions.ManifestOnly;
-                        }
+                        if (!manifestDestinations.ContainsKey(file.Path) || filesToExtract.Contains(file)) continue;
+                        file.TargetPath = GetTargetPath(file, overridePath: manifestDestinations[file.Path]);
+                        filesToExtract.Add(file);
+                    } catch (Exception ex)
+                    {
+                        Logger.Error("Failed to determine file to extract: {0}", file.Path);
+                        Logger.Debug("File information: {@0}", file);
                     }
-                }
 
+                    //else
+                    //{
+                    //    file.WillExtract = settingsToUse.InstallOption != InstallOptions.ManifestOnly;
+                    //}
+                }
             }
-            if (settingsToUse.handleInstallation == InstallOptions.Automatic || settingsToUse.handleInstallation == InstallOptions.ManifestAndAuto)
+        }
+
+        private void DetermineViaFileSense(HashSet<DPFile> filesToExtract)
+        {
+
+            if (settingsToUse.InstallOption != InstallOptions.Automatic && settingsToUse.InstallOption != InstallOptions.ManifestAndAuto) return;
+            // Get contents where file was not extracted.
+            Dictionary<string, DPFolder>.ValueCollection folders = CurrentArchive.Folders.Values;
+
+            foreach (DPFolder folder in folders)
             {
-                // Get contents where file was not extracted.
-                var folders = archive.Folders.Values.ToArray();
-                foreach (var folder in folders)
-                {
-                    // TO DO: Check if folder is a subfolder of a folder that is a content folder.
-                    if (folder.isContentFolder || folder.isPartOfContentFolder)
-                    {
-                        // Update children's relative path.
-                        folder.UpdateChildrenRelativePaths(settingsToUse);
+                if (!folder.IsContentFolder && !folder.IsPartOfContentFolder) continue;
+                // Update children's relative path.
+                folder.UpdateChildrenRelativePaths(settingsToUse);
 
-                        foreach (var child in folder.GetFiles())
-                        {
-                            // Get destination path.
-                            var dPath = GetTargetPath(child);
-                            // Update child destination path.
-                            child.TargetPath = dPath;
-                            child.WillExtract = true;
-                        }
-                    }
+                foreach (DPFile child in folder.Contents)
+                {
+                    //Get destination path and update child destination path.
+                    child.TargetPath = GetTargetPath(child);
+
+                    filesToExtract.Add(child);
                 }
-                // Now hunt down all files in folders that aren't in content folders.
-                foreach (var folder in folders)
+            }
+            // Now hunt down all files in folders that aren't in content folders.
+            foreach (DPFolder folder in folders)
+            {
+                if (folder.IsContentFolder) continue;
+                // Add all archives to the inner archives to process for later processing.
+                foreach (DPFile file in folder.Contents)
                 {
-                    if (folder.isContentFolder) continue;
-                    // Add all archives to the inner archives to process for later processing.
-                    foreach (var file in folder.GetFiles())
-                    {
-                        if (file is DPAbstractArchive)
-                        {
-                            var arc = (DPAbstractArchive)file;
-                            arc.WillExtract = true;
-                            arc.TargetPath = GetTargetPath(arc, true);
-                            // Add to queue.
-                            workingArchive.publicArchives.Add(arc);
-                        }
-                    }
-                }
-
-                // Hunt down all files in root content.
-
-                foreach (var content in archive.RootContents)
-                {
-                    if (content is DPAbstractArchive)
-                    {
-                        var arc = (DPAbstractArchive)content;
-                        arc.WillExtract = true;
-                        arc.TargetPath = GetTargetPath(arc, true);
-                        // Add to queue.
-                        workingArchive.publicArchives.Add(arc);
-                    }
+                    if (file is not DPArchive arc) continue;
+                    arc.TargetPath = GetTargetPath(arc, true);
+                    // Add to queue.
+                    CurrentArchive.Subarchives.Add(arc);
+                    filesToExtract.Add(arc);
                 }
             }
 
+            // Hunt down all files in root content.
+
+            foreach (DPFile content in CurrentArchive.RootContents)
+            {
+                if (content is not DPArchive arc) continue;
+                arc.TargetPath = GetTargetPath(arc, true);
+                // Add to queue.
+                CurrentArchive.Subarchives.Add(arc);
+                filesToExtract.Add(arc);
+            }
         }
 
         /// <summary>
@@ -347,98 +370,250 @@ namespace DAZ_Installer.Core
         /// <param name="saveToTemp">Determines whether to get a target path saving to a temporary location.</param>
         /// <param name="overridePath">The path to combine with instead of usual combining. </param>
         /// <returns>The target path for the specified file. </returns>
-        private static string GetTargetPath(DPAbstractFile file, bool saveToTemp = false, string overridePath = null)
+        private string GetTargetPath(DPAbstractNode file, bool saveToTemp = false, string? overridePath = null)
         {
             var filePathPart = !string.IsNullOrEmpty(overridePath) ? overridePath : file.RelativeTargetPath;
 
-            if (file.Parent is null || !settingsToUse.folderRedirects.ContainsKey(Path.GetFileName(file.Parent.Path)))
+            if (file.Parent is null || !settingsToUse.ContentRedirectFolders!.ContainsKey(Path.GetFileName(file.Parent.Path)))
                 return Path.Combine(saveToTemp ? TempLocation : DestinationPath, filePathPart);
 
-            return Path.Combine(saveToTemp ? TempLocation : DestinationPath, 
+            return Path.Combine(saveToTemp ? TempLocation : DestinationPath,
                 file.RelativeTargetPath ?? file.Parent.CalculateChildRelativeTargetPath(file, settingsToUse));
         }
-        // TODO: Handle situations where the destination no longer exists or has no access.
-        private static bool DestinationHasEnoughSpace() {
-            var destinationDrive = new DriveInfo(Path.GetPathRoot(DestinationPath));
-            return (ulong) destinationDrive.AvailableFreeSpace > workingArchive.TrueArchiveSize;
-        }
-        // TODO: Handle situations where the destination no longer exists or has no access.
-        private static bool TempHasEnoughSpace() {
-            var tempDrive = new DriveInfo(Path.GetPathRoot(TempLocation));
-            return (ulong) tempDrive.AvailableFreeSpace > workingArchive.TrueArchiveSize;
-        }
 
-        private static void DetermineContentFolders(DPAbstractArchive archiveFile)
+        private bool DestinationHasEnoughSpace() => (ulong)context.AvailableFreeSpace > CurrentArchive.TrueArchiveSize;
+       
+        private bool TempHasEnoughSpace() => (ulong)ContextFactory.CreateContext(context.Scope,
+            new DriveInfo(Path.GetPathRoot(TempLocation)!)).AvailableFreeSpace > CurrentArchive.TrueArchiveSize;
+
+        private void DetermineContentFolders()
         {
             // A content folder is a folder whose name is contained in the user's common content folders list
             // or in their folder redirects map.
 
 
             // Prepare sort so that the first elements in folders are the ones at root.
-            var folders = archiveFile.Folders.Values.ToArray();
+            DPFolder[] folders = CurrentArchive.Folders.Values.ToArray();
             var foldersKeys = new byte[folders.Length];
 
-            for (int i = 0; i < foldersKeys.Length; i++)
+            for (var i = 0; i < foldersKeys.Length; i++)
             {
-                foldersKeys[i] = PathHelper.GetNumOfLevels(folders[i].Path);
+                foldersKeys[i] = PathHelper.GetSubfoldersCount(folders[i].Path);
             }
-            
+
             // Elements at the beginning are folders at root levels.
             Array.Sort(foldersKeys, folders);
 
-            foreach (var folder in folders)
+            foreach (DPFolder? folder in folders)
             {
                 var folderName = Path.GetFileName(folder.Path);
-                var elgibleForContentFolderStatus = settingsToUse.commonContentFolderNames.Contains(folderName) || 
-                                                    settingsToUse.folderRedirects.ContainsKey(folderName);
+                var elgibleForContentFolderStatus = settingsToUse.ContentFolders.Contains(folderName) ||
+                                                    settingsToUse.ContentRedirectFolders.ContainsKey(folderName);
                 if (folder.Parent is null)
-                    folder.isContentFolder = elgibleForContentFolderStatus;
+                    folder.IsContentFolder = elgibleForContentFolderStatus;
                 else
                 {
-                    if (folder.Parent.isContentFolder || folder.Parent.isPartOfContentFolder) continue;
-                    folder.isContentFolder = elgibleForContentFolderStatus;
+                    if (folder.Parent.IsContentFolder || folder.Parent.IsPartOfContentFolder) continue;
+                    folder.IsContentFolder = elgibleForContentFolderStatus;
                 }
             }
         }
 
 
         // TODO: Clear temp needs to remove as much space as possible. It will error when we have file handles.
-        public static void ClearTemp() {
-            try {
-                // Note: UnauthorizedAccess is called when a file has the read-only attribute.
-                // TODO: Async call to change file attributes and delete them.
-                if (Directory.Exists(TempLocation)) {
-                    Directory.Delete(TempLocation, true);
-                    DPCommon.WriteToLog("Deleted temp files");
-                }
-            } catch {}
+        private void ClearTemp()
+        {
+            Logger.Information("Clearing temp location at {TempLocation}", TempLocation);
+            var tempCtx = ContextFactory.CreateContext(new DPFileScopeSettings(Array.Empty<string>(), new[] { TempLocation }, false, throwOnPathTransversal: true));
+            IDPDirectoryInfo info = context.CreateDirectoryInfo(TempLocation);
+            if (!TryHelper.Try(() => info.Delete(true), out Exception? ex))
+                Logger.Error(ex, "Failed to clear temp location");
+            else Logger.Information("Cleared temp location");
         }
 
-        private static void PrepareOperations(DPAbstractArchive archive) {
+        private void prepareOperations()
+        {
+            Logger.Information("Preparing operations");
+            while (!cancel && !TempHasEnoughSpace())
+            {
+                ClearTemp();
+                if (TempHasEnoughSpace()) break;
+                Logger.Warning("Temp location does not have enough space after clearing temp, requesting for an action");
+                // Requires user help.
+                var args = new DPProcessorErrorArgs(null, "Temp location does not have enough space");
+                args.Continuable = true;
+                EmitOnProcessError(args);
+                
+            }
+            ReadMetaFiles(settingsToUse);
+        }
 
-            if (!archive.CanReadWithoutExtracting) {
-                if (!TempHasEnoughSpace()) {
-                    ClearTemp();
-                    if (!TempHasEnoughSpace()) {
-                        DPCommon.WriteToLog("Temp location does not have enough space. Operation aborted.");
-                        return;
-                    } else {
-                        workingArchive.ReadMetaFiles();
+        private void HandleEarlyExit()
+        {
+            State = ProcessorState.Idle;
+            EmitOnArchiveExit(false, null);
+        }
+
+        private bool HandleOnDestinationNotEnoughSpace()
+        {
+            if (DestinationHasEnoughSpace()) return true;
+            while (!cancel || !DestinationHasEnoughSpace())
+            {
+                var args = new DPProcessorErrorArgs(null, "Destination does not have enough space.");
+                args.Continuable = true;
+                EmitOnProcessError(args);
+                cancel = args.CancelOperation;
+            }
+            return !cancel || DestinationHasEnoughSpace();
+        }
+
+        private void GetTags(DPProcessSettings settings)
+        {
+            // First is always author.
+            // Next is folder names.
+            ReadContentFiles(settings);
+            ReadMetaFiles(settings);
+            var tagsSet = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            tagsSet.EnsureCapacity(CurrentArchive.GetEstimateTagCount() + 5 +
+                (CurrentArchive.Folders.Count * 2) + ((CurrentArchive.Contents.Count - CurrentArchive.Subarchives.Count) * 2));
+            foreach (DPDazFile file in CurrentArchive.DazFiles)
+            {
+                DPContentInfo contentInfo = file.ContentInfo;
+                if (contentInfo.Website.Length != 0) tagsSet.Add(contentInfo.Website);
+                if (contentInfo.Email.Length != 0) tagsSet.Add(contentInfo.Email);
+                tagsSet.UnionWith(contentInfo.Authors);
+            }
+            foreach (DPFile content in CurrentArchive.Contents.Values)
+            {
+                if (content is DPArchive) continue;
+                tagsSet.UnionWith(Path.GetFileNameWithoutExtension(content.FileName).Split(' '));
+            }
+            foreach (KeyValuePair<string, DPFolder> folder in CurrentArchive.Folders)
+            {
+                tagsSet.UnionWith(PathHelper.GetFileName(folder.Key).Split(' '));
+            }
+            tagsSet.UnionWith(CurrentArchive.ProductInfo.Authors);
+            tagsSet.UnionWith(DPArchive.RegexSplitName(CurrentArchive.ProductInfo.ProductName));
+            if (CurrentArchive.ProductInfo.SKU.Length != 0) tagsSet.Add(CurrentArchive.ProductInfo.SKU);
+            if (CurrentArchive.ProductInfo.ProductName.Length != 0) tagsSet.Add(CurrentArchive.ProductInfo.ProductName);
+            CurrentArchive.ProductInfo.Tags = tagsSet;
+        }
+        /// <summary>
+        /// Reads files that have the extension .dsf and .duf after it has been extracted. 
+        /// </summary>
+        private void ReadContentFiles(DPProcessSettings settings)
+        {
+            // Extract the DAZ Files that have not been extracted.
+            var extractSettings = new DPExtractSettings(settings.TempPath,
+                CurrentArchive!.DazFiles.Where((f) => f.FileInfo is null || !f.FileInfo.Exists),
+                true, CurrentArchive);
+            if (extractSettings.FilesToExtract.Count > 0) CurrentArchive.ExtractToTemp(extractSettings);
+            Stream? stream = null;
+            // Read the contents of the files.
+            foreach (DPDazFile file in CurrentArchive!.DazFiles)
+            {
+                // If it did not extract correctly we don't have acces, just skip it.
+                if (file.FileInfo is null || !file.FileInfo.Exists)
+                {
+                    EmitOnProcessError(new DPProcessorErrorArgs(null, $"{file.Path} does not exist on disk (or does not have access to it)."));
+                    continue;
+                }
+                try
+                {
+                    if (!file.FileInfo!.TryAndFixOpenRead(out stream, out Exception? ex))
+                    {
+                        EmitOnProcessError(new DPProcessorErrorArgs(ex, $"Failed to open read stream for file: {file.Path}"));
+                        continue;
+                    }
+                    if (stream is null)
+                    {
+                        EmitOnProcessError(new DPProcessorErrorArgs(null, $"OpenRead returned successful but also returned null stream, skipping {file.Path}"));
+                        continue;
+                    }
+                    if (stream.ReadByte() == 0x1F && stream.ReadByte() == 0x8B)
+                    {
+                        // It is gzipped compressed.
+                        stream.Seek(0, SeekOrigin.Begin);
+                        using var gstream = new GZipStream(stream, CompressionMode.Decompress);
+                        using var streamReader = new StreamReader(gstream, Encoding.UTF8, true);
+                        file.ReadContents(streamReader);
+                    }
+                    else
+                    {
+                        // It is normal text.
+                        stream.Seek(0, SeekOrigin.Begin);
+                        using var streamReader = new StreamReader(stream, Encoding.UTF8, true);
+                        file.ReadContents(streamReader);
                     }
                 }
-            } else {
-                workingArchive.ReadMetaFiles();
+                catch (Exception ex)
+                {
+                    EmitOnProcessError(new DPProcessorErrorArgs(ex, $"Unable to read contents of {file}"));
+                }
+                finally
+                {
+                    stream?.Dispose();
+                }
             }
         }
-
-        private static void HandleEarlyExit(DPAbstractArchive archive)
+        /// <summary>
+        /// Reads the files listed in <see cref="DPArchive.DSXFiles"/>.
+        /// </summary>
+        private void ReadMetaFiles(DPProcessSettings settings)
         {
-            archive.ProgressCombo?.Remove();
-            try
+            // Extract the DAZ Files that have not been extracted.
+            var extractSettings = new DPExtractSettings(settings.TempPath,
+                CurrentArchive!.DazFiles.Where((f) => f.FileInfo is null || !f.FileInfo.Exists),
+                true, CurrentArchive);
+            CurrentArchive.ExtractContentsToTemp(extractSettings);
+            Stream? stream = null!;
+            foreach (DPDSXFile file in CurrentArchive!.DSXFiles.Where(x => x.FileName != "Manifest.dsx" && x.FileName != "Supplement.dsx"))
             {
-                archive.ReleaseArchiveHandles();
+                using (LogContext.PushProperty("File", file.Path))
+                // If it did not extract correctly we don't have acces, just skip it.
+                if (file.FileInfo is null || !file.FileInfo.Exists)
+                {
+                    Logger.Warning("FileInfo was null or returned does not exist, skipping file to read meta data", file.Path);
+                    Logger.Debug("FileInfo is null: {0}, FileInfo exists: {1}", file.FileInfo is null, file?.FileInfo?.Exists);
+                    continue;
+                }
+                try
+                {
+                    if (!file.FileInfo!.TryAndFixOpenRead(out stream, out Exception? ex))
+                    {
+                        EmitOnProcessError(new DPProcessorErrorArgs(ex, $"Failed to open read stream for file for reading meta: {file.Path}"));
+                        continue;
+                    }
+                    if (stream is null)
+                    {
+                        EmitOnProcessError(new DPProcessorErrorArgs(null, $"OpenRead returned successful but also returned null stream, skipping {file.Path}"));
+                        continue;
+                    }
+                    if (stream.ReadByte() == 0x1F && stream.ReadByte() == 0x8B)
+                    {
+                        // It is gzipped compressed.
+                        stream.Seek(0, SeekOrigin.Begin);
+                        using var gstream = new GZipStream(stream, CompressionMode.Decompress);
+                        using var streamReader = new StreamReader(gstream, Encoding.UTF8, true);
+                        file.CheckContents(streamReader);
+                    }
+                    else
+                    {
+                        // It is normal text.
+                        stream.Seek(0, SeekOrigin.Begin);
+                        using var streamReader = new StreamReader(stream, Encoding.UTF8, true);
+                        file.CheckContents(streamReader);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    EmitOnProcessError(new DPProcessorErrorArgs(ex, $"Unable to read contents of {file.Path}"));
+                }
+                finally
+                {
+                    stream?.Dispose();
+                }
             }
-            catch { }   
         }
     }
 }

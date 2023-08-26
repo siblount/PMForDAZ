@@ -1,0 +1,17 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <MSBuildAllProjects Condition="'$(MSBuildVersion)' == '' Or '$(MSBuildVersion)' &lt; '16.0'">$(MSBuildAllProjects);$(MSBuildThisFileFullPath)</MSBuildAllProjects>
+    <HasSharedItems>true</HasSharedItems>
+    <SharedGUID>b52a5c81-d9c5-4b68-a117-b0aec3dd5d17</SharedGUID>
+  </PropertyGroup>
+  <PropertyGroup Label="Configuration">
+    <Import_RootNamespace>DAZ_Installer.Common</Import_RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="$(MSBuildThisFileDirectory)MSTestLoggerSink.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)SerilogLoggerConstants.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)SpanExtensions.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)TryHelper.cs" />
+  </ItemGroup>
+</Project>

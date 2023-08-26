@@ -110,7 +110,7 @@ namespace DAZ_Installer
 
         private System.Windows.Forms.Panel mainContentPanel;
         private PageButtonControl pageButtonControl1;
-        internal System.Windows.Forms.Panel buttonsContainer;
+        public System.Windows.Forms.Panel buttonsContainer;
         private System.Windows.Forms.ContextMenuStrip contextMenuStrip1;
         private System.Windows.Forms.ToolStripMenuItem createNewRecordToolStripMenuItem;
     }

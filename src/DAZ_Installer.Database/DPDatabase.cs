@@ -1,6 +1,8 @@
 ﻿// This code is licensed under the Keep It Free License V1.
 // You may find a full copy of this license at root project directory\LICENSE
 
+using DAZ_Installer.Core;
+using Serilog;
 using System.Data;
 using System.Data.SQLite;
 
@@ -10,7 +12,7 @@ namespace DAZ_Installer.Database
     /// This class will handle all database operations such as initializing the database, creating tables, rows, deleting, etc.
     /// Database will be run on a different thread aside from the main thread.
     /// </summary>
-    public static partial class DPDatabase
+    public partial class DPDatabase
     // SELECT * FROM ProductRecords WHERE ID IN(SELECT "Product Record ID" FROM TAGS WHERE Tag IN ("Run"))
     // Internal methods with suffix 'Q' are methods that can be queued to the TaskScheduler. 
     // Some can be executed immediately, such as RefreshDatabase.
@@ -29,93 +31,101 @@ namespace DAZ_Installer.Database
     // TODO: Tool to use backup database.
     {   // TODO : Hold last transcations.
         // Public
-        public static bool DatabaseExists { get; private set; } = false;
-        public static bool Initalized { get; private set; } = false;
-        public static string[] tableNames;
+        public ILogger Logger { get; set; } = Log.Logger;
+        public bool DatabaseExists { get; private set; } = false;
+        public bool Initalized { get; private set; } = false;
+        public string[] tableNames;
 
-        public static uint ProductRecordCount { get; private set; } = 0;
-        public static uint ExtractionRecordCount { get; private set; } = 0;
-        public static HashSet<string> ArchiveFileNames { get; private set; } = new HashSet<string>();
+        public uint ProductRecordCount { get; private set; } = 0;
+        public uint ExtractionRecordCount { get; private set; } = 0;
+        public HashSet<string> ArchiveFileNames { get; private set; } = new HashSet<string>();
 
         // Events
         /// <summary>
         /// This event is invoked whenever a Search function has completed searching whether any results were found or not.
         /// </summary>
-        public static event Action<DPProductRecord[], uint> SearchUpdated;
+        public event Action<DPProductRecord[], uint>? SearchUpdated;
         /// <summary>
         /// This event is invoked whenever the database schema, database connection status, or other database configurations have been changed.
         /// </summary>
-        public static event Action DatabaseUpdated;
+        public event Action? DatabaseUpdated;
         /// <summary>
         /// This event is invoked whenever a table has been updated; updated being having rows, columns removed, modified, or added.
         /// </summary>
-        public static event Action<string> TableUpdated;
+        public event Action<string>? TableUpdated;
         /// <summary>
         /// This event is invoked whenever a request to view the table of the database has been called and successfully finished the request.
         /// </summary>
-        public static event Action<DataSet, uint> ViewUpdated;
+        public event Action<DataSet, uint>? ViewUpdated;
         /// <summary>
         /// This event is currently not being used.
         /// </summary>
-        public static event Action<DPProductRecord[], uint> LibraryQueryCompleted;
+        public event Action<DPProductRecord[], uint>? LibraryQueryCompleted;
         /// <summary>
         /// This event is invoked whenever requesting for an extraction record has been successfully completed.
         /// </summary>
-        public static event Action<DPExtractionRecord, uint> RecordQueryCompleted;
+        public event Action<DPExtractionRecord, uint>? RecordQueryCompleted;
         /// <summary>
         /// This event is invoked whenever a library query has been completed regardless if it yields any product records or not.
         /// </summary>
-        public static event Action<uint> MainQueryCompleted;
+        public event Action<uint>? MainQueryCompleted;
 
         // Product Record events
         /// <summary>
         /// This event is invoked whenever a product record has been removed (aside from when the table has been cleared).
         /// </summary>
-        public static event Action<uint> ProductRecordRemoved;
+        public event Action<uint>? ProductRecordRemoved;
         /// <summary>
         /// This event is invoked whenever a product record has been modified.
         /// </summary>
-        public static event Action<DPProductRecord, uint> ProductRecordModified;
+        public event Action<DPProductRecord, uint>? ProductRecordModified;
         /// <summary>
         /// This event is invoked whenever a new product record has been added.
         /// </summary>
-        public static event Action<DPProductRecord, uint> ProductRecordAdded;
+        public event Action<DPProductRecord, uint>? ProductRecordAdded;
 
         /// <summary>
         /// This event is invoked whenever an extraction record has been removed (aside from when the table has been cleared).
         /// </summary>
-        public static event Action<uint> ExtractionRecordRemoved;
+        public event Action<uint>? ExtractionRecordRemoved;
         /// <summary>
         /// This event is invoked whenever a extraction record has been modified.
         /// </summary>
-        public static event Action<DPExtractionRecord?, uint> ExtractionRecordModified;
+        public event Action<DPExtractionRecord?, uint>? ExtractionRecordModified;
         /// <summary>
         /// This event is invoked whenever a new extraction record has been added.
         /// </summary>
-        public static event Action<DPExtractionRecord> ExtractionRecordAdded;
+        public event Action<DPExtractionRecord>? ExtractionRecordAdded;
         /// <summary>
         /// This event is invoked whenever all of the records have been removed from the database.
         /// </summary>
-        public static event Action RecordsCleared;
+        public event Action? RecordsCleared;
+        /// <summary>
+        /// The path of the database to use. Default is: <c>%TEMP%\db.db</c>.
+        /// </summary>
+        public string Path { get; init; } = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "db.db");
 
-        private static string _expectedDatabasePath { get => Path.Join(DPSettings.databasePath, "db.db"); }
+        //private string _expectedDatabasePath => Path.Join(DPSettings.databasePath, "db.db");
 
         // Main task manager...
 
-        private static DPTaskManager _mainTaskManager = new DPTaskManager();
+        private DPTaskManager _mainTaskManager = new();
 
-        private static DPTaskManager _priorityTaskManager = new DPTaskManager();
+        private DPTaskManager _priorityTaskManager = new();
 
         // Task state.
         private const byte DATABASE_VERSION = 2;
-        private static bool _initializing = false;
-
-        // Cache :D
-        // TODO: Limit cache to 5.
-        // Might remove to keep low-memory profile.
-        private readonly static DPCache<string, string[]> _columnsCache = new();
-
-        static DPDatabase() => Initialize();
+        private bool _initializing = false;
+        ~DPDatabase()
+        {
+            StopAllDatabaseOperations();
+        }
+        public DPDatabase(string path)
+        {
+            if (!path.EndsWith(".db")) throw new ArgumentException("Database path must end with .db");
+            Path = path;
+            Initialize();
+        }
 
         #region Private methods
         /// <summary>
@@ -125,7 +135,7 @@ namespace DAZ_Installer.Database
         /// to initalize. Otherwise, it will return true indicating it initalized successfully.
         /// </summary>
         /// <returns>True if initalization was successful, otherwise false.</returns>
-        private static bool Initialize()
+        private bool Initialize()
         {
             // If another thread is initalizing, wait for it to initalize or wait 10 secs max.
             try
@@ -133,31 +143,32 @@ namespace DAZ_Installer.Database
                 if (_initializing)
                     SpinWait.SpinUntil(() => _initializing = false, 10000);
                 // Timeout throws an error, if we timed out intialized failed.
-            } catch { return false; }
+            }
+            catch { return false; }
 
             if (Initalized) return true;
             _initializing = true;
             try
             {
                 // Check if database exists.
-                DatabaseExists = File.Exists(_expectedDatabasePath);
+                DatabaseExists = File.Exists(Path);
                 // TODO: Check if const database version is higher than the one in the database.
                 if (!DatabaseExists)
                 {
                     // Create the database.
                     CreateDatabase();
                     // Update database info.
-                    using var connection = CreateInitialConnection();
+                    using SQLiteConnection? connection = CreateInitialConnection();
                     if (connection == null) return false;
                     InsertDefaultValuesToTable("DatabaseInfo", connection, CancellationToken.None);
                 }
                 DatabaseUpdated?.Invoke();
-                DPGlobal.AppClosing += OnAppClose;
                 Initalized = true;
                 tableNames = GetTables(null, CancellationToken.None);
-            } catch (Exception ex)
+            }
+            catch (Exception ex)
             {
-                DPCommon.WriteToLog($"An error occurred while initializing. REASON: {ex}");
+                // DPCommon.WriteToLog($"An error occurred while initializing. REASON: {ex}");
                 _initializing = false;
                 return false;
             }
@@ -170,7 +181,7 @@ namespace DAZ_Installer.Database
         /// <param name="readOnly">Determines if the connection should be a read-only
         /// connection or not.</param>
         /// <returns>An SQLiteConnection if successfully created otherwise null.</returns>
-        private static SQLiteConnection? CreateConnection(bool readOnly = false)
+        private SQLiteConnection? CreateConnection(bool readOnly = false)
         {
             if (!Initalized)
             {
@@ -179,16 +190,17 @@ namespace DAZ_Installer.Database
             }
             try
             {
-                var connection = new SQLiteConnection();
-                var builder = new SQLiteConnectionStringBuilder();
-                builder.DataSource = Path.GetFullPath(_expectedDatabasePath);
+                SQLiteConnection connection = new();
+                SQLiteConnectionStringBuilder builder = new();
+                builder.DataSource = System.IO.Path.GetFullPath(Path);
                 builder.Pooling = true;
                 builder.ReadOnly = readOnly;
                 connection.ConnectionString = builder.ConnectionString;
-                return connection; 
-            } catch (Exception e)
+                return connection;
+            }
+            catch (Exception e)
             {
-                DPCommon.WriteToLog($"Failed to create connection. REASON: {e}");
+                // DPCommon.WriteToLog($"Failed to create connection. REASON: {e}");
             }
             return null;
         }
@@ -196,20 +208,20 @@ namespace DAZ_Installer.Database
         /// Creates and returns a connection with the connection string setup. Should only be used for the Initialization function.
         /// </summary>
         /// <returns>An SQLiteConnection if successfully created, otherwise null.</returns>
-        private static SQLiteConnection? CreateInitialConnection()
+        private SQLiteConnection? CreateInitialConnection()
         {
             try
             {
-                var connection = new SQLiteConnection();
-                var builder = new SQLiteConnectionStringBuilder();
-                builder.DataSource = Path.GetFullPath(_expectedDatabasePath);
+                SQLiteConnection connection = new();
+                SQLiteConnectionStringBuilder builder = new();
+                builder.DataSource = System.IO.Path.GetFullPath(Path);
                 builder.Pooling = true;
                 connection.ConnectionString = builder.ConnectionString;
                 return connection;
             }
             catch (Exception e)
             {
-                DPCommon.WriteToLog($"Failed to create connection. REASON: {e}");
+                // DPCommon.WriteToLog($"Failed to create connection. REASON: {e}");
             }
             return null;
         }
@@ -224,9 +236,9 @@ namespace DAZ_Installer.Database
         /// <returns>The connection passed if it isn't null and was successfully opened. 
         /// Otherwise, a new connection is passed if it was successfully opened. Otherwise,
         /// null is returned.</returns>
-        private static SQLiteConnection? CreateAndOpenConnection(SQLiteConnection? connection, bool readOnly = false)
+        private SQLiteConnection? CreateAndOpenConnection(SQLiteConnection? connection, bool readOnly = false)
         {
-            var c = connection ?? CreateConnection(readOnly);
+            SQLiteConnection? c = connection ?? CreateConnection(readOnly);
             var success = OpenConnection(c);
             return success ? c : null;
         }
@@ -237,7 +249,7 @@ namespace DAZ_Installer.Database
         /// </summary>
         /// <param name="connection">The connection to open.</param>
         /// <returns>True if the connection opened successfully, otherwise false.</returns>
-        private static bool OpenConnection(SQLiteConnection connection)
+        private bool OpenConnection(SQLiteConnection? connection)
         {
             if (connection == null) return false;
             if (connection.State != ConnectionState.Closed) return true;
@@ -245,9 +257,10 @@ namespace DAZ_Installer.Database
             {
                 connection.Open();
                 return true;
-            } catch (Exception ex)
+            }
+            catch (Exception ex)
             {
-                DPCommon.WriteToLog($"Failed to open connection. REASON: {ex}");
+                // DPCommon.WriteToLog($"Failed to open connection. REASON: {ex}");
             }
             return false;
         }
@@ -255,13 +268,13 @@ namespace DAZ_Installer.Database
         /// <summary>
         /// Creates a new database file and sets it up for use.
         /// </summary>
-        private static void CreateDatabase()
+        private void CreateDatabase()
         {
-            
-            if (!Directory.Exists(_expectedDatabasePath))
-                Directory.CreateDirectory(Path.GetDirectoryName(_expectedDatabasePath));
 
-            SQLiteConnection.CreateFile(_expectedDatabasePath);
+            if (!Directory.Exists(Path))
+                Directory.CreateDirectory(System.IO.Path.GetDirectoryName(Path)!);
+
+            SQLiteConnection.CreateFile(Path);
             // Create tables, indexes, and triggers.
             CreateTables();
             CreateIndexes();
@@ -274,9 +287,9 @@ namespace DAZ_Installer.Database
         /// Does not check if they exist. May throw an error if the tables already exist.
         /// </summary>
         /// <returns>Whether creating tables was a success.</returns>
-        private static bool CreateTables()
+        private bool CreateTables()
         {
-            
+
             const string createProductRecordsCommand = @"
             CREATE TABLE ""ProductRecords"" (
 
@@ -312,7 +325,7 @@ namespace DAZ_Installer.Database
                 ""Result Product IDs""    TEXT,
 	            PRIMARY KEY(""Search String"")
             ); ";
-            string createDatabaseInfoCommand = $@"
+            var createDatabaseInfoCommand = $@"
             CREATE TABLE ""DatabaseInfo"" (
 
                 ""Version""   INTEGER NOT NULL DEFAULT {DATABASE_VERSION},
@@ -326,23 +339,23 @@ namespace DAZ_Installer.Database
             )";
             try
             {
-                using (var connection = CreateInitialConnection())
-                {
-                    var success = OpenConnection(connection);
-                    if (!success) return false;
-                    var createCommand = new SQLiteCommand(createProductRecordsCommand, connection);
-                    createCommand.ExecuteNonQuery();
-                    createCommand.CommandText = createExtractionRecordsCommand;
-                    createCommand.ExecuteNonQuery();
-                    createCommand.CommandText = createCachedSearchCommand;
-                    createCommand.ExecuteNonQuery();
-                    createCommand.CommandText = createDatabaseInfoCommand;
-                    createCommand.ExecuteNonQuery();
-                    createCommand.CommandText = createTagsCommand;
-                    createCommand.ExecuteNonQuery();
-                }
-            } catch (Exception ex) {
-                DPCommon.WriteToLog($"An error occurred while attempting to create database. REASON: {ex}");
+                using SQLiteConnection? connection = CreateInitialConnection();
+                var success = OpenConnection(connection);
+                if (!success) return false;
+                SQLiteCommand createCommand = new(createProductRecordsCommand, connection);
+                createCommand.ExecuteNonQuery();
+                createCommand.CommandText = createExtractionRecordsCommand;
+                createCommand.ExecuteNonQuery();
+                createCommand.CommandText = createCachedSearchCommand;
+                createCommand.ExecuteNonQuery();
+                createCommand.CommandText = createDatabaseInfoCommand;
+                createCommand.ExecuteNonQuery();
+                createCommand.CommandText = createTagsCommand;
+                createCommand.ExecuteNonQuery();
+            }
+            catch (Exception ex)
+            {
+                // DPCommon.WriteToLog($"An error occurred while attempting to create database. REASON: {ex}");
                 return false;
             }
             return true;
@@ -352,7 +365,7 @@ namespace DAZ_Installer.Database
         /// Does not check if they exist. May throw an error if the tables already exist.
         /// </summary>
         /// <returns>Whether creating indexes was a success.</returns>
-        private static bool CreateIndexes()
+        private bool CreateIndexes()
         {
             const string createTagToPIDCommand = @"
             CREATE INDEX ""idx_TagToPID"" ON ""Tags"" (
@@ -380,25 +393,24 @@ namespace DAZ_Installer.Database
 
             try
             {
-                using (var connection = CreateInitialConnection())
+                using (SQLiteConnection? connection = CreateInitialConnection())
                 {
                     var success = OpenConnection(connection);
                     if (!success) return false;
-                    using (var cmdObj = new SQLiteCommand(createTagToPIDCommand, connection))
-                    {
-                        cmdObj.ExecuteNonQuery();
-                        cmdObj.CommandText = createPIDtoTagCommand;
-                        cmdObj.ExecuteNonQuery();
-                        cmdObj.CommandText = createProductNameToPIDCommand;
-                        cmdObj.ExecuteNonQuery();
-                        cmdObj.CommandText = createDateCreatedToPIDCommand;
-                        cmdObj.ExecuteNonQuery();
-                    }
+                    using SQLiteCommand cmdObj = new(createTagToPIDCommand, connection);
+                    cmdObj.ExecuteNonQuery();
+                    cmdObj.CommandText = createPIDtoTagCommand;
+                    cmdObj.ExecuteNonQuery();
+                    cmdObj.CommandText = createProductNameToPIDCommand;
+                    cmdObj.ExecuteNonQuery();
+                    cmdObj.CommandText = createDateCreatedToPIDCommand;
+                    cmdObj.ExecuteNonQuery();
                 }
                 DatabaseUpdated?.Invoke();
-            } catch (Exception ex)
+            }
+            catch (Exception ex)
             {
-                DPCommon.WriteToLog($"An error occurred creating indexes. REASON: {ex}");
+                // DPCommon.WriteToLog($"An error occurred creating indexes. REASON: {ex}");
                 return false;
             }
             return true;
@@ -407,7 +419,8 @@ namespace DAZ_Installer.Database
         /// Adds the triggers required for application to properly execute into the database.
         /// </summary>
         /// <returns>Whether creating triggers was a success.</returns>
-        private static bool CreateTriggers() {
+        private bool CreateTriggers()
+        {
             const string deleteOnProductRemoveTriggerCommand =
                         @"CREATE TRIGGER IF NOT EXISTS delete_on_product_removal
                             AFTER DELETE ON ProductRecords FOR EACH ROW
@@ -442,30 +455,28 @@ namespace DAZ_Installer.Database
 
             try
             {
-                using (var connection = CreateInitialConnection())
+                using (SQLiteConnection? connection = CreateInitialConnection())
                 {
                     var success = OpenConnection(connection);
                     if (!success) return false;
-                    using (var createCommand = new SQLiteCommand(deleteOnProductRemoveTriggerCommand, connection))
-                    {
-                        createCommand.ExecuteNonQuery();
-                        createCommand.CommandText = deleteOnExtractionRemoveTriggerCommand;
-                        createCommand.ExecuteNonQuery();
-                        createCommand.CommandText = updateOnExtractionInsertionTriggerCommand;
-                        createCommand.ExecuteNonQuery();
-                        createCommand.CommandText = updateProductCountTriggerCommand;
-                        createCommand.ExecuteNonQuery();
-                    }
+                    using SQLiteCommand createCommand = new(deleteOnProductRemoveTriggerCommand, connection);
+                    createCommand.ExecuteNonQuery();
+                    createCommand.CommandText = deleteOnExtractionRemoveTriggerCommand;
+                    createCommand.ExecuteNonQuery();
+                    createCommand.CommandText = updateOnExtractionInsertionTriggerCommand;
+                    createCommand.ExecuteNonQuery();
+                    createCommand.CommandText = updateProductCountTriggerCommand;
+                    createCommand.ExecuteNonQuery();
                 }
                 DatabaseUpdated?.Invoke();
             }
             catch (Exception ex)
             {
-                DPCommon.WriteToLog($"An error occurred creating triggers. REASON: {ex}");
+                // DPCommon.WriteToLog($"An error occurred creating triggers. REASON: {ex}");
                 return false;
             }
             return true;
-            
+
         }
         /// <summary>
         /// Changes a few settings for how the database should act. This is required
@@ -473,28 +484,27 @@ namespace DAZ_Installer.Database
         /// less journal sizes.
         /// </summary>
         /// <returns>Whether the execution was a success.</returns>
-        private static bool ExecutePragmas()
+        private bool ExecutePragmas()
         {
 
             const string pramaCommmands = @"PRAGMA journal_mode = WAL;
                                             PRAGMA wal_autocheckpoint=2; 
                                             PRAGMA journal_size_limit=32768;
                                             PRAGMA page_size=512;";
-            try {
-                using (var connection = CreateInitialConnection())
+            try
+            {
+                using (SQLiteConnection? connection = CreateInitialConnection())
                 {
                     var success = OpenConnection(connection);
                     if (!success) return false;
-                    using (var createCommand = new SQLiteCommand(pramaCommmands, connection))
-                    {
-                        createCommand.ExecuteNonQuery();
-                    }
+                    using SQLiteCommand createCommand = new(pramaCommmands, connection);
+                    createCommand.ExecuteNonQuery();
                 }
                 DatabaseUpdated?.Invoke();
             }
             catch (Exception ex)
             {
-                DPCommon.WriteToLog($"Failed to execute pragmas. REASON: {ex}");
+                // DPCommon.WriteToLog($"Failed to execute pragmas. REASON: {ex}");
                 return false;
             }
             return true;
@@ -504,7 +514,8 @@ namespace DAZ_Installer.Database
         /// Does not check if they exist. May throw an error if don't the tables already exist.
         /// </summary>
         /// <returns>Whether deleting triggers was a success.</returns>
-        private static bool DeleteTriggers() {
+        private bool DeleteTriggers()
+        {
 
             const string removeTriggersCommand =
                         @"DROP TRIGGER IF EXISTS delete_on_extraction_removal;
@@ -514,18 +525,18 @@ namespace DAZ_Installer.Database
 
             try
             {
-                using (var connection = CreateInitialConnection())
+                using (SQLiteConnection? connection = CreateInitialConnection())
                 {
                     var success = OpenConnection(connection);
                     if (!success) return false;
-                    using var deleteCommand = new SQLiteCommand(removeTriggersCommand, connection);
+                    using SQLiteCommand deleteCommand = new(removeTriggersCommand, connection);
                     deleteCommand.ExecuteNonQuery();
                 }
                 DatabaseUpdated?.Invoke();
             }
             catch (Exception ex)
             {
-                DPCommon.WriteToLog($"An error occurred removing triggers. REASON: {ex}");
+                // DPCommon.WriteToLog($"An error occurred removing triggers. REASON: {ex}");
                 return false;
             }
             return true;
@@ -538,7 +549,7 @@ namespace DAZ_Installer.Database
         /// <param name="c">The SQLiteConnection to use, if any. Recommended to use a connection, otherwise use <c>DeleteTriggers()</c> instead.</param>
         /// <param name="token">Cancel token. Required, cannot be null. Use CancellationToken.None instead (though not recommended).</param>
         /// <returns>Whether deleting triggers was a success.</returns>
-        private static bool TempDeleteTriggers(SQLiteConnection c, CancellationToken token)
+        private bool TempDeleteTriggers(SQLiteConnection c, CancellationToken token)
         {
             if (token.IsCancellationRequested) return false;
             const string removeTriggersCommand =
@@ -546,7 +557,7 @@ namespace DAZ_Installer.Database
                         DROP TRIGGER IF EXISTS delete_on_product_removal;
                         DROP TRIGGER IF EXISTS update_on_extraction_add;
                         DROP TRIGGER IF EXISTS update_product_count;";
-            SQLiteConnection connection = null;
+            SQLiteConnection? connection = null;
             SQLiteCommand deleteCommand = null;
             try
             {
@@ -557,9 +568,10 @@ namespace DAZ_Installer.Database
             }
             catch (Exception ex)
             {
-                DPCommon.WriteToLog($"An error occurred removing triggers. REASON: {ex}");
+                // DPCommon.WriteToLog($"An error occurred removing triggers. REASON: {ex}");
                 return false;
-            } finally
+            }
+            finally
             {
                 if (c == null)
                 {
@@ -577,7 +589,7 @@ namespace DAZ_Installer.Database
         /// <param name="token">Cancel token. Required, cannot be null. Use CancellationToken.None instead and if you wish to restore triggers that 
         /// cannot be cancelled.</param>
         /// <returns>Whether restoring the triggers was a success.</returns>
-        private static bool RestoreTriggers(SQLiteConnection c, CancellationToken token)
+        private bool RestoreTriggers(SQLiteConnection c, CancellationToken token)
         {
             if (token.IsCancellationRequested) return false;
             const string deleteOnProductRemoveTriggerCommand =
@@ -612,12 +624,12 @@ namespace DAZ_Installer.Database
 	                        UPDATE DatabaseInfo SET ""Product Record Count"" = (SELECT COUNT(*) FROM ProductRecords);
                         END";
 
-            SQLiteConnection connection = null;
+            SQLiteConnection? connection = null;
             SQLiteCommand createCommand = null;
             try
             {
                 connection = CreateAndOpenConnection(c);
-                createCommand = new SQLiteCommand(deleteOnProductRemoveTriggerCommand, connection);         
+                createCommand = new SQLiteCommand(deleteOnProductRemoveTriggerCommand, connection);
                 createCommand.ExecuteNonQuery();
                 createCommand.CommandText = deleteOnExtractionRemoveTriggerCommand;
                 createCommand.ExecuteNonQuery();
@@ -629,9 +641,10 @@ namespace DAZ_Installer.Database
             }
             catch (Exception ex)
             {
-                DPCommon.WriteToLog($"An error occurred creating triggers. REASON: {ex}");
+                // DPCommon.WriteToLog($"An error occurred creating triggers. REASON: {ex}");
                 return false;
-            } finally
+            }
+            finally
             {
                 if (c == null)
                 {
@@ -644,43 +657,59 @@ namespace DAZ_Installer.Database
         }
 
         // TO DO: Refresh database code.
-        private static void RefreshDatabase(CancellationToken t) {
+        private void RefreshDatabase(CancellationToken t)
+        {
             if (t.IsCancellationRequested) return;
 
-            try {
-                var task = Task.Run(_columnsCache.Clear);
+            try
+            {
                 _mainTaskManager.StopAndWait();
                 _priorityTaskManager.StopAndWait();
                 Initalized = false;
                 Initialize();
-                task.Wait();
-            } catch (Exception e) {
-                DPCommon.WriteToLog($"An unexpected error occured while attempting to refresh the database. REASON: {e}");
             }
-            
+            catch (Exception e)
+            {
+                // DPCommon.WriteToLog($"An unexpected error occured while attempting to refresh the database. REASON: {e}");
+            }
+
         }
-        
-        private static void BackupDatabase(CancellationToken t) {
+
+        private void BackupDatabase(CancellationToken t)
+        {
+            using SQLiteConnection? c = CreateAndOpenConnection(null, true);
+            using SQLiteConnection d = new();
+            SQLiteConnectionStringBuilder builder = new();
+
+            var newFileName = System.IO.Path.GetFileNameWithoutExtension(Path) + "_backup.db";
+            builder.DataSource = System.IO.Path.GetFullPath(System.IO.Path.Combine(System.IO.Path.GetDirectoryName(Path)!, newFileName));
+            d.ConnectionString = builder.ConnectionString;
+            try
+            {
+                c.BackupDatabase(d, "main", "main", -1, null, 5000);
+            }
+            catch { } // TODO: Log this.
+
+        }
+
+        private void RestoreDatabase(CancellationToken t)
+        {
             return;
         }
 
-        private static void RestoreDatabase(CancellationToken t) {
-            return;
-        }
-
-        private static void RebuildDatabase(CancellationToken t)
+        private void RebuildDatabase(CancellationToken t)
         {
 
         }
 
         // Prep for app closure.
-        private static void OnAppClose(object e)
+        private void OnAppClose(object e)
         {
             _mainTaskManager.Stop();
             _priorityTaskManager.Stop();
             TruncateJournal();
         }
-        
+
         #endregion
     }
 }

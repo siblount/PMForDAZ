@@ -1,13 +1,9 @@
 ﻿// This code is licensed under the Keep It Free License V1.
 // You may find a full copy of this license at root project directory\LICENSE
 
-using System;
-using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
 using System.ComponentModel;
-using System.Linq;
-using System.Windows.Forms;
-using static DAZ_Installer.DP.DPCommon;
+using System.ComponentModel.DataAnnotations;
+//using static DAZ_Installer
 
 namespace DAZ_Installer
 {
@@ -15,10 +11,10 @@ namespace DAZ_Installer
     public partial class PageButtonControl : UserControl
     {
         //
-        internal delegate void PageChangeHandler(uint page);
+        public delegate void PageChangeHandler(uint page);
         //
         //
-        internal event PageChangeHandler PageChange;
+        public event PageChangeHandler PageChange;
         //
         [Range(1, uint.MaxValue)]
         [Browsable(true), Description("Gets the current page and setting it calls UpdateControl."), Category("Data"), EditorBrowsable(EditorBrowsableState.Always), DesignerSerializationVisibility(DesignerSerializationVisibility.Visible)]
@@ -56,15 +52,12 @@ namespace DAZ_Installer
         protected uint pageCount = 1;
         [ThreadStatic]
         protected bool invoked = false;
-        public PageButtonControl()
-        {
-            InitializeComponent();
-        }
+        public PageButtonControl() => InitializeComponent();
         private bool IsValidPageNumber(uint page) => page <= pageCount && page > 0;
 
         private void SwitchPage(object _, EventArgs __)
         {
-            if (uint.TryParse(gotoTxtBox.Text, out uint page))
+            if (uint.TryParse(gotoTxtBox.Text, out var page))
                 CurrentPage = page;
         }
 
@@ -74,7 +67,8 @@ namespace DAZ_Installer
         private void SwitchToLast(object _, EventArgs __) => CurrentPage = pageCount;
         public void UpdateControl()
         {
-            bool isOnMainThread = IsOnMainThread;
+            var isOnMainThread = false;
+            //bool isOnMainThread = IsOnMainThread;
             if ((!isOnMainThread || (IsHandleCreated && InvokeRequired)) && !invoked)
             {
                 if (!IsHandleCreated) return; // Stop failing to create component on designer.

@@ -1,13 +1,11 @@
 // This code is licensed under the Keep It Free License V1.
 // You may find a full copy of this license at root project directory\LICENSE
 
-using System;
-using System.Collections.Generic;
-
-namespace DAZ_Installer.Core {
+namespace DAZ_Installer.Core
+{
     public class DPDSXElement
     {
-        public readonly Dictionary<string, string> attributes = new Dictionary<string, string>();
+        public readonly Dictionary<string, string> attributes = new();
         public Memory<char> InnerText = new char[] { };
         public string TagName = string.Empty;
         public Memory<char> TotalMessage = new char[] { };
@@ -19,7 +17,7 @@ namespace DAZ_Installer.Core {
         public DPDSXElement Parent;
         public DPDSXElement NextSibling;
         public DPDSXElement PreviousSibling;
-        public List<DPDSXElement> Children = new List<DPDSXElement>();
+        public List<DPDSXElement> Children = new();
         public DPDSXElementCollection File;
         public DPDSXElement() { }
         /// <summary>
@@ -29,7 +27,7 @@ namespace DAZ_Installer.Core {
         /// <param name="endIndex">The total end index of the buffer array.</param>
         public void ParentChildrenWithinIndexRange()
         {
-            var workingSibling = NextSibling;
+            DPDSXElement workingSibling = NextSibling;
             while (workingSibling != null && IndexInRange(BeginningIndex, EndIndex, workingSibling))
             {
                 workingSibling.Parent = this;
@@ -45,5 +43,4 @@ namespace DAZ_Installer.Core {
         }
 
     }
-}    
-    
+}

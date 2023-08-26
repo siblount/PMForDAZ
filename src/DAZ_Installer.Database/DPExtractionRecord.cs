@@ -1,6 +1,5 @@
 ﻿// This code is licensed under the Keep It Free License V1.
 // You may find a full copy of this license at root project directory\LICENSE
-using System;
 
 namespace DAZ_Installer.Database
 {
@@ -13,6 +12,6 @@ namespace DAZ_Installer.Database
                                     string[] Files, string[] ErroredFiles,
                                     string[] ErrorMessages, string[] Folders, uint PID)
     {
-        public static readonly DPExtractionRecord NULL_RECORD = new DPExtractionRecord(null, null, null, null, null, null, 0);
+        public static readonly DPExtractionRecord NULL_RECORD = new(null, null, null, null, null, null, 0);
     }
 }
