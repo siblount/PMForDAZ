@@ -1,10 +1,10 @@
 ﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
-using NSubstitute;
 using MSTestLogger = Microsoft.VisualStudio.TestTools.UnitTesting.Logging.Logger;
 using Serilog;
 using DAZ_Installer.Core.Extraction;
+using Moq;
 using DAZ_Installer.IO.Fakes;
-using NSubstitute.Extensions;
+using DAZ_Installer.IO;
 
 #pragma warning disable 618
 namespace DAZ_Installer.Core.Tests
@@ -28,8 +28,8 @@ namespace DAZ_Installer.Core.Tests
         [TestMethod]
         public void ProcessArchiveTest()
         {
-            var a = DPProcessorTestHelpers.NewMockedArchive(DPProcessorTestHelpers.DefaultMockOptions, out var _, out _, out _);
-            var p = DPProcessorTestHelpers.SetupProcessor(a, null);
+            var a = DPProcessorTestHelpers.NewMockedArchive(DPProcessorTestHelpers.DefaultMockOptions, out var _, out _, out _, out var fs);
+            var p = DPProcessorTestHelpers.SetupProcessor(a, fs.Object);
             var settings = DPProcessorTestHelpers.CreateExtractSettings(DefaultContents, a);
             var ao = new DPProcessorTestHelpers.AssertOptions()
             {
@@ -38,6 +38,8 @@ namespace DAZ_Installer.Core.Tests
             DPProcessorTestHelpers.AttachCommonEventHandlers(p, ao);
 
             p.ProcessArchive(a, DefaultProcessSettings);
+
+            //CollectionAssert.Contains(a.ProductInfo.Tags.ToArray(), new[] { "Gentlemen's Library", "TheRealSolly", "solomon1blount@gmail.com", "www.thesolomonchronicles.com", a.FileName });
         }
 
         [TestMethod]
@@ -51,8 +53,8 @@ namespace DAZ_Installer.Core.Tests
         {
             if (temp == "null") temp = null;
             if (dest == "null") dest = null; 
-            var a = DPProcessorTestHelpers.NewMockedArchive(DPProcessorTestHelpers.DefaultMockOptions, out var _, out _, out _);
-            var p = DPProcessorTestHelpers.SetupProcessor(a, null);
+            var a = DPProcessorTestHelpers.NewMockedArchive(DPProcessorTestHelpers.DefaultMockOptions, out var _, out _, out _, out var fs);
+            var p = DPProcessorTestHelpers.SetupProcessor(a, fs.Object);
             var settings = DPProcessorTestHelpers.CreateExtractSettings(DefaultContents, a);
             var ao = new DPProcessorTestHelpers.AssertOptions()
             {
@@ -70,14 +72,14 @@ namespace DAZ_Installer.Core.Tests
         [TestMethod]
         public void ProcessArchiveTest_PeekError()
         {
-            var a = DPProcessorTestHelpers.NewMockedArchive(DPProcessorTestHelpers.DefaultMockOptions, out var e, out _, out _);
-            var p = DPProcessorTestHelpers.SetupProcessor(a, null);
+            var a = DPProcessorTestHelpers.NewMockedArchive(DPProcessorTestHelpers.DefaultMockOptions, out var e, out _, out _, out var fs);
+            var p = DPProcessorTestHelpers.SetupProcessor(a, fs.Object);
             var ao = new DPProcessorTestHelpers.AssertOptions()
             {
                 ExpectedProcessErrorCount = 1,
             };
             DPProcessorTestHelpers.AttachCommonEventHandlers(p, ao);
-            e.When(x => x.Peek(Arg.Any<DPArchive>())).Throw(new Exception("Peek-a-boo"));
+            e.Setup(x => x.Peek(It.IsAny<DPArchive>())).Throws(new Exception("Peek-a-boo"));
             p.ArchiveExit += (_, p) => Assert.IsFalse(p.Processed);
             p.ProcessArchive(a, DefaultProcessSettings);
         }
@@ -85,8 +87,8 @@ namespace DAZ_Installer.Core.Tests
         public void ProcessArchiveTest_ExtractError()
         {
             Func<DPExtractionReport> extractFunc = () => throw new Exception("Extract-a-doo");
-            var a = DPProcessorTestHelpers.NewMockedArchive(DPProcessorTestHelpers.DefaultMockOptions with { ExtractFunc = extractFunc }, out var e, out _, out _);
-            var p = DPProcessorTestHelpers.SetupProcessor(a, null);
+            var a = DPProcessorTestHelpers.NewMockedArchive(DPProcessorTestHelpers.DefaultMockOptions with { ExtractFunc = extractFunc }, out var e, out _, out _, out var fs);
+            var p = DPProcessorTestHelpers.SetupProcessor(a, fs.Object);
             var ao = new DPProcessorTestHelpers.AssertOptions()
             {
                 ExpectedProcessErrorCount = 1,
@@ -99,8 +101,8 @@ namespace DAZ_Installer.Core.Tests
         public void ProcessArchiveTest_ExtractToTempError()
         {
             Func<DPExtractionReport> extractFunc = () => throw new Exception("Extract-a-doo");
-            var a = DPProcessorTestHelpers.NewMockedArchive(DPProcessorTestHelpers.DefaultMockOptions with { ExtractToTempFunc = extractFunc }, out var e, out _, out _);
-            var p = DPProcessorTestHelpers.SetupProcessor(a, null);
+            var a = DPProcessorTestHelpers.NewMockedArchive(DPProcessorTestHelpers.DefaultMockOptions with { ExtractToTempFunc = extractFunc }, out var e, out _, out _, out var fs);
+            var p = DPProcessorTestHelpers.SetupProcessor(a, fs.Object);
             var ao = new DPProcessorTestHelpers.AssertOptions()
             {
                 ExpectedProcessErrorCount = 1,
@@ -112,21 +114,42 @@ namespace DAZ_Installer.Core.Tests
         [TestMethod]
         public void ProcessArchiveTest_OutOfStorage()
         {
-            var a = DPProcessorTestHelpers.NewMockedArchive(DPProcessorTestHelpers.DefaultMockOptions, out var e, out _, out _);
-            var ctxFactory = Substitute.ForPartsOf<MockedFakeDPIOContextFactory>();
-            var p = DPProcessorTestHelpers.SetupProcessor(a, ctxFactory);
+            var a = DPProcessorTestHelpers.NewMockedArchive(DPProcessorTestHelpers.DefaultMockOptions, out var e, out _, out _, out var fs);
+            var p = DPProcessorTestHelpers.SetupProcessor(a, fs.Object);
             var ao = new DPProcessorTestHelpers.AssertOptions()
             {
                 ExpectedProcessErrorCount = 1,
             };
             DPProcessorTestHelpers.AttachCommonEventHandlers(p, ao);
             p.ArchiveExit += (_, p) => Assert.IsFalse(p.Processed);
-            ctxFactory.WhenForAnyArgs(x => x.CreateContext(default, default)).DoNotCallBase();
-            var fakedIOContext = new MockedDPIOContext();
-            fakedIOContext.availableFreeSpace = fakedIOContext.availableTotalSpace = 0;
-            p.ContextFactory.CreateContext(default, default).ReturnsForAnyArgs(fakedIOContext);
+            var fakeDriveInfo = new Mock<FakeDPDriveInfo>(fs.Object, "N:/");
+            fs.Setup(x => x.CreateDriveInfo(It.IsAny<string>())).Returns(fakeDriveInfo.Object);
+            fakeDriveInfo.Object.AvailableFreeSpace = 0;
             p.ProcessArchive(a, DefaultProcessSettings);
         }
+
+        [TestMethod]
+        public void ProcessArchiveTest_OutOfStorageFixedButExtractError()
+        {
+            Func<DPExtractionReport> extractErrorFunc = () => throw new Exception("no u");
+            var a = DPProcessorTestHelpers.NewMockedArchive(DPProcessorTestHelpers.DefaultMockOptions with { ExtractFunc = extractErrorFunc }, out var e, out _, out _, out var fs);
+            var p = DPProcessorTestHelpers.SetupProcessor(a, fs.Object);
+            var ao = new DPProcessorTestHelpers.AssertOptions()
+            {
+                ExpectedProcessErrorCount = 1,
+            };
+            DPProcessorTestHelpers.AttachCommonEventHandlers(p, ao);
+            p.ArchiveExit += (_, p) => Assert.IsFalse(p.Processed);
+            var fakeDriveInfo = new Mock<FakeDPDriveInfo>(fs.Object, "N:/");
+            fakeDriveInfo.Object.AvailableFreeSpace = 0;
+            fs.Setup(x => x.CreateDriveInfo(It.IsAny<string>())).Returns(() =>
+            {
+                if (fakeDriveInfo.Object.AvailableFreeSpace == 0) fakeDriveInfo.SetupProperty(x => x.AvailableFreeSpace, long.MaxValue);
+                return fakeDriveInfo.Object;
+            });
+            p.ProcessArchive(a, DefaultProcessSettings);
+        }
+
         // Invalid Process Settings
         // 
     }

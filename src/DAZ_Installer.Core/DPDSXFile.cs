@@ -32,7 +32,6 @@ namespace DAZ_Installer.Core
         {
             if (AssociatedArchive is null) return;
             if (!Extracted) throw new InvalidOperationException("Cannot check contents of a file that has not been extracted.");
-            if (FileName.EndsWith("Manifest.dsx") || FileName.EndsWith("Supplement.dsx")) return;
             var parser = new DPDSXParser(stream);
             DPDSXElementCollection collection = parser.GetDSXFile();
             List<DPDSXElement> search = collection.FindElementViaTag("ProductName");

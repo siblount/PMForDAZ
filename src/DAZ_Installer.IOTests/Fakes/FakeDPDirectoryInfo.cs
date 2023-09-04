@@ -5,7 +5,7 @@
         private readonly DPDirectoryInfo info;
 
         /// <inheritdoc cref="DPDirectoryInfo(IDirectoryInfo, DPIOContext, IDPDirectoryInfo)"/>
-        public FakeDPDirectoryInfo(IDirectoryInfo info, DPAbstractIOContext ctx, IDPDirectoryInfo? parent) => this.info = new DPDirectoryInfo(info, ctx, parent);
+        public FakeDPDirectoryInfo(IDirectoryInfo info, AbstractFileSystem ctx, IDPDirectoryInfo? parent) => this.info = new DPDirectoryInfo(info, ctx, parent);
 
         public virtual IDPDirectoryInfo? Parent => ((IDPDirectoryInfo)info).Parent;
 
@@ -19,7 +19,7 @@
 
         public virtual FileAttributes Attributes { get => ((IDPIONode)info).Attributes; set => ((IDPIONode)info).Attributes = value; }
 
-        public virtual DPAbstractIOContext Context => ((IDPIONode)info).Context;
+        public virtual AbstractFileSystem FileSystem => ((IDPIONode)info).FileSystem;
 
         public virtual void Create() => ((IDPDirectoryInfo)info).Create();
         public virtual void Delete(bool recursive) => ((IDPDirectoryInfo)info).Delete(recursive);

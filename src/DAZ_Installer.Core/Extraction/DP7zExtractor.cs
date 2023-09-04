@@ -70,7 +70,7 @@ namespace DAZ_Installer.Core.Extraction
             Logger.Information("Preparing to peek");
             mode = Mode.Peek;
             workingArchive = archive;
-            Context = archive.Context;
+            FileSystem = archive.FileSystem;
             EmitOnPeeking();
             _process = Setup7ZProcess();
             if (StartProcess())
@@ -258,7 +258,7 @@ namespace DAZ_Installer.Core.Extraction
                         continue;
                     }
                     // Create the directories needed so moving the file can be successful.
-                    var targetDir = Context.CreateDirectoryInfo(file.TargetPath);
+                    var targetDir = FileSystem.CreateDirectoryInfo(file.TargetPath);
                     if (!targetDir.Exists && !targetDir.TryCreate())
                     {
                         handleError(workingArchive, $"Failed to create directory for {file.Path}", file, workingExtractionReport, null);
@@ -319,7 +319,7 @@ namespace DAZ_Installer.Core.Extraction
                         Log.Debug("File {0} Associated Archive: {1}", file.FileName, file.AssociatedArchive?.Path);
                         continue;
                     }
-                    var fileInfo = Context.CreateFileInfo(Path.Combine(tempFolder, file.Path));
+                    var fileInfo = FileSystem.CreateFileInfo(Path.Combine(tempFolder, file.Path));
                     if (fileInfo.Exists) file.FileInfo = fileInfo; // Set the file info even if we did not extract it to it's final dest.
                     else handleError(workingArchive, $"{file.Path} did not extract successfully", file, workingExtractionReport, null);
                 }
@@ -394,7 +394,7 @@ namespace DAZ_Installer.Core.Extraction
             Reset();
             Logger.Information(extractToTemp ? "Preparing to extract to temp" : "Preparing to extract");
             Logger.Debug("Extract(settings) = \n{@settings}", settings);
-            Context = settings.Archive.Context;
+            FileSystem = settings.Archive.FileSystem;
             DPArchive archive = workingArchive = settings.Archive;
             tempOnly = extractToTemp;
             if (archive.Contents.Count == 0)
@@ -416,7 +416,7 @@ namespace DAZ_Installer.Core.Extraction
                 EmitOnExtractFinished();
                 return workingExtractionReport;
             }
-            var tempDir = Context.CreateTempContext().CreateDirectoryInfo(tempFolder);
+            var tempDir = FileSystem.CreateDirectoryInfo(tempFolder);
             if (!tempDir.Exists && !TryHelper.Try(() => tempDir.Create(), out var ex))
             {
                 handleError(archive, "Failed to create required temp directories for extraction operations", null, null, ex);

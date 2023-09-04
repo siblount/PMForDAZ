@@ -49,9 +49,9 @@ namespace DAZ_Installer.Core
         /// </summary>
         public DPAbstractExtractor? Extractor { get; set; }
         /// <summary>
-        /// The context to use, this is derived from the <see cref="IDPIONode.Context"/> which is from <see cref="DPFile.FileInfo"/>.
+        /// The file system to use, this is derived from the <see cref="IDPIONode.FileSystem"/> which is from <see cref="DPFile.FileInfo"/>.
         /// </summary>
-        public DPAbstractIOContext Context => FileInfo!.Context;
+        public AbstractFileSystem FileSystem => FileInfo!.FileSystem;
         /// <summary>
         /// The name that will be used for the list view. The list name is the working archive's <c>FileName</c> + $"\\{Path}".
         /// </summary>
@@ -132,7 +132,6 @@ namespace DAZ_Installer.Core
         /// <summary>
         /// The regex expression used for creating a product name.
         /// </summary>
-        /// <returns></returns>
         public static Regex ProductNameRegex { get; protected set; } = new(@"([^+|\-|_|\s]+)", RegexOptions.Compiled);
 
         public DPArchive() { }

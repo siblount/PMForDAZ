@@ -3,14 +3,15 @@ using DAZ_Installer.CoreTests.Extraction;
 using DAZ_Installer.IO;
 using DAZ_Installer.IO.Fakes;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using NSubstitute;
-using NSubstitute.Core;
+using Moq;
 using Serilog;
+using System.Text;
 using System.Text.Json;
 using System.Xml;
 
 namespace DAZ_Installer.Core.Tests
 {
+    [Obsolete("For testing purposes only.")]
     internal class DPProcessorTestHelpers
     {
         /// <summary>
@@ -25,51 +26,54 @@ namespace DAZ_Installer.Core.Tests
             public bool partialRAR = true;
             public bool partialDPFileInfo = true;
             public bool partialZipArchiveEntry = true;
+            public bool partialFakeFileSystem = true;
             public IEnumerable<string> paths = DefaultContents;
             public Func<DPExtractionReport>? ExtractToTempFunc = null;
             public Func<DPExtractionReport>? ExtractFunc = null;
 
             public MockOptions() { }
         }
-        public static DPArchive NewMockedArchive(MockOptions options, out DPAbstractExtractor extractor, out FakeDPFileInfo fakeDPFileInfo, out FakeFileInfo fakeFileInfo)
+        public static DPArchive NewMockedArchive(MockOptions options, out Mock<DPAbstractExtractor> extractor, out Mock<FakeDPFileInfo> fakeDPFileInfo, out Mock<FakeFileInfo> fakeFileInfo, out Mock<FakeFileSystem> fakeFileSystem)
         {
-            fakeFileInfo = options.partialFileInfo ? Substitute.ForPartsOf<FakeFileInfo>("Z:/test.rar", null) : Substitute.For<FakeFileInfo>("Z:/test.rar", null);
-            fakeDPFileInfo = options.partialDPFileInfo ? Substitute.ForPartsOf<FakeDPFileInfo>(fakeFileInfo, new FakeDPIOContext(), null) : Substitute.For<FakeDPFileInfo>(fakeFileInfo, Substitute.ForPartsOf<FakeDPIOContext>(), null);
-            extractor = Substitute.For<DPAbstractExtractor>();
-            var arc = new DPArchive(string.Empty, Log.Logger.ForContext<DPArchive>(), fakeDPFileInfo, extractor);
-            extractor.ExtractToTemp(default).ReturnsForAnyArgs(x =>
+            var fs = new Mock<FakeFileSystem>() { CallBase = options.partialFakeFileSystem };
+            fakeFileSystem = fs;
+            fakeFileInfo = new Mock<FakeFileInfo>("Z:/test.rar") { CallBase = options.partialFileInfo };
+            fakeDPFileInfo = new Mock<FakeDPFileInfo>(fakeFileInfo.Object, fakeFileSystem.Object, null) { CallBase = options.partialDPFileInfo };
+            extractor = new Mock<DPAbstractExtractor>();
+            var arc = new DPArchive(string.Empty, Log.Logger.ForContext<DPArchive>(), fakeDPFileInfo.Object, extractor.Object);
+            extractor.Setup(x => x.ExtractToTemp(It.IsAny<DPExtractSettings>())).Returns((DPExtractSettings x) =>
             {
-                if (options.ExtractToTempFunc is null) return handleExtract(x);
+                if (options.ExtractToTempFunc is null) return handleExtract(x, fs.Object);
                 return options.ExtractToTempFunc();
             });
-            extractor.Extract(default).ReturnsForAnyArgs(x => {
-                if (options.ExtractFunc is null) return handleExtract(x);
+            extractor.Setup(x => x.Extract(It.IsAny<DPExtractSettings>())).Returns((DPExtractSettings x) =>
+            {
+                if (options.ExtractFunc is null) return handleExtract(x, fs.Object);
                 return options.ExtractFunc();
             });
             return arc;
         }
 
-        public static DPProcessor SetupProcessor(DPArchive arc, IContextFactory? factory)
+        public static DPProcessor SetupProcessor(DPArchive arc, FakeFileSystem system)
         {
-            var ctxFactory = factory ?? new MockedFakeDPIOContextFactory();
             var p = new DPProcessor()
             {
                 Logger = Log.Logger.ForContext<DPProcessor>(),
-                ContextFactory = ctxFactory
+                FileSystem = system
             };
             SetupEntities(DefaultContents, arc);
-            UpdateFileInfos(new DPExtractSettings("A:/", arc.Contents.Values, archive: arc), ctxFactory);
+            UpdateFileInfos(new DPExtractSettings("A:/", arc.Contents.Values, archive: arc), system);
             return p;
         }
 
-        private static DPExtractionReport handleExtract(CallInfo x)
+        private static DPExtractionReport handleExtract(DPExtractSettings settings, FakeFileSystem fs)
         {
-            UpdateFileInfos(x.Arg<DPExtractSettings>(), new MockedFakeDPIOContextFactory());
+            UpdateFileInfos(settings, fs);
             return new DPExtractionReport()
             {
                 ErroredFiles = new(0),
-                ExtractedFiles = x.Arg<DPExtractSettings>().FilesToExtract.ToList(),
-                Settings = x.Arg<DPExtractSettings>()
+                ExtractedFiles = settings.FilesToExtract.ToList(),
+                Settings = settings
             };
         }
 
@@ -82,36 +86,42 @@ namespace DAZ_Installer.Core.Tests
             }
         }
 
-        private static void UpdateFileInfos(DPExtractSettings settings, IContextFactory factory)
+        private static void UpdateFileInfos(DPExtractSettings settings, FakeFileSystem system)
         {
-            var ctx = factory.CreateContext(settings.Archive.Context);
             foreach (var file in settings.Archive.Contents.Values)
             {
                 var path = string.IsNullOrEmpty(file.TargetPath) ? Path.Combine(settings.TempPath, file.Path) : file.TargetPath;
-                file.FileInfo = ctx.CreateFileInfo(path);
-                file.FileInfo.WhenForAnyArgs(x => x.Open(default, default)).DoNotCallBase();
-                file.FileInfo.WhenForAnyArgs(x => x.TryAndFixOpenRead(out var _, out _)).DoNotCallBase();
-                file.FileInfo.TryAndFixOpenRead(out var _, out _).ReturnsForAnyArgs(x =>
-                {
-                    x[0] = file.FileInfo.Open(default, default);
-                    x[1] = null;
-                    return true;
-                });
-                if (path.EndsWith("Manifest.dsx")) file.FileInfo.Open(default, default).ReturnsForAnyArgs(_ => createManifestStream(settings.Archive));
-                else if (path.EndsWith("Supplement.dsx")) file.FileInfo.Open(default, default).ReturnsForAnyArgs(_ => createSupplementStream());
-                else if (DPFile.DAZFormats.Contains(file.Ext)) file.FileInfo.Open(default, default).ReturnsForAnyArgs(_ => createMetadataStream(file));
+                file.FileInfo = system.CreateFileInfo(path);
+                var mockFileInfo = Mock.Get(file.FileInfo);
+                var stream = determineFileStream(file, settings.Archive);
+                Exception? ex = null;
+                mockFileInfo.Setup(x => x.TryAndFixOpenRead(out It.Ref<Stream>.IsAny, out ex))
+                            .Callback((out Stream s, out Exception ex) =>
+                            {
+                                s = determineFileStream(file, settings.Archive);
+                                ex = null;
+                            })
+                            .Returns(true);
             }
+        }
+
+        private static Stream determineFileStream(DPFile file, DPArchive arc)
+        {
+            if (file.FileName == "Manifest.dsx") return createManifestStream(arc);
+            else if (file.FileName == "Supplement.dsx") return createSupplementStream();
+            else if (DPFile.DAZFormats.Contains(file.Ext)) return createMetadataStream(file);
+            return Stream.Null;
         }
 
         private static void SetupSupportFiles(DPArchive arc)
         {
-            foreach (var file in arc.Contents.Values)
-            {
-                if (file.FileName.Contains("Manifest.dsx"))
-                    file.FileInfo.Open(default, default).ReturnsForAnyArgs(_ => createManifestStream(arc));
-                else if (file.FileName.Contains("Supplement.dsx"))
-                    file.FileInfo.Open(default, default).ReturnsForAnyArgs(_ => createSupplementStream());
-            }
+            //    foreach (var file in arc.Contents.Values)
+            //    {
+            //        if (file.FileName.Contains("Manifest.dsx"))
+            //            file.FileInfo.Open(default, default).ReturnsForAnyArgs(_ => createManifestStream(arc));
+            //        else if (file.FileName.Contains("Supplement.dsx"))
+            //            file.FileInfo.Open(default, default).ReturnsForAnyArgs(_ => createSupplementStream());
+            //    }
         }
 
         private static Stream createMetadataStream(DPFile file)
@@ -165,17 +175,14 @@ namespace DAZ_Installer.Core.Tests
 
         private static Stream createSupplementStream()
         {
-            MemoryStream stream = new();
-            XmlDocument doc = new();
-            // Write the header:
-            doc.LoadXml("" +
-                "<ProductSupplement VERSION=\"0.1\">" +
+            const string supplementStr = "" +
+                "<ProductSupplement VERSION=\"0.1\"> " +
                  "<ProductName VALUE=\"Gentlemen's Library\"/> " +
                  "<InstallTypes VALUE=\"Content\"/>            " +
                  "<ProductTags VALUE=\"DAZStudio4_5\"/>        " +
-                "</ProductSupplement>"
-            );
-            doc.Save(stream);
+                "</ProductSupplement>";
+
+            MemoryStream stream = new(Encoding.ASCII.GetBytes(supplementStr));
             stream.Position = 0;
             return stream;
         }

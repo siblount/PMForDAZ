@@ -2,7 +2,7 @@
 {
     public abstract class DPIONodeBase : IDPIONode
     {
-        public abstract DPAbstractIOContext Context { get; internal set; }
+        public abstract AbstractFileSystem FileSystem { get; internal set; }
         public abstract string Name { get; }
         public abstract string Path { get; }
         public abstract bool Exists { get; }

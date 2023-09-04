@@ -36,6 +36,19 @@ namespace DAZ_Installer.IO
         }
 
         /// <summary>
+        /// Copy constructor.
+        /// </summary>
+        public DPFileScopeSettings(DPFileScopeSettings other)
+        {
+            WhitelistedFilePaths = other.WhitelistedFilePaths;
+            WhitelistedDirectories = other.WhitelistedDirectories;
+            ExplicitDirectoryPaths = other.ExplicitDirectoryPaths;
+            ExplicitFilePaths = other.ExplicitFilePaths;
+            NoEnforcement = other.NoEnforcement;
+            ThrowOnPathTransversal = other.ThrowOnPathTransversal;
+        }
+
+        /// <summary>
         /// Creates a file scope settings with the specified whitelisted directories and files. Use this constructor when you already have setup the ImmutableHashSet to your liking.
         /// This is a faster constructor compared to <see cref="DPFileScopeSettings.DPFileScopeSettings(ImmutableHashSet{string}, ImmutableHashSet{string}, bool, bool)"/> because it
         /// needs to normalize all the paths before adding them to the ImmutableHashSet.

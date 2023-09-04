@@ -1,12 +1,14 @@
 ﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
 using DAZ_Installer.Core.Extraction.Fakes;
 using DAZ_Installer.CoreTests.Extraction;
-using DAZ_Installer.IO.Fakes;
 using DAZ_Installer.IO;
-using NSubstitute;
+using DAZ_Installer.IO.Fakes;
+using Moq;
 using Serilog;
 using MSTestLogger = Microsoft.VisualStudio.TestTools.UnitTesting.Logging.Logger;
+using Microsoft.VisualStudio.TestPlatform.Utilities;
 
+#pragma warning disable 618
 namespace DAZ_Installer.Core.Extraction.Tests
 {
     [TestClass]
@@ -28,8 +30,9 @@ namespace DAZ_Installer.Core.Extraction.Tests
                         .MinimumLevel.Information()
                         .CreateLogger();
 
-            DefaultFactory = Substitute.For<IProcessFactory>();
-            DefaultFactory.Create().Returns(_ => SetupFakeProcess(DefaultContents));
+            var factMockObj = new Mock<IProcessFactory>();
+            factMockObj.Setup(x => x.Create()).Returns(SetupFakeProcess(DefaultContents).Object);
+            DefaultFactory = factMockObj.Object;
 
             DefaultPeekOptions.peek = false;
         }
@@ -40,24 +43,29 @@ namespace DAZ_Installer.Core.Extraction.Tests
             public bool partialFakeProcess = true;
             public bool partialDPFileInfo = true;
             public bool partialZipArchiveEntry = true;
+            public bool partialFileSystem = true;
             public string[] paths = DefaultContents;
             public bool peek = true;
 
             public MockOptions() { }
         }
 
-        private static DPArchive SetupArchiveWithPartiallyFakedDependencies(MockOptions options, out DP7zExtractor extractor, out FakeProcess fakeProcess, out FakeDPFileInfo fakeDPFileInfo, out FakeFileInfo fakeFileInfo, out IProcessFactory factory)
+        private readonly record struct MockOutputs (DP7zExtractor extractor, Mock<FakeProcess> fakeProcess, Mock<FakeDPFileInfo> fakeDPFileInfo, Mock<FakeFileInfo> fakeFileInfo, Mock<FakeFileSystem> fakeFileSystem, Mock<IProcessFactory> factory);
+
+        private static DPArchive NewMockedArchive(MockOptions options, out MockOutputs mockOutputs)
         {
-            factory = Substitute.For<IProcessFactory>();
-            fakeProcess = SetupFakeProcess(options.paths);
-            fakeFileInfo = options.partialFileInfo ? Substitute.ForPartsOf<FakeFileInfo>("Z:/test.7z", null) : Substitute.For<FakeFileInfo>("Z:/test.7z", null);
-            fakeDPFileInfo = options.partialDPFileInfo ? Substitute.ForPartsOf<FakeDPFileInfo>(fakeFileInfo, new FakeDPIOContext(), null) : Substitute.For<FakeDPFileInfo>(fakeFileInfo, new FakeDPIOContext(), null);
-            factory.Create().ReturnsForAnyArgs(fakeProcess);
-            extractor = new DP7zExtractor(Log.Logger.ForContext<DP7zExtractor>(), factory);
-            var arc = new DPArchive(string.Empty, Log.Logger.ForContext<DPArchive>(), fakeDPFileInfo, extractor);
+            var fakeProcess = SetupFakeProcess(options.paths);
+            var fakeFileInfo = new Mock<FakeFileInfo>("Z:/test.7z") { CallBase = options.partialFileInfo };
+            var fakeFileSystem = new Mock<FakeFileSystem>(DPFileScopeSettings.All) { CallBase = options.partialFileSystem };
+            var fakeDPFileInfo = new Mock<FakeDPFileInfo>(fakeFileInfo.Object, fakeFileSystem.Object, null) { CallBase = options.partialDPFileInfo };
+            var factory = new Mock<IProcessFactory>();
+            factory.Setup(x => x.Create()).Returns(fakeProcess.Object);
+            var extractor = new DP7zExtractor(Log.Logger.ForContext<DP7zExtractor>(), factory.Object);
+            var arc = new DPArchive(string.Empty, Log.Logger.ForContext<DPArchive>(), fakeDPFileInfo.Object, extractor);
+            mockOutputs = new MockOutputs(extractor, fakeProcess, fakeDPFileInfo, fakeFileInfo, fakeFileSystem, factory);
             if (!options.peek) return arc;
             extractor.Peek(arc);
-            fakeProcess.OutputEnumerable = new[] { "Everything is Ok" }; 
+            fakeProcess.Object.OutputEnumerable = new[] { "Everything is Ok" }; 
             return arc;
         }
 
@@ -65,12 +73,12 @@ namespace DAZ_Installer.Core.Extraction.Tests
         /// Returns a new <see cref="FakeProcess"/> and sets up the <see cref="FakeProcess.OutputEnumerable"/> to contain the given paths.
         /// </summary>
         /// <param name="paths">The entries to add to the fake archive.</param>
-        internal static FakeProcess SetupFakeProcess(IEnumerable<string> paths, bool partial = true)
+        internal static Mock<FakeProcess> SetupFakeProcess(IEnumerable<string> paths, bool partial = true)
         {
             var l = new List<string>();
             foreach (var p in paths) FakeProcess.GetLinesForEntity(p, l);
-            var proc = partial ? Substitute.ForPartsOf<FakeProcess>() : Substitute.For<FakeProcess>();
-            proc.OutputEnumerable = l;
+            var proc = partial ? new Mock<FakeProcess>() { CallBase = true } : new Mock<FakeProcess>();
+            proc.Object.OutputEnumerable = l;
             return proc;
         }
 
@@ -124,7 +132,7 @@ namespace DAZ_Installer.Core.Extraction.Tests
         [TestMethod]
         public void DP7zExtractorTest()
         {
-            var l = Substitute.For<ILogger>();
+            var l = Mock.Of<ILogger>();
             var e = new DP7zExtractor(l, DefaultFactory);
             Assert.AreEqual(l, e.Logger);
             Assert.AreEqual(DefaultFactory, e.Factory);
@@ -133,7 +141,8 @@ namespace DAZ_Installer.Core.Extraction.Tests
         [TestMethod]
         public void ExtractTest()
         {
-            var arc = SetupArchiveWithPartiallyFakedDependencies(DefaultOptions, out var e, out var _, out _, out _, out _);
+            var arc = NewMockedArchive(DefaultOptions, out var outputs);
+            var e = outputs.extractor;
 
             var settings = new DPExtractSettings("Z:/temp", arc.Contents.Values, archive: arc);
             var expectedReport = new DPExtractionReport() { ExtractedFiles = new(arc.Contents.Values), ErroredFiles = new(0), Settings = settings };
@@ -146,14 +155,16 @@ namespace DAZ_Installer.Core.Extraction.Tests
             DPArchiveTestHelpers.AssertDefaultContents(arc);
             DPArchiveTestHelpers.AssertExtractorSetPathsCorrectly(arc, DefaultContents);
             DPArchiveTestHelpers.AssertExtractFileInfosCorrectlySet(arc.Contents.Values);
-            Assert.AreEqual(arc.Context, e.Context);
+            Assert.AreEqual(arc.FileSystem, e.FileSystem);
         }
 
         [TestMethod]
         public void ExtractTest_QuitsOnArcNotExists()
         {
-            var arc = SetupArchiveWithPartiallyFakedDependencies(DefaultOptions, out var e, out var _, out _, out _, out _);
-            arc.FileInfo!.Exists.Returns(false);
+            var arc = NewMockedArchive(DefaultOptions, out var outputs);
+            var e = outputs.extractor;
+            var arcDPFileInfo = outputs.fakeDPFileInfo;
+            arcDPFileInfo.Setup(x => x.Exists).Returns(false);
 
             var settings = new DPExtractSettings("Z:/temp", arc.Contents.Values, archive: arc);
             var expectedReport = new DPExtractionReport() { ExtractedFiles = new(0), ErroredFiles = new(0), Settings = settings };
@@ -162,28 +173,31 @@ namespace DAZ_Installer.Core.Extraction.Tests
             // Testing Extract() here:
             var report = DPArchiveTestHelpers.RunAndAssertExtractEvents(e, settings);
             DPArchiveTestHelpers.AssertReport(expectedReport, report);
-            Assert.AreEqual(arc.Context, e.Context);
+            Assert.AreEqual(arc.FileSystem, e.FileSystem);
         }
 
         [TestMethod]
         public void ExtractTest_NoContents()
         {
-            var arc = SetupArchiveWithPartiallyFakedDependencies(new MockOptions() { paths = Array.Empty<string>() }, out var e, out var proc, out _, out _, out _);
-            proc.OutputEnumerable = new[] {null, "Everything is Ok"};
+            var arc = NewMockedArchive(new MockOptions() { paths = Array.Empty<string>() }, out var outputs);
+            var e = outputs.extractor;
+            var proc = outputs.fakeProcess;
+            proc.Object.OutputEnumerable = new[] {null, "Everything is Ok"};
             var settings = new DPExtractSettings("Z:/temp", Array.Empty<DPFile>(), archive: arc);
             var expectedReport = new DPExtractionReport() { ExtractedFiles = new(0), ErroredFiles = new(0), Settings = settings };
 
             // Testing Extract() here:
             var report = RunAndAssertExtractEvents(e, settings);
             DPArchiveTestHelpers.AssertReport(expectedReport, report);
-            Assert.AreEqual(arc.Context, e.Context);
+            Assert.AreEqual(arc.FileSystem, e.FileSystem);
         }
 
         [TestMethod]
         public void ExtractTest_ArcFileInfoOpenFail()
         {
-            var arc = SetupArchiveWithPartiallyFakedDependencies(DefaultOptions, out var e, out var _, out _, out _, out _);
-            arc.FileInfo!.OpenRead().Returns(_ => throw new IOException());
+            var arc = NewMockedArchive(DefaultOptions, out var outputs);
+            outputs.Deconstruct(out var e, out var _, out var arcDPFileInfo, out var _, out var _, out var _);
+            arcDPFileInfo.Setup(x => x.OpenRead()).Throws(new Exception("Something went wrong"));
 
             var settings = new DPExtractSettings("Z:/temp", new DPFile[] { new(), new(), new() }, archive: arc);
             var expectedReport = new DPExtractionReport() { ExtractedFiles = new(0), ErroredFiles = new(0), Settings = settings };
@@ -192,13 +206,14 @@ namespace DAZ_Installer.Core.Extraction.Tests
             // Testing Extract() here:
             var report = RunAndAssertExtractEvents(e, settings);
             DPArchiveTestHelpers.AssertReport(expectedReport, report);
-            Assert.AreEqual(arc.Context, e.Context);
+            Assert.AreEqual(arc.FileSystem, e.FileSystem);
         }
 
         [TestMethod]
         public void ExtractTest_FileNotPartOfArchive()
         {
-            var arc = SetupArchiveWithPartiallyFakedDependencies(DefaultOptions, out var e, out var _, out _, out _, out _);
+            var arc = NewMockedArchive(DefaultOptions, out var outputs);
+            outputs.Deconstruct(out var e, out var _, out var _, out var _, out var _, out var _);
             arc.Contents.Values.First().AssociatedArchive = new DPArchive();
 
             var settings = new DPExtractSettings("Z:/temp", arc.Contents.Values, archive: arc);
@@ -214,16 +229,17 @@ namespace DAZ_Installer.Core.Extraction.Tests
             // Testing Extract() here:
             var report = RunAndAssertExtractEvents(e, settings);
             DPArchiveTestHelpers.AssertReport(expectedReport, report);
-            Assert.AreEqual(arc.Context, e.Context);
+            Assert.AreEqual(arc.FileSystem, e.FileSystem);
             DPArchiveTestHelpers.AssertExtractorSetPathsCorrectly(arc, successFiles.Select(x => x.Path));
             DPArchiveTestHelpers.AssertExtractFileInfosCorrectlySet(successFiles);
         }
         [TestMethod]
         public void ExtractTest_FilesNotWhitelisted()
         {
-            var arc = SetupArchiveWithPartiallyFakedDependencies(DefaultOptions, out var e, out var _, out _, out _, out _);
+            var arc = NewMockedArchive(DefaultOptions, out var outputs);
+            outputs.Deconstruct(out var e, out var _, out var arcDPFileInfo, out var _, out var _, out var _);
             e.Peek(arc);
-            arc.FileInfo!.Context.ChangeScopeTo(DPFileScopeSettings.None);
+            outputs.fakeFileSystem.SetupProperty(x => x.Scope, DPFileScopeSettings.None);
 
             var settings = new DPExtractSettings("Z:/temp", arc.Contents.Values, archive: arc);
             var expectedReport = new DPExtractionReport()
@@ -237,13 +253,16 @@ namespace DAZ_Installer.Core.Extraction.Tests
             // Testing Extract() here:
             var report = RunAndAssertExtractEvents(e, settings);
             DPArchiveTestHelpers.AssertReport(expectedReport, report);
-            Assert.AreEqual(arc.Context, e.Context);
+            Assert.AreEqual(arc.FileSystem, e.FileSystem);
         }
         [TestMethod]
         public void ExtractTest_UnexpectedExtractErrorEverythingFine()
         {
-            var arc = SetupArchiveWithPartiallyFakedDependencies(DefaultOptions, out var e, out var proc, out _, out _, out _);
-            proc.ErrorEnumerable = new[] { "i am a teapot" };
+            var arc = NewMockedArchive(DefaultOptions, out var outputs);
+            
+            var e = outputs.extractor;
+            var proc = outputs.fakeProcess;
+            proc.Object.ErrorEnumerable = new[] { "i am a teapot" };
             var settings = new DPExtractSettings("Z:/temp", arc.Contents.Values, archive: arc);
             var expectedReport = new DPExtractionReport() { ExtractedFiles = new(arc.Contents.Values), ErroredFiles = new(0), Settings = settings };
             DPArchiveTestHelpers.SetupTargetPaths(arc, "Z:/abc/");
@@ -255,12 +274,13 @@ namespace DAZ_Installer.Core.Extraction.Tests
             DPArchiveTestHelpers.AssertDefaultContents(arc);
             DPArchiveTestHelpers.AssertExtractorSetPathsCorrectly(arc, DefaultContents);
             DPArchiveTestHelpers.AssertExtractFileInfosCorrectlySet(arc.Contents.Values);
-            Assert.AreEqual(arc.Context, e.Context);
+            Assert.AreEqual(arc.FileSystem, e.FileSystem);
         }
         [TestMethod]
         public void ExtractTest_AfterExtract()
         {
-            var arc = SetupArchiveWithPartiallyFakedDependencies(DefaultOptions, out var e, out var _, out _, out _, out _);
+            var arc = NewMockedArchive(DefaultOptions, out var outputs);
+            outputs.Deconstruct(out var e, out var _, out var _, out var _, out var _, out var _);
 
             var settings = new DPExtractSettings("Z:/temp", arc.Contents.Values, archive: arc);
             var expectedReport = new DPExtractionReport() { ExtractedFiles = new(arc.Contents.Values), ErroredFiles = new(0), Settings = settings };
@@ -275,12 +295,13 @@ namespace DAZ_Installer.Core.Extraction.Tests
             DPArchiveTestHelpers.AssertDefaultContents(arc);
             DPArchiveTestHelpers.AssertExtractorSetPathsCorrectly(arc, DefaultContents);
             DPArchiveTestHelpers.AssertExtractFileInfosCorrectlySet(arc.Contents.Values);
-            Assert.AreEqual(arc.Context, e.Context);
+            Assert.AreEqual(arc.FileSystem, e.FileSystem);
         }
         [TestMethod]
         public void ExtractTest_AfterExtractError()
         {
-            var arc = SetupArchiveWithPartiallyFakedDependencies(DefaultOptions, out var e, out var fakeArc, out _, out _, out _);
+            var arc = NewMockedArchive(DefaultOptions, out var outputs);
+            outputs.Deconstruct(out var e, out var _, out var _, out var _, out var _, out var _);
 
             var settings = new DPExtractSettings("Z:/temp", arc.Contents.Values, archive: arc);
             var expectedReport = new DPExtractionReport() { ExtractedFiles = new(arc.Contents.Values), ErroredFiles = new(0), Settings = settings };
@@ -296,12 +317,13 @@ namespace DAZ_Installer.Core.Extraction.Tests
             DPArchiveTestHelpers.AssertDefaultContents(arc);
             DPArchiveTestHelpers.AssertExtractorSetPathsCorrectly(arc, DefaultContents);
             DPArchiveTestHelpers.AssertExtractFileInfosCorrectlySet(arc.Contents.Values);
-            Assert.AreEqual(arc.Context, e.Context);
+            Assert.AreEqual(arc.FileSystem, e.FileSystem);
         }
         [TestMethod]
         public void ExtractTest_AfterExtractTemp()
         {
-            var arc = SetupArchiveWithPartiallyFakedDependencies(DefaultOptions, out var e, out var _, out _, out _, out _);
+            var arc = NewMockedArchive(DefaultOptions, out var outputs);
+            outputs.Deconstruct(out var e, out var _, out var _, out var _, out var _, out var _);
 
             var settings = new DPExtractSettings("Z:/temp", arc.Contents.Values, archive: arc);
             var expectedReport = new DPExtractionReport() { ExtractedFiles = new(arc.Contents.Values), ErroredFiles = new(0), Settings = settings };
@@ -316,14 +338,15 @@ namespace DAZ_Installer.Core.Extraction.Tests
             DPArchiveTestHelpers.AssertDefaultContents(arc);
             DPArchiveTestHelpers.AssertExtractorSetPathsCorrectly(arc, DefaultContents);
             DPArchiveTestHelpers.AssertExtractFileInfosCorrectlySet(arc.Contents.Values);
-            Assert.AreEqual(arc.Context, e.Context);
+            Assert.AreEqual(arc.FileSystem, e.FileSystem);
         }
 
 
         [TestMethod]
          public void ExtractToTempTest()
         {
-            var arc = SetupArchiveWithPartiallyFakedDependencies(DefaultOptions, out var e, out var _, out _, out _, out _);
+            var arc = NewMockedArchive(DefaultOptions, out var outputs);
+            outputs.Deconstruct(out var e, out var _, out var _, out var _, out var _, out var _);
 
             var settings = new DPExtractSettings("Z:/temp", arc.Contents.Values, archive: arc);
             var expectedReport = new DPExtractionReport() { ExtractedFiles = new(arc.Contents.Values), ErroredFiles = new(0), Settings = settings };
@@ -336,13 +359,14 @@ namespace DAZ_Installer.Core.Extraction.Tests
             DPArchiveTestHelpers.AssertDefaultContents(arc);
             DPArchiveTestHelpers.AssertExtractorSetPathsCorrectly(arc, DefaultContents);
             DPArchiveTestHelpers.AssertExtractFileInfosCorrectlySet(arc.Contents.Values);
-            Assert.AreEqual(arc.Context, e.Context);
+            Assert.AreEqual(arc.FileSystem, e.FileSystem);
 
         }
         [TestMethod]
         public void ExtractToTempTest_AfterExtract()
         {
-            var arc = SetupArchiveWithPartiallyFakedDependencies(DefaultOptions, out var e, out var _, out _, out _, out _);
+            var arc = NewMockedArchive(DefaultOptions, out var outputs);
+            outputs.Deconstruct(out var e, out var _, out var _, out var _, out var _, out var _);
             var settings = new DPExtractSettings("Z:/temp", arc.Contents.Values, archive: arc);
             var expectedReport = new DPExtractionReport() { ExtractedFiles = new(arc.Contents.Values), ErroredFiles = new(0), Settings = settings };
             SetupTargetPathsForTemp(arc, settings.TempPath); // ExtractToTemp does not require TargetPaths
@@ -355,27 +379,29 @@ namespace DAZ_Installer.Core.Extraction.Tests
             DPArchiveTestHelpers.AssertDefaultContents(arc);
             DPArchiveTestHelpers.AssertExtractorSetPathsCorrectly(arc, DefaultContents);
             DPArchiveTestHelpers.AssertExtractFileInfosCorrectlySet(arc.Contents.Values);
-            Assert.AreEqual(arc.Context, e.Context);
+            Assert.AreEqual(arc.FileSystem, e.FileSystem);
         }
 
         [TestMethod]
         public void PeekTest()
         {
-            var arc = SetupArchiveWithPartiallyFakedDependencies(DefaultPeekOptions, out var e, out var _, out _, out _, out _);
+            var arc = NewMockedArchive(DefaultOptions, out var outputs);
+            outputs.Deconstruct(out var e, out var _, out var _, out var _, out var _, out var _);
 
             // Testing Peek() here:
             DPArchiveTestHelpers.RunAndAssertPeekEvents(e, arc);
 
             DPArchiveTestHelpers.AssertDefaultContents(arc);
             DPArchiveTestHelpers.AssertExtractorSetPathsCorrectly(arc, DefaultContents);
-            Assert.AreEqual(arc.Context, e.Context);
+            Assert.AreEqual(arc.FileSystem, e.FileSystem);
         }
 
         [TestMethod]
         public void PeekTest_EmitsWithErrors()
         {
-            var arc = SetupArchiveWithPartiallyFakedDependencies(DefaultPeekOptions, out var e, out var fakeProcess, out _, out _, out _);
-            fakeProcess.ErrorEnumerable = new[] { "Can not open encrypted archive. Wrong password? You silly goose." };
+            var arc = NewMockedArchive(DefaultOptions, out var outputs);
+            outputs.Deconstruct(out var e, out var fakeProcess, out var _, out var _, out var _, out var _);
+            fakeProcess.Object.ErrorEnumerable = new[] { "Can not open encrypted archive. Wrong password? You silly goose." };
 
             // Testing Peek() here:
             DPArchiveTestHelpers.RunAndAssertPeekEvents(e, arc);
@@ -384,8 +410,9 @@ namespace DAZ_Installer.Core.Extraction.Tests
         [TestMethod]
         public void PeekTest_StartProcessFails()
         {
-            var arc = SetupArchiveWithPartiallyFakedDependencies(DefaultPeekOptions, out var e, out var fakeProcess, out _, out _, out _);
-            fakeProcess.When(x => x.Start()).Throw(new Exception("Something went wrong"));
+            var arc = NewMockedArchive(DefaultOptions, out var outputs);
+            outputs.Deconstruct(out var e, out var fakeProcess, out var _, out var _, out var _, out var _);
+            fakeProcess.Setup(x => x.Start()).Throws(new Exception("Something went wrong"));
 
             // Testing Peek() here:
             DPArchiveTestHelpers.RunAndAssertPeekEvents(e, arc);
@@ -395,11 +422,12 @@ namespace DAZ_Installer.Core.Extraction.Tests
         [TestMethod]
         public void PeekTest_Encrypted()
         {
-            var arc = SetupArchiveWithPartiallyFakedDependencies(DefaultPeekOptions, out var e, out var fakeProcess, out _, out _, out _);
+            var arc = NewMockedArchive(DefaultOptions, out var outputs);
+            outputs.Deconstruct(out var e, out var fakeProcess, out var _, out var _, out var _, out var _);
             var l = new List<string>();
             FakeProcess.GetLinesForEntity("encrypted_something.jpg", l);
             l.Insert(3, "Encrypted = +");
-            fakeProcess.OutputEnumerable = fakeProcess.OutputEnumerable.Concat(l);
+            fakeProcess.Object.OutputEnumerable = fakeProcess.Object.OutputEnumerable.Concat(l);
 
             // Testing Peek() here:
             DPArchiveTestHelpers.RunAndAssertPeekEvents(e, arc);

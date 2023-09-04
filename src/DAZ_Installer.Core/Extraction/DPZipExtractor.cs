@@ -30,7 +30,7 @@ namespace DAZ_Installer.Core.Extraction
             // Let listeners know that we are beginning to extract.
             EmitOnExtracting();
             // Reset any variables if needed.
-            Context = settings.Archive.Context;
+            FileSystem = settings.Archive.FileSystem;
             // Peek into the archive if needed.
             DPArchive arc = settings.Archive;
             if (arc.Contents.Count == 0) Peek(arc);
@@ -102,7 +102,7 @@ namespace DAZ_Installer.Core.Extraction
             EmitOnPeeking();
             // Reset any variables if needed.
             arc.TrueArchiveSize = 0;
-            Context = arc.Context;
+            FileSystem = arc.FileSystem;
 
             if (arc.FileInfo is null || !arc.FileInfo.Exists)
             {
@@ -150,11 +150,11 @@ namespace DAZ_Installer.Core.Extraction
         EXTRACT:
             try
             {
-                var dirInfo = Context.CreateDirectoryInfo(Path.GetDirectoryName(expectedPath)!);
+                var dirInfo = FileSystem.CreateDirectoryInfo(Path.GetDirectoryName(expectedPath)!);
                 if (!dirInfo.Exists && !dirInfo.TryCreate()) Logger.Warning("Failed to create directory for {0}", dirInfo.Path);
                 // Extract the file and create the file info if it successfully extracted.
-                fileInfo ??= Context.CreateFileInfo(expectedPath);
-                if (!Context.Scope.IsFilePathWhitelisted(expectedPath))
+                fileInfo ??= FileSystem.CreateFileInfo(expectedPath);
+                if (!FileSystem.Scope.IsFilePathWhitelisted(expectedPath))
                 {
                     HandleError(arc, file, report, null, $"{expectedPath} is not whitelisted.");
                     return;
@@ -177,7 +177,7 @@ namespace DAZ_Installer.Core.Extraction
                     HandleError(arc, file, report, e, DPArchiveErrorArgs.UnauthorizedAccessAfterExplanation);
                     return;
                 }
-                if (!TryHelper.TryFixFilePermissions(fileInfo ??= Context.CreateFileInfo(expectedPath), out Exception? ex))
+                if (!TryHelper.TryFixFilePermissions(fileInfo ??= FileSystem.CreateFileInfo(expectedPath), out Exception? ex))
                     HandleError(arc, file, report, new AggregateException(e, ex), DPArchiveErrorArgs.UnauthorizedAccessExplanation);
                 // Try it again.
                 tryAgain = true;

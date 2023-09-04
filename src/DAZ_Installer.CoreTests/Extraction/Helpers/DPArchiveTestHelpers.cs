@@ -1,7 +1,7 @@
 ﻿using DAZ_Installer.Core;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using DAZ_Installer.Core.Extraction.Fakes;
-using NSubstitute;
+using Moq;
 using DAZ_Installer.IO;
 using DAZ_Installer.IO.Fakes;
 using DAZ_Installer.Core.Extraction;

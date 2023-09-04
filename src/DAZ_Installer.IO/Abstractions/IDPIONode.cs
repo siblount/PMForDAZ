@@ -29,6 +29,6 @@
         /// <summary>
         /// The context to use for this object.
         /// </summary>
-        public DPAbstractIOContext Context { get; }
+        public AbstractFileSystem FileSystem { get; }
     }
 }

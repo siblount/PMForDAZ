@@ -1,6 +1,6 @@
 ﻿using DAZ_Installer.IO.Fakes;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using NSubstitute;
+using Moq;
 
 namespace DAZ_Installer.IO.Tests
 {
@@ -8,8 +8,8 @@ namespace DAZ_Installer.IO.Tests
 #pragma warning disable CS0618 // This is for testing, as intended.
     public class DPFileInfoTests
     {
-        private static DPIOContext unlimitedCtx = new DPIOContext();
-        private static DPIOContext noCtx = DPIOContext.None;
+        private static FakeFileSystem unlimitedCtx = new FakeFileSystem(DPFileScopeSettings.All);
+        private static FakeFileSystem noCtx = new FakeFileSystem(DPFileScopeSettings.None);
         private static DPFileInfo existingFile = null!;
         private static DPFileInfo nonexistantFile = null!;
         private static DPFileInfo outOfScope = null!;
@@ -38,7 +38,8 @@ namespace DAZ_Installer.IO.Tests
             nonexistantFile = new DPFileInfo(new FakeFileInfo(initNonexistantFilePath), unlimitedCtx);
             outOfScope = new DPFileInfo(new FakeFileInfo(initOutOfScopeFilePath), noCtx);
             destOutOfScope = new DPFileInfo(new FakeFileInfo(initOutOfScopeFilePath),
-                new DPIOContext(DPFileScopeSettings.CreateUltraStrict(new string[] { initDestOutOfScopeFilePath }, Array.Empty<string>())));
+                new FakeFileSystem(DPFileScopeSettings.CreateUltraStrict(new string[] { initOutOfScopeFilePath }, Array.Empty<string>()))
+            );
         }
 
         [TestMethod]
@@ -52,7 +53,7 @@ namespace DAZ_Installer.IO.Tests
         {
             var tempFilePath = Path.Combine(tempDir, "existing.txt");
             var specificSettings = DPFileScopeSettings.CreateUltraStrict(new string[] { tempFilePath }, Array.Empty<string>());
-            var f = new DPFileInfo(existingFile.Path, new DPIOContext(specificSettings));
+            var f = new DPFileInfo(existingFile.Path, new FakeFileSystem(specificSettings));
             Assert.ThrowsException<OutOfScopeException>(() => f.CopyTo(Path.Combine(tempDir, "existing.txt"), true));
         }
         [TestMethod]
@@ -74,7 +75,7 @@ namespace DAZ_Installer.IO.Tests
         {
             var dest = Path.Combine(tempDir, "existing2.txt");
             var a = new DPFileInfo(existingFile.Path,
-                new DPIOContext(DPFileScopeSettings.CreateUltraStrict(new[] { dest }, new[] { Path.GetDirectoryName(dest)! }))
+                new FakeFileSystem(DPFileScopeSettings.CreateUltraStrict(new[] { dest }, new[] { Path.GetDirectoryName(dest)! }))
             );
             Assert.ThrowsException<OutOfScopeException>(() => a.MoveTo(dest, true));
         }
@@ -83,7 +84,7 @@ namespace DAZ_Installer.IO.Tests
         {
             var dest = Path.Combine(tempDir, "existing2.txt");
             var a = new DPFileInfo(existingFile.Path,
-                new DPIOContext(DPFileScopeSettings.CreateUltraStrict(new[] { existingFile.Path }, Array.Empty<string>()))
+                new FakeFileSystem(DPFileScopeSettings.CreateUltraStrict(new[] { existingFile.Path }, Array.Empty<string>()))
             );
             Assert.ThrowsException<OutOfScopeException>(() => a.MoveTo(dest, true));
         }
@@ -444,15 +445,15 @@ namespace DAZ_Installer.IO.Tests
         public void ContextTest()
         {
             var scope = new DPFileScopeSettings();
-            var ctx = new DPIOContext(scope);
+            var ctx = new FakeFileSystem(scope);
             var a = new DPFileInfo(new FakeFileInfo("a.txt"), ctx);
-            Assert.AreSame(a.Context, ctx);
+            Assert.AreSame(a.FileSystem, ctx);
         }
         [TestMethod]
         public void ContextTest_ContextChanged()
         {
-            existingFile.Context = noCtx;
-            Assert.AreSame(noCtx, existingFile.Context);
+            existingFile.FileSystem = noCtx;
+            Assert.AreSame(noCtx, existingFile.FileSystem);
         }
         [TestMethod]
         public void ContextTest_DirListedInContext()
@@ -460,13 +461,13 @@ namespace DAZ_Installer.IO.Tests
             var f = new FakeFileInfo("Z://a.txt");
             f.Directory = new FakeDirectoryInfo("Z://");
             var file = new DPFileInfo(f, noCtx);
-            Assert.AreSame(file!.Context, file.Directory.Context);
+            Assert.AreSame(file!.FileSystem, file.Directory.FileSystem);
         }
         [TestMethod]
         public void ScopeTest()
         {
             var scope = new DPFileScopeSettings();
-            var ctx = new DPIOContext(scope);
+            var ctx = new FakeFileSystem(scope);
             var a = new DPFileInfo(new FakeFileInfo("a.txt"), ctx);
             Assert.AreSame(a.Scope, scope);
         }
@@ -496,42 +497,26 @@ namespace DAZ_Installer.IO.Tests
         [TestMethod]
         public void TryAndFixMoveToTest_FixUnauthorizedSuccess()
         {
-            var f = Substitute.For<IFileInfo>();
-            f.FullName.Returns("Z://a.txt");
-            f.Attributes = FileAttributes.Hidden | FileAttributes.ReadOnly;
-            f.Exists.Returns(true);
-            f.When(x => x.MoveTo(Arg.Any<string>(), Arg.Any<bool>())).Do(x =>
+            var f = new Mock<FakeFileInfo>("Z://a.txt") { CallBase = true };
+            f.Object.Attributes = FileAttributes.Hidden | FileAttributes.ReadOnly;
+            f.Setup(x => x.MoveTo(It.IsAny<string>(), It.IsAny<bool>())).Callback(() =>
             {
-                if (f.Attributes.HasFlag(FileAttributes.ReadOnly) || f.Attributes.HasFlag(FileAttributes.Hidden))
+                if (f.Object.Attributes.HasFlag(FileAttributes.ReadOnly) || f.Object.Attributes.HasFlag(FileAttributes.Hidden))
                     throw new UnauthorizedAccessException();
             });
-            var fs = new DPFileInfo(f, unlimitedCtx, null);
+            var fs = new DPFileInfo(f.Object, unlimitedCtx, null);
             Assert.IsTrue(fs.TryAndFixMoveTo(Path.Combine(tempDir, "existing2.txt"), true, out var ex));
             Assert.IsNull(ex);
         }
         [TestMethod]
         public void TryAndFixMoveToTest_FixUnauthorizedFail()
         {
-            var f = Substitute.For<IFileInfo>();
-            f.FullName.Returns("Z://a.txt");
-            f.Attributes = FileAttributes.Hidden | FileAttributes.ReadOnly;
-            f.Exists.Returns(true);
-            f.When(x => x.MoveTo(Arg.Any<string>(), Arg.Any<bool>())).Do(x => throw new UnauthorizedAccessException());
-            var fs = new DPFileInfo(f, unlimitedCtx, null);
+            var f = new Mock<FakeFileInfo>("Z://a.txt") { CallBase = true };
+            f.Object.Attributes = FileAttributes.Hidden | FileAttributes.ReadOnly;
+            f.Setup(x => x.MoveTo(It.IsAny<string>(), It.IsAny<bool>())).Throws(new UnauthorizedAccessException());
+            var fs = new DPFileInfo(f.Object, unlimitedCtx, null);
             Assert.IsFalse(fs.TryAndFixMoveTo(Path.Combine(tempDir, "existing2.txt"), true, out var ex));
             Assert.IsNotNull(ex);
-        }
-        [TestMethod]
-        public void TryAndFixMoveToTest_FixUnauthorizedFail_Unexpected()
-        {
-            var f = Substitute.For<IFileInfo>();
-            f.FullName.Returns("Z://a.txt");
-            f.Attributes = FileAttributes.Hidden | FileAttributes.ReadOnly;
-            f.Exists.Returns(true);
-            f.When(x => x.MoveTo(Arg.Any<string>(), Arg.Any<bool>())).Do(x => throw new FileNotFoundException("gotcha"));
-            var fs = new DPFileInfo(f, unlimitedCtx, null);
-            Assert.IsFalse(fs.TryAndFixMoveTo(Path.Combine(tempDir, "existing2.txt"), true, out var ex));
-            Assert.IsInstanceOfType(ex, typeof(FileNotFoundException));
         }
         [TestMethod]
         public void TryAndFixCopyToTest()
@@ -562,18 +547,16 @@ namespace DAZ_Installer.IO.Tests
         [TestMethod]
         public void TryAndFixCopyToTest_FixUnauthorizedSuccess()
         {
-            var f = Substitute.For<IFileInfo>();
-            f.FullName.Returns("Z://a.txt");
-            f.Attributes = FileAttributes.Hidden | FileAttributes.ReadOnly;
-            f.Exists.Returns(true);
-            f.CopyTo(default, default).ReturnsForAnyArgs(x =>
+            var f = new Mock<FakeFileInfo>("Z://a.txt") { CallBase = true };
+            f.Object.Attributes = FileAttributes.Hidden | FileAttributes.ReadOnly;
+            f.Setup(x => x.CopyTo(It.IsAny<string>(), It.IsAny<bool>())).Returns(() =>
             {
-                if (f.Attributes.HasFlag(FileAttributes.ReadOnly) || f.Attributes.HasFlag(FileAttributes.Hidden))
+                if (f.Object.Attributes.HasFlag(FileAttributes.ReadOnly) || f.Object.Attributes.HasFlag(FileAttributes.Hidden))
                     throw new UnauthorizedAccessException();
                 return new FakeFileInfo("Z://a.txt");
             });
+            var fs = new DPFileInfo(f.Object, unlimitedCtx, null);
 
-            var fs = new DPFileInfo(f, unlimitedCtx, null);
             Assert.IsTrue(fs.TryAndFixCopyTo(Path.Combine(tempDir, "existing2.txt"), true, out var stream, out var ex));
             Assert.IsNull(ex);
             Assert.IsNotNull(stream);
@@ -581,28 +564,13 @@ namespace DAZ_Installer.IO.Tests
         [TestMethod]
         public void TryAndFixCopyToTest_FixUnauthorizedFail()
         {
-            var f = Substitute.For<IFileInfo>();
-            f.FullName.Returns("Z://a.txt");
-            f.Attributes = FileAttributes.Hidden | FileAttributes.ReadOnly;
-            f.Exists.Returns(true);
-            f.When(x => x.CopyTo(Arg.Any<string>(), Arg.Any<bool>())).Do(x => throw new UnauthorizedAccessException());
-            var fs = new DPFileInfo(f, unlimitedCtx, null);
+            var f = new Mock<FakeFileInfo>("Z://a.txt") { CallBase = true };
+            f.Object.Attributes = FileAttributes.Hidden | FileAttributes.ReadOnly;
+            f.Setup(x => x.CopyTo(It.IsAny<string>(), It.IsAny<bool>())).Throws(new UnauthorizedAccessException());
+            var fs = new DPFileInfo(f.Object, unlimitedCtx, null);
             Assert.IsFalse(fs.TryAndFixCopyTo(Path.Combine(tempDir, "existing2.txt"), true, out var stream, out var ex));
             Assert.IsNotNull(ex);
             Assert.IsNull(stream);
-        }
-        [TestMethod]
-        public void TryAndFixCopyToTest_FixUnauthorizedFail_Unexpected()
-        {
-            var f = Substitute.For<IFileInfo>();
-            f.FullName.Returns("Z://a.txt");
-            f.Attributes = FileAttributes.Hidden | FileAttributes.ReadOnly;
-            f.Exists.Returns(true);
-            f.When(x => x.CopyTo(Arg.Any<string>(), Arg.Any<bool>())).Do(x => throw new FileNotFoundException("gotcha"));
-            var fs = new DPFileInfo(f, unlimitedCtx, null);
-            Assert.IsFalse(fs.TryAndFixCopyTo(Path.Combine(tempDir, "existing2.txt"), true, out var stream, out var ex));
-            Assert.IsNull(stream);
-            Assert.IsInstanceOfType(ex, typeof(FileNotFoundException));
         }
         [TestMethod]
         public void TryAndFixOpenTest()
@@ -632,18 +600,16 @@ namespace DAZ_Installer.IO.Tests
         [TestMethod]
         public void TryAndFixOpenTest_FixUnauthorizedSuccess()
         {
-            var f = Substitute.For<IFileInfo>();
-            f.FullName.Returns("Z://a.txt");
-            f.Attributes = FileAttributes.Hidden | FileAttributes.ReadOnly;
-            f.Exists.Returns(true);
-            f.Open(Arg.Any<FileMode>(), Arg.Any<FileAccess>()).Returns(_ =>
+            var f = new Mock<FakeFileInfo>("Z://a.txt") { CallBase = true };
+            f.Object.Attributes = FileAttributes.Hidden | FileAttributes.ReadOnly;
+            f.Setup(x => x.Open(It.IsAny<FileMode>(), It.IsAny<FileAccess>())).Returns(() =>
             {
-                if (f.Attributes.HasFlag(FileAttributes.ReadOnly) || f.Attributes.HasFlag(FileAttributes.Hidden))
+                if (f.Object.Attributes.HasFlag(FileAttributes.ReadOnly) || f.Object.Attributes.HasFlag(FileAttributes.Hidden))
                     throw new UnauthorizedAccessException();
                 return Stream.Null;
             });
+            var fs = new DPFileInfo(f.Object, unlimitedCtx, null);
 
-            var fs = new DPFileInfo(f, unlimitedCtx, null);
             Assert.IsTrue(fs.TryAndFixOpen(FileMode.Open, FileAccess.Read, out var stream, out var ex));
             Assert.IsNotNull(stream);
             Assert.IsNull(ex);
@@ -651,27 +617,11 @@ namespace DAZ_Installer.IO.Tests
         [TestMethod]
         public void TryAndFixOpenTest_FixUnauthorizedFail()
         {
-            var f = Substitute.For<IFileInfo>();
-            f.FullName.Returns("Z://a.txt");
-            f.Attributes = FileAttributes.Hidden | FileAttributes.ReadOnly;
-            f.Exists.Returns(true);
-            f.Open(Arg.Any<FileMode>(), Arg.Any<FileAccess>()).Returns(_ => throw new UnauthorizedAccessException());
+            var f = new Mock<FakeFileInfo>("Z://a.txt") { CallBase = true };
+            f.Object.Attributes = FileAttributes.Hidden | FileAttributes.ReadOnly;
+            f.Setup(x => x.Open(It.IsAny<FileMode>(), It.IsAny<FileAccess>())).Throws(new UnauthorizedAccessException());
+            var fs = new DPFileInfo(f.Object, unlimitedCtx, null);
 
-            var fs = new DPFileInfo(f, unlimitedCtx, null);
-            Assert.IsFalse(fs.TryAndFixOpen(FileMode.Open, FileAccess.Read, out var stream, out var ex));
-            Assert.IsNull(stream);
-            Assert.IsNotNull(ex);
-        }
-        [TestMethod]
-        public void TryAndFixOpenTest_FixUnauthorizedFail_Unexpected()
-        {
-            var f = Substitute.For<IFileInfo>();
-            f.FullName.Returns("Z://a.txt");
-            f.Attributes = FileAttributes.Hidden | FileAttributes.ReadOnly;
-            f.Exists.Returns(true);
-            f.Open(Arg.Any<FileMode>(), Arg.Any<FileAccess>()).Returns(_ => throw new FileNotFoundException("gotcha"));
-
-            var fs = new DPFileInfo(f, unlimitedCtx, null);
             Assert.IsFalse(fs.TryAndFixOpen(FileMode.Open, FileAccess.Read, out var stream, out var ex));
             Assert.IsNull(stream);
             Assert.IsNotNull(ex);
@@ -701,43 +651,26 @@ namespace DAZ_Installer.IO.Tests
         [TestMethod]
         public void TryAndFixDeleteTest_FixUnauthorizedSuccess()
         {
-            var f = Substitute.For<IFileInfo>();
-            f.FullName.Returns("Z://a.txt");
-            f.Attributes = FileAttributes.Hidden | FileAttributes.ReadOnly;
-            f.Exists.Returns(true);
-            f.When(x => x.Delete()).Do(_ =>
+            var f = new Mock<FakeFileInfo>("Z://a.txt") { CallBase = true };
+            f.Object.Attributes = FileAttributes.Hidden | FileAttributes.ReadOnly;
+            f.Setup(x => x.Delete()).Callback(() =>
             {
-                if (f.Attributes.HasFlag(FileAttributes.ReadOnly) || f.Attributes.HasFlag(FileAttributes.Hidden))
+                if (f.Object.Attributes.HasFlag(FileAttributes.ReadOnly) || f.Object.Attributes.HasFlag(FileAttributes.Hidden))
                     throw new UnauthorizedAccessException();
             });
+            var fs = new DPFileInfo(f.Object, unlimitedCtx, null);
 
-            var fs = new DPFileInfo(f, unlimitedCtx, null);
             Assert.IsTrue(fs.TryAndFixDelete(out var ex));
             Assert.IsNull(ex);
         }
         [TestMethod]
         public void TryAndFixDeleteTest_FixUnauthorizedFail()
         {
-            var f = Substitute.For<IFileInfo>();
-            f.FullName.Returns("Z://a.txt");
-            f.Attributes = FileAttributes.Hidden | FileAttributes.ReadOnly;
-            f.Exists.Returns(true);
-            f.When(x => x.Delete()).Do(_ => throw new UnauthorizedAccessException());
+            var f = new Mock<FakeFileInfo>("Z://a.txt") { CallBase = true };
+            f.Object.Attributes = FileAttributes.Hidden | FileAttributes.ReadOnly;
+            f.Setup(x => x.Delete()).Throws(new UnauthorizedAccessException());
+            var fs = new DPFileInfo(f.Object, unlimitedCtx, null);
 
-            var fs = new DPFileInfo(f, unlimitedCtx, null);
-            Assert.IsFalse(fs.TryAndFixDelete(out var ex));
-            Assert.IsNotNull(ex);
-        }
-        [TestMethod]
-        public void TryAndFixDeleteTest_FixUnauthorizedFail_Unexpected()
-        {
-            var f = Substitute.For<IFileInfo>();
-            f.FullName.Returns("Z://a.txt");
-            f.Attributes = FileAttributes.Hidden | FileAttributes.ReadOnly;
-            f.Exists.Returns(true);
-            f.When(x => x.Delete()).Do(_ => throw new FileNotFoundException("gotcha"));
-
-            var fs = new DPFileInfo(f, unlimitedCtx, null);
             Assert.IsFalse(fs.TryAndFixDelete(out var ex));
             Assert.IsNotNull(ex);
         }

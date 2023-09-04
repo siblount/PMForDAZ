@@ -7,9 +7,7 @@ using DAZ_Installer.IO;
 using Serilog;
 using Serilog.Context;
 using System.Collections.Immutable;
-using System.IO.Compression;
-using System.Reflection.Metadata.Ecma335;
-using System.Text;
+using System.IO.Compression;using System.Text;
 
 namespace DAZ_Installer.Core
 {
@@ -29,7 +27,7 @@ namespace DAZ_Installer.Core
                                                                                                               "Scene Builder", "Scene Subsets", "Scenes", "Scripts", "Shader Presets", "Shaders", "Support", "Templates", "Textures", "Vehicles" });
         public DPProcessSettings settingsToUse = new();
         public ILogger Logger { get; set; } = Log.Logger.ForContext<DPProcessor>();
-        public IContextFactory ContextFactory { get; set; } = new DPIOContextFactory();
+        public AbstractFileSystem FileSystem { get; set; } = new DPFileSystem();
         public string TempLocation => Path.Combine(settingsToUse.TempPath, @"DazProductInstaller\");
         public string DestinationPath => settingsToUse.DestinationPath;
         public DPArchive CurrentArchive { get; private set; } = null!;
@@ -53,7 +51,6 @@ namespace DAZ_Installer.Core
         public event Action? StateChanged;
          
         private ProcessorState state;
-        private DPAbstractIOContext context = DPAbstractIOContext.None;
         // public event FilePreMove
 
         /// <summary>
@@ -115,7 +112,7 @@ namespace DAZ_Installer.Core
             State = ProcessorState.Starting;
             try
             {
-                context.CreateDirectoryInfo(TempLocation).Create();
+                FileSystem.CreateDirectoryInfo(TempLocation).Create();
             }
             catch (Exception e)
             {
@@ -210,13 +207,12 @@ namespace DAZ_Installer.Core
             validateProcessSettings(ref settings);
             settingsToUse = settings;
             cancel = false;
-            context = ContextFactory.CreateContext(setupScope(settings), new DriveInfo(settings.DestinationPath));
+            FileSystem.Scope = setupScope(settings);
             // Create new archive.
-            var archiveFile = DPArchive.CreateNewParentArchive(context.CreateFileInfo(filePath));
+            var archiveFile = DPArchive.CreateNewParentArchive(FileSystem.CreateFileInfo(filePath));
             CurrentArchive = archiveFile;
 
             processArchiveInternal(archiveFile, settings);
-            context = null!;
             State = ProcessorState.Idle;
         }
 
@@ -230,10 +226,9 @@ namespace DAZ_Installer.Core
             validateProcessSettings(ref settings);
             settingsToUse = settings;
             cancel = false;
-            context = ContextFactory.CreateContext(setupScope(settings), new DriveInfo(settings.DestinationPath));
+            FileSystem.Scope = setupScope(settings);
             CurrentArchive = arc;
             processArchiveInternal(arc, settings);
-            context = null!;
             State = ProcessorState.Idle;
         }
 
@@ -381,10 +376,9 @@ namespace DAZ_Installer.Core
                 file.RelativeTargetPath ?? file.Parent.CalculateChildRelativeTargetPath(file, settingsToUse));
         }
 
-        private bool DestinationHasEnoughSpace() => (ulong)context.AvailableFreeSpace > CurrentArchive.TrueArchiveSize;
+        private bool DestinationHasEnoughSpace() => (ulong)FileSystem.CreateDriveInfo(settingsToUse.DestinationPath).AvailableFreeSpace > CurrentArchive.TrueArchiveSize;
        
-        private bool TempHasEnoughSpace() => (ulong)ContextFactory.CreateContext(context.Scope,
-            new DriveInfo(Path.GetPathRoot(TempLocation)!)).AvailableFreeSpace > CurrentArchive.TrueArchiveSize;
+        private bool TempHasEnoughSpace() => (ulong)FileSystem.CreateDriveInfo(settingsToUse.TempPath).AvailableFreeSpace > CurrentArchive.TrueArchiveSize;
 
         private void DetermineContentFolders()
         {
@@ -424,11 +418,13 @@ namespace DAZ_Installer.Core
         private void ClearTemp()
         {
             Logger.Information("Clearing temp location at {TempLocation}", TempLocation);
-            var tempCtx = ContextFactory.CreateContext(new DPFileScopeSettings(Array.Empty<string>(), new[] { TempLocation }, false, throwOnPathTransversal: true));
-            IDPDirectoryInfo info = context.CreateDirectoryInfo(TempLocation);
+            var tmpScope = FileSystem.Scope;
+            FileSystem.Scope = new DPFileScopeSettings(Array.Empty<string>(), new[] { TempLocation }, false, throwOnPathTransversal: true);
+            IDPDirectoryInfo info = FileSystem.CreateDirectoryInfo(TempLocation);
             if (!TryHelper.Try(() => info.Delete(true), out Exception? ex))
                 Logger.Error(ex, "Failed to clear temp location");
             else Logger.Information("Cleared temp location");
+            FileSystem.Scope = tmpScope;
         }
 
         private void prepareOperations()
@@ -472,7 +468,7 @@ namespace DAZ_Installer.Core
             // First is always author.
             // Next is folder names.
             ReadContentFiles(settings);
-            ReadMetaFiles(settings);
+            ReadMetaFiles(settings); // TODO: This might not be needed.
             var tagsSet = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             tagsSet.EnsureCapacity(CurrentArchive.GetEstimateTagCount() + 5 +
                 (CurrentArchive.Folders.Count * 2) + ((CurrentArchive.Contents.Count - CurrentArchive.Subarchives.Count) * 2));
@@ -567,7 +563,7 @@ namespace DAZ_Installer.Core
                 true, CurrentArchive);
             CurrentArchive.ExtractContentsToTemp(extractSettings);
             Stream? stream = null!;
-            foreach (DPDSXFile file in CurrentArchive!.DSXFiles.Where(x => x.FileName != "Manifest.dsx" && x.FileName != "Supplement.dsx"))
+            foreach (DPDSXFile file in CurrentArchive!.DSXFiles)
             {
                 using (LogContext.PushProperty("File", file.Path))
                 // If it did not extract correctly we don't have acces, just skip it.

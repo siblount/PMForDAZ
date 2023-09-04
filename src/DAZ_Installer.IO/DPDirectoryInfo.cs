@@ -24,45 +24,44 @@ namespace DAZ_Installer.IO
         /// </summary>
         public override bool Whitelisted => whitelisted;
         /// <summary>
-        /// The ctx that is currently used for this directory.
+        /// The fs that is currently used for this directory.
         /// </summary>
-        public IDPFileScopeSettings Scope => Context.Scope;
-        public override DPAbstractIOContext Context
+        public IDPFileScopeSettings Scope => FileSystem.Scope;
+        public override AbstractFileSystem FileSystem
         {
-            get => context; 
+            get => fileSystem; 
             internal set
             {
                 ArgumentNullException.ThrowIfNull(value);
-                context = value;
+                fileSystem = value;
                 Invalidate();
             }
         }
         /// <inheritdoc cref="DirectoryInfo.Parent"/>
-        public IDPDirectoryInfo? Parent => parent ??= tryCreateDirectoryInfoParent(directoryInfo, context);
+        public IDPDirectoryInfo? Parent => parent ??= tryCreateDirectoryInfoParent(directoryInfo, fileSystem);
 
         protected IDirectoryInfo directoryInfo;
         protected IDPDirectoryInfo? parent;
         protected bool whitelisted;
-        private DPAbstractIOContext context;
+        private AbstractFileSystem fileSystem;
 
-        internal DPDirectoryInfo(DirectoryInfo info, DPAbstractIOContext ctx) : this(info, ctx, tryCreateDirectoryInfoParent(info, ctx)) { }
-        internal DPDirectoryInfo(IDirectoryInfo info, DPAbstractIOContext ctx) : this(info, ctx, tryCreateDirectoryInfoParent(info, ctx)) { }
-        internal DPDirectoryInfo(string path, DPAbstractIOContext ctx) : this(new DirectoryInfo(path), ctx) { }
-        internal DPDirectoryInfo(DirectoryInfo info, DPAbstractIOContext ctx, IDPDirectoryInfo? parent) : this(new DirectoryInfoWrapper(info), ctx, parent) { }
+        internal DPDirectoryInfo(DirectoryInfo info, AbstractFileSystem fs) : this(info, fs, tryCreateDirectoryInfoParent(info, fs)) { }
+        internal DPDirectoryInfo(IDirectoryInfo info, AbstractFileSystem fs) : this(info, fs, tryCreateDirectoryInfoParent(info, fs)) { }
+        internal DPDirectoryInfo(string path, AbstractFileSystem fs) : this(new DirectoryInfo(path), fs) { }
+        internal DPDirectoryInfo(DirectoryInfo info, AbstractFileSystem fs, IDPDirectoryInfo? parent) : this(new DirectoryInfoWrapper(info), fs, parent) { }
         /// <summary>
         /// Constructor used for testing and internally.
         /// </summary>
         /// <param name="info">The directory info to use.</param>
-        /// <param name="ctx">The ctx settings to use.</param>
+        /// <param name="fs">The fs settings to use.</param>
         /// <param name="parent">The parent directory of this directory.</param>
-        internal DPDirectoryInfo(IDirectoryInfo info, DPAbstractIOContext ctx, IDPDirectoryInfo? parent)
+        internal DPDirectoryInfo(IDirectoryInfo info, AbstractFileSystem fs, IDPDirectoryInfo? parent)
         {
             ArgumentNullException.ThrowIfNull(info);
-            ArgumentNullException.ThrowIfNull(ctx);
+            ArgumentNullException.ThrowIfNull(fs);
             directoryInfo = info;
-            context = ctx;
-            ctx.RegisterNode(this);
-            whitelisted = ctx.Scope.IsDirectoryWhitelisted(info.FullName);
+            fileSystem = fs;
+            whitelisted = fs.Scope.IsDirectoryWhitelisted(info.FullName);
             this.parent = parent;
         }
 
@@ -167,7 +166,7 @@ namespace DAZ_Installer.IO
         {
             exception = null;
             if (!Whitelisted || !directoryInfo.Exists) return false;
-            var targetInfo = Context.CreateTempContext().CreateFileInfo(path);
+            var targetInfo = FileSystem.CreateFileInfo(path);
             if (targetInfo.Exists && (targetInfo.Attributes.HasFlag(FileAttributes.ReadOnly) || targetInfo.Attributes.HasFlag(FileAttributes.Hidden)))
             {
                 try
@@ -197,8 +196,8 @@ namespace DAZ_Installer.IO
         }
         #endregion
         #region Private methods
-        private static IDPDirectoryInfo? tryCreateDirectoryInfoParent(DirectoryInfo info, DPAbstractIOContext ctx) => info.Parent == null ? null : new DPDirectoryInfo(info.Parent, ctx, null);
-        private static IDPDirectoryInfo? tryCreateDirectoryInfoParent(IDirectoryInfo info, DPAbstractIOContext ctx) => info.Parent == null ? null : new DPDirectoryInfo(info.Parent, ctx, null);
+        private static IDPDirectoryInfo? tryCreateDirectoryInfoParent(DirectoryInfo info, AbstractFileSystem fs) => info.Parent == null ? null : new DPDirectoryInfo(info.Parent, fs, null);
+        private static IDPDirectoryInfo? tryCreateDirectoryInfoParent(IDirectoryInfo info, AbstractFileSystem fs) => info.Parent == null ? null : new DPDirectoryInfo(info.Parent, fs, null);
         private void throwIfNotWhitelisted()
         {
             if (!Whitelisted) throw new OutOfScopeException(Path);
@@ -233,7 +232,7 @@ namespace DAZ_Installer.IO
                         throw new OutOfScopeException(file.FullName, "File is not whitelisted");
                 }
         }
-        private void throwIfChildrenNotWhitelisted(string path) => new DPDirectoryInfo(path, context).throwIfChildrenNotWhitelisted();
+        private void throwIfChildrenNotWhitelisted(string path) => new DPDirectoryInfo(path, fileSystem).throwIfChildrenNotWhitelisted();
         internal override void Invalidate()
         {
             whitelisted = Scope.IsFilePathWhitelisted(Path);

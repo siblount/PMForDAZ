@@ -4,50 +4,49 @@ namespace DAZ_Installer.IO
 {
     public class DPFileInfo : DPIONodeBase, IDPFileInfo
     {
-        public override DPAbstractIOContext Context
+        public override AbstractFileSystem FileSystem
         {
-            get => context;
+            get => fileSystem;
             internal set
             {
                 ArgumentNullException.ThrowIfNull(value);
-                context = value;
+                fileSystem = value;
                 Invalidate();
             }
         }
         
-        public IDPFileScopeSettings Scope => Context.Scope;
+        public IDPFileScopeSettings Scope => FileSystem.Scope;
         public override FileAttributes Attributes { get => fileInfo.Attributes; set => fileInfo.Attributes = value; }
 
-        public IDPDirectoryInfo? Directory => directory ??= tryCreateDirectoryInfo(fileInfo, Context);
+        public IDPDirectoryInfo? Directory => directory ??= tryCreateDirectoryInfo(fileInfo, FileSystem);
 
         public override string Name => fileInfo.Name;
         public override string Path => fileInfo.FullName;
         public override bool Exists => fileInfo.Exists;
         public override bool Whitelisted => whitelisted;
         protected IFileInfo fileInfo;
-        protected DPAbstractIOContext context;
+        protected AbstractFileSystem fileSystem;
         protected IDPDirectoryInfo? directory;
         protected bool whitelisted;
 
 
-        internal DPFileInfo(FileInfo fileInfo, DPAbstractIOContext ctx) : this(fileInfo, ctx, tryCreateDirectoryInfo(fileInfo, ctx)) { }
-        internal DPFileInfo(IFileInfo fileInfo, DPAbstractIOContext ctx) : this(fileInfo, ctx, tryCreateDirectoryInfo(fileInfo, ctx)) { }
+        internal DPFileInfo(FileInfo fileInfo, AbstractFileSystem fs) : this(fileInfo, fs, tryCreateDirectoryInfo(fileInfo, fs)) { }
+        internal DPFileInfo(IFileInfo fileInfo, AbstractFileSystem fs) : this(fileInfo, fs, tryCreateDirectoryInfo(fileInfo, fs)) { }
 
-        internal DPFileInfo(string path, DPAbstractIOContext ctx) : this(new FileInfo(path), ctx) { }
-        internal DPFileInfo(FileInfo info, DPAbstractIOContext ctx, IDPDirectoryInfo? directory) : 
-            this(new FileInfoWrapper(info), ctx, directory) { }
+        internal DPFileInfo(string path, AbstractFileSystem fs) : this(new FileInfo(path), fs) { }
+        internal DPFileInfo(FileInfo info, AbstractFileSystem fs, IDPDirectoryInfo? directory) : 
+            this(new FileInfoWrapper(info), fs, directory) { }
         /// <summary>
         /// Constructor used for testing.
         /// </summary>
         /// <param name="info">The file info to use.</param>
-        /// <param name="scope">The scope settings to use.</param>
+        /// <param name="fs">The file system to use.</param>
         /// <param name="directory">The parent directory of this file.</param>
-        internal DPFileInfo(IFileInfo info, DPAbstractIOContext ctx, IDPDirectoryInfo? directory)
+        internal DPFileInfo(IFileInfo info, AbstractFileSystem fs, IDPDirectoryInfo? directory)
         {
             ArgumentNullException.ThrowIfNull(info);
-            ArgumentNullException.ThrowIfNull(ctx);
-            context = ctx;
-            ctx.RegisterNode(this);
+            ArgumentNullException.ThrowIfNull(fs);
+            fileSystem = fs;
             whitelisted = Scope.IsFilePathWhitelisted(info.FullName);
             fileInfo = info;
             this.directory = directory;
@@ -56,7 +55,7 @@ namespace DAZ_Installer.IO
         public IDPFileInfo CopyTo(string path, bool overwrite)
         {
             throwIfNotWhitelisted(path);
-            return new DPFileInfo(fileInfo.CopyTo(path, overwrite), Context);
+            return new DPFileInfo(fileInfo.CopyTo(path, overwrite), FileSystem);
         }
         public Stream Create() {
             throwIfNotWhitelisted();
@@ -104,10 +103,10 @@ namespace DAZ_Installer.IO
         {
             whitelisted = Scope.IsFilePathWhitelisted(Path);
         }
-        private static IDPDirectoryInfo? tryCreateDirectoryInfo(FileInfo info, DPAbstractIOContext ctx) => 
-            info.Directory is null ? null : new DPDirectoryInfo(info.Directory, ctx);
-        private static IDPDirectoryInfo? tryCreateDirectoryInfo(IFileInfo info, DPAbstractIOContext ctx) => 
-            info.Directory is null ? null : new DPDirectoryInfo(info.Directory, ctx);
+        private static IDPDirectoryInfo? tryCreateDirectoryInfo(FileInfo info, AbstractFileSystem fs) => 
+            info.Directory is null ? null : new DPDirectoryInfo(info.Directory, fs);
+        private static IDPDirectoryInfo? tryCreateDirectoryInfo(IFileInfo info, AbstractFileSystem fs) => 
+            info.Directory is null ? null : new DPDirectoryInfo(info.Directory, fs);
 
         #endregion
         // The Preview methods are to check whether the operation is possible (ie: are we blacklisted or not?).
@@ -189,7 +188,7 @@ namespace DAZ_Installer.IO
         {
             exception = null;
             if (!Whitelisted || !fileInfo.Exists) return false;
-            var targetInfo = Context.CreateTempContext().CreateFileInfo(path);
+            var targetInfo = FileSystem.CreateFileInfo(path);
             if (targetInfo.Exists && (targetInfo.Attributes.HasFlag(FileAttributes.ReadOnly) || targetInfo.Attributes.HasFlag(FileAttributes.Hidden)))
             {
                 try
@@ -214,7 +213,7 @@ namespace DAZ_Installer.IO
             exception = null;
             info = null;
             if (!Whitelisted || !fileInfo.Exists) return false;
-            var targetInfo = Context.CreateTempContext().CreateFileInfo(path);
+            var targetInfo = FileSystem.CreateFileInfo(path);
             if (targetInfo.Exists && (targetInfo.Attributes.HasFlag(FileAttributes.ReadOnly) || targetInfo.Attributes.HasFlag(FileAttributes.Hidden)))
             {
                 try

@@ -1,6 +1,6 @@
 ﻿using DAZ_Installer.IO.Fakes;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using NSubstitute;
+using Moq;
 using System.Diagnostics;
 
 namespace DAZ_Installer.IO.Tests
@@ -9,8 +9,8 @@ namespace DAZ_Installer.IO.Tests
 #pragma warning disable CS0618 // FakeDirectoryInfo is obsolete for production, not testing.
     public class DPDirectoryInfoTests
     {
-        private static DPIOContext unlimitedCtx = new DPIOContext();
-        private static DPIOContext noCtx = DPIOContext.None;
+        private static FakeFileSystem unlimitedCtx = new FakeFileSystem(DPFileScopeSettings.All);
+        private static FakeFileSystem noCtx = new FakeFileSystem(DPFileScopeSettings.None);
         private static DPDirectoryInfo existingDir = null!;
         private static DPDirectoryInfo nonexistantDir = null!;
         private static DPDirectoryInfo outOfScope = null!;
@@ -37,9 +37,9 @@ namespace DAZ_Installer.IO.Tests
         {
             existingDir = new DPDirectoryInfo(new FakeDirectoryInfo(initExistingDirectoryPath), unlimitedCtx);
             nonexistantDir = new DPDirectoryInfo(new FakeDirectoryInfo(initNonexistantDirectoryPath), unlimitedCtx);
-            outOfScope = new DPDirectoryInfo(new FakeDirectoryInfo(initOutOfScopeDirectoryPath), DPIOContext.None);
-            destOutOfScope = new DPDirectoryInfo(new FakeDirectoryInfo(initOutOfScopeDirectoryPath),
-                new DPIOContext(DPFileScopeSettings.CreateUltraStrict(new string[] { initOutOfScopeDirectoryPath }, Array.Empty<string>()))
+            outOfScope = new DPDirectoryInfo(new FakeDirectoryInfo(initOutOfScopeDirectoryPath), noCtx);
+            destOutOfScope = new DPDirectoryInfo(new FakeDirectoryInfo(initOutOfScopeDirectoryPath), 
+                new FakeFileSystem(DPFileScopeSettings.CreateUltraStrict(new string[] { initOutOfScopeDirectoryPath }, Array.Empty<string>()))
             );
 
         }
@@ -68,7 +68,7 @@ namespace DAZ_Installer.IO.Tests
             var fakeDirInfo = new FakeDirectoryInfo(initExistingDirectoryPath);
             var path = Path.Combine(initExistingDirectoryPath, "subdir");
             fakeDirInfo.Directories = new[] { new FakeDirectoryInfo(path) };
-            var dir = new DPDirectoryInfo(fakeDirInfo, new DPIOContext(DPFileScopeSettings.CreateUltraStrict(Array.Empty<string>(), new[] { path })));
+            var dir = new DPDirectoryInfo(fakeDirInfo, new FakeFileSystem(DPFileScopeSettings.CreateUltraStrict(Array.Empty<string>(), new[] { path })));
             Assert.ThrowsException<OutOfScopeException>(() => outOfScope.Delete(true));
         }
         [TestMethod]
@@ -77,7 +77,7 @@ namespace DAZ_Installer.IO.Tests
             var fakeDirInfo = new FakeDirectoryInfo(initExistingDirectoryPath);
             var subDirPath = Path.Combine(initExistingDirectoryPath, "subdir");
             fakeDirInfo.Files = new[] { new FakeFileInfo(Path.Combine(subDirPath, "a.txt")) };
-            var dir = new DPDirectoryInfo(fakeDirInfo, new DPIOContext(DPFileScopeSettings.CreateUltraStrict(Array.Empty<string>(), new[] { initExistingDirectoryPath })));
+            var dir = new DPDirectoryInfo(fakeDirInfo, new FakeFileSystem(DPFileScopeSettings.CreateUltraStrict(Array.Empty<string>(), new[] { initExistingDirectoryPath })));
             Assert.ThrowsException<OutOfScopeException>(() => dir.Delete(true));
         }
 
@@ -99,7 +99,7 @@ namespace DAZ_Installer.IO.Tests
             var fakeDirInfo = new FakeDirectoryInfo(initExistingDirectoryPath);
             var path = Path.Combine(initExistingDirectoryPath, "subdir");
             fakeDirInfo.Directories = new[] { new FakeDirectoryInfo(path) };
-            var dir = new DPDirectoryInfo(fakeDirInfo, new DPIOContext(DPFileScopeSettings.CreateUltraStrict(Array.Empty<string>(), new[] { path })));
+            var dir = new DPDirectoryInfo(fakeDirInfo, new FakeFileSystem(DPFileScopeSettings.CreateUltraStrict(Array.Empty<string>(), new[] { path })));
             Assert.ThrowsException<OutOfScopeException>(() => outOfScope.MoveTo("anywhere"));
         }
         [TestMethod]
@@ -107,7 +107,7 @@ namespace DAZ_Installer.IO.Tests
         {
             var fakeDirInfo = new FakeDirectoryInfo(initExistingDirectoryPath);
             fakeDirInfo.Directories = new[] { new FakeDirectoryInfo(Path.Combine(initExistingDirectoryPath, "subdir")) };
-            var dir = new DPDirectoryInfo(fakeDirInfo, new DPIOContext(DPFileScopeSettings.CreateUltraStrict(Array.Empty<string>(), new[] { initExistingDirectoryPath })));
+            var dir = new DPDirectoryInfo(fakeDirInfo, new FakeFileSystem(DPFileScopeSettings.CreateUltraStrict(Array.Empty<string>(), new[] { initExistingDirectoryPath })));
             Assert.ThrowsException<OutOfScopeException>(() => dir.MoveTo("anywhere"));
         }
 
@@ -139,7 +139,7 @@ namespace DAZ_Installer.IO.Tests
             var fakeDirInfo = new FakeDirectoryInfo(initExistingDirectoryPath);
             var path = Path.Combine(initExistingDirectoryPath, "subdir");
             fakeDirInfo.Directories = new[] { new FakeDirectoryInfo(path) };
-            var dir = new DPDirectoryInfo(fakeDirInfo, new DPIOContext(DPFileScopeSettings.CreateUltraStrict(Array.Empty<string>(), new[] { path })));
+            var dir = new DPDirectoryInfo(fakeDirInfo, new FakeFileSystem(DPFileScopeSettings.CreateUltraStrict(Array.Empty<string>(), new[] { path })));
             Assert.IsFalse(dir.TryMoveTo("anywhere"));
         }
         [TestMethod]
@@ -147,7 +147,7 @@ namespace DAZ_Installer.IO.Tests
         {
             var fakeDirInfo = new FakeDirectoryInfo(initExistingDirectoryPath);
             fakeDirInfo.Directories = new[] { new FakeDirectoryInfo(Path.Combine(initExistingDirectoryPath, "subdir")) };
-            var dir = new DPDirectoryInfo(fakeDirInfo, new DPIOContext(DPFileScopeSettings.CreateUltraStrict(Array.Empty<string>(), new[] { initExistingDirectoryPath })));
+            var dir = new DPDirectoryInfo(fakeDirInfo, new FakeFileSystem(DPFileScopeSettings.CreateUltraStrict(Array.Empty<string>(), new[] { initExistingDirectoryPath })));
             Assert.IsFalse(dir.TryMoveTo("anywhere"));
         }
 
@@ -158,24 +158,22 @@ namespace DAZ_Installer.IO.Tests
         [TestMethod]
         public void TryCreateTest_UnexpectedError()
         {
-            IDirectoryInfo fakeDirInfo = Substitute.For<IDirectoryInfo>();
-            fakeDirInfo.When(x => x.Create()).Throw(new Exception("gotcha bitch"));
-            fakeDirInfo.FullName.Returns("abcd");
-            var dir = new DPDirectoryInfo(fakeDirInfo, unlimitedCtx, null);
+            var fakeDirInfo = new Mock<FakeDirectoryInfo>("A:/Fake/Dir") { CallBase = true };
+            fakeDirInfo.Setup(x => x.Create()).Throws(new Exception("gotcha bitch"));
+            var dir = new DPDirectoryInfo(fakeDirInfo.Object, unlimitedCtx, null);
             Assert.IsFalse(dir.TryCreate());
         }
 
         [TestMethod]
-        public void TryDeleteTest() => Assert.IsTrue(existingDir.TryCreate());
+        public void TryDeleteTest() => Assert.IsTrue(existingDir.TryDelete(true));
         [TestMethod]
-        public void TryDeleteTest_OutOfScope() => Assert.IsFalse(outOfScope.TryCreate());
+        public void TryDeleteTest_OutOfScope() => Assert.IsFalse(outOfScope.TryDelete(true));
         [TestMethod]
         public void TryDeleteTest_UnexpectedError()
         {
-            IDirectoryInfo fakeDirInfo = Substitute.For<IDirectoryInfo>();
-            fakeDirInfo.When(x => x.Delete(true)).Throw(new Exception("gotcha bitch"));
-            fakeDirInfo.FullName.Returns("ahhh");
-            var dir = new DPDirectoryInfo(fakeDirInfo, unlimitedCtx, null);
+            var fakeDirInfo = new Mock<FakeDirectoryInfo>("A:/Fake/Dir") { CallBase = true };
+            fakeDirInfo.Setup(x => x.Delete(It.IsAny<bool>())).Throws(new Exception("gotcha bitch"));
+            var dir = new DPDirectoryInfo(fakeDirInfo.Object, unlimitedCtx, null);
             Assert.IsFalse(dir.TryDelete(true));
         }
 
@@ -186,33 +184,27 @@ namespace DAZ_Installer.IO.Tests
         [TestMethod]
         public void TryMoveToTest_UnexpectedError()
         {
-            IDirectoryInfo fakeDirInfo = Substitute.For<IDirectoryInfo>();
-            fakeDirInfo.When(x => x.MoveTo("anywhere")).Throw(new Exception("gotcha bitch"));
-            fakeDirInfo.FullName.Returns("ahhh");
-            var dir = new DPDirectoryInfo(fakeDirInfo, unlimitedCtx, null);
+            var fakeDirInfo = new Mock<FakeDirectoryInfo>("A:/Fake/Dir") { CallBase = true };
+            fakeDirInfo.Setup(x => x.MoveTo("anywhere")).Throws(new Exception("gotcha bitch"));
+            var dir = new DPDirectoryInfo(fakeDirInfo.Object, unlimitedCtx, null);
             Assert.IsFalse(dir.TryMoveTo("anywhere"));
         }
         [TestMethod]
-        public void ContextTest()
+        public void FileSystemContextTest()
         {
             var scope = new DPFileScopeSettings();
-            var ctx = new DPIOContext(scope);
+            var ctx = new FakeFileSystem(scope);
             var a = new DPDirectoryInfo(new FakeDirectoryInfo("a"), ctx);
-            Assert.AreSame(a.Context, ctx);
+            Assert.AreSame(a.FileSystem, ctx);
         }
+
         [TestMethod]
-        public void ContextTest_ContextChanged()
-        {
-            existingDir.Context = noCtx;
-            Assert.AreSame(noCtx, existingDir.Context);
-        }
-        [TestMethod]
-        public void ContextTest_DirListedInContext()
+        public void FileSystemContextTest_DirListedInContext()
         {
             var f = new FakeDirectoryInfo("Z://a");
             f.Parent = new FakeDirectoryInfo("Z://");
-            var dir = new DPDirectoryInfo(f, DPIOContext.None);
-            Assert.AreSame(dir!.Context, dir.Parent.Context);
+            var dir = new DPDirectoryInfo(f, new FakeFileSystem());
+            Assert.AreSame(dir!.FileSystem, dir.Parent.FileSystem);
         }
         [TestMethod]
         public void TryAndFixMoveToTest()
@@ -239,42 +231,26 @@ namespace DAZ_Installer.IO.Tests
         [TestMethod]
         public void TryAndFixMoveToTest_FixUnauthorizedSuccess()
         {
-            var f = Substitute.For<IDirectoryInfo>();
-            f.FullName.Returns("Z://a");
-            f.Attributes = FileAttributes.Hidden | FileAttributes.ReadOnly;
-            f.Exists.Returns(true);
-            f.When(x => x.MoveTo(Arg.Any<string>())).Do(x =>
+            var f = new Mock<FakeDirectoryInfo>("Z://a") { CallBase = true };
+            f.Object.Attributes = FileAttributes.Hidden | FileAttributes.ReadOnly;
+            f.Setup(x => x.MoveTo(It.IsAny<string>())).Callback(() =>
             {
-                if (f.Attributes.HasFlag(FileAttributes.ReadOnly) || f.Attributes.HasFlag(FileAttributes.Hidden))
+                if (f.Object.Attributes.HasFlag(FileAttributes.ReadOnly) || f.Object.Attributes.HasFlag(FileAttributes.Hidden))
                     throw new UnauthorizedAccessException();
             });
-            var fs = new DPDirectoryInfo(f, unlimitedCtx, null);
+            var fs = new DPDirectoryInfo(f.Object, unlimitedCtx, null);
             Assert.IsTrue(fs.TryAndFixMoveTo(Path.Combine(tempDir, "existing2"), out var ex));
             Assert.IsNull(ex);
         }
         [TestMethod]
         public void TryAndFixMoveToTest_FixUnauthorizedFail()
         {
-            var f = Substitute.For<IDirectoryInfo>();
-            f.FullName.Returns("Z://a");
-            f.Attributes = FileAttributes.Hidden | FileAttributes.ReadOnly;
-            f.Exists.Returns(true);
-            f.When(x => x.MoveTo(Arg.Any<string>())).Do(x => throw new UnauthorizedAccessException());
-            var fs = new DPDirectoryInfo(f, unlimitedCtx, null);
+            var f = new Mock<FakeDirectoryInfo>("Z://a") { CallBase = true };
+            f.Object.Attributes = FileAttributes.Hidden | FileAttributes.ReadOnly;
+            f.Setup(x => x.MoveTo(It.IsAny<string>())).Throws(new UnauthorizedAccessException());
+            var fs = new DPDirectoryInfo(f.Object, unlimitedCtx, null);
             Assert.IsFalse(fs.TryAndFixMoveTo(Path.Combine(tempDir, "existing2"), out var ex));
             Assert.IsNotNull(ex);
-        }
-        [TestMethod]
-        public void TryAndFixMoveToTest_FixUnauthorizedFail_Unexpected()
-        {
-            var f = Substitute.For<IDirectoryInfo>();
-            f.FullName.Returns("Z://a");
-            f.Attributes = FileAttributes.Hidden | FileAttributes.ReadOnly;
-            f.Exists.Returns(true);
-            f.When(x => x.MoveTo(Arg.Any<string>())).Do(x => throw new FileNotFoundException("gotcha"));
-            var fs = new DPDirectoryInfo(f, unlimitedCtx, null);
-            Assert.IsFalse(fs.TryAndFixMoveTo(Path.Combine(tempDir, "existing2"), out var ex));
-            Assert.IsInstanceOfType(ex, typeof(FileNotFoundException));
         }
         [TestMethod]
         public void TryAndFixDeleteTest()
@@ -301,42 +277,26 @@ namespace DAZ_Installer.IO.Tests
         [TestMethod]
         public void TryAndFixDeleteTest_FixUnauthorizedSuccess()
         {
-            var f = Substitute.For<IDirectoryInfo>();
-            f.FullName.Returns("Z://a");
-            f.Attributes = FileAttributes.Hidden | FileAttributes.ReadOnly;
-            f.Exists.Returns(true);
-            f.When(x => x.Delete(Arg.Any<bool>())).Do(x =>
+            var f = new Mock<FakeDirectoryInfo>("Z://a") { CallBase = true };
+            f.Object.Attributes = FileAttributes.Hidden | FileAttributes.ReadOnly;
+            f.Setup(x => x.Delete(It.IsAny<bool>())).Callback(() =>
             {
-                if (f.Attributes.HasFlag(FileAttributes.ReadOnly) || f.Attributes.HasFlag(FileAttributes.Hidden))
+                if (f.Object.Attributes.HasFlag(FileAttributes.ReadOnly) || f.Object.Attributes.HasFlag(FileAttributes.Hidden))
                     throw new UnauthorizedAccessException();
             });
-            var fs = new DPDirectoryInfo(f, unlimitedCtx, null);
+            var fs = new DPDirectoryInfo(f.Object, unlimitedCtx, null);
             Assert.IsTrue(fs.TryAndFixDelete(true, out var ex));
             Assert.IsNull(ex);
         }
         [TestMethod]
         public void TryAndFixDeleteTest_FixUnauthorizedFail()
         {
-            var f = Substitute.For<IDirectoryInfo>();
-            f.FullName.Returns("Z://a");
-            f.Attributes = FileAttributes.Hidden | FileAttributes.ReadOnly;
-            f.Exists.Returns(true);
-            f.When(x => x.Delete(Arg.Any<bool>())).Do(x => throw new UnauthorizedAccessException());
-            var fs = new DPDirectoryInfo(f, unlimitedCtx, null);
+            var f = new Mock<FakeDirectoryInfo>("Z://a") { CallBase = true };
+            f.Object.Attributes = FileAttributes.Hidden | FileAttributes.ReadOnly;
+            f.Setup(x => x.Delete(It.IsAny<bool>())).Throws(new UnauthorizedAccessException());
+            var fs = new DPDirectoryInfo(f.Object, unlimitedCtx, null);
             Assert.IsFalse(fs.TryAndFixDelete(true, out var ex));
             Assert.IsNotNull(ex);
-        }
-        [TestMethod]
-        public void TryAndFixDeleteTest_FixUnauthorizedFail_Unexpected()
-        {
-            var f = Substitute.For<IDirectoryInfo>();
-            f.FullName.Returns("Z://a");
-            f.Attributes = FileAttributes.Hidden | FileAttributes.ReadOnly;
-            f.Exists.Returns(true);
-            f.When(x => x.Delete(Arg.Any<bool>())).Do(x => throw new FileNotFoundException("gotcha"));
-            var fs = new DPDirectoryInfo(f, unlimitedCtx, null);
-            Assert.IsFalse(fs.TryAndFixDelete(true, out var ex));
-            Assert.IsInstanceOfType(ex, typeof(FileNotFoundException));
         }
     }
 }

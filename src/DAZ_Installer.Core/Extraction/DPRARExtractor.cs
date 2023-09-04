@@ -74,7 +74,7 @@ namespace DAZ_Installer.Core.Extraction
             Logger.Information("Preparing to extract");
             mode = Mode.Extract;
             EmitOnExtracting();
-            Context = settings.Archive.Context;
+            FileSystem = settings.Archive.FileSystem;
             DPArchive arc = settings.Archive;
             session ??= new Session() { report = new DPExtractionReport(), settings = settings };
             if (arc.Contents.Count == 0) Peek(arc);
@@ -136,7 +136,7 @@ namespace DAZ_Installer.Core.Extraction
             using var _ = LogContext.PushProperty("Archive", arc.FileName);
             Logger.Information("Preparing to peek");
             mode = Mode.Peek;
-            Context = arc.Context;
+            FileSystem = arc.FileSystem;
             EmitOnPeeking();
             if (arc.FileInfo is null || !arc.FileInfo.Exists)
             {
@@ -154,7 +154,7 @@ namespace DAZ_Installer.Core.Extraction
                 // TODO: Can we remove this?
                 RARHandler.DestinationPath = Path.Combine(Path.GetTempPath(), Path.GetFileNameWithoutExtension(arc.Path));
                 // Create path and see if it exists.
-                var dir = Context.CreateDirectoryInfo(RARHandler.DestinationPath);
+                var dir = FileSystem.CreateDirectoryInfo(RARHandler.DestinationPath);
                 if (!dir.PreviewCreate()) Logger.Warning("The current destination directory is not whitelisted and will not be created");
                 dir.TryCreate();
 
@@ -199,7 +199,7 @@ namespace DAZ_Installer.Core.Extraction
             {
                 handler.DestinationPath = Path.GetDirectoryName(file.TargetPath)!;
                 // Create folders for the destination path if needed.
-                var dir = Context.CreateTempContext().CreateDirectoryInfo(handler.DestinationPath);
+                var dir = FileSystem.CreateDirectoryInfo(handler.DestinationPath);
                 if (!dir.Exists && !dir.TryCreate())
                 {
                     handleError(arc, DPArchiveErrorArgs.UnauthorizedAccessExplanation, report, file, null);
@@ -208,8 +208,8 @@ namespace DAZ_Installer.Core.Extraction
                 var targetPath = session.tempOnly ? Path.Combine(settings.TempPath,
                                                                  Path.GetFileNameWithoutExtension(arc.FileName),
                                                                  file.TargetPath) : file.TargetPath;
-                fileInfo ??= Context.CreateFileInfo(targetPath);
-                if (!Context.Scope.IsFilePathWhitelisted(targetPath)) 
+                fileInfo ??= FileSystem.CreateFileInfo(targetPath);
+                if (!FileSystem.Scope.IsFilePathWhitelisted(targetPath)) 
                     throw new OutOfScopeException(targetPath);
                 handler.Extract(targetPath);
 
@@ -232,7 +232,7 @@ namespace DAZ_Installer.Core.Extraction
                 // Check to see if we are attempting to overwrite a file that we don't have access to (ex: hidden/read-only/anti-virus/user no access).
                 else if (e.Message == "File write error." || e.Message == "File read error." || e.Message == "File could not be opened.")
                 {
-                    fileInfo ??= Context.CreateFileInfo(file.TargetPath);
+                    fileInfo ??= FileSystem.CreateFileInfo(file.TargetPath);
                     if (fileInfo.TryAndFixOpenRead(out var stream, out Exception? ex))
                     {
                         stream?.Dispose();

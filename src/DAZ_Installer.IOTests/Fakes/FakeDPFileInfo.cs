@@ -1,12 +1,13 @@
 ﻿namespace DAZ_Installer.IO.Fakes
 {
+    [Obsolete("For testing purposes only")]
     public class FakeDPFileInfo : IDPFileInfo
     {
         private readonly DPFileInfo fileInfo;
-        /// <inheritdoc cref="DPFileInfo(IFileInfo, DPAbstractIOContext, IDPDirectoryInfo)"/>
-        public FakeDPFileInfo(IFileInfo info, FakeDPIOContext context, IDPDirectoryInfo? directory) => fileInfo = new DPFileInfo(info, context, directory);
-        /// <inheritdoc cref="DPFileInfo(IFileInfo, DPAbstractIOContext, IDPDirectoryInfo)"/>
-        public FakeDPFileInfo(IFileInfo info, DPAbstractIOContext context, IDPDirectoryInfo? directory) => fileInfo = new DPFileInfo(info, context, directory);
+        /// <inheritdoc cref="DPFileInfo(IFileInfo, AbstractFileSystem, IDPDirectoryInfo)"/>
+        public FakeDPFileInfo(IFileInfo info, FakeFileSystem fs, IDPDirectoryInfo? directory) => fileInfo = new DPFileInfo(info, fs, directory);
+        /// <inheritdoc cref="DPFileInfo(IFileInfo, AbstractFileSystem, IDPDirectoryInfo)"/>
+        public FakeDPFileInfo(IFileInfo info, AbstractFileSystem fs, IDPDirectoryInfo? directory) => fileInfo = new DPFileInfo(info, fs, directory);
 
 
         public virtual IDPDirectoryInfo? Directory => ((IDPFileInfo)fileInfo).Directory;
@@ -21,7 +22,7 @@
 
         public virtual FileAttributes Attributes { get => ((IDPIONode)fileInfo).Attributes; set => ((IDPIONode)fileInfo).Attributes = value; }
 
-        public virtual DPAbstractIOContext Context => ((IDPIONode)fileInfo).Context;
+        public virtual AbstractFileSystem FileSystem => ((IDPIONode)fileInfo).FileSystem;
 
         public virtual IDPFileInfo CopyTo(string path, bool overwrite) => ((IDPFileInfo)fileInfo).CopyTo(path, overwrite);
         public virtual Stream Create() => ((IDPFileInfo)fileInfo).Create();

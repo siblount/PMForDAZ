@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.5.002.0
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DAZ_Installer.Core", "DAZ_Installer.Core.csproj", "{53B9B499-922B-44BE-85C9-7D8277842326}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{53B9B499-922B-44BE-85C9-7D8277842326}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{53B9B499-922B-44BE-85C9-7D8277842326}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{53B9B499-922B-44BE-85C9-7D8277842326}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{53B9B499-922B-44BE-85C9-7D8277842326}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {0D484C5E-E2C0-4DAD-9C25-6840A246968C}
+	EndGlobalSection
+EndGlobal

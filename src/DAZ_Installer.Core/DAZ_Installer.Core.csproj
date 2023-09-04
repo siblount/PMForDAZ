@@ -9,6 +9,7 @@
 
   <ItemGroup>
     <Folder Include="Fakes\" />
+    <Folder Include="Abstractions\" />
     <Folder Include="Processor\" />
     <Folder Include="Utilities\" />
   </ItemGroup>

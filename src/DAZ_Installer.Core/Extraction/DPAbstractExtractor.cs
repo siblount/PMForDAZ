@@ -17,7 +17,7 @@ namespace DAZ_Installer.Core.Extraction
         /// <b>WARNING: Context may not be used to the full extent.</b> For example, 7z requires all files be extracted to a temp location first, then moved to the final destination. <para/>
         /// However, moving files is guaranteed to use this context to it's full extent. WinZip and RAR files extract directly to the final destination, so the context is used to it's full extent.
         /// </summary>
-        public DPAbstractIOContext Context { get; protected set; } = DPIOContext.None;
+        public AbstractFileSystem FileSystem { get; protected set; } = new DPFileSystem();
         /// <summary>
         /// The current mode of the archive file; describes whether the archive is peeking, extracting, or moving files.
         /// </summary>

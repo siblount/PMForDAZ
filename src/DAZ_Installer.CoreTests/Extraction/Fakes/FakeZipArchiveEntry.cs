@@ -14,7 +14,7 @@
         public virtual long CompressedLength { get; set; } = 0;
 
         public virtual DateTimeOffset LastWriteTime { get; set; } = new DateTimeOffset();
-        internal FakeZipArchiveEntry(IZipArchive Archive, Stream? stream)
+        public FakeZipArchiveEntry(IZipArchive Archive, Stream? stream)
         {
             this.Archive = Archive;
             this.stream = stream ?? Stream.Null;
