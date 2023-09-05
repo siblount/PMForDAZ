@@ -330,12 +330,12 @@ namespace DAZ_Installer.Core
                 {
                     if (!file.FileInfo!.TryAndFixOpenRead(out stream, out Exception? ex))
                     {
-                        EmitOnProcessError(new DPProcessorErrorArgs(ex, $"Failed to open read stream for file for reading meta: {file.Path}"));
+                        EmitOnProcessError(new DPProcessorErrorArgs(ex, "Failed to open read stream for file for reading meta"));
                         continue;
                     }
                     if (stream is null)
                     {
-                        EmitOnProcessError(new DPProcessorErrorArgs(null, $"OpenRead returned successful but also returned null stream, skipping {file.Path}"));
+                        EmitOnProcessError(new DPProcessorErrorArgs(null, "OpenRead returned successful but also returned null stream, skipping meta read"));
                         continue;
                     }
                     if (stream.ReadByte() == 0x1F && stream.ReadByte() == 0x8B)
