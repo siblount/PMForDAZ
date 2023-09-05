@@ -29,6 +29,7 @@ namespace DAZ_Installer.Core
         public ILogger Logger { get; set; } = Log.Logger.ForContext<DPProcessor>();
         public AbstractFileSystem FileSystem { get; set; } = new DPFileSystem();
         public AbstractTagProvider TagProvider { get; set; } = new DPTagProvider();
+        public AbstractDestinationDeterminer DestinationDeterminer { get; set; } = new DPDestinationDeterminer();
         public string TempLocation => Path.Combine(CurrentProcessSettings.TempPath, @"DazProductInstaller\");
         public string DestinationPath => CurrentProcessSettings.DestinationPath;
         public DPArchive CurrentArchive { get; private set; } = null!;
@@ -148,9 +149,7 @@ namespace DAZ_Installer.Core
             try
             {
                 prepareOperations();
-                DetermineContentFolders();
-                UpdateRelativePaths();
-                filesToExtract = DetermineFilesToExtract();
+                filesToExtract = DestinationDeterminer.DetermineDestinations(archiveFile, settings);
             }
             catch (Exception ex)
             {
@@ -184,7 +183,7 @@ namespace DAZ_Installer.Core
             archiveFile.Type = archiveFile.DetermineArchiveType();
             try
             {
-                GetTags(settings);
+                TagProvider.GetTags(archiveFile, settings);
             }
             catch (Exception ex)
             {
@@ -261,158 +260,9 @@ namespace DAZ_Installer.Core
             return new DPFileScopeSettings(filesToAllow, list, false, false, true, false);
         }
 
-        private void UpdateRelativePaths()
-        {
-            foreach (DPFile content in CurrentArchive.RootContents)
-                content.RelativePathToContentFolder = content.RelativeTargetPath = content.Path;
-            foreach (DPFolder folder in CurrentArchive.Folders.Values)
-                folder.UpdateChildrenRelativePaths(CurrentProcessSettings);
-        }
-
-        private HashSet<DPFile> DetermineFilesToExtract()
-        {
-            // Handle Manifest first.
-            var filesToExtract = new HashSet<DPFile>(CurrentArchive.Contents.Count);
-            DetermineFromManifests(filesToExtract);
-            // Determine via file sense next.
-            DetermineViaFileSense(filesToExtract);
-            return filesToExtract;
-        }
-
-        private void DetermineFromManifests(HashSet<DPFile> filesToExtract)
-        {
-            if (CurrentProcessSettings.InstallOption != InstallOptions.ManifestAndAuto && CurrentProcessSettings.InstallOption != InstallOptions.ManifestOnly) return;
-            foreach (DPDSXFile? manifest in CurrentArchive!.ManifestFiles.Where(f => f.Extracted))
-            {
-                Dictionary<string, string> manifestDestinations = manifest.GetManifestDestinations();
-
-                foreach (DPFile file in CurrentArchive.Contents.Values)
-                {
-                    try
-                    {
-                        if (!manifestDestinations.ContainsKey(file.Path) || filesToExtract.Contains(file)) continue;
-                        file.TargetPath = GetTargetPath(file, overridePath: manifestDestinations[file.Path]);
-                        filesToExtract.Add(file);
-                    } catch (Exception ex)
-                    {
-                        Logger.Error("Failed to determine file to extract: {0}", file.Path);
-                        Logger.Debug("File information: {@0}", file);
-                    }
-
-                    //else
-                    //{
-                    //    file.WillExtract = settingsToUse.InstallOption != InstallOptions.ManifestOnly;
-                    //}
-                }
-            }
-        }
-
-        private void DetermineViaFileSense(HashSet<DPFile> filesToExtract)
-        {
-
-            if (CurrentProcessSettings.InstallOption != InstallOptions.Automatic && CurrentProcessSettings.InstallOption != InstallOptions.ManifestAndAuto) return;
-            // Get contents where file was not extracted.
-            Dictionary<string, DPFolder>.ValueCollection folders = CurrentArchive.Folders.Values;
-
-            foreach (DPFolder folder in folders)
-            {
-                if (!folder.IsContentFolder && !folder.IsPartOfContentFolder) continue;
-                // Update children's relative path.
-                folder.UpdateChildrenRelativePaths(CurrentProcessSettings);
-
-                foreach (DPFile child in folder.Contents)
-                {
-                    //Get destination path and update child destination path.
-                    child.TargetPath = GetTargetPath(child);
-
-                    filesToExtract.Add(child);
-                }
-            }
-            // Now hunt down all files in folders that aren't in content folders.
-            foreach (DPFolder folder in folders)
-            {
-                if (folder.IsContentFolder) continue;
-                // Add all archives to the inner archives to process for later processing.
-                foreach (DPFile file in folder.Contents)
-                {
-                    if (file is not DPArchive arc) continue;
-                    arc.TargetPath = GetTargetPath(arc, true);
-                    // Add to queue.
-                    CurrentArchive.Subarchives.Add(arc);
-                    filesToExtract.Add(arc);
-                }
-            }
-
-            // Hunt down all files in root content.
-
-            foreach (DPFile content in CurrentArchive.RootContents)
-            {
-                if (content is not DPArchive arc) continue;
-                arc.TargetPath = GetTargetPath(arc, true);
-                // Add to queue.
-                CurrentArchive.Subarchives.Add(arc);
-                filesToExtract.Add(arc);
-            }
-        }
-
-        /// <summary>
-        /// This function returns the target path based on whether it is saving to it's destination or to a
-        /// temporary location, whether the <paramref name="file"/> has a relative path or not, and whether
-        /// the file's parent is in folderRedirects. <para/>
-        /// Additionally, there is <paramref name="overridePath"/> which will be used for combining paths publicly;
-        /// <b>however</b>, this will be ignored if the parent name is in the user's folder redirects.
-        /// </summary>
-        /// <param name="file">The file to get a target path for.</param>
-        /// <param name="saveToTemp">Determines whether to get a target path saving to a temporary location.</param>
-        /// <param name="overridePath">The path to combine with instead of usual combining. </param>
-        /// <returns>The target path for the specified file. </returns>
-        private string GetTargetPath(DPAbstractNode file, bool saveToTemp = false, string? overridePath = null)
-        {
-            var filePathPart = !string.IsNullOrEmpty(overridePath) ? overridePath : file.RelativeTargetPath;
-
-            if (file.Parent is null || !CurrentProcessSettings.ContentRedirectFolders!.ContainsKey(Path.GetFileName(file.Parent.Path)))
-                return Path.Combine(saveToTemp ? TempLocation : DestinationPath, filePathPart);
-
-            return Path.Combine(saveToTemp ? TempLocation : DestinationPath,
-                file.RelativeTargetPath ?? file.Parent.CalculateChildRelativeTargetPath(file, CurrentProcessSettings));
-        }
-
         private bool DestinationHasEnoughSpace() => (ulong)FileSystem.CreateDriveInfo(CurrentProcessSettings.DestinationPath).AvailableFreeSpace > CurrentArchive.TrueArchiveSize;
        
         private bool TempHasEnoughSpace() => (ulong)FileSystem.CreateDriveInfo(CurrentProcessSettings.TempPath).AvailableFreeSpace > CurrentArchive.TrueArchiveSize;
-
-        private void DetermineContentFolders()
-        {
-            // A content folder is a folder whose name is contained in the user's common content folders list
-            // or in their folder redirects map.
-
-
-            // Prepare sort so that the first elements in folders are the ones at root.
-            DPFolder[] folders = CurrentArchive.Folders.Values.ToArray();
-            var foldersKeys = new byte[folders.Length];
-
-            for (var i = 0; i < foldersKeys.Length; i++)
-            {
-                foldersKeys[i] = PathHelper.GetSubfoldersCount(folders[i].Path);
-            }
-
-            // Elements at the beginning are folders at root levels.
-            Array.Sort(foldersKeys, folders);
-
-            foreach (DPFolder? folder in folders)
-            {
-                var folderName = Path.GetFileName(folder.Path);
-                var elgibleForContentFolderStatus = CurrentProcessSettings.ContentFolders.Contains(folderName) ||
-                                                    CurrentProcessSettings.ContentRedirectFolders.ContainsKey(folderName);
-                if (folder.Parent is null)
-                    folder.IsContentFolder = elgibleForContentFolderStatus;
-                else
-                {
-                    if (folder.Parent.IsContentFolder || folder.Parent.IsPartOfContentFolder) continue;
-                    folder.IsContentFolder = elgibleForContentFolderStatus;
-                }
-            }
-        }
 
 
         // TODO: Clear temp needs to remove as much space as possible. It will error when we have file handles.
@@ -462,38 +312,6 @@ namespace DAZ_Installer.Core
                 cancel = args.CancelOperation;
             }
             return !cancel || DestinationHasEnoughSpace();
-        }
-
-        private void GetTags(DPProcessSettings settings)
-        {
-            // First is always author.
-            // Next is folder names.
-            ReadContentFiles(settings);
-            ReadMetaFiles(settings); // TODO: This might not be needed.
-            var tagsSet = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-            tagsSet.EnsureCapacity(CurrentArchive.GetEstimateTagCount() + 5 +
-                (CurrentArchive.Folders.Count * 2) + ((CurrentArchive.Contents.Count - CurrentArchive.Subarchives.Count) * 2));
-            foreach (DPDazFile file in CurrentArchive.DazFiles)
-            {
-                DPContentInfo contentInfo = file.ContentInfo;
-                if (contentInfo.Website.Length != 0) tagsSet.Add(contentInfo.Website);
-                if (contentInfo.Email.Length != 0) tagsSet.Add(contentInfo.Email);
-                tagsSet.UnionWith(contentInfo.Authors);
-            }
-            foreach (DPFile content in CurrentArchive.Contents.Values)
-            {
-                if (content is DPArchive) continue;
-                tagsSet.UnionWith(Path.GetFileNameWithoutExtension(content.FileName).Split(' '));
-            }
-            foreach (KeyValuePair<string, DPFolder> folder in CurrentArchive.Folders)
-            {
-                tagsSet.UnionWith(PathHelper.GetFileName(folder.Key).Split(' '));
-            }
-            tagsSet.UnionWith(CurrentArchive.ProductInfo.Authors);
-            tagsSet.UnionWith(DPArchive.RegexSplitName(CurrentArchive.ProductInfo.ProductName));
-            if (CurrentArchive.ProductInfo.SKU.Length != 0) tagsSet.Add(CurrentArchive.ProductInfo.SKU);
-            if (CurrentArchive.ProductInfo.ProductName.Length != 0) tagsSet.Add(CurrentArchive.ProductInfo.ProductName);
-            CurrentArchive.ProductInfo.Tags = tagsSet;
         }
         /// <summary>
         /// Reads the files listed in <see cref="DPArchive.DSXFiles"/>.
