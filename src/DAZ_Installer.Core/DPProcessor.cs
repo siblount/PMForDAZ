@@ -127,16 +127,8 @@ namespace DAZ_Installer.Core
             }
 
             State = ProcessorState.Peeking;
-            try
-            {
-                archiveFile.PeekContents();
-            }
-            catch (Exception ex)
-            {
-                EmitOnProcessError(new DPProcessorErrorArgs(ex, "Failed to peek into archive."));
-                HandleEarlyExit();
-                return;
-            }
+            if (!tryCatch(() => archiveFile.PeekContents(), "Failed to peek into archive")) return;
+
             // Check if we have enough room.
             if (!HandleOnDestinationNotEnoughSpace())
             {
@@ -145,18 +137,9 @@ namespace DAZ_Installer.Core
             }
 
             State = ProcessorState.PreparingExtraction;
-            HashSet<DPFile> filesToExtract;
-            try
-            {
-                prepareOperations();
-                filesToExtract = DestinationDeterminer.DetermineDestinations(archiveFile, settings);
-            }
-            catch (Exception ex)
-            {
-                EmitOnProcessError(new DPProcessorErrorArgs(ex, "Failed to prepare for extraction"));
-                HandleEarlyExit();
-                return;
-            }
+            HashSet<DPFile> filesToExtract = null!;
+            if (!tryCatch(prepareOperations, "Failed to prepare for extraction")) return;
+            if (!tryCatch(() => filesToExtract = DestinationDeterminer.DetermineDestinations(archiveFile, settings), "Failed to determine destinations for files")) return;
 
             State = ProcessorState.Extracting;
             var extractSettings = new DPExtractSettings()
@@ -166,29 +149,14 @@ namespace DAZ_Installer.Core
                 FilesToExtract = filesToExtract,
                 OverwriteFiles = CurrentProcessSettings.OverwriteFiles,
             };
-            DPExtractionReport report;
-            try
-            {
-                report = archiveFile.ExtractContents(extractSettings);
-            }
-            catch (Exception ex)
-            {
-                EmitOnProcessError(new DPProcessorErrorArgs(ex, "Failed to extract contents for archive"));
-                HandleEarlyExit();
-                return;
-            }
+            DPExtractionReport report = null!;
+            if (!tryCatch(() => report = archiveFile.ExtractContents(extractSettings), "Failed to extract contents for archive")) return;
+
             // DPCommon.WriteToLog("We are done");
             Logger.Information("Analyzing the archive - fetching tags");
             State = ProcessorState.Analyzing;
-            archiveFile.Type = archiveFile.DetermineArchiveType();
-            try
-            {
-                TagProvider.GetTags(archiveFile, settings);
-            }
-            catch (Exception ex)
-            {
-                EmitOnProcessError(new DPProcessorErrorArgs(ex, "Failed to get tags for archive"));
-            }
+            if (!tryCatch(() => archiveFile.Type = archiveFile.DetermineArchiveType(), "Failed to analyze archive")) return;
+            if (!tryCatch(() => TagProvider.GetTags(archiveFile, settings), "Failed to get tags for archive")) return;
 
             for (var i = 0; i < archiveFile.Subarchives.Count; i++)
             {
@@ -313,6 +281,30 @@ namespace DAZ_Installer.Core
             }
             return !cancel || DestinationHasEnoughSpace();
         }
+
+        /// <summary>
+        /// Executes an action and emits the error and handles the early exit procedure if an exception occurs.
+        /// </summary>
+        /// <param name="action">The action to execute.</param>
+        /// <param name="errorMessage">The additional explanation of the error</param>
+        /// <returns>Whether the try-catch caught an exception or not.</returns>
+        private bool tryCatch(Action action, string errorMessage)
+        {
+            if (!TryHelper.Try(action, out Exception? ex))
+            {
+                handleError(ex, errorMessage);
+                return false;
+            }
+            return true;
+        }
+
+        private void handleError(Exception ex, string errorMessage)
+        {
+            EmitOnProcessError(new DPProcessorErrorArgs(ex, errorMessage));
+            HandleEarlyExit();
+            return;
+        }
+
         /// <summary>
         /// Reads the files listed in <see cref="DPArchive.DSXFiles"/>.
         /// </summary>
