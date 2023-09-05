@@ -25,11 +25,12 @@ namespace DAZ_Installer.Core
                                                                                                 .Union(new[] {"aniBlocks", "Animals", "Architecture", "Camera Presets", "data", "DAZ Studio Tutorials", "Documentation", "Documents",
                                                                                                               "Environments", "General", "Light Presets", "Lights", "People", "Presets", "Props", "Render Presets", "Render Settings", "Runtime",
                                                                                                               "Scene Builder", "Scene Subsets", "Scenes", "Scripts", "Shader Presets", "Shaders", "Support", "Templates", "Textures", "Vehicles" });
-        public DPProcessSettings settingsToUse = new();
+        public DPProcessSettings CurrentProcessSettings { get; private set; } = new();
         public ILogger Logger { get; set; } = Log.Logger.ForContext<DPProcessor>();
         public AbstractFileSystem FileSystem { get; set; } = new DPFileSystem();
-        public string TempLocation => Path.Combine(settingsToUse.TempPath, @"DazProductInstaller\");
-        public string DestinationPath => settingsToUse.DestinationPath;
+        public AbstractTagProvider TagProvider { get; set; } = new DPTagProvider();
+        public string TempLocation => Path.Combine(CurrentProcessSettings.TempPath, @"DazProductInstaller\");
+        public string DestinationPath => CurrentProcessSettings.DestinationPath;
         public DPArchive CurrentArchive { get; private set; } = null!;
         public ProcessorState State { get => state; private set { state = value; StateChanged?.Invoke(); } }
         private volatile bool cancel = false;
@@ -161,10 +162,10 @@ namespace DAZ_Installer.Core
             State = ProcessorState.Extracting;
             var extractSettings = new DPExtractSettings()
             {
-                TempPath = settingsToUse.TempPath,
+                TempPath = CurrentProcessSettings.TempPath,
                 Archive = archiveFile,
                 FilesToExtract = filesToExtract,
-                OverwriteFiles = settingsToUse.OverwriteFiles,
+                OverwriteFiles = CurrentProcessSettings.OverwriteFiles,
             };
             DPExtractionReport report;
             try
@@ -205,7 +206,7 @@ namespace DAZ_Installer.Core
         public void ProcessArchive(string filePath, DPProcessSettings settings)
         {
             validateProcessSettings(ref settings);
-            settingsToUse = settings;
+            CurrentProcessSettings = settings;
             cancel = false;
             FileSystem.Scope = setupScope(settings);
             // Create new archive.
@@ -224,7 +225,7 @@ namespace DAZ_Installer.Core
         internal void ProcessArchive(DPArchive arc, DPProcessSettings settings)
         {
             validateProcessSettings(ref settings);
-            settingsToUse = settings;
+            CurrentProcessSettings = settings;
             cancel = false;
             FileSystem.Scope = setupScope(settings);
             CurrentArchive = arc;
@@ -265,7 +266,7 @@ namespace DAZ_Installer.Core
             foreach (DPFile content in CurrentArchive.RootContents)
                 content.RelativePathToContentFolder = content.RelativeTargetPath = content.Path;
             foreach (DPFolder folder in CurrentArchive.Folders.Values)
-                folder.UpdateChildrenRelativePaths(settingsToUse);
+                folder.UpdateChildrenRelativePaths(CurrentProcessSettings);
         }
 
         private HashSet<DPFile> DetermineFilesToExtract()
@@ -280,7 +281,7 @@ namespace DAZ_Installer.Core
 
         private void DetermineFromManifests(HashSet<DPFile> filesToExtract)
         {
-            if (settingsToUse.InstallOption != InstallOptions.ManifestAndAuto && settingsToUse.InstallOption != InstallOptions.ManifestOnly) return;
+            if (CurrentProcessSettings.InstallOption != InstallOptions.ManifestAndAuto && CurrentProcessSettings.InstallOption != InstallOptions.ManifestOnly) return;
             foreach (DPDSXFile? manifest in CurrentArchive!.ManifestFiles.Where(f => f.Extracted))
             {
                 Dictionary<string, string> manifestDestinations = manifest.GetManifestDestinations();
@@ -309,7 +310,7 @@ namespace DAZ_Installer.Core
         private void DetermineViaFileSense(HashSet<DPFile> filesToExtract)
         {
 
-            if (settingsToUse.InstallOption != InstallOptions.Automatic && settingsToUse.InstallOption != InstallOptions.ManifestAndAuto) return;
+            if (CurrentProcessSettings.InstallOption != InstallOptions.Automatic && CurrentProcessSettings.InstallOption != InstallOptions.ManifestAndAuto) return;
             // Get contents where file was not extracted.
             Dictionary<string, DPFolder>.ValueCollection folders = CurrentArchive.Folders.Values;
 
@@ -317,7 +318,7 @@ namespace DAZ_Installer.Core
             {
                 if (!folder.IsContentFolder && !folder.IsPartOfContentFolder) continue;
                 // Update children's relative path.
-                folder.UpdateChildrenRelativePaths(settingsToUse);
+                folder.UpdateChildrenRelativePaths(CurrentProcessSettings);
 
                 foreach (DPFile child in folder.Contents)
                 {
@@ -369,16 +370,16 @@ namespace DAZ_Installer.Core
         {
             var filePathPart = !string.IsNullOrEmpty(overridePath) ? overridePath : file.RelativeTargetPath;
 
-            if (file.Parent is null || !settingsToUse.ContentRedirectFolders!.ContainsKey(Path.GetFileName(file.Parent.Path)))
+            if (file.Parent is null || !CurrentProcessSettings.ContentRedirectFolders!.ContainsKey(Path.GetFileName(file.Parent.Path)))
                 return Path.Combine(saveToTemp ? TempLocation : DestinationPath, filePathPart);
 
             return Path.Combine(saveToTemp ? TempLocation : DestinationPath,
-                file.RelativeTargetPath ?? file.Parent.CalculateChildRelativeTargetPath(file, settingsToUse));
+                file.RelativeTargetPath ?? file.Parent.CalculateChildRelativeTargetPath(file, CurrentProcessSettings));
         }
 
-        private bool DestinationHasEnoughSpace() => (ulong)FileSystem.CreateDriveInfo(settingsToUse.DestinationPath).AvailableFreeSpace > CurrentArchive.TrueArchiveSize;
+        private bool DestinationHasEnoughSpace() => (ulong)FileSystem.CreateDriveInfo(CurrentProcessSettings.DestinationPath).AvailableFreeSpace > CurrentArchive.TrueArchiveSize;
        
-        private bool TempHasEnoughSpace() => (ulong)FileSystem.CreateDriveInfo(settingsToUse.TempPath).AvailableFreeSpace > CurrentArchive.TrueArchiveSize;
+        private bool TempHasEnoughSpace() => (ulong)FileSystem.CreateDriveInfo(CurrentProcessSettings.TempPath).AvailableFreeSpace > CurrentArchive.TrueArchiveSize;
 
         private void DetermineContentFolders()
         {
@@ -401,8 +402,8 @@ namespace DAZ_Installer.Core
             foreach (DPFolder? folder in folders)
             {
                 var folderName = Path.GetFileName(folder.Path);
-                var elgibleForContentFolderStatus = settingsToUse.ContentFolders.Contains(folderName) ||
-                                                    settingsToUse.ContentRedirectFolders.ContainsKey(folderName);
+                var elgibleForContentFolderStatus = CurrentProcessSettings.ContentFolders.Contains(folderName) ||
+                                                    CurrentProcessSettings.ContentRedirectFolders.ContainsKey(folderName);
                 if (folder.Parent is null)
                     folder.IsContentFolder = elgibleForContentFolderStatus;
                 else
@@ -441,7 +442,7 @@ namespace DAZ_Installer.Core
                 EmitOnProcessError(args);
                 
             }
-            ReadMetaFiles(settingsToUse);
+            ReadMetaFiles(CurrentProcessSettings);
         }
 
         private void HandleEarlyExit()
@@ -493,64 +494,6 @@ namespace DAZ_Installer.Core
             if (CurrentArchive.ProductInfo.SKU.Length != 0) tagsSet.Add(CurrentArchive.ProductInfo.SKU);
             if (CurrentArchive.ProductInfo.ProductName.Length != 0) tagsSet.Add(CurrentArchive.ProductInfo.ProductName);
             CurrentArchive.ProductInfo.Tags = tagsSet;
-        }
-        /// <summary>
-        /// Reads files that have the extension .dsf and .duf after it has been extracted. 
-        /// </summary>
-        private void ReadContentFiles(DPProcessSettings settings)
-        {
-            // Extract the DAZ Files that have not been extracted.
-            var extractSettings = new DPExtractSettings(settings.TempPath,
-                CurrentArchive!.DazFiles.Where((f) => f.FileInfo is null || !f.FileInfo.Exists),
-                true, CurrentArchive);
-            if (extractSettings.FilesToExtract.Count > 0) CurrentArchive.ExtractToTemp(extractSettings);
-            Stream? stream = null;
-            // Read the contents of the files.
-            foreach (DPDazFile file in CurrentArchive!.DazFiles)
-            {
-                // If it did not extract correctly we don't have acces, just skip it.
-                if (file.FileInfo is null || !file.FileInfo.Exists)
-                {
-                    EmitOnProcessError(new DPProcessorErrorArgs(null, $"{file.Path} does not exist on disk (or does not have access to it)."));
-                    continue;
-                }
-                try
-                {
-                    if (!file.FileInfo!.TryAndFixOpenRead(out stream, out Exception? ex))
-                    {
-                        EmitOnProcessError(new DPProcessorErrorArgs(ex, $"Failed to open read stream for file: {file.Path}"));
-                        continue;
-                    }
-                    if (stream is null)
-                    {
-                        EmitOnProcessError(new DPProcessorErrorArgs(null, $"OpenRead returned successful but also returned null stream, skipping {file.Path}"));
-                        continue;
-                    }
-                    if (stream.ReadByte() == 0x1F && stream.ReadByte() == 0x8B)
-                    {
-                        // It is gzipped compressed.
-                        stream.Seek(0, SeekOrigin.Begin);
-                        using var gstream = new GZipStream(stream, CompressionMode.Decompress);
-                        using var streamReader = new StreamReader(gstream, Encoding.UTF8, true);
-                        file.ReadContents(streamReader);
-                    }
-                    else
-                    {
-                        // It is normal text.
-                        stream.Seek(0, SeekOrigin.Begin);
-                        using var streamReader = new StreamReader(stream, Encoding.UTF8, true);
-                        file.ReadContents(streamReader);
-                    }
-                }
-                catch (Exception ex)
-                {
-                    EmitOnProcessError(new DPProcessorErrorArgs(ex, $"Unable to read contents of {file}"));
-                }
-                finally
-                {
-                    stream?.Dispose();
-                }
-            }
         }
         /// <summary>
         /// Reads the files listed in <see cref="DPArchive.DSXFiles"/>.
