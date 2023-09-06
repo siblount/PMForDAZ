@@ -97,83 +97,83 @@ namespace DAZ_Installer.Core
             EmitOnArchiveEnter();
             try
             {
-            using (LogContext.PushProperty("Archive", archiveFile.FileName))
-            Logger.Information("Processing archive");
+                using (LogContext.PushProperty("Archive", archiveFile.FileName))
+                    Logger.Information("Processing archive");
                 var arcDebugInfo = new
                 {
-                NestedArchive = archiveFile.IsInnerArchive, 
-                Name = archiveFile.FileName,
-                Path = archiveFile.IsInnerArchive ? archiveFile.Path : archiveFile?.FileInfo?.Path,
-                archiveFile?.Extractor,
-                ParentArchiveNestedArchive = archiveFile?.AssociatedArchive?.IsInnerArchive,
-                ParentArchiveName = archiveFile?.AssociatedArchive?.FileName,
-                ParentArchivePath = archiveFile?.AssociatedArchive?.IsInnerArchive ?? false ? archiveFile?.AssociatedArchive?.Path : 
-                                                                                              archiveFile?.AssociatedArchive?.FileInfo?.Path,
-                ParentExtractor = archiveFile?.AssociatedArchive?.Extractor,
-            };
-            Logger.Debug("Archive that is about to be processed: {@Arc}", arcDebugInfo);
-            if (cancel) return;
+                    NestedArchive = archiveFile.IsInnerArchive,
+                    Name = archiveFile.FileName,
+                    Path = archiveFile.IsInnerArchive ? archiveFile.Path : archiveFile?.FileInfo?.Path,
+                    archiveFile?.Extractor,
+                    ParentArchiveNestedArchive = archiveFile?.AssociatedArchive?.IsInnerArchive,
+                    ParentArchiveName = archiveFile?.AssociatedArchive?.FileName,
+                    ParentArchivePath = archiveFile?.AssociatedArchive?.IsInnerArchive ?? false ? archiveFile?.AssociatedArchive?.Path :
+                                                                                                  archiveFile?.AssociatedArchive?.FileInfo?.Path,
+                    ParentExtractor = archiveFile?.AssociatedArchive?.Extractor,
+                };
+                Logger.Debug("Archive that is about to be processed: {@Arc}", arcDebugInfo);
+                if (cancel) return;
 
-            State = ProcessorState.Starting;
-            try
-            {
-                FileSystem.CreateDirectoryInfo(TempLocation).Create();
-            }
-            catch (Exception e)
-            {
+                State = ProcessorState.Starting;
+                try
+                {
+                    FileSystem.CreateDirectoryInfo(TempLocation).Create();
+                }
+                catch (Exception e)
+                {
                     EmitOnProcessError(new DPProcessorErrorArgs(e, "Unable to create temp directory.") { Cancellable = true });
-                if (cancel)
+                    if (cancel)
+                    {
+                        HandleEarlyExit();
+                        return;
+                    }
+                }
+
+                State = ProcessorState.Peeking;
+                if (!tryCatch(() => archiveFile.PeekContents(), "Failed to peek into archive")) return;
+
+                // Check if we have enough room.
+                if (!HandleOnDestinationNotEnoughSpace())
                 {
                     HandleEarlyExit();
                     return;
                 }
-            }
 
-            State = ProcessorState.Peeking;
-            if (!tryCatch(() => archiveFile.PeekContents(), "Failed to peek into archive")) return;
+                State = ProcessorState.PreparingExtraction;
+                HashSet<DPFile> filesToExtract = null!;
+                if (!tryCatch(prepareOperations, "Failed to prepare for extraction")) return;
+                if (!tryCatch(() => filesToExtract = DestinationDeterminer.DetermineDestinations(archiveFile, settings), "Failed to determine destinations for files")) return;
 
-            // Check if we have enough room.
-            if (!HandleOnDestinationNotEnoughSpace())
-            {
-                HandleEarlyExit();
-                return;
-            }
-
-            State = ProcessorState.PreparingExtraction;
-            HashSet<DPFile> filesToExtract = null!;
-            if (!tryCatch(prepareOperations, "Failed to prepare for extraction")) return;
-            if (!tryCatch(() => filesToExtract = DestinationDeterminer.DetermineDestinations(archiveFile, settings), "Failed to determine destinations for files")) return;
-
-            State = ProcessorState.Extracting;
-            var extractSettings = new DPExtractSettings()
-            {
-                TempPath = CurrentProcessSettings.TempPath,
-                Archive = archiveFile,
-                FilesToExtract = filesToExtract,
-                OverwriteFiles = CurrentProcessSettings.OverwriteFiles,
-            };
+                State = ProcessorState.Extracting;
+                var extractSettings = new DPExtractSettings()
+                {
+                    TempPath = CurrentProcessSettings.TempPath,
+                    Archive = archiveFile,
+                    FilesToExtract = filesToExtract,
+                    OverwriteFiles = CurrentProcessSettings.OverwriteFiles,
+                };
                 
-            if (!tryCatch(() => report = archiveFile.ExtractContents(extractSettings), "Failed to extract contents for archive")) return;
+                if (!tryCatch(() => report = archiveFile.ExtractContents(extractSettings), "Failed to extract contents for archive")) return;
 
-            // DPCommon.WriteToLog("We are done");
-            Logger.Information("Analyzing the archive - fetching tags");
-            State = ProcessorState.Analyzing;
-            if (!tryCatch(() => archiveFile.Type = archiveFile.DetermineArchiveType(), "Failed to analyze archive")) return;
-            if (!tryCatch(() => TagProvider.GetTags(archiveFile, settings), "Failed to get tags for archive")) return;
+                // DPCommon.WriteToLog("We are done");
+                Logger.Information("Analyzing the archive - fetching tags");
+                State = ProcessorState.Analyzing;
+                if (!tryCatch(() => archiveFile.Type = archiveFile.DetermineArchiveType(), "Failed to analyze archive")) return;
+                if (!tryCatch(() => TagProvider.GetTags(archiveFile, settings), "Failed to get tags for archive")) return;
 
-            for (var i = 0; i < archiveFile.Subarchives.Count; i++)
-            {
-                DPArchive arc = archiveFile.Subarchives[i];
-                if (arc.Extracted) processArchiveInternal(arc, settings); // TODO: This can lead to a stack overflow...fix maybe?
-            }
+                for (var i = 0; i < archiveFile.Subarchives.Count; i++)
+                {
+                    DPArchive arc = archiveFile.Subarchives[i];
+                    if (arc.Extracted) processArchiveInternal(arc, settings); // TODO: This can lead to a stack overflow...fix maybe?
+                }
 
-            // Create record.
-            EmitOnArchiveExit(true, report); // TODO: Use method to determine whether an archive was successfully processed.
+                // Create record.
+                EmitOnArchiveExit(true, report); // TODO: Use method to determine whether an archive was successfully processed.
             } catch (Exception ex)
             {
                 handleError(ex, "An unexpected error occured while processing archive.");
                 EmitOnArchiveExit(false, report);
-        }
+            }
 
 
         }
@@ -243,7 +243,7 @@ namespace DAZ_Installer.Core
         /// <returns>True if the destination has enough space, otherwise false.</returns>
         /// <exception cref="Exception">An exception caused by creating the <see cref="IDPDriveInfo"/> object.</exception>
         private bool DestinationHasEnoughSpace() => (ulong)FileSystem.CreateDriveInfo(CurrentProcessSettings.DestinationPath).AvailableFreeSpace > CurrentArchive.TrueArchiveSize;
-       
+
         /// <summary>
         /// Checks whether the temp path has enough space for the archive.
         /// </summary>
