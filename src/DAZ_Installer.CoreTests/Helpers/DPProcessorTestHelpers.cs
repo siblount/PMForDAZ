@@ -54,12 +54,17 @@ namespace DAZ_Installer.Core.Tests
             return arc;
         }
 
-        public static DPProcessor SetupProcessor(DPArchive arc, FakeFileSystem system)
+        public static DPProcessor SetupProcessor(DPArchive arc, FakeFileSystem system, out Mock<AbstractDestinationDeterminer> destDerm, out Mock<AbstractTagProvider> tagProvider)
         {
+            var d = destDerm = new Mock<AbstractDestinationDeterminer>();
+            d.Setup(x => x.DetermineDestinations(It.IsAny<DPArchive>(), It.IsAny<DPProcessSettings>())).Returns(() => arc.Contents.Values.ToHashSet());
+            var t = tagProvider = new Mock<AbstractTagProvider>();
             var p = new DPProcessor()
             {
                 Logger = Log.Logger.ForContext<DPProcessor>(),
-                FileSystem = system
+                FileSystem = system,
+                DestinationDeterminer = d.Object,
+                TagProvider = t.Object,
             };
             SetupEntities(DefaultContents, arc);
             UpdateFileInfos(new DPExtractSettings("A:/", arc.Contents.Values, archive: arc), system);

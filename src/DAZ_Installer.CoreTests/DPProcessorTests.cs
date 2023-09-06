@@ -29,7 +29,7 @@ namespace DAZ_Installer.Core.Tests
         public void ProcessArchiveTest()
         {
             var a = DPProcessorTestHelpers.NewMockedArchive(DPProcessorTestHelpers.DefaultMockOptions, out var _, out _, out _, out var fs);
-            var p = DPProcessorTestHelpers.SetupProcessor(a, fs.Object);
+            var p = DPProcessorTestHelpers.SetupProcessor(a, fs.Object, out _, out _);
             var settings = DPProcessorTestHelpers.CreateExtractSettings(DefaultContents, a);
             var ao = new DPProcessorTestHelpers.AssertOptions()
             {
@@ -54,7 +54,7 @@ namespace DAZ_Installer.Core.Tests
             if (temp == "null") temp = null;
             if (dest == "null") dest = null; 
             var a = DPProcessorTestHelpers.NewMockedArchive(DPProcessorTestHelpers.DefaultMockOptions, out var _, out _, out _, out var fs);
-            var p = DPProcessorTestHelpers.SetupProcessor(a, fs.Object);
+            var p = DPProcessorTestHelpers.SetupProcessor(a, fs.Object, out _, out _);
             var settings = DPProcessorTestHelpers.CreateExtractSettings(DefaultContents, a);
             var ao = new DPProcessorTestHelpers.AssertOptions()
             {
@@ -73,7 +73,7 @@ namespace DAZ_Installer.Core.Tests
         public void ProcessArchiveTest_PeekError()
         {
             var a = DPProcessorTestHelpers.NewMockedArchive(DPProcessorTestHelpers.DefaultMockOptions, out var e, out _, out _, out var fs);
-            var p = DPProcessorTestHelpers.SetupProcessor(a, fs.Object);
+            var p = DPProcessorTestHelpers.SetupProcessor(a, fs.Object, out _, out _);
             var ao = new DPProcessorTestHelpers.AssertOptions()
             {
                 ExpectedProcessErrorCount = 1,
@@ -88,7 +88,7 @@ namespace DAZ_Installer.Core.Tests
         {
             Func<DPExtractionReport> extractFunc = () => throw new Exception("Extract-a-doo");
             var a = DPProcessorTestHelpers.NewMockedArchive(DPProcessorTestHelpers.DefaultMockOptions with { ExtractFunc = extractFunc }, out var e, out _, out _, out var fs);
-            var p = DPProcessorTestHelpers.SetupProcessor(a, fs.Object);
+            var p = DPProcessorTestHelpers.SetupProcessor(a, fs.Object, out _, out _);
             var ao = new DPProcessorTestHelpers.AssertOptions()
             {
                 ExpectedProcessErrorCount = 1,
@@ -102,7 +102,7 @@ namespace DAZ_Installer.Core.Tests
         {
             Func<DPExtractionReport> extractFunc = () => throw new Exception("Extract-a-doo");
             var a = DPProcessorTestHelpers.NewMockedArchive(DPProcessorTestHelpers.DefaultMockOptions with { ExtractToTempFunc = extractFunc }, out var e, out _, out _, out var fs);
-            var p = DPProcessorTestHelpers.SetupProcessor(a, fs.Object);
+            var p = DPProcessorTestHelpers.SetupProcessor(a, fs.Object, out _, out _);
             var ao = new DPProcessorTestHelpers.AssertOptions()
             {
                 ExpectedProcessErrorCount = 1,
@@ -115,7 +115,7 @@ namespace DAZ_Installer.Core.Tests
         public void ProcessArchiveTest_OutOfStorage()
         {
             var a = DPProcessorTestHelpers.NewMockedArchive(DPProcessorTestHelpers.DefaultMockOptions, out var e, out _, out _, out var fs);
-            var p = DPProcessorTestHelpers.SetupProcessor(a, fs.Object);
+            var p = DPProcessorTestHelpers.SetupProcessor(a, fs.Object, out _, out _);
             var ao = new DPProcessorTestHelpers.AssertOptions()
             {
                 ExpectedProcessErrorCount = 1,
@@ -133,7 +133,7 @@ namespace DAZ_Installer.Core.Tests
         {
             Func<DPExtractionReport> extractErrorFunc = () => throw new Exception("no u");
             var a = DPProcessorTestHelpers.NewMockedArchive(DPProcessorTestHelpers.DefaultMockOptions with { ExtractFunc = extractErrorFunc }, out var e, out _, out _, out var fs);
-            var p = DPProcessorTestHelpers.SetupProcessor(a, fs.Object);
+            var p = DPProcessorTestHelpers.SetupProcessor(a, fs.Object, out _, out _);
             var ao = new DPProcessorTestHelpers.AssertOptions()
             {
                 ExpectedProcessErrorCount = 1,
