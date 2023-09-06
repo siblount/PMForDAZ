@@ -93,11 +93,14 @@ namespace DAZ_Installer.Core
         private void processArchiveInternal(DPArchive archiveFile, DPProcessSettings settings)
         {
             CurrentArchive = archiveFile;
-
+            DPExtractionReport? report = null;
             EmitOnArchiveEnter();
+            try
+            {
             using (LogContext.PushProperty("Archive", archiveFile.FileName))
             Logger.Information("Processing archive");
-            var arcDebugInfo = new { 
+                var arcDebugInfo = new
+                {
                 NestedArchive = archiveFile.IsInnerArchive, 
                 Name = archiveFile.FileName,
                 Path = archiveFile.IsInnerArchive ? archiveFile.Path : archiveFile?.FileInfo?.Path,
@@ -118,7 +121,7 @@ namespace DAZ_Installer.Core
             }
             catch (Exception e)
             {
-                EmitOnProcessError(new DPProcessorErrorArgs(e, "Unable to create temp directory."));
+                    EmitOnProcessError(new DPProcessorErrorArgs(e, "Unable to create temp directory.") { Cancellable = true });
                 if (cancel)
                 {
                     HandleEarlyExit();
@@ -149,7 +152,7 @@ namespace DAZ_Installer.Core
                 FilesToExtract = filesToExtract,
                 OverwriteFiles = CurrentProcessSettings.OverwriteFiles,
             };
-            DPExtractionReport report = null!;
+                
             if (!tryCatch(() => report = archiveFile.ExtractContents(extractSettings), "Failed to extract contents for archive")) return;
 
             // DPCommon.WriteToLog("We are done");
@@ -166,7 +169,13 @@ namespace DAZ_Installer.Core
 
             // Create record.
             EmitOnArchiveExit(true, report); // TODO: Use method to determine whether an archive was successfully processed.
-            return;
+            } catch (Exception ex)
+            {
+                handleError(ex, "An unexpected error occured while processing archive.");
+                EmitOnArchiveExit(false, report);
+        }
+
+
         }
 
         // TODO: RetryArchive()
