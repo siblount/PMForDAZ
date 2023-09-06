@@ -237,8 +237,18 @@ namespace DAZ_Installer.Core
             return new DPFileScopeSettings(filesToAllow, list, false, false, true, false);
         }
 
+        /// <summary>
+        /// Checks whether the destination has enough space for the archive.
+        /// </summary>
+        /// <returns>True if the destination has enough space, otherwise false.</returns>
+        /// <exception cref="Exception">An exception caused by creating the <see cref="IDPDriveInfo"/> object.</exception>
         private bool DestinationHasEnoughSpace() => (ulong)FileSystem.CreateDriveInfo(CurrentProcessSettings.DestinationPath).AvailableFreeSpace > CurrentArchive.TrueArchiveSize;
        
+        /// <summary>
+        /// Checks whether the temp path has enough space for the archive.
+        /// </summary>
+        /// <returns>True if temp has enough space, otherwise false.</returns>
+        /// <exception cref="Exception">An exception caused by creating the <see cref="IDPDriveInfo"/> object.</exception>
         private bool TempHasEnoughSpace() => (ulong)FileSystem.CreateDriveInfo(CurrentProcessSettings.TempPath).AvailableFreeSpace > CurrentArchive.TrueArchiveSize;
 
 
