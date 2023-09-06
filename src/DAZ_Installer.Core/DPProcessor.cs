@@ -88,7 +88,7 @@ namespace DAZ_Installer.Core
             cancel = args.Continuable && args.CancelOperation;
         }
 
-        private void EmitOnExtractionProgress(DPExtractProgressArgs args) => ExtractProgress?.Invoke(this, args);
+        private void EmitOnExtractionProgress(DPArchive _, DPExtractProgressArgs args) => ExtractProgress?.Invoke(this, args);
 
         private void processArchiveInternal(DPArchive archiveFile, DPProcessSettings settings)
         {
@@ -279,12 +279,15 @@ namespace DAZ_Installer.Core
                 EmitOnProcessError(args);
                 
             }
+            if (CurrentArchive.Extractor != null) CurrentArchive.Extractor.ExtractProgress += EmitOnExtractionProgress;
+            else Logger.Warning("Extractor is null, cannot report extraction progress");
             ReadMetaFiles(CurrentProcessSettings);
         }
 
         private void HandleEarlyExit()
         {
             State = ProcessorState.Idle;
+            CurrentArchive.Extractor.ExtractProgress -= EmitOnExtractionProgress;
             EmitOnArchiveExit(false, null);
         }
 
