@@ -39,8 +39,65 @@ namespace DAZ_Installer.Core.Tests
 
             p.ProcessArchive(a, DefaultProcessSettings);
 
+            DPProcessorTestHelpers.AssertCommon(p);
             //CollectionAssert.Contains(a.ProductInfo.Tags.ToArray(), new[] { "Gentlemen's Library", "TheRealSolly", "solomon1blount@gmail.com", "www.thesolomonchronicles.com", a.FileName });
         }
+
+        [TestMethod]
+        public void ProcessArchiveTest_AfterProcess()
+        {
+            var a = DPProcessorTestHelpers.NewMockedArchive(DPProcessorTestHelpers.DefaultMockOptions, out var _, out _, out _, out var fs);
+            var p = DPProcessorTestHelpers.SetupProcessor(a, fs.Object, out _, out _);
+            var settings = DPProcessorTestHelpers.CreateExtractSettings(DefaultContents, a);
+            var ao = new DPProcessorTestHelpers.AssertOptions()
+            {
+                ExpectArchiveProcessed = new() { { a.FileName, DPProcessorTestHelpers.CreateExtractionReport(settings, Enumerable.Empty<string>(), DPProcessorTestHelpers.CalculateExpectedFiles(DefaultContents)) } },
+                ExpectedArchiveCount = 2,
+            };
+            DPProcessorTestHelpers.AttachCommonEventHandlers(p, ao);
+
+            p.ProcessArchive(a, DefaultProcessSettings);
+            p.ProcessArchive(a, DefaultProcessSettings);
+
+
+            DPProcessorTestHelpers.AssertCommon(p, Times.Exactly(2));
+            //CollectionAssert.Contains(a.ProductInfo.Tags.ToArray(), new[] { "Gentlemen's Library", "TheRealSolly", "solomon1blount@gmail.com", "www.thesolomonchronicles.com", a.FileName });
+        }
+
+        [TestMethod]
+        public void ProcessArchiveTest_AfterProcessError()
+        {
+            var a = DPProcessorTestHelpers.NewMockedArchive(DPProcessorTestHelpers.DefaultMockOptions, out var _, out _, out _, out var fs);
+            var p = DPProcessorTestHelpers.SetupProcessor(a, fs.Object, out _, out _);
+            var settings = DPProcessorTestHelpers.CreateExtractSettings(DefaultContents, a);
+            var ao = new DPProcessorTestHelpers.AssertOptions()
+            {
+                ExpectArchiveProcessed = new() { { a.FileName, DPProcessorTestHelpers.CreateExtractionReport(settings, Enumerable.Empty<string>(), DPProcessorTestHelpers.CalculateExpectedFiles(DefaultContents)) } },
+                ExpectedArchiveCount = 2,
+                ExpectedProcessErrorCount = 1,
+            };
+            DPProcessorTestHelpers.AttachCommonEventHandlers(p, ao);
+
+            var calledOnce = false;
+            var mock = new Mock<FakeDPDriveInfo>(new FakeFileSystem(), "A:/") { CallBase = true }.Object;
+            fs.Setup(x => x.CreateDriveInfo(It.IsRegex(@"A:/"))).Returns(() =>
+            {
+                if (!calledOnce)
+                {
+                    calledOnce = true;
+                    throw new Exception("CreateDrive-a-doo");
+                }
+                return mock;
+            });
+            p.ProcessArchive(a, DefaultProcessSettings);
+            p.ProcessArchive(a, DefaultProcessSettings);
+
+
+            DPProcessorTestHelpers.AssertCommon(p, Times.Once());
+            //CollectionAssert.Contains(a.ProductInfo.Tags.ToArray(), new[] { "Gentlemen's Library", "TheRealSolly", "solomon1blount@gmail.com", "www.thesolomonchronicles.com", a.FileName });
+        }
+
+
 
         [TestMethod]
         [DataRow("null", "null")]

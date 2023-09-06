@@ -71,6 +71,13 @@ namespace DAZ_Installer.Core.Tests
             return p;
         }
 
+        public static void AssertCommon(DPProcessor processor, Times? time = null)
+        {
+            var times = time is not null ? time.Value : Times.Once();
+            Mock.Get(processor.DestinationDeterminer).Verify(x => x.DetermineDestinations(It.IsAny<DPArchive>(), It.IsAny<DPProcessSettings>()), times);
+            Mock.Get(processor.TagProvider).Verify(x => x.GetTags(It.IsAny<DPArchive>(), It.IsAny<DPProcessSettings>()), times);
+        }
+
         private static DPExtractionReport handleExtract(DPExtractSettings settings, FakeFileSystem fs)
         {
             UpdateFileInfos(settings, fs);
@@ -215,7 +222,8 @@ namespace DAZ_Installer.Core.Tests
                 arcExitCount++;
                 if (opts.ExpectArchiveProcessed is null) return;
                 if (!opts.ExpectArchiveProcessed.TryGetValue(e.Archive.FileName, out var wantReport)) return;
-                AssertReport(wantReport, e.Report);
+                if (e.Report is null) Log.Logger.Warning("Report is null");
+                else AssertReport(wantReport, e.Report);
             };
             processor.ProcessError += (_, e) =>
             {
