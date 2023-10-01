@@ -5,9 +5,9 @@ name: .NET Test
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ "main", "pending-main" ]
   pull_request:
-    branches: [ "main" ]
+    branches: [ "main", "pending-main" ]
 
 jobs:
   build:
@@ -23,4 +23,4 @@ jobs:
     - name: Restore dependencies
       run: dotnet restore src/
     - name: Test
-      run: dotnet test src/ --no-build --verbosity normal
+      run: dotnet test src/ --verbosity normal
