@@ -5,9 +5,9 @@ name: .NET Test
 
 on:
   push:
-    branches: [ "main", "pending-main" ]
+    branches: [ "pending-main" ]
   pull_request:
-    branches: [ "main", "pending-main" ]
+    branches: [ "pending-main" ]
 
 jobs:
   build:
@@ -20,7 +20,5 @@ jobs:
       uses: actions/setup-dotnet@v3
       with:
         dotnet-version: 6.0.x
-    - name: Restore dependencies
-      run: dotnet restore src/
     - name: Test
       run: dotnet test src/ --verbosity normal
