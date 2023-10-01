@@ -7,7 +7,8 @@ using DAZ_Installer.IO;
 using Serilog;
 using Serilog.Context;
 using System.Collections.Immutable;
-using System.IO.Compression;using System.Text;
+using System.IO.Compression;
+using System.Text;
 
 namespace DAZ_Installer.Core
 {
@@ -30,6 +31,7 @@ namespace DAZ_Installer.Core
         public AbstractFileSystem FileSystem { get; set; } = new DPFileSystem();
         public AbstractTagProvider TagProvider { get; set; } = new DPTagProvider();
         public AbstractDestinationDeterminer DestinationDeterminer { get; set; } = new DPDestinationDeterminer();
+        public CancellationToken CancellationToken { get; set; } = new();
         public string TempLocation => Path.Combine(CurrentProcessSettings.TempPath, @"DazProductInstaller\");
         public string DestinationPath => CurrentProcessSettings.DestinationPath;
         public DPArchive CurrentArchive { get; private set; } = null!;
@@ -297,7 +299,6 @@ namespace DAZ_Installer.Core
             while (!cancel && !DestinationHasEnoughSpace())
             {
                 var args = new DPProcessorErrorArgs(null, "Destination does not have enough space.");
-                args.Continuable = true;
                 EmitOnProcessError(args);
                 cancel = args.CancelOperation;
             }
