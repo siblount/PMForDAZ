@@ -9,6 +9,7 @@ using Serilog.Context;
 using System.Collections.Immutable;
 using System.IO.Compression;
 using System.Text;
+using System.Diagnostics.CodeAnalysis;
 
 namespace DAZ_Installer.Core
 {
@@ -36,7 +37,7 @@ namespace DAZ_Installer.Core
         public string DestinationPath => CurrentProcessSettings.DestinationPath;
         public DPArchive CurrentArchive { get; private set; } = null!;
         public ProcessorState State { get => state; private set { state = value; StateChanged?.Invoke(); } }
-        private volatile bool cancel = false;
+        private bool SkipExtraction { get; set; } = false;
 
         /// <summary>
         /// An event that is invoked when a file that is being extracted, moved, or deleted throws an error.
@@ -68,7 +69,6 @@ namespace DAZ_Installer.Core
             if (ArchiveEnter is null) return;
             var args = new DPArchiveEnterArgs(CurrentArchive);
             ArchiveEnter.Invoke(this, args);
-            cancel = args.Cancel;
         }
         /// <summary>
         /// Emits the <see cref="ArchiveExit"/> event and passes the arguments required. <para/>
@@ -87,12 +87,11 @@ namespace DAZ_Installer.Core
             Logger.Error(args.Ex, args.Explaination);
             if (ProcessError is null) return;
             ProcessError.Invoke(this, args);
-            cancel = args.Continuable && args.CancelOperation;
         }
 
         private void EmitOnExtractionProgress(DPArchive _, DPExtractProgressArgs args) => ExtractProgress?.Invoke(this, args);
 
-        private void processArchiveInternal(DPArchive archiveFile, DPProcessSettings settings)
+        private void processArchiveInternal([NotNull] DPArchive archiveFile, DPProcessSettings settings)
         {
             CurrentArchive = archiveFile;
             DPExtractionReport? report = null;
@@ -114,7 +113,7 @@ namespace DAZ_Installer.Core
                     ParentExtractor = archiveFile?.AssociatedArchive?.Extractor,
                 };
                 Logger.Debug("Archive that is about to be processed: {@Arc}", arcDebugInfo);
-                if (cancel) return;
+                if (CancellationToken.IsCancellationRequested) return;
 
                 State = ProcessorState.Starting;
                 try
@@ -123,8 +122,8 @@ namespace DAZ_Installer.Core
                 }
                 catch (Exception e)
                 {
-                    EmitOnProcessError(new DPProcessorErrorArgs(e, "Unable to create temp directory.") { Cancellable = true });
-                    if (cancel)
+                    EmitOnProcessError(new DPProcessorErrorArgs(e, "Unable to create temp directory."));
+                    if (CancellationToken.IsCancellationRequested)
                     {
                         HandleEarlyExit();
                         return;
@@ -185,7 +184,6 @@ namespace DAZ_Installer.Core
         {
             validateProcessSettings(ref settings);
             CurrentProcessSettings = settings;
-            cancel = false;
             FileSystem.Scope = setupScope(settings);
             // Create new archive.
             var archiveFile = DPArchive.CreateNewParentArchive(FileSystem.CreateFileInfo(filePath));
@@ -204,7 +202,6 @@ namespace DAZ_Installer.Core
         {
             validateProcessSettings(ref settings);
             CurrentProcessSettings = settings;
-            cancel = false;
             FileSystem.Scope = setupScope(settings);
             CurrentArchive = arc;
             processArchiveInternal(arc, settings);
@@ -270,16 +267,14 @@ namespace DAZ_Installer.Core
         private void prepareOperations()
         {
             Logger.Information("Preparing operations");
-            while (!cancel && !TempHasEnoughSpace())
+            while (!CancellationToken.IsCancellationRequested && !TempHasEnoughSpace())
             {
                 ClearTemp();
                 if (TempHasEnoughSpace()) break;
                 Logger.Warning("Temp location does not have enough space after clearing temp, requesting for an action");
                 // Requires user help.
-                var args = new DPProcessorErrorArgs(null, "Temp location does not have enough space");
-                args.Continuable = true;
+                var args = new DPProcessorErrorArgs(null, "Temp location does not have enough space") { Continuable = true };
                 EmitOnProcessError(args);
-                
             }
             if (CurrentArchive.Extractor != null) CurrentArchive.Extractor.ExtractProgress += EmitOnExtractionProgress;
             else Logger.Warning("Extractor is null, cannot report extraction progress");
@@ -296,13 +291,12 @@ namespace DAZ_Installer.Core
         private bool HandleOnDestinationNotEnoughSpace()
         {
             if (DestinationHasEnoughSpace()) return true;
-            while (!cancel && !DestinationHasEnoughSpace())
+            while (!CancellationToken.IsCancellationRequested && !DestinationHasEnoughSpace())
             {
-                var args = new DPProcessorErrorArgs(null, "Destination does not have enough space.");
+                var args = new DPProcessorErrorArgs(null, "Destination does not have enough space.") { Continuable = true };
                 EmitOnProcessError(args);
-                cancel = args.CancelOperation;
             }
-            return !cancel || DestinationHasEnoughSpace();
+            return !CancellationToken.IsCancellationRequested || DestinationHasEnoughSpace();
         }
 
         /// <summary>

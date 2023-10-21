@@ -19,22 +19,9 @@
         /// </summary>
         public string Explaination { get; internal set; } = string.Empty;
         /// <summary>
-        /// Determine whether the processor should cancel the operation or not.
-        /// <para/>
-        /// Change this value to <see langword="true"/> if you wish to cancel processing the 
-        /// archive. <para/>
-        /// This will only be honored if <see cref="Cancellable"/> is <see langword="true"/>.
-        /// </summary>
-        public bool CancelOperation { get; set; } = true;
-        /// <summary>
         /// Represents whether the operation can be continued or not.
         /// </summary>
         public bool Continuable { get; internal set; } = false;
-        /// <summary>
-        /// Represents whether the operation can be cancelled or not. <br/>
-        /// If <see langword="false"/>, <see cref="CancelOperation"/> will not be honored.
-        /// </summary>
-        public bool Cancellable { get; internal set; } = false;
         /// <summary>
         /// <inheritdoc cref="DPProcessorErrorArgs"/>
         /// </summary>
