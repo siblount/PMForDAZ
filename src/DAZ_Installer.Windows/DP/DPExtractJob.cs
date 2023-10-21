@@ -29,11 +29,8 @@ namespace DAZ_Installer.Windows.DP
         private DPProgressCombo ProgressCombo;
         CancellationToken token = new();
 
-        public HashSet<string> doNotProcess { get; } = new HashSet<string>();
-
         public static DPTaskManager extractJobs = new();
         public static Queue<DPExtractJob> Jobs { get; } = new Queue<DPExtractJob>();
-        public HashSet<string> filesToNotProcess { get; } = new HashSet<string>();
         // TODO: Check if a product is already in list.
 
         //public DPExtractJob(string[] files)
