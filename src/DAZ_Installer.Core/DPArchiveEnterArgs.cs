@@ -7,20 +7,20 @@
     public class DPArchiveEnterArgs : EventArgs
     {
         /// <summary>
-        /// Determine whether to cancel operations or not. 
+        /// Skip processing the archive.
         /// Setting this value to <see langword="true"/> will prevent
         /// the archive from being processed.
         /// </summary>
-        public bool Cancel = false;
+        public bool Skip = false;
         /// <summary>
         /// The archive that is about to be processed.
         /// </summary>
         public readonly DPArchive Archive;
 
-        internal DPArchiveEnterArgs(DPArchive archive, bool cancel = false)
+        internal DPArchiveEnterArgs(DPArchive archive, bool skip = false)
         {
             Archive = archive;
-            Cancel = cancel;
+            Skip = skip;
         }
     }
 }
