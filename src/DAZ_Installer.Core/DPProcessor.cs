@@ -37,7 +37,7 @@ namespace DAZ_Installer.Core
         public string DestinationPath => CurrentProcessSettings.DestinationPath;
         public DPArchive CurrentArchive { get; private set; } = null!;
         public ProcessorState State { get => state; private set { state = value; StateChanged?.Invoke(); } }
-        private bool SkipExtraction { get; set; } = false;
+        private bool skipExtraction { get; set; } = false;
 
         /// <summary>
         /// An event that is invoked when a file that is being extracted, moved, or deleted throws an error.
@@ -69,6 +69,7 @@ namespace DAZ_Installer.Core
             if (ArchiveEnter is null) return;
             var args = new DPArchiveEnterArgs(CurrentArchive);
             ArchiveEnter.Invoke(this, args);
+            skipExtraction = args.Skip;
         }
         /// <summary>
         /// Emits the <see cref="ArchiveExit"/> event and passes the arguments required. <para/>
@@ -94,8 +95,10 @@ namespace DAZ_Installer.Core
         private void processArchiveInternal([NotNull] DPArchive archiveFile, DPProcessSettings settings)
         {
             CurrentArchive = archiveFile;
+            skipExtraction = false;
             DPExtractionReport? report = null;
             EmitOnArchiveEnter();
+            if (skipExtraction) return;
             try
             {
                 using (LogContext.PushProperty("Archive", archiveFile.FileName))
