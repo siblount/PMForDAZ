@@ -1,6 +1,4 @@
-﻿using DAZ_Installer.IO;
-
-namespace DAZ_Installer.Core.Extraction
+﻿namespace DAZ_Installer.Core.Extraction
 {
     /// <summary>
     /// The extract settings for the archive to use.
@@ -30,6 +28,10 @@ namespace DAZ_Installer.Core.Extraction
         /// files in <see cref="FilesToExtract"/> must be this archive.
         /// </summary>
         public DPArchive Archive = null!;
+        /// <summary>
+        /// The cancellation token to use for the extraction. This setting will update <see cref="DPAbstractExtractor.CancellationToken"/>.
+        /// </summary>
+        public CancellationToken CancelToken = CancellationToken.None;
 
         public DPExtractSettings(string? temp, IEnumerable<DPFile> filesToExtract, bool overwriteFiles = true, DPArchive? archive = null)
         {

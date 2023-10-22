@@ -43,6 +43,8 @@ namespace DAZ_Installer.Core.Extraction
                 Settings = settings
             };
 
+            if (CancellationToken.IsCancellationRequested) return e;
+
             // Check if the archive is on disk or we have access to it.
             if (arc.FileInfo is null || !arc.FileInfo.Exists)
             {
@@ -59,6 +61,7 @@ namespace DAZ_Installer.Core.Extraction
                 var i = 0;
                 foreach (DPFile file in settings.FilesToExtract)
                 {
+                    CancellationToken.ThrowIfCancellationRequested();
                     // Check if the file is part of this archive, if not, emit an error and continue.
                     if (file.AssociatedArchive != settings.Archive)
                     {
@@ -104,6 +107,8 @@ namespace DAZ_Installer.Core.Extraction
             arc.TrueArchiveSize = 0;
             FileSystem = arc.FileSystem;
 
+            if (CancellationToken.IsCancellationRequested) return;
+
             if (arc.FileInfo is null || !arc.FileInfo.Exists)
             {
                 HandleError(arc, null, null, null, DPArchiveErrorArgs.ArchiveDoesNotExistOrNoAccessExplanation);
@@ -116,6 +121,7 @@ namespace DAZ_Installer.Core.Extraction
                 using var zipArc = Factory.Create(arc.FileInfo.OpenRead());
                 foreach (var entry in zipArc.Entries)
                 {
+                    CancellationToken.ThrowIfCancellationRequested();
                     if (string.IsNullOrEmpty(entry.Name) && !arc.FolderExists(entry.FullName))
                         // Set folder to null to let it automatically generate subfolders.
                         new DPFolder(entry.FullName, arc, null);

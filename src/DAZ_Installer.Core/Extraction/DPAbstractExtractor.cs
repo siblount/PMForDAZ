@@ -19,6 +19,10 @@ namespace DAZ_Installer.Core.Extraction
         /// </summary>
         public AbstractFileSystem FileSystem { get; protected set; } = new DPFileSystem();
         /// <summary>
+        /// The cancellation token to use for the extraction. By default, it is <see cref="CancellationToken.None"/>.
+        /// </summary>
+        public CancellationToken CancellationToken { get; set; } = CancellationToken.None;
+        /// <summary>
         /// The current mode of the archive file; describes whether the archive is peeking, extracting, or moving files.
         /// </summary>
         protected enum Mode
@@ -166,7 +170,7 @@ namespace DAZ_Installer.Core.Extraction
         /// </summary>
         /// <param name="arc">The archive whose progress has changed.</param>
         /// <param name="args">The extraction args.</param>
-        protected virtual void EmitOnMoveProgress(DPArchive arc, DPExtractProgressArgs args) => ExtractProgress?.Invoke(arc, args);
+        protected virtual void EmitOnMoveProgress(DPArchive arc, DPExtractProgressArgs args) => MoveProgress?.Invoke(arc, args);
         /// <summary>
         /// Invoke the <see cref="ArchiveErrored"/> event.
         /// </summary>

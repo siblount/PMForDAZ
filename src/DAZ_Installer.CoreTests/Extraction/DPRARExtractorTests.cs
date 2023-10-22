@@ -369,5 +369,69 @@ namespace DAZ_Installer.Core.Extraction.Tests
             e.ArchiveErrored += (s, e) => Assert.AreEqual(DPArchiveErrorArgs.EncryptedFilesExplanation, e.Explaination);
         }
 
+        [TestMethod]
+        public void ExtractTest_CancelledBeforeOp()
+        {
+            var arc = SetupArchiveWithPartiallyFakedDependencies(DefaultOptions, out var e, out var _, out _, out _, out _, out _);
+
+            CancellationTokenSource cts = new();
+            var settings = new DPExtractSettings("Z:/temp", arc.Contents.Values, archive: arc) { CancelToken = cts.Token };
+            var expectedReport = new DPExtractionReport() { ExtractedFiles = new(0), ErroredFiles = new(0), Settings = settings };
+            DPArchiveTestHelpers.SetupTargetPaths(arc, "Z:/abc/");
+            cts.Cancel(true);
+
+            // Testing Extract() here:
+            var report = e.Extract(settings);
+            DPArchiveTestHelpers.AssertReport(expectedReport, report);
+
+
+            Assert.AreEqual(arc.FileSystem, e.FileSystem);
+        }
+
+        [TestMethod]
+        public void ExtractTest_CancelledDuringOp()
+        {
+            var arc = SetupArchiveWithPartiallyFakedDependencies(DefaultOptions, out var e, out var _, out _, out _, out _, out _);
+
+            CancellationTokenSource cts = new();
+            var settings = new DPExtractSettings("Z:/temp", arc.Contents.Values, archive: arc) { CancelToken = cts.Token };
+            var expectedReport = new DPExtractionReport() { ExtractedFiles = new(1) { arc.Contents.First().Value }, ErroredFiles = new(0), Settings = settings };
+            DPArchiveTestHelpers.SetupTargetPaths(arc, "Z:/abc/");
+            e.ExtractProgress += (s, e) => cts.Cancel(true);
+
+            // Testing Extract() here:
+            var report = e.Extract(settings);
+            DPArchiveTestHelpers.AssertReport(expectedReport, report);
+
+
+            Assert.AreEqual(arc.FileSystem, e.FileSystem);
+
+        }
+
+        [TestMethod]
+        public void PeekTest_CancelledBeforeOp()
+        {
+            var arc = SetupArchiveWithPartiallyFakedDependencies(DefaultPeekOptions, out var e, out var _, out _, out _, out _, out _);
+            e.CancellationToken = new(true);
+            // Testing Peek() here:
+            e.Peek(arc);
+
+            Assert.AreEqual(arc.FileSystem, e.FileSystem);
+            Assert.AreEqual(0, arc.Contents.Count);
+        }
+
+        [TestMethod]
+        public void PeekTest_CancelledDuringOp()
+        {
+            var arc = SetupArchiveWithPartiallyFakedDependencies(DefaultPeekOptions, out var e, out var r, out _, out _, out _, out _);
+            r.Setup(x => x.ReadHeader()).Callback(() => e.CancellationToken = new(true));
+
+            // Testing Peek() here:
+            e.Peek(arc);
+
+            Assert.AreEqual(arc.FileSystem, e.FileSystem);
+            Assert.AreEqual(0, arc.Contents.Count);
+        }
+
     }
 }

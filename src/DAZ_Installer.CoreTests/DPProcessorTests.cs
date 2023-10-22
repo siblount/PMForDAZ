@@ -178,10 +178,13 @@ namespace DAZ_Installer.Core.Tests
                 ExpectedProcessErrorCount = 1,
             };
             DPProcessorTestHelpers.AttachCommonEventHandlers(p, ao);
+            CancellationTokenSource cts = new();
+            p.CancellationToken = cts.Token;
             p.ArchiveExit += (_, p) => Assert.IsFalse(p.Processed);
             var fakeDriveInfo = new Mock<FakeDPDriveInfo>(fs.Object, "N:/");
             fs.Setup(x => x.CreateDriveInfo(It.IsAny<string>())).Returns(fakeDriveInfo.Object);
             fakeDriveInfo.Object.AvailableFreeSpace = 0;
+            p.ProcessError += (_, __) => cts.Cancel();
             p.ProcessArchive(a, DefaultProcessSettings);
         }
 

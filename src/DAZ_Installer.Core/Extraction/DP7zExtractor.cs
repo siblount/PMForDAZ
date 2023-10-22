@@ -76,7 +76,7 @@ namespace DAZ_Installer.Core.Extraction
             if (StartProcess())
             {
                 var time = TimeSpan.FromSeconds(120);
-                if (!SpinWait.SpinUntil(() => _peekFinished, time))
+                if (!SpinWait.SpinUntil(() => _peekFinished || CancellationToken.IsCancellationRequested, time))
                     handleError(archive, $"Peek timeout of {time.TotalSeconds} seconds exceeded.", null, null, null);
             }
             KillProcess();
@@ -175,6 +175,7 @@ namespace DAZ_Installer.Core.Extraction
             using var _ = LogContext.PushProperty("Archive", workingArchive.FileName);
             
             Logger.Debug("7z output: {output}", data ?? "null");
+            if (CancellationToken.IsCancellationRequested) return;
             if (data == null || _hasEncryptedFiles)
             {
                 if (mode == Mode.Peek) _peekFinished = true;
@@ -248,6 +249,7 @@ namespace DAZ_Installer.Core.Extraction
             {
                 foreach (DPFile file in workingSettings.FilesToExtract)
                 {
+                    CancellationToken.ThrowIfCancellationRequested();
                     EmitOnMoveProgress(workingArchive, new DPExtractProgressArgs((byte)((float)i / count), workingArchive, file));
                     IDPFileInfo? fileInfo = file.FileInfo;
                     // If the file did not extract to temp or it no longer exists (or we don't have access permissions), then we can't move it so we skip it.
@@ -311,6 +313,7 @@ namespace DAZ_Installer.Core.Extraction
         {
             try
             {
+                CancellationToken.ThrowIfCancellationRequested();
                 foreach (DPFile file in workingArchive.Contents.Values)
                 {
                     if (file.AssociatedArchive != workingArchive)
@@ -349,6 +352,7 @@ namespace DAZ_Installer.Core.Extraction
         {
             _process = Setup7ZProcess();
             _process.StartInfo.ArgumentList.Add("-o" + tempFolder);
+            if (CancellationToken.IsCancellationRequested) return workingExtractionReport;
             if (!StartProcess())
             {
                 EmitOnExtractFinished();
@@ -356,18 +360,18 @@ namespace DAZ_Installer.Core.Extraction
             }
             var time = TimeSpan.FromSeconds(120);
             var extractSuccessful = false;
-            if (!(extractSuccessful = SpinWait.SpinUntil(() => _extractFinished, time)))
+            if (!(extractSuccessful = SpinWait.SpinUntil(() => _extractFinished || CancellationToken.IsCancellationRequested, time)))
             {
                 handleError(workingArchive, $"Extraction timeout of {time.TotalSeconds} seconds exceeded.", null, null, null);
                 KillProcess();
             }
             EmitOnExtractFinished();
             Logger.Information("Extract finished");
-            if (!extractSuccessful) return workingExtractionReport;
+            if (!extractSuccessful || CancellationToken.IsCancellationRequested) return workingExtractionReport;
 
             if (!tempOnly)
             {
-                if (!SpinWait.SpinUntil(() => _moveFinished, time))
+                if (!SpinWait.SpinUntil(() => _moveFinished || CancellationToken.IsCancellationRequested, time))
                     handleError(workingArchive, $"Move timeout of {time.TotalSeconds} seconds exceeded.", null, null, null);
                 EmitOnMoveFinished();
                 Logger.Information("Move finished");
@@ -397,6 +401,7 @@ namespace DAZ_Installer.Core.Extraction
             FileSystem = settings.Archive.FileSystem;
             DPArchive archive = workingArchive = settings.Archive;
             tempOnly = extractToTemp;
+            CancellationToken = settings.CancelToken;
             if (archive.Contents.Count == 0)
             {
                 Logger.Information("Archive Contents length was 0, now peeking...");
@@ -410,6 +415,7 @@ namespace DAZ_Installer.Core.Extraction
                 ExtractedFiles = new(settings.FilesToExtract.Count),
                 Settings = settings
             };
+            if (CancellationToken.IsCancellationRequested) return workingExtractionReport;
             if (archive.FileInfo is null || !archive.FileInfo.Exists)
             {
                 handleError(archive, DPArchiveErrorArgs.ArchiveDoesNotExistOrNoAccessExplanation, null, null, null);
@@ -422,6 +428,7 @@ namespace DAZ_Installer.Core.Extraction
                 handleError(archive, "Failed to create required temp directories for extraction operations", null, null, ex);
                 return workingExtractionReport;
             }
+            if (CancellationToken.IsCancellationRequested) return workingExtractionReport;
             StartExtractionProcess(tempFolder, extractToTemp);
             return workingExtractionReport;
         }

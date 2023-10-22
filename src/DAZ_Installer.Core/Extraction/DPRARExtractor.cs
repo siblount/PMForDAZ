@@ -77,13 +77,17 @@ namespace DAZ_Installer.Core.Extraction
             FileSystem = settings.Archive.FileSystem;
             DPArchive arc = settings.Archive;
             session ??= new Session() { report = new DPExtractionReport(), settings = settings };
-            if (arc.Contents.Count == 0) Peek(arc);
+            CancellationToken = settings.CancelToken;
 
             var report = new DPExtractionReport()
             {
                 Settings = settings,
                 ExtractedFiles = new(settings.FilesToExtract.Count),
             };
+            session.report = report;
+            if (CancellationToken.IsCancellationRequested) return report;
+            if (arc.Contents.Count == 0) Peek(arc);
+
             if (arc.FileInfo is null || !arc.FileInfo.Exists)
             {
                 handleError(arc, DPArchiveErrorArgs.ArchiveDoesNotExistOrNoAccessExplanation, report, null, null);
@@ -106,6 +110,7 @@ namespace DAZ_Installer.Core.Extraction
                         handleError(arc, "The archive is not the first volume out of a multi-volume archive. Only input the first volume", null, null, null);
                     for (var i = 0; i < settings.FilesToExtract.Count && RARHandler.ReadHeader(); i++)
                     {
+                        CancellationToken.ThrowIfCancellationRequested();
                         var arcHasFile = arc.Contents.TryGetValue(RARHandler.CurrentFile.FileName, out var file);
                         if (!RARHandler.CurrentFile.IsDirectory && arcHasFile && file?.AssociatedArchive == arc)
                         {
@@ -151,6 +156,7 @@ namespace DAZ_Installer.Core.Extraction
 
             try
             {
+                CancellationToken.ThrowIfCancellationRequested();
                 // TODO: Can we remove this?
                 RARHandler.DestinationPath = Path.Combine(Path.GetTempPath(), Path.GetFileNameWithoutExtension(arc.Path));
                 // Create path and see if it exists.
@@ -171,6 +177,7 @@ namespace DAZ_Installer.Core.Extraction
 
                 while (RARHandler.ReadHeader())
                 {
+                    CancellationToken.ThrowIfCancellationRequested();
                     TestFile(RARHandler, arc);
                 }
                 RARHandler.Close();

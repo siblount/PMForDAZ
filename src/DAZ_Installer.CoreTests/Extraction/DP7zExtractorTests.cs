@@ -433,6 +433,87 @@ namespace DAZ_Installer.Core.Extraction.Tests
             DPArchiveTestHelpers.RunAndAssertPeekEvents(e, arc);
             e.ArchiveErrored += (s, e) => Assert.AreEqual(DPArchiveErrorArgs.EncryptedFilesExplanation, e.Explaination);
         }
+        [TestMethod]
+        public void ExtractTest_CancelledBeforeOp()
+        {
+            var arc = NewMockedArchive(DefaultOptions, out var outputs);
+            var e = outputs.extractor;
+
+            CancellationTokenSource cts = new();
+            var settings = new DPExtractSettings("Z:/temp", arc.Contents.Values, archive: arc) { CancelToken = cts.Token };
+            cts.Cancel(true);
+            var expectedReport = new DPExtractionReport() { ExtractedFiles = new(0), ErroredFiles = new(0), Settings = settings };
+            DPArchiveTestHelpers.SetupTargetPaths(arc, "Z:/abc/");
+
+            // Testing Extract() here:
+            var report = e.Extract(settings);
+            DPArchiveTestHelpers.AssertReport(expectedReport, report);
+
+            Assert.AreEqual(arc.FileSystem, e.FileSystem);
+        }
+        [TestMethod]
+        public void ExtractTest_CancelledDuringExtractOp()
+        {
+            var arc = NewMockedArchive(DefaultOptions, out var outputs);
+            var e = outputs.extractor;
+
+            CancellationTokenSource cts = new();
+            var settings = new DPExtractSettings("Z:/temp", arc.Contents.Values, archive: arc) { CancelToken = cts.Token };
+            outputs.fakeProcess.Object.OutputDataReceived += _ => cts.Cancel(true);
+            var expectedReport = new DPExtractionReport() { ExtractedFiles = new(0), ErroredFiles = new(0), Settings = settings };
+            DPArchiveTestHelpers.SetupTargetPaths(arc, "Z:/abc/");
+
+            // Testing Extract() here:
+            var report = e.Extract(settings);
+            DPArchiveTestHelpers.AssertReport(expectedReport, report);
+
+            Assert.AreEqual(arc.FileSystem, e.FileSystem);
+        }
+        [TestMethod]
+        public void ExtractTest_CancelledDuringMoveOp()
+        {
+            var arc = NewMockedArchive(DefaultOptions, out var outputs);
+            var e = outputs.extractor;
+
+            CancellationTokenSource cts = new();
+            var settings = new DPExtractSettings("Z:/temp", arc.Contents.Values, archive: arc) { CancelToken = cts.Token };
+            e.MoveProgress += (_, __) => cts.Cancel(true);
+            var expectedReport = new DPExtractionReport() { ExtractedFiles = new(1) { arc.Contents.First().Value }, ErroredFiles = new(0), Settings = settings };
+            DPArchiveTestHelpers.SetupTargetPaths(arc, "Z:/abc/");
+
+            // Testing Extract() here:
+            var report = e.Extract(settings);
+            DPArchiveTestHelpers.AssertReport(expectedReport, report);
+
+            Assert.AreEqual(arc.FileSystem, e.FileSystem);
+        }
+        [TestMethod]
+        public void PeekTest_CancelledBeforeOp()
+        {
+            var arc = NewMockedArchive(DefaultOptions with { peek = false }, out var outputs);
+            outputs.Deconstruct(out var e, out var _, out var _, out var _, out var _, out var _);
+            e.CancellationToken = new(true);
+            // Testing Peek() here:
+            e.Peek(arc);
+
+            Assert.AreEqual(0, arc.Contents.Count);
+            Assert.AreEqual(arc.FileSystem, e.FileSystem);
+        }
+        [TestMethod]
+        public void PeekTest_CancelledDuringOp()
+        {
+            var arc = NewMockedArchive(DefaultOptions with { peek = false }, out var outputs);
+            outputs.Deconstruct(out var e, out var _, out var _, out var _, out var _, out var _);
+            CancellationTokenSource cts = new();
+            e.CancellationToken = cts.Token;
+            outputs.fakeProcess.Object.OutputDataReceived += _ => cts.Cancel(true);
+
+            // Testing Peek() here:
+            e.Peek(arc);
+
+            Assert.AreEqual(0, arc.Contents.Count);
+            Assert.AreEqual(arc.FileSystem, e.FileSystem);
+        }
 
     }
 }
