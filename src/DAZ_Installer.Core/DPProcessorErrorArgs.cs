@@ -10,10 +10,9 @@
         /// </summary>
         public Exception? Ex { get; init; }
         /// <summary>
-        /// The processor that threw  the error.
+        /// The processor that threw the error.
         /// </summary>
         public DPProcessor Processor { get; internal set; } = null!;
-        public CancellationToken CancellationToken => Processor.CancellationToken;
         /// <summary>
         /// Additional information for the error, if any.
         /// </summary>
