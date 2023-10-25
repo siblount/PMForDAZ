@@ -94,29 +94,45 @@ namespace DAZ_Installer.Core
 
         private void processArchiveInternal([NotNull] DPArchive archiveFile, DPProcessSettings settings)
         {
-            CurrentArchive = archiveFile;
-            skipExtraction = false;
+            Stack<DPArchive> archivesToProcess = new();
+            Stack<Tuple<DPArchive, DPExtractionReport>> parentArchives = new();
+
+            archivesToProcess.Push(archiveFile);
+            while (archivesToProcess.TryPop(out DPArchive arc))
+            {
+                CurrentArchive = arc!;
             DPExtractionReport? report = null;
+                PopParentArchive(parentArchives);
             EmitOnArchiveEnter();
             if (skipExtraction) return;
+                
+                foreach (var subarc in arc.Subarchives)
+                {
+                    if (subarc.Extracted) archivesToProcess.Push(subarc);
+                }
+
             try
             {
-                using (LogContext.PushProperty("Archive", archiveFile.FileName))
+                    using (LogContext.PushProperty("Archive", arc.FileName))
                     Logger.Information("Processing archive");
                 var arcDebugInfo = new
                 {
-                    NestedArchive = archiveFile.IsInnerArchive,
-                    Name = archiveFile.FileName,
-                    Path = archiveFile.IsInnerArchive ? archiveFile.Path : archiveFile?.FileInfo?.Path,
-                    archiveFile?.Extractor,
-                    ParentArchiveNestedArchive = archiveFile?.AssociatedArchive?.IsInnerArchive,
-                    ParentArchiveName = archiveFile?.AssociatedArchive?.FileName,
-                    ParentArchivePath = archiveFile?.AssociatedArchive?.IsInnerArchive ?? false ? archiveFile?.AssociatedArchive?.Path :
-                                                                                                  archiveFile?.AssociatedArchive?.FileInfo?.Path,
-                    ParentExtractor = archiveFile?.AssociatedArchive?.Extractor,
+                        NestedArchive = arc.IsInnerArchive,
+                        Name = arc.FileName,
+                        Path = arc.IsInnerArchive ? arc.Path : arc?.FileInfo?.Path,
+                        arc?.Extractor,
+                        ParentArchiveNestedArchive = arc?.AssociatedArchive?.IsInnerArchive,
+                        ParentArchiveName = arc?.AssociatedArchive?.FileName,
+                        ParentArchivePath = arc?.AssociatedArchive?.IsInnerArchive ?? false ? arc?.AssociatedArchive?.Path :
+                                                                                                      arc?.AssociatedArchive?.FileInfo?.Path,
+                        ParentExtractor = arc?.AssociatedArchive?.Extractor,
                 };
                 Logger.Debug("Archive that is about to be processed: {@Arc}", arcDebugInfo);
-                if (CancellationToken.IsCancellationRequested) return;
+                    if (CancellationToken.IsCancellationRequested)
+                    {
+                        HandleEarlyExit();
+                        return;
+                    }
 
                 State = ProcessorState.Starting;
                 try
@@ -126,15 +142,15 @@ namespace DAZ_Installer.Core
                 catch (Exception e)
                 {
                     EmitOnProcessError(new DPProcessorErrorArgs(e, "Unable to create temp directory."));
+                    }
+
+                    State = ProcessorState.Peeking;
                     if (CancellationToken.IsCancellationRequested)
                     {
                         HandleEarlyExit();
                         return;
                     }
-                }
-
-                State = ProcessorState.Peeking;
-                if (!tryCatch(() => archiveFile.PeekContents(), "Failed to peek into archive")) return;
+                    if (!tryCatch(() => arc!.PeekContents(), "Failed to peek into archive")) continue;
 
                 // Check if we have enough room.
                 if (!HandleOnDestinationNotEnoughSpace())
@@ -145,40 +161,36 @@ namespace DAZ_Installer.Core
 
                 State = ProcessorState.PreparingExtraction;
                 HashSet<DPFile> filesToExtract = null!;
-                if (!tryCatch(prepareOperations, "Failed to prepare for extraction")) return;
-                if (!tryCatch(() => filesToExtract = DestinationDeterminer.DetermineDestinations(archiveFile, settings), "Failed to determine destinations for files")) return;
+                    if (!tryCatch(prepareOperations, "Failed to prepare for extraction")) continue;
+                    if (!tryCatch(() => filesToExtract = DestinationDeterminer.DetermineDestinations(arc, settings), "Failed to determine destinations for files")) continue;
 
                 State = ProcessorState.Extracting;
                 var extractSettings = new DPExtractSettings()
                 {
                     TempPath = CurrentProcessSettings.TempPath,
-                    Archive = archiveFile,
+                        Archive = arc,
                     FilesToExtract = filesToExtract,
                     OverwriteFiles = CurrentProcessSettings.OverwriteFiles,
                 };
                 
-                if (!tryCatch(() => report = archiveFile.ExtractContents(extractSettings), "Failed to extract contents for archive")) return;
+                    if (!tryCatch(() => report = arc.ExtractContents(extractSettings), "Failed to extract contents for archive")) continue;
 
                 // DPCommon.WriteToLog("We are done");
                 Logger.Information("Analyzing the archive - fetching tags");
                 State = ProcessorState.Analyzing;
-                if (!tryCatch(() => archiveFile.Type = archiveFile.DetermineArchiveType(), "Failed to analyze archive")) return;
-                if (!tryCatch(() => TagProvider.GetTags(archiveFile, settings), "Failed to get tags for archive")) return;
+                    if (!tryCatch(() => arc.Type = arc.DetermineArchiveType(), "Failed to analyze archive")) continue;
+                    if (!tryCatch(() => TagProvider.GetTags(arc, settings), "Failed to get tags for archive")) continue;
 
-                for (var i = 0; i < archiveFile.Subarchives.Count; i++)
-                {
-                    DPArchive arc = archiveFile.Subarchives[i];
-                    if (arc.Extracted) processArchiveInternal(arc, settings); // TODO: This can lead to a stack overflow...fix maybe?
+                    // Create record.
+                    parentArchives.Push(new Tuple<DPArchive, DPExtractionReport>(arc, report)); // TODO: Use method to determine whether an archive was successfully processed.
                 }
-
-                // Create record.
-                EmitOnArchiveExit(true, report); // TODO: Use method to determine whether an archive was successfully processed.
-            } catch (Exception ex)
+                catch (Exception ex)
             {
                 handleError(ex, "An unexpected error occured while processing archive.");
                 EmitOnArchiveExit(false, report);
             }
-
+            }
+            PopParentArchive(parentArchives);
 
         }
 
@@ -382,7 +394,16 @@ namespace DAZ_Installer.Core
                 {
                     stream?.Dispose();
                 }
+        private void PopParentArchive(Stack<Tuple<DPArchive, DPExtractionReport>> s)
+        {
+            if (s.TryPop(out var parentArc))
+            {
+                var temp = CurrentArchive;
+                CurrentArchive = parentArc.Item1;
+                try { EmitOnArchiveExit(true, parentArc.Item2); } catch { }
+                CurrentArchive = temp;
             }
         }
+
     }
 }

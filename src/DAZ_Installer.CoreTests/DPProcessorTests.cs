@@ -210,6 +210,38 @@ namespace DAZ_Installer.Core.Tests
             p.ProcessArchive(a, DefaultProcessSettings);
         }
 
+        [TestMethod]
+        public void ProcessArchiveOrderTest()
+        {
+            var opts = DPProcessorTestHelpers.DefaultMockOptions with { paths = Enumerable.Empty<string>() };
+            var a = DPProcessorTestHelpers.NewMockedArchive(opts, out var _, out _, out var ff, out var fs);
+            a.Path = ff.Object.FullName = "a.rar";
+            var b = DPProcessorTestHelpers.NewMockedArchive(opts, out var _, out _, out ff, out _);
+            b.Path = ff.Object.FullName = "b.rar";
+            var c = DPProcessorTestHelpers.NewMockedArchive(opts, out var _, out _, out ff, out _);
+            c.Path = ff.Object.FullName = "c.rar";
+            var d = DPProcessorTestHelpers.NewMockedArchive(opts, out var _, out _, out ff, out _);
+            d.Path = ff.Object.FullName = "d.rar";
+            var e = DPProcessorTestHelpers.NewMockedArchive(opts, out var _, out _, out ff, out _);
+            e.Path = ff.Object.FullName = "e.rar";
+            a.Subarchives.AddRange(new[] { b, c });
+            b.Subarchives.Add(d);
+            c.Subarchives.Add(e);
+
+            var p = DPProcessorTestHelpers.SetupProcessor(a, fs.Object, out var _, out var _);
+            var settings = DPProcessorTestHelpers.CreateExtractSettings(Enumerable.Empty<string>(), a);
+            Queue<DPArchive> expectedOrder = new(new[] { a, c, e, b, d });
+            Queue<DPArchive> expectedOrderClone = new(expectedOrder);
+
+            p.ArchiveEnter += (_, p) => Assert.AreEqual(p.Archive, expectedOrder.Dequeue());
+            p.ArchiveExit += (_, p) => Assert.AreEqual(p.Archive, expectedOrderClone.Dequeue());
+
+            p.ProcessArchive(a, DefaultProcessSettings);
+
+            Assert.IsTrue(expectedOrder.Count == 0);
+            Assert.IsTrue(expectedOrderClone.Count == 0);
+        }
+
         // Invalid Process Settings
         // 
     }
