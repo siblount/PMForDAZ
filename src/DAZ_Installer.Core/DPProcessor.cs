@@ -176,6 +176,7 @@ namespace DAZ_Installer.Core
                         Archive = arc,
                         FilesToExtract = filesToExtract,
                         OverwriteFiles = CurrentProcessSettings.OverwriteFiles,
+                        CancelToken = ArchiveCancellationToken,
                     };
 
                     if (!tryCatch(() => report = arc.ExtractContents(extractSettings), "Failed to extract contents for archive")) continue;
