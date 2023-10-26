@@ -44,6 +44,33 @@ namespace DAZ_Installer.Core.Tests
         }
 
         [TestMethod]
+        public void ProcessArchiveTest_AfterCancelledProcess()
+        {
+            var a = DPProcessorTestHelpers.NewMockedArchive(DPProcessorTestHelpers.DefaultMockOptions, out var _, out _, out _, out var fs);
+            var p = DPProcessorTestHelpers.SetupProcessor(a, fs.Object, out _, out _);
+            var settings = DPProcessorTestHelpers.CreateExtractSettings(DefaultContents, a);
+            var ao = new DPProcessorTestHelpers.AssertOptions()
+            {
+                ExpectArchiveProcessed = new() { { a.FileName, DPProcessorTestHelpers.CreateExtractionReport(settings, Enumerable.Empty<string>(), DPProcessorTestHelpers.CalculateExpectedFiles(DefaultContents)) } },
+                ExpectedArchiveCount = 2,
+            };
+            DPProcessorTestHelpers.AttachCommonEventHandlers(p, ao);
+            var cancelledOnce = false;
+            p.ArchiveEnter += (_, __) =>
+            {
+                if (!cancelledOnce) p.CancelProcessing();
+                cancelledOnce = true;
+            };
+
+            p.ProcessArchive(a, DefaultProcessSettings);
+            p.ProcessArchive(a, DefaultProcessSettings);
+
+
+            DPProcessorTestHelpers.AssertCommon(p, Times.AtLeast(1));
+            //CollectionAssert.Contains(a.ProductInfo.Tags.ToArray(), new[] { "Gentlemen's Library", "TheRealSolly", "solomon1blount@gmail.com", "www.thesolomonchronicles.com", a.FileName });
+        }
+
+        [TestMethod]
         public void ProcessArchiveTest_AfterProcess()
         {
             var a = DPProcessorTestHelpers.NewMockedArchive(DPProcessorTestHelpers.DefaultMockOptions, out var _, out _, out _, out var fs);
@@ -96,8 +123,6 @@ namespace DAZ_Installer.Core.Tests
             DPProcessorTestHelpers.AssertCommon(p, Times.Once());
             //CollectionAssert.Contains(a.ProductInfo.Tags.ToArray(), new[] { "Gentlemen's Library", "TheRealSolly", "solomon1blount@gmail.com", "www.thesolomonchronicles.com", a.FileName });
         }
-
-
 
         [TestMethod]
         [DataRow("null", "null")]
@@ -178,13 +203,11 @@ namespace DAZ_Installer.Core.Tests
                 ExpectedProcessErrorCount = 1,
             };
             DPProcessorTestHelpers.AttachCommonEventHandlers(p, ao);
-            CancellationTokenSource cts = new();
-            p.CancellationToken = cts.Token;
             p.ArchiveExit += (_, p) => Assert.IsFalse(p.Processed);
             var fakeDriveInfo = new Mock<FakeDPDriveInfo>(fs.Object, "N:/");
             fs.Setup(x => x.CreateDriveInfo(It.IsAny<string>())).Returns(fakeDriveInfo.Object);
             fakeDriveInfo.Object.AvailableFreeSpace = 0;
-            p.ProcessError += (_, __) => cts.Cancel();
+            p.ProcessError += (_, __) => p.CancelCurrentArchive();
             p.ProcessArchive(a, DefaultProcessSettings);
         }
 
