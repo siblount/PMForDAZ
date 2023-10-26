@@ -27,7 +27,6 @@ namespace DAZ_Installer.Windows.DP
         public Task TaskJob { get; protected set; }
         public DPSettings UserSettings { get; protected set; }
         private DPProgressCombo ProgressCombo;
-        CancellationToken token = new();
 
         public static DPTaskManager extractJobs = new();
         public static Queue<DPExtractJob> Jobs { get; } = new Queue<DPExtractJob>();
@@ -141,13 +140,13 @@ namespace DAZ_Installer.Windows.DP
                 switch (UserSettings.InstallPrevProducts)
                 {
                     case SettingOptions.No:
-                        e.Cancel = true;
+                        Processor.CancelCurrentArchive();
                         break;
                     case SettingOptions.Prompt:
                         DialogResult result = MessageBox.Show($"It seems that \"{e.Archive.FileName}\" was already processed. " +
                             $"Do you wish to continue processing this file?", "Archive already processed",
                             MessageBoxButtons.YesNo, MessageBoxIcon.Information);
-                        e.Cancel = result == DialogResult.No;
+                        if (result == DialogResult.No) Processor.CancelCurrentArchive();
                         break;
                 }
             }
