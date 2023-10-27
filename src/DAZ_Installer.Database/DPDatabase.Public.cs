@@ -13,42 +13,50 @@ namespace DAZ_Installer.Database
         // TO DO: Improve. This can be so much more efficient.
         // I lack the brain capacity to do this at the moment.
 
-        public void SearchQ(string searchQuery, DPSortMethod sortMethod = DPSortMethod.None,
+        public async Task<DPProductRecord[]> SearchQ(string searchQuery, DPSortMethod sortMethod = DPSortMethod.None,
             uint callerID = 0, Action<DPProductRecord[]>? callback = null)
         {
             // We only want to do searches on one thread. Calling priority task manager ensures
             // we only do searches on one thread.
             _priorityTaskManager.Stop();
-            _priorityTaskManager.AddToQueue((t) =>
+            DPProductRecord[] results = Array.Empty<DPProductRecord>();
+            await _priorityTaskManager.AddToQueue((t) =>
             {
-                DPProductRecord[] results = DoSearchS(searchQuery, sortMethod, null, t);
+                results = DoSearchS(searchQuery, sortMethod, null, t);
                 callback?.Invoke(results);
                 SearchUpdated?.Invoke(results, callerID);
             });
+            return results;
         }
 
-        public void RegexSearchQ(string regex, DPSortMethod sortMethod = DPSortMethod.None,
+        public async Task<DPProductRecord[]> RegexSearchQ(string regex, DPSortMethod sortMethod = DPSortMethod.None,
             uint callerID = 0, Action<DPProductRecord[]> callback = null)
         {
             _priorityTaskManager.Stop();
-            _priorityTaskManager.AddToQueue((t) =>
+            DPProductRecord[] results = Array.Empty<DPProductRecord>();
+
+            await _priorityTaskManager.AddToQueue((t) =>
             {
-                DPProductRecord[] results = DoRegexSearchS(regex, sortMethod, null, t);
+                results = DoRegexSearchS(regex, sortMethod, null, t);
                 callback?.Invoke(results);
                 SearchUpdated?.Invoke(results, callerID);
             });
+
+            return results;
         }
 
-        public void GetProductRecordsQ(DPSortMethod sortMethod, uint page = 1, uint limit = 0,
+        public async Task<DPProductRecord[]> GetProductRecordsQ(DPSortMethod sortMethod, uint page = 1, uint limit = 0,
             uint callerID = 0, Action<DPProductRecord[]> callback = null)
         {
             _priorityTaskManager.Stop();
-            _priorityTaskManager.AddToQueue((t) =>
+            DPProductRecord[] results = Array.Empty<DPProductRecord>();
+            await _priorityTaskManager.AddToQueue((t) =>
             {
-                DPProductRecord[] results = DoLibraryQuery(page, limit, sortMethod, null, t);
+                results = DoLibraryQuery(page, limit, sortMethod, null, t);
                 callback?.Invoke(results);
                 MainQueryCompleted?.Invoke(callerID);
             });
+            return results;
         }
 
         
@@ -63,44 +71,41 @@ namespace DAZ_Installer.Database
 
         #endregion
         #region Queryable methods
-        public void RefreshDatabaseQ(bool forceRefresh = false)
+        public Task RefreshDatabaseQ(bool forceRefresh = false)
         {
-            if (forceRefresh)
-            {
-                _mainTaskManager.Stop();
-                _priorityTaskManager.Stop();
-                Initalized = false;
-                Initialize();
-            }
-            else
-            {
-                _mainTaskManager.AddToQueue(RefreshDatabase);
-            }
+            if (!forceRefresh) return _mainTaskManager.AddToQueue(RefreshDatabase);
+            _mainTaskManager.Stop();
+            _priorityTaskManager.Stop();
+            Initalized = false;
+            Initialize();
+            return Task.CompletedTask;
         }
 
-        public void ViewTableQ(string tableName, uint callerID = 0, Action<DataSet?>? callback = null)
+        public async Task<DataSet?> ViewTableQ(string tableName, uint callerID = 0, Action<DataSet?>? callback = null)
         {
-            _mainTaskManager.AddToQueue((t) =>
+            DataSet? result = null;
+            await _mainTaskManager.AddToQueue((t) =>
             {
-                DataSet? result = GetAllValuesFromTable(tableName, null, t);
+                result = GetAllValuesFromTable(tableName, null, t);
                 callback?.Invoke(result);
                 ViewUpdated?.Invoke(result, callerID);
             });
+            return result;
         }
         
-        public void AddNewRecordEntry(DPProductRecord pRecord) => _mainTaskManager.AddToQueue(InsertRecords, pRecord, null as DPExtractionRecord, null as SQLiteConnection);
+        public Task AddNewRecordEntry(DPProductRecord pRecord) => _mainTaskManager.AddToQueue(InsertRecords, pRecord, null as DPExtractionRecord, null as SQLiteConnection);
         
-        public void AddNewRecordEntry(DPProductRecord pRecord, DPExtractionRecord eRecord) => _mainTaskManager.AddToQueue(InsertRecords, pRecord, eRecord, null as SQLiteConnection);
+        public Task AddNewRecordEntry(DPProductRecord pRecord, DPExtractionRecord eRecord) => _mainTaskManager.AddToQueue(InsertRecords, pRecord, eRecord, null as SQLiteConnection);
         
-        public void InsertNewRowQ(string tableName, object[] values, string[] columns) => _mainTaskManager.AddToQueue(InsertValuesToTable, tableName, columns, values, null as SQLiteConnection);
+        public Task InsertNewRowQ(string tableName, object[] values, string[] columns) => _mainTaskManager.AddToQueue(InsertValuesToTable, tableName, columns, values, null as SQLiteConnection);
         
-        public void RemoveRowQ(string tableName, int id)
+        public Task RemoveRowQ(string tableName, int id)
         {
             var arg = new Tuple<string, object>[1] { new Tuple<string, object>("ID", id) };
-            _mainTaskManager.AddToQueue(RemoveValuesWithCondition, tableName, arg, false, null as SQLiteConnection);
+            return _mainTaskManager.AddToQueue(RemoveValuesWithCondition, tableName, arg, false, null as SQLiteConnection);
         }
 
-        public void RemoveProductRecord(DPProductRecord record, Action<uint>? callback = null)
+        public Task RemoveProductRecord(DPProductRecord record, Action<uint>? callback = null)
         {
             _mainTaskManager.AddToQueue((t) =>
             {
@@ -115,13 +120,13 @@ namespace DAZ_Installer.Database
             });
         }
         
-        public void ClearTableQ(string tableName) => _mainTaskManager.AddToQueue(RemoveAllFromTable, tableName, null as SQLiteConnection);
+        public Task ClearTableQ(string tableName) => _mainTaskManager.AddToQueue(RemoveAllFromTable, tableName, null as SQLiteConnection);
 
-        public void UpdateValuesQ(string tableName, object[] values, string[] columns, int id) => _mainTaskManager.AddToQueue(UpdateValues, tableName, columns, values, id, null as SQLiteConnection);
+        public Task UpdateValuesQ(string tableName, object[] values, string[] columns, int id) => _mainTaskManager.AddToQueue(UpdateValues, tableName, columns, values, id, null as SQLiteConnection);
 
-        public void UpdateRecordQ(uint id, DPProductRecord newProductRecord, DPExtractionRecord newExtractionRecord, Action<uint>? callback = null)
+        public Task UpdateRecordQ(uint id, DPProductRecord newProductRecord, DPExtractionRecord newExtractionRecord, Action<uint>? callback = null)
         {
-            _mainTaskManager.AddToQueue(t =>
+            return _mainTaskManager.AddToQueue(t =>
             {
                 var success = UpdateProductRecord(id, newProductRecord, null, t);
                 if (!success) return;
@@ -133,47 +138,50 @@ namespace DAZ_Installer.Database
             });
         }
         
-        public void RemoveProductRecordsViaTagsQ(string[] tags) =>
-            // i suck at english.
+        public Task RemoveProductRecordsViaTagsQ(string[] tags) =>
             _mainTaskManager.AddToQueue(RemoveProductRecordsViaTag, tags, null as SQLiteConnection);
         
-        public void RemoveProductRecordsQ(Tuple<string, object> condition)
+        public Task RemoveProductRecordsQ(Tuple<string, object> condition)
         {
             var t = new Tuple<string, object>[] { condition };
-            _mainTaskManager.AddToQueue(RemoveValuesWithCondition, "ProductRecords", t, false, null as SQLiteConnection);
+            return _mainTaskManager.AddToQueue(RemoveValuesWithCondition, "ProductRecords", t, false, null as SQLiteConnection);
         }
         
-        public void RemoveProductRecordsQ(Tuple<string, object>[] conditions) => _mainTaskManager.AddToQueue(RemoveValuesWithCondition, "ProductRecords", conditions, false, null as SQLiteConnection);
+        public Task RemoveProductRecordsQ(Tuple<string, object>[] conditions) => _mainTaskManager.AddToQueue(RemoveValuesWithCondition, "ProductRecords", conditions, false, null as SQLiteConnection);
         
-        public void RemoveRowWithConditionQ(string tableName, Tuple<string, object> condition)
+        public Task RemoveRowWithConditionQ(string tableName, Tuple<string, object> condition)
         {
             var t = new Tuple<string, object>[] { condition };
-            _mainTaskManager.AddToQueue(RemoveValuesWithCondition, tableName, t, false, null as SQLiteConnection);
+            return _mainTaskManager.AddToQueue(RemoveValuesWithCondition, tableName, t, false, null as SQLiteConnection);
         }
         
-        public void RemoveRowWithConditionsQ(string tableName, Tuple<string, object>[] conditions) => _mainTaskManager.AddToQueue(RemoveValuesWithCondition, tableName, conditions, false, null as SQLiteConnection);
+        public Task RemoveRowWithConditionsQ(string tableName, Tuple<string, object>[] conditions) => _mainTaskManager.AddToQueue(RemoveValuesWithCondition, tableName, conditions, false, null as SQLiteConnection);
         
-        public void RemoveAllRecordsQ() => _mainTaskManager.AddToQueue(RemoveAllRecords, null as SQLiteConnection);
+        public Task RemoveAllRecordsQ() => _mainTaskManager.AddToQueue(RemoveAllRecords, null as SQLiteConnection);
         
-        public void RemoveTagsQ(uint pid) => _mainTaskManager.AddToQueue(RemoveTags, pid, null as SQLiteConnection);
+        public Task RemoveTagsQ(uint pid) => _mainTaskManager.AddToQueue(RemoveTags, pid, null as SQLiteConnection);
         
-        public void GetExtractionRecordQ(uint eid, uint callerID = 0, Action<DPExtractionRecord>? callback = null)
+        public async Task<DPExtractionRecord?> GetExtractionRecordQ(uint eid, uint callerID = 0, Action<DPExtractionRecord>? callback = null)
         {
-            _priorityTaskManager.AddToQueue((t) =>
+            DPExtractionRecord? result = null;
+            await _priorityTaskManager.AddToQueue((t) =>
             {
-                DPExtractionRecord? result = GetExtractionRecord(eid, null, t);
+                result = GetExtractionRecord(eid, null, t);
                 callback?.Invoke(result);
                 RecordQueryCompleted?.Invoke(result, callerID);
             });
+            return result;
         }
         
-        public void GetInstalledArchiveNamesQ(Action<HashSet<string>>? callback = null)
+        public async Task<HashSet<string>?> GetInstalledArchiveNamesQ(Action<HashSet<string>>? callback = null)
         {
-            _priorityTaskManager.AddToQueue((t) =>
+            HashSet<string>? result = null;
+            await _priorityTaskManager.AddToQueue((t) =>
             {
-                HashSet<string>? result = GetArchiveFileNameList(null, t);
+                result = GetArchiveFileNameList(null, t);
                 callback?.Invoke(result);
             });
+            return result;
         }
         #endregion
     }
