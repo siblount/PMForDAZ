@@ -22,6 +22,7 @@ namespace DAZ_Installer.Core
         private TaskFactory _taskFactory;
         private CancellationToken _token;
         private volatile Task? lastTask;
+        private object lockObj = new();
         // (3) Tasks will continue with continueWith() chain unless this is passed in.
         private const TaskContinuationOptions _continuationOptions = TaskContinuationOptions.NotOnCanceled;
 
@@ -39,24 +40,33 @@ namespace DAZ_Installer.Core
 
         private void Reset()
         {
-            _source.Dispose();
-            _source = new CancellationTokenSource();
-            _token = _source.Token;
-            _taskFactory = new TaskFactory(_token);
-            lastTask = null;
+            lock (lockObj)
+            {
+                _source.Dispose();
+                _source = new CancellationTokenSource();
+                _token = _source.Token;
+                _taskFactory = new TaskFactory(_token);
+                lastTask = null;
+            }
         }
 
         public void Stop()
         {
-            _source.Cancel();
-            Reset();
+            lock (lockObj)
+            {
+                _source.Cancel();
+                Reset();
+            }
         }
 
         public void StopAndWait()
         {
-            _source.Cancel();
-            lastTask?.Wait();
-            Reset();
+            lock (lockObj)
+            {
+                _source.Cancel();
+                lastTask?.Wait();
+                Reset();
+            }
         }
         #region Queue methods
 
@@ -64,13 +74,16 @@ namespace DAZ_Installer.Core
         {
             CancellationToken t = _token;
             Task task;
-            if (lastTask == null)
+            lock (lockObj)
             {
-                task = lastTask = Task.Factory.StartNew(action, _token);
-            }
-            else
-            {
-                task = lastTask = lastTask.ContinueWith((_) => action(), t, _continuationOptions, _scheduler);
+                if (lastTask == null)
+                {
+                    task = lastTask = Task.Factory.StartNew(action, _token);
+                }
+                else
+                {
+                    task = lastTask = lastTask.ContinueWith((_) => action(), t, _continuationOptions, _scheduler);
+                }
             }
             return task;
         }
@@ -78,13 +91,16 @@ namespace DAZ_Installer.Core
         {
             CancellationToken t = _token;
             Task task;
-            if (lastTask == null)
+            lock (lockObj)
             {
-                task = lastTask = Task.Factory.StartNew(() => action(t));
-            }
-            else
-            {
-                task = lastTask = lastTask.ContinueWith((_) => action(t), t, _continuationOptions, _scheduler);
+                if (lastTask == null)
+                {
+                    task = lastTask = Task.Factory.StartNew(() => action(t));
+                }
+                else
+                {
+                    task = lastTask = lastTask.ContinueWith((_) => action(t), t, _continuationOptions, _scheduler);
+                }
             }
             return task;
         }
@@ -93,13 +109,16 @@ namespace DAZ_Installer.Core
         {
             CancellationToken t = _token;
             Task task;
-            if (lastTask == null)
+            lock (lockObj)
             {
-                task = lastTask = Task.Factory.StartNew(() => action(arg, t));
-            }
-            else
-            {
-                task = lastTask = lastTask.ContinueWith((_) => action(arg, t), t, _continuationOptions, _scheduler);
+                if (lastTask == null)
+                {
+                    task = lastTask = Task.Factory.StartNew(() => action(arg, t));
+                }
+                else
+                {
+                    task = lastTask = lastTask.ContinueWith((_) => action(arg, t), t, _continuationOptions, _scheduler);
+                }
             }
             return task;
         }
@@ -109,13 +128,16 @@ namespace DAZ_Installer.Core
         {
             CancellationToken t = _token;
             Task task;
-            if (lastTask == null)
+            lock (lockObj)
             {
-                task = lastTask = Task.Factory.StartNew(() => action(arg1, arg2, t));
-            }
-            else
-            {
-                task = lastTask = lastTask.ContinueWith((_) => action(arg1, arg2, t), t, _continuationOptions, _scheduler);
+                if (lastTask == null)
+                {
+                    task = lastTask = Task.Factory.StartNew(() => action(arg1, arg2, t));
+                }
+                else
+                {
+                    task = lastTask = lastTask.ContinueWith((_) => action(arg1, arg2, t), t, _continuationOptions, _scheduler);
+                }
             }
             return task;
         }
@@ -124,14 +146,17 @@ namespace DAZ_Installer.Core
         {
             CancellationToken t = _token;
             Task task = lastTask;
-            if (lastTask == null)
+            lock (lockObj)
             {
-                task = lastTask = Task.Factory.StartNew(() => action(arg1, arg2, arg3, t));
-            }
-            else
-            {
-                task = lastTask = lastTask.ContinueWith((_) => action(arg1, arg2, arg3, t),
-                                                t, _continuationOptions, _scheduler);
+                if (lastTask == null)
+                {
+                    task = lastTask = Task.Factory.StartNew(() => action(arg1, arg2, arg3, t));
+                }
+                else
+                {
+                    task = lastTask = lastTask.ContinueWith((_) => action(arg1, arg2, arg3, t),
+                                                    t, _continuationOptions, _scheduler);
+                }
             }
             return task;
         }
@@ -140,15 +165,17 @@ namespace DAZ_Installer.Core
         {
             CancellationToken t = _token;
             Task task = lastTask;
-
-            if (lastTask == null)
+            lock (lockObj)
             {
-                task = lastTask = Task.Factory.StartNew(() => action(arg1, arg2, arg3, arg4, t));
-            }
-            else
-            {
-                task = lastTask = lastTask.ContinueWith((_) => action(arg1, arg2, arg3, arg4, t),
-                                                    t, _continuationOptions, _scheduler);
+                if (lastTask == null)
+                {
+                    task = lastTask = Task.Factory.StartNew(() => action(arg1, arg2, arg3, arg4, t));
+                }
+                else
+                {
+                    task = lastTask = lastTask.ContinueWith((_) => action(arg1, arg2, arg3, arg4, t),
+                                                        t, _continuationOptions, _scheduler);
+                }
             }
             return task;
         }
@@ -158,14 +185,17 @@ namespace DAZ_Installer.Core
             CancellationToken t = _token;
             Task task = lastTask;
 
-            if (lastTask == null)
+            lock (lockObj)
             {
-                task = lastTask = Task.Factory.StartNew(() => action(arg1, arg2, arg3, arg4, arg5, t));
-            }
-            else
-            {
-                task = lastTask = lastTask.ContinueWith((_) => action(arg1, arg2, arg3, arg4, arg5, t),
-                                                    t, _continuationOptions, _scheduler);
+                if (lastTask == null)
+                {
+                    task = lastTask = Task.Factory.StartNew(() => action(arg1, arg2, arg3, arg4, arg5, t));
+                }
+                else
+                {
+                    task = lastTask = lastTask.ContinueWith((_) => action(arg1, arg2, arg3, arg4, arg5, t),
+                                                        t, _continuationOptions, _scheduler);
+                } 
             }
             return task;
         }
@@ -175,14 +205,17 @@ namespace DAZ_Installer.Core
             CancellationToken t = _token;
             Task task = lastTask;
 
-            if (lastTask == null)
+            lock (lockObj)
             {
-                task = lastTask = Task.Factory.StartNew(() => func(t));
-            }
-            else
-            {
-                task = lastTask = lastTask.ContinueWith((_) => func(t),
-                                                    t, _continuationOptions, _scheduler);
+                if (lastTask == null)
+                {
+                    task = lastTask = Task.Factory.StartNew(() => func(t));
+                }
+                else
+                {
+                    task = lastTask = lastTask.ContinueWith((_) => func(t),
+                                                        t, _continuationOptions, _scheduler);
+                } 
             }
             return task;
         }
@@ -190,14 +223,17 @@ namespace DAZ_Installer.Core
         {
             CancellationToken t = _token;
             Task task = lastTask;
-            if (lastTask == null)
+            lock (lockObj)
             {
-                task = lastTask = Task.Factory.StartNew(() => func(arg1, t));
-            }
-            else
-            {
-                task = lastTask = lastTask.ContinueWith((_) => func(arg1, t),
-                                                    t, _continuationOptions, _scheduler);
+                if (lastTask == null)
+                {
+                    task = lastTask = Task.Factory.StartNew(() => func(arg1, t));
+                }
+                else
+                {
+                    task = lastTask = lastTask.ContinueWith((_) => func(arg1, t),
+                                                        t, _continuationOptions, _scheduler);
+                } 
             }
             return task;
         }
@@ -205,14 +241,17 @@ namespace DAZ_Installer.Core
         {
             CancellationToken t = _token;
             Task task = lastTask;
-            if (lastTask == null)
+            lock (lockObj)
             {
-                task = lastTask = Task.Factory.StartNew(() => func(arg1, arg2, t));
-            }
-            else
-            {
-                task = lastTask = lastTask.ContinueWith((_) => func(arg1, arg2, t),
-                                                    t, _continuationOptions, _scheduler);
+                if (lastTask == null)
+                {
+                    task = lastTask = Task.Factory.StartNew(() => func(arg1, arg2, t));
+                }
+                else
+                {
+                    task = lastTask = lastTask.ContinueWith((_) => func(arg1, arg2, t),
+                                                        t, _continuationOptions, _scheduler);
+                } 
             }
             return task;
         }
@@ -221,14 +260,17 @@ namespace DAZ_Installer.Core
         {
             CancellationToken t = _token;
             Task task = lastTask;
-            if (lastTask == null)
+            lock (lockObj)
             {
-                task = lastTask = Task.Factory.StartNew(() => func(arg1, arg2, arg3, t));
-            }
-            else
-            {
-                task = lastTask = lastTask.ContinueWith((_) => func(arg1, arg2, arg3, t),
-                                                    t, _continuationOptions, _scheduler);
+                if (lastTask == null)
+                {
+                    task = lastTask = Task.Factory.StartNew(() => func(arg1, arg2, arg3, t));
+                }
+                else
+                {
+                    task = lastTask = lastTask.ContinueWith((_) => func(arg1, arg2, arg3, t),
+                                                        t, _continuationOptions, _scheduler);
+                } 
             }
             return task;
         }
@@ -237,14 +279,17 @@ namespace DAZ_Installer.Core
         {
             CancellationToken t = _token;
             Task task = lastTask;
-            if (lastTask == null)
+            lock (lockObj)
             {
-                task = lastTask = Task.Factory.StartNew(() => func(arg1, arg2, arg3, arg4, t));
-            }
-            else
-            {
-                task = lastTask = lastTask.ContinueWith((_) => func(arg1, arg2, arg3, arg4, t),
-                                                    t, _continuationOptions, _scheduler);
+                if (lastTask == null)
+                {
+                    task = lastTask = Task.Factory.StartNew(() => func(arg1, arg2, arg3, arg4, t));
+                }
+                else
+                {
+                    task = lastTask = lastTask.ContinueWith((_) => func(arg1, arg2, arg3, arg4, t),
+                                                        t, _continuationOptions, _scheduler);
+                } 
             }
             return task;
         }
@@ -253,14 +298,17 @@ namespace DAZ_Installer.Core
         {
             CancellationToken t = _token;
             Task task = lastTask;
-            if (lastTask == null)
+            lock (lockObj)
             {
-                task = lastTask = Task.Factory.StartNew(() => func(arg1, arg2, arg3, arg4, arg5, t));
-            }
-            else
-            {
-                task = lastTask = lastTask.ContinueWith((_) => func(arg1, arg2, arg3, arg4, arg5, t),
-                                                    t, _continuationOptions, _scheduler);
+                if (lastTask == null)
+                {
+                    task = lastTask = Task.Factory.StartNew(() => func(arg1, arg2, arg3, arg4, arg5, t));
+                }
+                else
+                {
+                    task = lastTask = lastTask.ContinueWith((_) => func(arg1, arg2, arg3, arg4, arg5, t),
+                                                        t, _continuationOptions, _scheduler);
+                } 
             }
             return task;
         }
