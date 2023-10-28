@@ -82,7 +82,7 @@ namespace DAZ_Installer.Database
         /// <summary>
         /// This event is invoked whenever a new product record has been added.
         /// </summary>
-        public event Action<DPProductRecord, uint>? ProductRecordAdded;
+        public event Action<DPProductRecord>? ProductRecordAdded;
 
         /// <summary>
         /// This event is invoked whenever an extraction record has been removed (aside from when the table has been cleared).

@@ -971,7 +971,7 @@ namespace DAZ_Installer.Database
                     }
                     // Create new product record to update ID.
                     DPProductRecord newP = new(productName, tags, author, sku, time, thumbnailPath, lastID, lastID);
-                    ProductRecordAdded?.Invoke(newP, lastID);
+                    ProductRecordAdded?.Invoke(newP);
                 }
             }
             catch (Exception ex)
