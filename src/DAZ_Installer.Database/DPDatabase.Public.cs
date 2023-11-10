@@ -107,7 +107,7 @@ namespace DAZ_Installer.Database
 
         public Task RemoveProductRecord(DPProductRecord record, Action<uint>? callback = null)
         {
-            _mainTaskManager.AddToQueue((t) =>
+            return _mainTaskManager.AddToQueue((t) =>
             {
                 var arg = new Tuple<string, object>[1] { new Tuple<string, object>("ID", Convert.ToInt32(record.ID)) };
                 var success = RemoveValuesWithCondition("ProductRecords", arg, false, null, t);
