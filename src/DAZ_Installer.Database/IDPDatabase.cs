@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Data;
+using System.Diagnostics;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -7,6 +8,10 @@ using System.Threading.Tasks;
 
 namespace DAZ_Installer.Database
 {
+    /// <summary>
+    /// The interface for the database. This is used for other classes to get data from the database.
+    /// All methods are executed asynchronously.
+    /// </summary>
     public interface IDPDatabase
     {
         /// <summary>
@@ -71,12 +76,13 @@ namespace DAZ_Installer.Database
         /// <returns> The table, if successfully fetched. Otherwise, null. </returns> 
         Task<DataSet?> ViewTableQ(string tableName, uint callerID = 0, Action<DataSet?>? callback = null);
         /// <summary>
-        /// Queries/Adds a new product record to the database.
+        /// Adds a new product record to the database. DOES NOT WORK!
         /// </summary>
         /// <param name="pRecord">The new product record to add.</param>
+        [Obsolete("This function does not work. Use AddNewRecordEntry(DPProductRecord, DPExtractionRecord) instead.")]
         Task AddNewRecordEntry(DPProductRecord pRecord);
         /// <summary>
-        /// Queries/Adds a new product and extraction record to the database.
+        /// Adds a new product and extraction record to the database.
         /// </summary>
         /// <param name="pRecord">The new product record to add.</param>
         /// <param name="eRecord">The new extraction record to add.</param>
@@ -98,6 +104,12 @@ namespace DAZ_Installer.Database
         /// <param name="tableName">The table to insert values into.</param>
         /// <param name="id">The ID of the row to remove.</param>
         Task RemoveRowQ(string tableName, int id);
+        /// <summary>
+        /// Removes a product record from the database. This also removes the corresponding extraction record.
+        /// </summary>
+        /// <param name="record">The record to delete.</param>
+        /// <param name="callback">The function to callback when the product record was removed.</param>
+        /// <returns></returns>
         Task RemoveProductRecord(DPProductRecord record, Action<uint>? callback = null);
         /// <summary>
         /// Removes all the values from the table. Triggers in the database are temporarly disabled for deleting.
