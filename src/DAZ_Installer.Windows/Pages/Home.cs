@@ -20,6 +20,7 @@ namespace DAZ_Installer.Windows.Pages
         {
             InitializeComponent();
             HomePage = this;
+            titleLbl.Text = Program.AppName;
         }
 
         private void dropBtn_Click(object sender, EventArgs e) => HandleOpenDialogue();

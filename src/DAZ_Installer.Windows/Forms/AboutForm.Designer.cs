@@ -28,84 +28,80 @@
         /// </summary>
         private void InitializeComponent()
         {
-            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(AboutForm));
-            this.titleLbl = new System.Windows.Forms.Label();
-            this.pictureBox1 = new System.Windows.Forms.PictureBox();
-            this.mainInfoLbl = new System.Windows.Forms.Label();
-            this.licensesRichTxtBox = new System.Windows.Forms.RichTextBox();
-            this.licensesLbl = new System.Windows.Forms.Label();
-            ((System.ComponentModel.ISupportInitialize)(this.pictureBox1)).BeginInit();
-            this.SuspendLayout();
+            var resources = new System.ComponentModel.ComponentResourceManager(typeof(AboutForm));
+            titleLbl = new System.Windows.Forms.Label();
+            pictureBox1 = new System.Windows.Forms.PictureBox();
+            mainInfoLbl = new System.Windows.Forms.Label();
+            licensesRichTxtBox = new System.Windows.Forms.RichTextBox();
+            licensesLbl = new System.Windows.Forms.Label();
+            ((System.ComponentModel.ISupportInitialize)pictureBox1).BeginInit();
+            SuspendLayout();
             // 
             // titleLbl
             // 
-            this.titleLbl.AutoSize = true;
-            this.titleLbl.Font = new System.Drawing.Font("Segoe UI", 12F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point);
-            this.titleLbl.Location = new System.Drawing.Point(84, 117);
-            this.titleLbl.Name = "titleLbl";
-            this.titleLbl.Size = new System.Drawing.Size(169, 21);
-            this.titleLbl.TabIndex = 0;
-            this.titleLbl.Text = "Daz Product Installer";
+            titleLbl.Font = new System.Drawing.Font("Segoe UI", 12F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point);
+            titleLbl.Location = new System.Drawing.Point(12, 117);
+            titleLbl.Name = "titleLbl";
+            titleLbl.Size = new System.Drawing.Size(313, 23);
+            titleLbl.TabIndex = 0;
+            titleLbl.Text = "Product Manager for DAZ Studio";
+            titleLbl.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
             // 
             // pictureBox1
             // 
-            this.pictureBox1.Image = global::DAZ_Installer.Windows.Resources.Logo2_256x;
-            this.pictureBox1.Location = new System.Drawing.Point(84, 12);
-            this.pictureBox1.Name = "pictureBox1";
-            this.pictureBox1.Size = new System.Drawing.Size(164, 102);
-            this.pictureBox1.SizeMode = System.Windows.Forms.PictureBoxSizeMode.Zoom;
-            this.pictureBox1.TabIndex = 1;
-            this.pictureBox1.TabStop = false;
+            pictureBox1.Image = Resources.Logo2_256x;
+            pictureBox1.Location = new System.Drawing.Point(84, 12);
+            pictureBox1.Name = "pictureBox1";
+            pictureBox1.Size = new System.Drawing.Size(164, 102);
+            pictureBox1.SizeMode = System.Windows.Forms.PictureBoxSizeMode.Zoom;
+            pictureBox1.TabIndex = 1;
+            pictureBox1.TabStop = false;
             // 
             // mainInfoLbl
             // 
-            this.mainInfoLbl.Location = new System.Drawing.Point(12, 138);
-            this.mainInfoLbl.Name = "mainInfoLbl";
-            this.mainInfoLbl.Size = new System.Drawing.Size(313, 98);
-            this.mainInfoLbl.TabIndex = 2;
-            this.mainInfoLbl.Text = resources.GetString("mainInfoLbl.Text");
-            this.mainInfoLbl.TextAlign = System.Drawing.ContentAlignment.TopCenter;
+            mainInfoLbl.Location = new System.Drawing.Point(12, 149);
+            mainInfoLbl.Name = "mainInfoLbl";
+            mainInfoLbl.Size = new System.Drawing.Size(313, 110);
+            mainInfoLbl.TabIndex = 2;
+            mainInfoLbl.Text = "[TEXT DETERMINED AT FORM LOAD]";
+            mainInfoLbl.TextAlign = System.Drawing.ContentAlignment.TopCenter;
             // 
             // licensesRichTxtBox
             // 
-            this.licensesRichTxtBox.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
-            | System.Windows.Forms.AnchorStyles.Left) 
-            | System.Windows.Forms.AnchorStyles.Right)));
-            this.licensesRichTxtBox.Location = new System.Drawing.Point(12, 262);
-            this.licensesRichTxtBox.Name = "licensesRichTxtBox";
-            this.licensesRichTxtBox.Size = new System.Drawing.Size(313, 108);
-            this.licensesRichTxtBox.TabIndex = 3;
-            this.licensesRichTxtBox.Text = "no u";
+            licensesRichTxtBox.Anchor = System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right;
+            licensesRichTxtBox.Location = new System.Drawing.Point(12, 285);
+            licensesRichTxtBox.Name = "licensesRichTxtBox";
+            licensesRichTxtBox.Size = new System.Drawing.Size(313, 176);
+            licensesRichTxtBox.TabIndex = 3;
+            licensesRichTxtBox.Text = "no u";
             // 
             // licensesLbl
             // 
-            this.licensesLbl.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point);
-            this.licensesLbl.Location = new System.Drawing.Point(12, 236);
-            this.licensesLbl.Name = "licensesLbl";
-            this.licensesLbl.Size = new System.Drawing.Size(313, 23);
-            this.licensesLbl.TabIndex = 4;
-            this.licensesLbl.Text = "Licenses";
-            this.licensesLbl.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
+            licensesLbl.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point);
+            licensesLbl.Location = new System.Drawing.Point(12, 259);
+            licensesLbl.Name = "licensesLbl";
+            licensesLbl.Size = new System.Drawing.Size(313, 23);
+            licensesLbl.TabIndex = 4;
+            licensesLbl.Text = "Licenses";
+            licensesLbl.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
             // 
             // AboutForm
             // 
-            this.AutoScaleDimensions = new System.Drawing.SizeF(96F, 96F);
-            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Dpi;
-            this.ClientSize = new System.Drawing.Size(337, 382);
-            this.Controls.Add(this.licensesLbl);
-            this.Controls.Add(this.licensesRichTxtBox);
-            this.Controls.Add(this.mainInfoLbl);
-            this.Controls.Add(this.pictureBox1);
-            this.Controls.Add(this.titleLbl);
-            this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
-            this.MaximumSize = new System.Drawing.Size(353, 9999);
-            this.MinimumSize = new System.Drawing.Size(353, 421);
-            this.Name = "AboutForm";
-            this.Text = "About Form";
-            ((System.ComponentModel.ISupportInitialize)(this.pictureBox1)).EndInit();
-            this.ResumeLayout(false);
-            this.PerformLayout();
-
+            AutoScaleDimensions = new System.Drawing.SizeF(96F, 96F);
+            AutoScaleMode = System.Windows.Forms.AutoScaleMode.Dpi;
+            ClientSize = new System.Drawing.Size(337, 473);
+            Controls.Add(licensesLbl);
+            Controls.Add(licensesRichTxtBox);
+            Controls.Add(mainInfoLbl);
+            Controls.Add(pictureBox1);
+            Controls.Add(titleLbl);
+            Icon = (System.Drawing.Icon)resources.GetObject("$this.Icon");
+            MaximumSize = new System.Drawing.Size(353, 9999);
+            MinimumSize = new System.Drawing.Size(353, 421);
+            Name = "AboutForm";
+            Text = "About Form";
+            ((System.ComponentModel.ISupportInitialize)pictureBox1).EndInit();
+            ResumeLayout(false);
         }
 
         #endregion

@@ -14,6 +14,8 @@ namespace DAZ_Installer.Windows
 {
     static class Program
     {
+        public const string AppName = "Product Manager for DAZ Studio";
+        public const string AppVersion = "0.7";
         public static bool IsRunByIDE => Debugger.IsAttached;
         public static readonly DragDropEffects DropEffect = DragDropEffects.All;
         public static int MainThreadID { get; private set; } = 0;
