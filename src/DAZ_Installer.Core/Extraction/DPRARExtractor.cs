@@ -111,7 +111,7 @@ namespace DAZ_Installer.Core.Extraction
                     for (var i = 0; i < settings.FilesToExtract.Count && RARHandler.ReadHeader(); i++)
                     {
                         CancellationToken.ThrowIfCancellationRequested();
-                        var arcHasFile = arc.Contents.TryGetValue(RARHandler.CurrentFile.FileName, out var file);
+                        var arcHasFile = arc.Contents.TryGetValue(PathHelper.NormalizePath(RARHandler.CurrentFile.FileName), out var file);
                         if (!RARHandler.CurrentFile.IsDirectory && arcHasFile && file?.AssociatedArchive == arc)
                         {
                             if (!ExtractFile(RARHandler, settings, report))
@@ -204,7 +204,10 @@ namespace DAZ_Installer.Core.Extraction
         EXTRACT:
             try
             {
-                handler.DestinationPath = Path.GetDirectoryName(file.TargetPath)!;
+                var targetPath = session!.tempOnly ? Path.Combine(settings.TempPath,
+                                                                 Path.GetFileNameWithoutExtension(arc.FileName),
+                                                                 fileName) : file.TargetPath;
+                handler.DestinationPath = Path.GetDirectoryName(targetPath)!;
                 // Create folders for the destination path if needed.
                 var dir = FileSystem.CreateDirectoryInfo(handler.DestinationPath);
                 if (!dir.Exists && !dir.TryCreate())
@@ -212,9 +215,7 @@ namespace DAZ_Installer.Core.Extraction
                     handleError(arc, DPArchiveErrorArgs.UnauthorizedAccessExplanation, report, file, null);
                     return false;
                 }
-                var targetPath = session.tempOnly ? Path.Combine(settings.TempPath,
-                                                                 Path.GetFileNameWithoutExtension(arc.FileName),
-                                                                 file.TargetPath) : file.TargetPath;
+                
                 fileInfo ??= FileSystem.CreateFileInfo(targetPath);
                 if (!FileSystem.Scope.IsFilePathWhitelisted(targetPath)) 
                     throw new OutOfScopeException(targetPath);
