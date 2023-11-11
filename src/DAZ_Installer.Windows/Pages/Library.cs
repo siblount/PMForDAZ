@@ -363,12 +363,12 @@ namespace DAZ_Installer.Windows.Pages
             if (!searchMode) TryPageUpdate();
         }
 
-        private void OnAddedProductRecord(DPProductRecord record, uint recordID)
+        private void OnAddedProductRecord(DPProductRecord record)
         {
             // DPCommon.WriteToLog($"A product has been added! {record.ProductName}");
             // First, check to see if it is in range of the current page.
             // If it is, then we need to update that page.
-            if (recordID <= (libraryPanel1.CurrentPage) * 25 && recordID > (libraryPanel1.CurrentPage - 1) * 25)
+            if (record.ID <= (libraryPanel1.CurrentPage) * 25 && record.ID > (libraryPanel1.CurrentPage - 1) * 25)
             {
                 var newProductRecords = new DPProductRecord[ProductRecords.Length + 1];
                 ProductRecords.CopyTo(newProductRecords, 0);
@@ -384,7 +384,7 @@ namespace DAZ_Installer.Windows.Pages
                 // Now we need to update the current page.
                 // If the ID is higher than the current page range, then we don't do anything.
                 // Otherwise, we need to move the current page up one.
-                if (recordID < libraryPanel1.CurrentPage * 25)
+                if (record.ID < libraryPanel1.CurrentPage * 25)
                     libraryPanel1.NudgeCurrentPage(libraryPanel1.CurrentPage + 1);
             }
         }

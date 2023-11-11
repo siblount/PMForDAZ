@@ -5,7 +5,6 @@ using DAZ_Installer.Core;
 using DAZ_Installer.Database;
 using DAZ_Installer.Windows.Pages;
 using DAZ_Installer.Windows.DP;
-using DAZ_Installer.Windows.Utilities;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -243,8 +242,8 @@ namespace DAZ_Installer.Windows.Forms
 
             extractionRecord = new DPExtractionRecord(extractionRecord.ArchiveFileName,
                         extractionRecord.DestinationPath,
-                        normalizedFiles.GetInnerArray(), normalizedErroredFiles.GetInnerArray(),
-                        extractionRecord.ErrorMessages, normalizedFolders.GetInnerArray(),
+                        normalizedFiles.ToArray(), normalizedErroredFiles.ToArray(),
+                        extractionRecord.ErrorMessages, normalizedFolders.ToArray(),
                         extractionRecord.PID);
         }
 

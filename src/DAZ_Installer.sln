@@ -27,9 +27,11 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DAZ_Installer.Windows", "DA
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DAZ_Installer.IO", "DAZ_Installer.IO\DAZ_Installer.IO.csproj", "{E619A09A-3C2B-4375-8CFC-C1ED7EA3F3FE}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DAZ_Installer.IOTests", "DAZ_Installer.IOTests\DAZ_Installer.IOTests.csproj", "{B822AA2E-CDA5-4ADE-9747-8D3DEB4CD807}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DAZ_Installer.IOTests", "DAZ_Installer.IOTests\DAZ_Installer.IOTests.csproj", "{B822AA2E-CDA5-4ADE-9747-8D3DEB4CD807}"
 EndProject
 Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "DAZ_Installer.Common", "DAZ_Installer.Common\DAZ_Installer.Common.shproj", "{B52A5C81-D9C5-4B68-A117-B0AEC3DD5D17}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DAZ_Installer.DatabaseTests", "DAZ_Installer.DatabaseTests\DAZ_Installer.DatabaseTests.csproj", "{27F4B70E-1EE2-4FA6-A947-FCFA0284493F}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -95,6 +97,14 @@ Global
 		{B822AA2E-CDA5-4ADE-9747-8D3DEB4CD807}.Release|Any CPU.Build.0 = Release|Any CPU
 		{B822AA2E-CDA5-4ADE-9747-8D3DEB4CD807}.Release|x64.ActiveCfg = Release|Any CPU
 		{B822AA2E-CDA5-4ADE-9747-8D3DEB4CD807}.Release|x64.Build.0 = Release|Any CPU
+		{27F4B70E-1EE2-4FA6-A947-FCFA0284493F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{27F4B70E-1EE2-4FA6-A947-FCFA0284493F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{27F4B70E-1EE2-4FA6-A947-FCFA0284493F}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{27F4B70E-1EE2-4FA6-A947-FCFA0284493F}.Debug|x64.Build.0 = Debug|Any CPU
+		{27F4B70E-1EE2-4FA6-A947-FCFA0284493F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{27F4B70E-1EE2-4FA6-A947-FCFA0284493F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{27F4B70E-1EE2-4FA6-A947-FCFA0284493F}.Release|x64.ActiveCfg = Release|Any CPU
+		{27F4B70E-1EE2-4FA6-A947-FCFA0284493F}.Release|x64.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -103,6 +113,7 @@ Global
 		SolutionGuid = {8075B0EB-E9A3-47A6-9542-3DD40C597416}
 	EndGlobalSection
 	GlobalSection(SharedMSBuildProjectFiles) = preSolution
+		DAZ_Installer.Common\DAZ_Installer.Common.projitems*{27f4b70e-1ee2-4fa6-a947-fcfa0284493f}*SharedItemsImports = 5
 		DAZ_Installer.Common\DAZ_Installer.Common.projitems*{4cb2a43f-bc49-44a6-b64e-416d59f07156}*SharedItemsImports = 5
 		DAZ_Installer.Common\DAZ_Installer.Common.projitems*{6719331a-0851-4c4a-9c15-435afd86effb}*SharedItemsImports = 5
 		DAZ_Installer.Common\DAZ_Installer.Common.projitems*{b52a5c81-d9c5-4b68-a117-b0aec3dd5d17}*SharedItemsImports = 13
