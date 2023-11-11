@@ -2,7 +2,7 @@
 {
     public class DPFileSystem : AbstractFileSystem
     {
-        public DPFileScopeSettings Scope { get; set; } = DPFileScopeSettings.None;
+        public override DPFileScopeSettings Scope { get; set; } = DPFileScopeSettings.None;
         public static DPFileSystem Unrestricted => new(DPFileScopeSettings.All);
 
         public override void DeleteDirectory(string path, bool recursive = false) => Directory.Delete(path, recursive);
