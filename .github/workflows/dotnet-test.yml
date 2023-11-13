@@ -29,7 +29,7 @@ jobs:
       uses: actions/setup-dotnet@v3
       with:
         dotnet-version: 6.0.x
-    - name: Change current directory to src
-      run: cd src
+    - name: List what in the world is in src
+      run: ls src/
     - name: Test
-      run: dotnet test --verbosity normal
+      run: dotnet test src/ --verbosity normal
