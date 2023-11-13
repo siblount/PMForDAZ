@@ -29,7 +29,5 @@ jobs:
       uses: actions/setup-dotnet@v3
       with:
         dotnet-version: 6.0.x
-    - name: List what in the world is in src
-      run: ls src/
     - name: Test
-      run: dotnet test src/ --verbosity normal
+      run: dotnet test src/ --verbosity diagnostic --property WarningLevel=0
