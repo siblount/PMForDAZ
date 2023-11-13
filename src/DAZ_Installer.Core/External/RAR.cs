@@ -725,8 +725,9 @@ namespace DAZ_Installer.External
 
             switch ((CallbackMessages)msg)
             {
+                case CallbackMessages.VolumeChange:
                 case CallbackMessages.VolumeChangeAgain:
-                    volume = Marshal.PtrToStringUni(p1); // Volume it was expecting.
+                    volume = (CallbackMessages) msg == CallbackMessages.VolumeChange ? Marshal.PtrToStringUni(p1) : Marshal.PtrToStringUni(p1);
                     if ((VolumeMessage)p2 == VolumeMessage.Notify)
                         result = OnNewVolume(volume);
                     else if ((VolumeMessage)p2 == VolumeMessage.Ask)
@@ -745,6 +746,7 @@ namespace DAZ_Installer.External
                                 {
                                     Marshal.WriteByte(p1, i, bytes[i]);
                                 }
+                                Marshal.WriteByte(p1, newVolume.Length, 0);
                             }
                             result = 1;
                         }
