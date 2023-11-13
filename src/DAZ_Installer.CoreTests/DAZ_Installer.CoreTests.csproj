@@ -29,10 +29,10 @@
 
   <ItemGroup>
     <None Update="Integration\Test Subjects\Test.rar">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <None Update="Integration\Test Subjects\Test.zip">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <None Update="Integration\Test Subjects\Test_split.part1.rar">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
