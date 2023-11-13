@@ -24,6 +24,7 @@ namespace DAZ_Installer.IO.Tests
         [ClassCleanup]
         public static void CleanupClass()
         {
+            Logger.LogMessage($"Temp Path: {tempPath}");
             try
             {
                 Directory.Delete(tempPath, true);
@@ -102,6 +103,7 @@ namespace DAZ_Installer.IO.Tests
         {
             var defaultScope = new DPFileScopeSettings(Array.Empty<string>(), new string[] { "D:/", "D:/Winners" });
             if (path.StartsWith('.')) path = Path.Join(tempPath, path); // see if we can get out of the temp dir.
+            Logger.LogMessage($"Path: {path}");
             Assert.IsTrue(defaultScope.IsDirectoryWhitelisted(path));
         }
 
