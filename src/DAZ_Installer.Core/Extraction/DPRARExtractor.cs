@@ -177,8 +177,8 @@ namespace DAZ_Installer.Core.Extraction
 
                 while (RARHandler.ReadHeader())
                 {
-                    if (RARHandler.CurrentFile.IsDirectory) continue;
                     CancellationToken.ThrowIfCancellationRequested();
+                    if (RARHandler.CurrentFile.IsDirectory) continue;
                     TestFile(RARHandler, arc);
                 }
                 RARHandler.Close();
