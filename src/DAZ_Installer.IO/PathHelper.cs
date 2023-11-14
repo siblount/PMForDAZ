@@ -184,10 +184,17 @@ namespace DAZ_Installer.IO
         }
 
         /// <summary>
-        /// Replaces all back slashes (\) with forward slashes (/) and trims the seperator.
+        /// Replaces all back slashes (\) with forward slashes (/) and trims the seperator if it is not a drive letter.
         /// </summary>
         /// <param name="path">The path to normalize. Cannot be null.</param>
-        public static string NormalizePath(string path) => path.Replace('\\', '/').TrimEnd('/');
+        public static string NormalizePath(string path)
+        {
+            var s = path.Replace('\\', '/');
+            // Issue #24: Prevent Path.GetFullPath from unexpectedly returning the current directory when the path is trimmed to a drive letter
+            // and a colon. For example: "D:/" -> "D:" then "D:" -> current directory.
+            if (s.Length >= 2 && s[^2] != ':') return s.TrimEnd('/');
+            return s;
+        }
         /// <summary>
         /// Returns the full directory path of <paramref name="str"/>. It must be a directory path, not a file path. For example,
         /// if <paramref name="str"/> is <c>C:\Users\John\Documents</c>, then <c>C:\Users\John</c> will be returned.
