@@ -1,4 +1,5 @@
 # DAZ Product Installer
+[![.NET Test](https://github.com/siblount/DazProductInstaller/actions/workflows/dotnet-test.yml/badge.svg?branch=pending-main)](https://github.com/siblount/DazProductInstaller/actions/workflows/dotnet-test.yml)
 
 This is an application currently only for Windows users to install their products regardless of the vendor's format; it accepts common file structures and archive formats.
 
