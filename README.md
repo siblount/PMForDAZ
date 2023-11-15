@@ -1,10 +1,10 @@
-# DAZ Product Installer
+# Product Manager for DAZ Studio
 [![.NET Test](https://github.com/siblount/DazProductInstaller/actions/workflows/dotnet-test.yml/badge.svg?branch=pending-main)](https://github.com/siblount/DazProductInstaller/actions/workflows/dotnet-test.yml)
 
 This is an application currently only for Windows users to install their products regardless of the vendor's format; it accepts common file structures and archive formats.
 
 ### Watch a preview here (click on image):
-[![Daz Product Installer Alpha Preview Video](https://i.postimg.cc/VL7qpd4B/image.png)](https://www.youtube.com/watch?v=FwLc-dcl8W0)
+[![Product Manager for DAZ Studio Alpha Preview Video](https://i.postimg.cc/VL7qpd4B/image.png)](https://www.youtube.com/watch?v=FwLc-dcl8W0)
 
 ## What does this project aim to do?
 Firstly, it aims to be a **free** and **open-source*** application to gain trust of users, allow others to contribute, and release a product that is useful for all.
