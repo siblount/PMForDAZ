@@ -79,7 +79,7 @@ namespace DAZ_Installer.IO.Tests
         {
             Logger.LogMessage($"FileInfo Interpret: {new FileInfo(GetPath(path)).FullName}");
             var defaultScope = new DPFileScopeSettings(Array.Empty<string>(), new string[] { tempPath });
-            path = GetPath(path); // see if we can get out of the temp dir.
+            path = GetPath(path); 
             Assert.IsFalse(defaultScope.IsDirectoryWhitelisted(path));
         }
 
@@ -96,7 +96,7 @@ namespace DAZ_Installer.IO.Tests
         public void IsDirectoryWhitelistedTest_DenyOnStrict(string path)
         {
             var defaultScope = new DPFileScopeSettings(Array.Empty<string>(), new string[] { tempPath }, true, true);
-            path = GetPath(path); // see if we can get out of the temp dir.
+            path = GetPath(path); 
             Assert.IsFalse(defaultScope.IsDirectoryWhitelisted(path));
         }
 
@@ -113,7 +113,7 @@ namespace DAZ_Installer.IO.Tests
         public void IsDirectoryWhitelistedTest_DenyOnStrictFiles(string path)
         {
             var defaultScope = new DPFileScopeSettings(new string[] { GetPath("!a.txt") }, Array.Empty<string>(), false, true);
-            path = GetPath(path); // see if we can get out of the temp dir.
+            path = GetPath(path); 
             Assert.IsFalse(defaultScope.IsDirectoryWhitelisted(path));
         }
 
@@ -125,7 +125,7 @@ namespace DAZ_Installer.IO.Tests
         public void IsDirectoryWhitelistedTest_AcceptOnDefault(string path)
         {
             var defaultScope = new DPFileScopeSettings(Array.Empty<string>(), new string[] { GetPath("~"), GetPath("~Winners") });
-            path = GetPath(path); // see if we can get out of the temp dir.
+            path = GetPath(path); 
             Logger.LogMessage($"Path: {path}");
             Assert.IsTrue(defaultScope.IsDirectoryWhitelisted(path));
         }
@@ -137,7 +137,7 @@ namespace DAZ_Installer.IO.Tests
         public void IsDirectoryWhitelistedTest_AcceptOnStrict(string path)
         {
             var defaultScope = new DPFileScopeSettings(Array.Empty<string>(), new string[] { GetPath("~"), GetPath("~Winners") }, true, true);
-            path = GetPath(path); // see if we can get out of the temp dir.
+            path = GetPath(path); 
             Assert.IsTrue(defaultScope.IsDirectoryWhitelisted(path));
         }
 
@@ -151,7 +151,7 @@ namespace DAZ_Installer.IO.Tests
         public void IsDirectoryWhitelistedTest_AcceptOnNoEnforcement(string path)
         {
             var defaultScope = new DPFileScopeSettings(Array.Empty<string>(), Array.Empty<string>(), true, true, false, true);
-            path = GetPath(path); // see if we can get out of the temp dir.
+            path = GetPath(path); 
             Assert.IsTrue(defaultScope.IsDirectoryWhitelisted(path));
         }
 
@@ -165,7 +165,7 @@ namespace DAZ_Installer.IO.Tests
         public void IsDirectoryWhitelistedTest_ThrowOnPathTransversal(string path)
         {
             var defaultScope = new DPFileScopeSettings(Array.Empty<string>(), Array.Empty<string>(), true, true, true);
-            path = GetPath(path); // see if we can get out of the temp dir.
+            path = GetPath(path); 
             Assert.ThrowsException<PathTransversalException>(() => defaultScope.IsDirectoryWhitelisted(path));
         }
 
@@ -184,7 +184,7 @@ namespace DAZ_Installer.IO.Tests
         public void IsFilePathWhitelistedTest_DenyOnDefault(string path)
         {
             var defaultScope = new DPFileScopeSettings(new string[] { GetPath("~My Private Info/OMG/Plz No/a.txt"), GetPath("!a.txt" )}, new string[] { GetPath("~") });
-            path = GetPath(path); // see if we can get out of the temp dir.
+            path = GetPath(path); 
             Assert.IsFalse(defaultScope.IsFilePathWhitelisted(path));
         }
 
@@ -205,7 +205,7 @@ namespace DAZ_Installer.IO.Tests
         public void IsFilePathWhitelistedTest_DenyOnStrict(string path)
         {
             var defaultScope = new DPFileScopeSettings(new string[] { GetPath("~My Private Info/OMG/Plz No/a.txt"), GetPath("!a.txt" )}, new string[] { GetPath("~") }, true, true);
-            path = GetPath(path); // see if we can get out of the temp dir.
+            path = GetPath(path); 
             Assert.IsFalse(defaultScope.IsFilePathWhitelisted(path));
         }
         [TestMethod]
@@ -225,7 +225,7 @@ namespace DAZ_Installer.IO.Tests
         public void IsFilePathWhitelistedTest_DenyOnStrictFiles(string path)
         {
             var defaultScope = new DPFileScopeSettings(new string[] { GetPath("~My Private Info/OMG/Plz No/a.txt"), GetPath("!a.txt" )}, new string[] { GetPath("~") }, false, true);
-            path = GetPath(path); // see if we can get out of the temp dir.
+            path = GetPath(path); 
             Assert.IsFalse(defaultScope.IsFilePathWhitelisted(path));
         }
 
@@ -236,7 +236,7 @@ namespace DAZ_Installer.IO.Tests
         public void IsFilePathWhitelistedTest_DenyOnNoExplicit(string path)
         {
             var defaultScope = new DPFileScopeSettings(new[] { GetPath("a.txt"), GetPath("~a.txt") }, new[] { GetPath("~") }, false);
-            path = GetPath(path); // see if we can get out of the temp dir.
+            path = GetPath(path); 
             Assert.IsFalse(defaultScope.IsFilePathWhitelisted(path));
         }
 
@@ -248,7 +248,7 @@ namespace DAZ_Installer.IO.Tests
         public void IsFilePathWhitelistedTest_AcceptOnNoEnforcement(string path)
         {
             var defaultScope = new DPFileScopeSettings(Array.Empty<string>(), Array.Empty<string>(), noEnforcement: true);
-            path = GetPath(path); // see if we can get out of the temp dir.
+            path = GetPath(path); 
             Assert.IsTrue(defaultScope.IsFilePathWhitelisted(path));
         }
 
@@ -261,7 +261,7 @@ namespace DAZ_Installer.IO.Tests
         public void IsFilePathWhitelistedTest_AcceptOnNoExplicit(string path)
         {
             var defaultScope = new DPFileScopeSettings(new[] { GetPath("a.txt"), GetPath("~a.txt") }, new[] { GetPath("~") }, false);
-            path = GetPath(path); // see if we can get out of the temp dir.
+            path = GetPath(path); 
             Assert.IsTrue(defaultScope.IsFilePathWhitelisted(path));
         }
 
@@ -272,7 +272,7 @@ namespace DAZ_Installer.IO.Tests
         public void IsFilePathWhitelistedTest_AcceptOnDefault(string path)
         {
             var defaultScope = new DPFileScopeSettings(Array.Empty<string>(), new string[] { GetPath("~") });
-            path = GetPath(path); // see if we can get out of the temp dir.
+            path = GetPath(path); 
             Assert.IsTrue(defaultScope.IsFilePathWhitelisted(path));
         }
 
@@ -282,7 +282,7 @@ namespace DAZ_Installer.IO.Tests
         public void IsFilePathWhitelistedTest_AcceptOnStrict(string path)
         {
             var defaultScope = new DPFileScopeSettings(new string[] { GetPath("~a.txt"), GetPath("~b.txt") }, new string[] { GetPath("~") }, true, true);
-            path = GetPath(path); // see if we can get out of the temp dir.
+            path = GetPath(path); 
             Assert.IsTrue(defaultScope.IsFilePathWhitelisted(path));
         }
 
@@ -294,7 +294,7 @@ namespace DAZ_Installer.IO.Tests
         public void IsFilePathWhitelistedTest_AcceptOnStrictFiles(string path)
         {
             var defaultScope = new DPFileScopeSettings(new string[] { GetPath("~a.txt"), GetPath("~b.txt"), GetPath("!c.txt") }, new string[] { GetPath("~") }, false, true);
-            path = GetPath(path); // see if we can get out of the temp dir.
+            path = GetPath(path); 
             Assert.IsTrue(defaultScope.IsFilePathWhitelisted(path));
         }
         [TestMethod]
@@ -306,7 +306,7 @@ namespace DAZ_Installer.IO.Tests
         {
             // this test checks to see if we whitelist files that are outside of the defined directories, but are explicitly whitelisted in the files.
             var defaultScope = new DPFileScopeSettings(new string[] { GetPath("~a.txt"), GetPath("~b.txt"), GetPath("!c.txt") }, new string[] { GetPath("~") });
-            path = GetPath(path); // see if we can get out of the temp dir.
+            path = GetPath(path); 
             Assert.IsTrue(defaultScope.IsFilePathWhitelisted(path));
         }
         [TestMethod]
