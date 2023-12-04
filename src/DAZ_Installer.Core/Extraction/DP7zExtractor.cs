@@ -260,7 +260,7 @@ namespace DAZ_Installer.Core.Extraction
                         continue;
                     }
                     // Create the directories needed so moving the file can be successful.
-                    var targetDir = FileSystem.CreateDirectoryInfo(file.TargetPath);
+                    var targetDir = FileSystem.CreateDirectoryInfo(Path.GetDirectoryName(file.TargetPath));
                     if (!targetDir.Exists && !targetDir.TryCreate())
                     {
                         handleError(workingArchive, $"Failed to create directory for {file.Path}", file, workingExtractionReport, null);
@@ -426,6 +426,7 @@ namespace DAZ_Installer.Core.Extraction
             if (!tempDir.Exists && !TryHelper.Try(() => tempDir.Create(), out var ex))
             {
                 handleError(archive, "Failed to create required temp directories for extraction operations", null, null, ex);
+                EmitOnExtractFinished();
                 return workingExtractionReport;
             }
             if (CancellationToken.IsCancellationRequested) return workingExtractionReport;
