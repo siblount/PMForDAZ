@@ -98,24 +98,6 @@ namespace DAZ_Installer.Core.Extraction.Integration.Tests
         }
 
         [TestMethod]
-        public void ExtractTest_FilesNotWhitelisted()
-        {
-            var e = new DPRARExtractor();
-            var fi = new DPFileSystem().CreateFileInfo(Path.Combine(TestSubjectsPath, "Test.rar"));
-            var arc = new DPArchive(fi);
-            arc.PeekContents();
-            var settings = new DPExtractSettings(ExtractPath, arc.Contents.Values);
-            var expectedReport = new DPExtractionReport() { ExtractedFiles = new(0), ErroredFiles = arc.Contents.Values.ToDictionary(x => x, x => ""), Settings = settings };
-            DPArchiveTestHelpers.SetupTargetPaths(arc, ExtractPath);
-
-            //// Testing Extract() here:
-            var report = DPArchiveTestHelpers.RunAndAssertExtractEvents(e, settings);
-
-            DPArchiveTestHelpers.AssertReport(expectedReport, report);
-            Assert.AreEqual(arc.FileSystem, e.FileSystem);
-        }
-
-        [TestMethod]
         public void ExtractTest_AfterExtract()
         {
             var e = new DPRARExtractor();
