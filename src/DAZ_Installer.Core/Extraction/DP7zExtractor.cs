@@ -24,16 +24,15 @@ namespace DAZ_Installer.Core.Extraction
         private string _arcPassword = string.Empty;
 
         // Peek phase variables.
-        private bool _peekErrored = false;
         private bool _peekFinished = false;
 
         // Extract phase variables.
-        private bool _extractErrored = false;
         private bool _extractFinished = false;
+        private bool _extractEventEmitted = false;
 
         // Extract phase variables.
-        private bool _moveErrored = false;
         private bool _moveFinished = false;
+        private bool _movingEventEmitted = false;
 
         private bool _seekingFiles = false;
 
@@ -159,7 +158,7 @@ namespace DAZ_Installer.Core.Extraction
         private void Handle7zErrors(string? data)
         {
             Logger.Debug("7z error output: {output}", data ?? "null");
-            if (data is null) _peekErrored = _peekFinished = true;
+            if (data is null) _peekFinished = true;
             ReadOnlySpan<char> msg = data;
 
             if (msg.Contains("Can not open encrypted archive. Wrong password?"))
@@ -218,8 +217,8 @@ namespace DAZ_Installer.Core.Extraction
                 }
                 else if (msg.StartsWith("Encrypted"))
                     _hasEncryptedFiles = msg.Contains("+");
-                else if (msg.Contains("Errors:"))
-                    _peekErrored = true;
+                else if (msg.Contains("Errors:")) 
+                    Logger.Warning("7z reported errors while peeking");
             }
             else
             {
@@ -227,7 +226,7 @@ namespace DAZ_Installer.Core.Extraction
                 var ok = msg.StartsWith("Everything is Ok");
                 var errors = msg.Contains("Errors");
                 if (!ok && !errors) return;
-                _extractErrored = errors;
+                if (errors) Logger.Warning("7z reported errors while extracting");
                 _extractFinished = true;
                 if (!tempOnly) MoveFiles();
             }
@@ -240,13 +239,13 @@ namespace DAZ_Installer.Core.Extraction
             // Let anyone know that we are beginning to move files.
             Logger.Information("Preparing to move files to destination");
             EmitOnMoving();
-
-            var i = 0UL;
-            var count = workingSettings.FilesToExtract.Count;
-            // For 7z specifically, we need to verify that the files were actually extracted and update their file info at the same time.
-            UpdateFileInfos();
+            _movingEventEmitted = true;
             try
             {
+                var i = 0UL;
+                var count = workingSettings.FilesToExtract.Count;
+                // For 7z specifically, we need to verify that the files were actually extracted and update their file info at the same time.
+                UpdateFileInfos();
                 foreach (DPFile file in workingSettings.FilesToExtract)
                 {
                     CancellationToken.ThrowIfCancellationRequested();
@@ -273,9 +272,10 @@ namespace DAZ_Installer.Core.Extraction
             catch (Exception ex)
             {
                 handleError(workingArchive, "An unknown error occured while attempting to move files to target location", null, null, ex);
-                _moveErrored = true;
+            } finally
+            {
+                _moveFinished = true;
             }
-            _moveFinished = true;
         }
 
         private void finalizeTempOnlyOperation()
@@ -293,7 +293,7 @@ namespace DAZ_Installer.Core.Extraction
         /// </summary>
         private void Reset()
         {
-            _moveErrored = _moveFinished = _extractErrored = _extractFinished = _peekErrored =
+            _moveFinished = _extractFinished = _movingEventEmitted = _extractEventEmitted =
                 _peekFinished = _seekingFiles = _hasEncryptedFiles = _hasEncryptedHeader = false;
             _lastEntity = new Entity { };
             KillProcess();
@@ -350,33 +350,35 @@ namespace DAZ_Installer.Core.Extraction
 
         private DPExtractionReport StartExtractionProcess(string tempFolder, bool tempOnly = false)
         {
-            _process = Setup7ZProcess();
-            _process.StartInfo.ArgumentList.Add("-o" + tempFolder);
-            if (CancellationToken.IsCancellationRequested) return workingExtractionReport;
-            if (!StartProcess())
+            try
             {
+                EmitOnExtracting();
+                _process = Setup7ZProcess();
+                _process.StartInfo.ArgumentList.Add("-o" + tempFolder);
+                if (CancellationToken.IsCancellationRequested) return workingExtractionReport;
+                if (!StartProcess()) return workingExtractionReport;
+                var time = TimeSpan.FromSeconds(120);
+                var extractSuccessful = false;
+                if (!(extractSuccessful = SpinWait.SpinUntil(() => _extractFinished || CancellationToken.IsCancellationRequested, time)))
+                    handleError(workingArchive, $"Extraction timeout of {time.TotalSeconds} seconds exceeded.", null, null, null);
                 EmitOnExtractFinished();
-                return workingExtractionReport;
-            }
-            var time = TimeSpan.FromSeconds(120);
-            var extractSuccessful = false;
-            if (!(extractSuccessful = SpinWait.SpinUntil(() => _extractFinished || CancellationToken.IsCancellationRequested, time)))
-            {
-                handleError(workingArchive, $"Extraction timeout of {time.TotalSeconds} seconds exceeded.", null, null, null);
-                KillProcess();
-            }
-            EmitOnExtractFinished();
-            Logger.Information("Extract finished");
-            if (!extractSuccessful || CancellationToken.IsCancellationRequested) return workingExtractionReport;
-
-            if (!tempOnly)
-            {
+                _extractEventEmitted = true;
+                Logger.Information("Extract finished");
+                if (tempOnly || !extractSuccessful || CancellationToken.IsCancellationRequested) return workingExtractionReport;
                 if (!SpinWait.SpinUntil(() => _moveFinished || CancellationToken.IsCancellationRequested, time))
                     handleError(workingArchive, $"Move timeout of {time.TotalSeconds} seconds exceeded.", null, null, null);
-                EmitOnMoveFinished();
-                Logger.Information("Move finished");
             }
-            KillProcess();
+            finally
+            {
+                KillProcess();
+                if (!_extractEventEmitted) EmitOnExtractFinished();
+                if (_movingEventEmitted)
+                {
+                    EmitOnMoveFinished();
+                    Logger.Information("Move finished");
+                }
+            }
+
             return workingExtractionReport;
         }
 
@@ -408,7 +410,6 @@ namespace DAZ_Installer.Core.Extraction
                 Peek(archive);
             }
             mode = Mode.Extract;
-            EmitOnExtracting();
             // TODO: Log warning if process was interrupted while extracting.
             workingExtractionReport = new DPExtractionReport()
             {
@@ -419,17 +420,14 @@ namespace DAZ_Installer.Core.Extraction
             if (archive.FileInfo is null || !archive.FileInfo.Exists)
             {
                 handleError(archive, DPArchiveErrorArgs.ArchiveDoesNotExistOrNoAccessExplanation, null, null, null);
-                EmitOnExtractFinished();
                 return workingExtractionReport;
             }
             var tempDir = FileSystem.CreateDirectoryInfo(tempFolder);
             if (!tempDir.Exists && !TryHelper.Try(() => tempDir.Create(), out var ex))
             {
                 handleError(archive, "Failed to create required temp directories for extraction operations", null, null, ex);
-                EmitOnExtractFinished();
                 return workingExtractionReport;
             }
-            if (CancellationToken.IsCancellationRequested) return workingExtractionReport;
             StartExtractionProcess(tempFolder, extractToTemp);
             return workingExtractionReport;
         }

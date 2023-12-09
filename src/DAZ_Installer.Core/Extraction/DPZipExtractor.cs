@@ -27,58 +27,67 @@ namespace DAZ_Installer.Core.Extraction
             using var _ = LogContext.PushProperty("Archive", settings.Archive.FileName);
             Logger.Information("Preparing to extract");
             Logger.Debug("Extract(settings) = \n{@Settings}", settings);
-            // Let listeners know that we are beginning to extract.
-            EmitOnExtracting();
-            // Reset any variables if needed.
-            FileSystem = settings.Archive.FileSystem;
-            // Peek into the archive if needed.
-            DPArchive arc = settings.Archive;
-            if (arc.Contents.Count == 0) Peek(arc);
-
-            var max = settings.FilesToExtract.Count;
+            
             // Set up the extraction report to return in case of any issues.
             var e = new DPExtractionReport()
             {
-                ExtractedFiles = new(max),
+                ExtractedFiles = new(settings.FilesToExtract?.Count ?? 0),
                 Settings = settings
             };
-
-            if (CancellationToken.IsCancellationRequested) return e;
-
-            // Check if the archive is on disk or we have access to it.
-            if (arc.FileInfo is null || !arc.FileInfo.Exists)
-            {
-                EmitOnArchiveError(arc, new DPArchiveErrorArgs(arc, null, DPArchiveErrorArgs.ArchiveDoesNotExistOrNoAccessExplanation));
-                EmitOnExtractFinished();
-                return e;
-            }
             try
             {
-                // Create the zip archive.
-                using var zipArc = Factory.Create(arc.FileInfo.OpenRead());
+                // Reset any variables if needed.
+                FileSystem = settings.Archive.FileSystem;
+                // Peek into the archive if needed.
+                DPArchive arc = settings.Archive;
+                if (arc.Contents.Count == 0) Peek(arc);
 
-                // Loop through all the files to extract and attempt to extract them.
-                var i = 0;
-                foreach (DPFile file in settings.FilesToExtract)
+                var max = settings.FilesToExtract.Count;
+
+                if (CancellationToken.IsCancellationRequested) return e;
+
+                // Check if the archive is on disk or we have access to it.
+                if (arc.FileInfo is null || !arc.FileInfo.Exists)
                 {
-                    CancellationToken.ThrowIfCancellationRequested();
-                    // Check if the file is part of this archive, if not, emit an error and continue.
-                    if (file.AssociatedArchive != settings.Archive)
+                    EmitOnArchiveError(arc, new DPArchiveErrorArgs(arc, null, DPArchiveErrorArgs.ArchiveDoesNotExistOrNoAccessExplanation));
+                    return e;
+                }
+                // Let listeners know that we are beginning to extract.
+                EmitOnExtracting();
+                try
+                {
+                    // Create the zip archive.
+                    using var zipArc = Factory.Create(arc.FileInfo.OpenRead());
+
+                    // Loop through all the files to extract and attempt to extract them.
+                    var i = 0;
+                    foreach (DPFile file in settings.FilesToExtract)
                     {
-                        HandleError(arc, file, e, null, string.Format(DPArchiveErrorArgs.FileNotPartOfArchiveErrorFormat, file.Path));
-                        Log.Debug("File {0} Associated Archive: {1}", file.FileName, file.AssociatedArchive?.Path);
-                        continue;
+                        CancellationToken.ThrowIfCancellationRequested();
+                        // Check if the file is part of this archive, if not, emit an error and continue.
+                        if (file.AssociatedArchive != settings.Archive)
+                        {
+                            HandleError(arc, file, e, null, string.Format(DPArchiveErrorArgs.FileNotPartOfArchiveErrorFormat, file.Path));
+                            Log.Debug("File {0} Associated Archive: {1}", file.FileName, file.AssociatedArchive?.Path);
+                            continue;
+                        }
+                        // Extract the file.
+                        ExtractFile(zipArc.GetEntry(file.Path), file, settings, e);
+                        HandleProgressionZIP(file, ++i, max);
                     }
-                    // Extract the file.
-                    ExtractFile(zipArc.GetEntry(file.Path), file, settings, e);
-                    HandleProgressionZIP(file, ++i, max);
+                }
+                catch (Exception ex)
+                {
+                    HandleError(arc, null, e, ex, "An unknown error occured while attempting to extract the archive");
                 }
             } catch (Exception ex)
             {
-                HandleError(arc, null, e, ex, "An unknown error occured while attempting to extract the archive");
+                Logger.Error(ex, "An unknown error occured while attempting to extract the archive");
+            } finally
+            {
+                EmitOnExtractFinished();
+                Logger.Information("Finished extracting");
             }
-            EmitOnExtractFinished();
-            Logger.Information("Finished extracting");
             return e;
         }
 
@@ -107,17 +116,17 @@ namespace DAZ_Installer.Core.Extraction
             arc.TrueArchiveSize = 0;
             FileSystem = arc.FileSystem;
 
-            if (CancellationToken.IsCancellationRequested) return;
-
-            if (arc.FileInfo is null || !arc.FileInfo.Exists)
-            {
-                HandleError(arc, null, null, null, DPArchiveErrorArgs.ArchiveDoesNotExistOrNoAccessExplanation);
-                Logger.Debug("FileInfo is null: {0} | FileInfo.Exists: {1}", arc.FileInfo is null, arc.FileInfo?.Exists);
-                EmitOnPeekFinished();
-                return;
-            }
             try
             {
+                if (CancellationToken.IsCancellationRequested) return;
+
+                if (arc.FileInfo is null || !arc.FileInfo.Exists)
+                {
+                    HandleError(arc, null, null, null, DPArchiveErrorArgs.ArchiveDoesNotExistOrNoAccessExplanation);
+                    Logger.Debug("FileInfo is null: {0} | FileInfo.Exists: {1}", arc.FileInfo is null, arc.FileInfo?.Exists);
+                    return;
+                }
+
                 using var zipArc = Factory.Create(arc.FileInfo.OpenRead());
                 foreach (var entry in zipArc.Entries)
                 {
@@ -131,9 +140,11 @@ namespace DAZ_Installer.Core.Extraction
             } catch (Exception ex)
             {
                 HandleError(arc, null, null, ex, "An unknown error occured while attempting to peek the archive");
+            } finally
+            {
+                EmitOnPeekFinished();
+                Logger.Information("Finished peeking");
             }
-            Logger.Information("Finished peeking");
-            EmitOnPeekFinished();
         }
 
         private void ExtractFile(IZipArchiveEntry? entry, DPFile file, DPExtractSettings settings, DPExtractionReport report)

@@ -71,14 +71,17 @@ namespace DAZ_Installer.Core.Extraction
         public event Action? Moving;
         /// <summary>
         /// An event that is fired when the extractor is finished peeking files.
+        /// This event is ALWAYS invoked if, and only if, the Peeking event was invoked prior.
         /// </summary>
         public event Action? PeekFinished;
         /// <summary>
-        /// An event that is fired when the extractor is finished extracting files.
+        /// An event that is fired when the extractor is finished extracting files. 
+        /// This event is ALWAYS invoked if, and only if, the Extracting event was invoked prior.
         /// </summary>
         public event Action? ExtractFinished;
         /// <summary>
         /// An event that is fired when the extractor is finished moving files.
+        /// This event is ALWAYS invoked if, and only if, the Moving event was invoked prior.
         /// </summary>
         public event Action? MoveFinished;
         /// <summary>

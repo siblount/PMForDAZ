@@ -400,7 +400,7 @@ namespace DAZ_Installer.Core.Extraction.Tests
             e.ExtractProgress += (s, e) => cts.Cancel(true);
 
             // Testing Extract() here:
-            var report = e.Extract(settings);
+            var report = DPArchiveTestHelpers.RunAndAssertExtractEvents(e, settings);
             DPArchiveTestHelpers.AssertReport(expectedReport, report);
 
 

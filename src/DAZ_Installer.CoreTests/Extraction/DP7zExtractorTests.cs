@@ -171,8 +171,8 @@ namespace DAZ_Installer.Core.Extraction.Tests
             DPArchiveTestHelpers.SetupTargetPaths(arc, "Z:/abc/");
 
             // Testing Extract() here:
-            var report = DPArchiveTestHelpers.RunAndAssertExtractEvents(e, settings);
-            DPArchiveTestHelpers.AssertReport(expectedReport, report);
+            e.Extracting += () => Assert.Fail("Extracting event was raised");
+            var report = e.Extract(settings);
             Assert.AreEqual(arc.FileSystem, e.FileSystem);
         }
 
@@ -464,7 +464,7 @@ namespace DAZ_Installer.Core.Extraction.Tests
             DPArchiveTestHelpers.SetupTargetPaths(arc, "Z:/abc/");
 
             // Testing Extract() here:
-            var report = e.Extract(settings);
+            var report = DPArchiveTestHelpers.RunAndAssertExtractEvents(e, settings);
             DPArchiveTestHelpers.AssertReport(expectedReport, report);
 
             Assert.AreEqual(arc.FileSystem, e.FileSystem);
@@ -482,7 +482,7 @@ namespace DAZ_Installer.Core.Extraction.Tests
             DPArchiveTestHelpers.SetupTargetPaths(arc, "Z:/abc/");
 
             // Testing Extract() here:
-            var report = e.Extract(settings);
+            var report = DPArchiveTestHelpers.RunAndAssertExtractEvents(e, settings);
             DPArchiveTestHelpers.AssertReport(expectedReport, report);
 
             Assert.AreEqual(arc.FileSystem, e.FileSystem);

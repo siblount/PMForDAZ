@@ -85,55 +85,65 @@ namespace DAZ_Installer.Core.Extraction
                 ExtractedFiles = new(settings.FilesToExtract.Count),
             };
             session.report = report;
-            if (CancellationToken.IsCancellationRequested) return report;
-            if (arc.Contents.Count == 0) Peek(arc);
-
-            if (arc.FileInfo is null || !arc.FileInfo.Exists)
+            try
             {
-                handleError(arc, DPArchiveErrorArgs.ArchiveDoesNotExistOrNoAccessExplanation, report, null, null);
-                Logger.Debug("FileInfo is null: {0} | FileInfo.Exists: {1}", arc.FileInfo is null, arc.FileInfo?.Exists);
-                EmitOnExtractFinished();
-                return report;
-            }
+                CancellationToken.ThrowIfCancellationRequested();
+                if (arc.Contents.Count == 0) Peek(arc);
 
-            using (var RARHandler = Factory.Create(arc.FileInfo.Path))
-            {
-                try
+                if (arc.FileInfo is null || !arc.FileInfo.Exists)
                 {
-                    // TODO: Update destination path.
-                    RARHandler.Open(RAR.OpenMode.Extract);
-                    var flags = (RAR.ArchiveFlags)RARHandler.ArchiveData.Flags;
-                    var isFirstVolume = flags.HasFlag(RAR.ArchiveFlags.FirstVolume);
-                    var isVolume = flags.HasFlag(RAR.ArchiveFlags.Volume);
-                    
-                    if (isVolume && !isFirstVolume) 
-                        handleError(arc, "The archive is not the first volume out of a multi-volume archive. Only input the first volume", null, null, null);
-                    for (var i = 0; i < settings.FilesToExtract.Count && RARHandler.ReadHeader(); i++)
+                    handleError(arc, DPArchiveErrorArgs.ArchiveDoesNotExistOrNoAccessExplanation, report, null, null);
+                    Logger.Debug("FileInfo is null: {0} | FileInfo.Exists: {1}", arc.FileInfo is null, arc.FileInfo?.Exists);
+                    return report;
+                }
+
+                using (var RARHandler = Factory.Create(arc.FileInfo.Path))
+                {
+                    try
                     {
-                        CancellationToken.ThrowIfCancellationRequested();
-                        var arcHasFile = arc.Contents.TryGetValue(PathHelper.NormalizePath(RARHandler.CurrentFile.FileName), out var file);
-                        if (!RARHandler.CurrentFile.IsDirectory && arcHasFile && file?.AssociatedArchive == arc)
-                        {
-                            if (!ExtractFile(RARHandler, settings, report))
-                                RARHandler.Skip();
-                            EmitOnExtractionProgress(settings.Archive, new DPExtractProgressArgs((byte)((float)i / settings.FilesToExtract.Count), arc, file));
-                        }
-                        else
-                        {
-                            if (arcHasFile && file!.AssociatedArchive != arc)
-                                handleError(arc, string.Format(DPArchiveErrorArgs.FileNotPartOfArchiveErrorFormat, file.Path), report, file, null);
-                            i--;
-                        }
+                        // TODO: Update destination path.
+                        RARHandler.Open(RAR.OpenMode.Extract);
+                        var flags = (RAR.ArchiveFlags)RARHandler.ArchiveData.Flags;
+                        var isFirstVolume = flags.HasFlag(RAR.ArchiveFlags.FirstVolume);
+                        var isVolume = flags.HasFlag(RAR.ArchiveFlags.Volume);
 
+                        if (isVolume && !isFirstVolume)
+                            handleError(arc, "The archive is not the first volume out of a multi-volume archive. Only input the first volume", null, null, null);
+                        for (var i = 0; i < settings.FilesToExtract.Count && RARHandler.ReadHeader(); i++)
+                        {
+                            CancellationToken.ThrowIfCancellationRequested();
+                            var arcHasFile = arc.Contents.TryGetValue(PathHelper.NormalizePath(RARHandler.CurrentFile.FileName), out var file);
+                            if (!RARHandler.CurrentFile.IsDirectory && arcHasFile && file?.AssociatedArchive == arc)
+                            {
+                                if (!ExtractFile(RARHandler, settings, report))
+                                    RARHandler.Skip();
+                                EmitOnExtractionProgress(settings.Archive, new DPExtractProgressArgs((byte)((float)i / settings.FilesToExtract.Count), arc, file));
+                            }
+                            else
+                            {
+                                if (arcHasFile && file!.AssociatedArchive != arc)
+                                    handleError(arc, string.Format(DPArchiveErrorArgs.FileNotPartOfArchiveErrorFormat, file.Path), report, file, null);
+                                i--;
+                            }
+
+                        }
+                        RARHandler.Close();
                     }
-                    RARHandler.Close();
-                }
-                catch (Exception e)
-                {
-                    handleError(arc, "An unexpected error occured while processing the archive", null, null, e);
+                    catch (OperationCanceledException) { }
+                    catch (Exception e)
+                    {
+                        handleError(arc, "An unexpected error occured while processing the archive", null, null, e);
+                    }
                 }
             }
-            EmitOnExtractFinished();
+            catch (Exception ex)
+            {
+                handleError(arc, "An unexpected error occurred before attempting to process the archive.", null, null, ex);
+            } finally
+            {
+                EmitOnExtractFinished();
+            }
+            
             return report;
         }
         public override void Peek(DPArchive arc)
@@ -143,20 +153,21 @@ namespace DAZ_Installer.Core.Extraction
             mode = Mode.Peek;
             FileSystem = arc.FileSystem;
             EmitOnPeeking();
-            if (arc.FileInfo is null || !arc.FileInfo.Exists)
-            {
-                EmitOnArchiveError(arc, new DPArchiveErrorArgs(arc, null, DPArchiveErrorArgs.ArchiveDoesNotExistOrNoAccessExplanation));
-                EmitOnPeekFinished();
-                return;
-            }
-            using var RARHandler = Factory.Create(arc.FileInfo.Path);
-            RARHandler.MissingVolume += HandleMissingVolume;
-            RARHandler.NewFile += HandleNewFile;
-            session = new Session() { report = new DPExtractionReport(), settings = new() { Archive = arc, } };
-
             try
             {
                 CancellationToken.ThrowIfCancellationRequested();
+
+                if (arc.FileInfo is null || !arc.FileInfo.Exists)
+                {
+                    EmitOnArchiveError(arc, new DPArchiveErrorArgs(arc, null, DPArchiveErrorArgs.ArchiveDoesNotExistOrNoAccessExplanation));
+                    EmitOnPeekFinished();
+                    return;
+                }
+                using var RARHandler = Factory.Create(arc.FileInfo.Path);
+                RARHandler.MissingVolume += HandleMissingVolume;
+                RARHandler.NewFile += HandleNewFile;
+                session = new Session() { report = new DPExtractionReport(), settings = new() { Archive = arc, } };
+
                 // TODO: Can we remove this?
                 RARHandler.DestinationPath = Path.Combine(Path.GetTempPath(), Path.GetFileNameWithoutExtension(arc.Path));
                 // Create path and see if it exists.
@@ -183,11 +194,14 @@ namespace DAZ_Installer.Core.Extraction
                 }
                 RARHandler.Close();
             }
+            catch (OperationCanceledException) { }
             catch (Exception e)
             {
                 handleError(arc, "An unexpected error occured while processing the archive.", null, null, e);
+            } finally
+            {
+                EmitOnPeekFinished();
             }
-            EmitOnPeekFinished();
         }
         #endregion
         private bool ExtractFile(IRAR handler, DPExtractSettings settings, DPExtractionReport report)

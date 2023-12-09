@@ -115,9 +115,11 @@ namespace DAZ_Installer.Core.Extraction.Tests
             var settings = new DPExtractSettings("Z:/temp", arc.Contents.Values, archive: arc);
             var expectedReport = new DPExtractionReport() { ExtractedFiles = new(0), ErroredFiles = new(0), Settings = settings };
             DPArchiveTestHelpers.SetupTargetPaths(arc, "Z:/abc/");
+            e.Extracting += () => Assert.Fail("Extracting event was raised");
 
             // Testing Extract() here:
-            var report = DPArchiveTestHelpers.RunAndAssertExtractEvents(e, settings);
+            var report = e.Extract(settings);
+
             DPArchiveTestHelpers.AssertReport(expectedReport, report);
             Assert.AreEqual(arc.FileSystem, e.FileSystem);
         }
