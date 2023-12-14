@@ -37,6 +37,7 @@ namespace DAZ_Installer.IO
             }
             return pathBuilder.Length == 0 ? string.Empty : pathBuilder.ToString().TrimEnd(rSeperator);
         }
+
         /// <summary>
         /// Returns the seperator of the given path. If there are multiple seperators, then it will return a forward slash.
         /// If there are no seperators, it will return a forward slash.
@@ -208,6 +209,34 @@ namespace DAZ_Installer.IO
                 return str.Remove(str.LastIndexOf(GetLastDir(str, false)));
             var fileName = Path.GetFileName(str);
             return CleanDirPath(str.Remove(str.LastIndexOf(fileName)));
+        }
+
+        /// <summary>
+        /// Returns the root directory of the given path <b>in archive space</b>. 
+        /// For example, if <paramref name="path"/> is <c>Content\data</c>, then <c>Content</c> will be returned.
+        /// By default, the <paramref name="path"/> is assumed to be a directory path. 
+        /// If it is a file path, then set <paramref name="isFilePath"/> to <see langword="true"/>. <para/>
+        /// If <paramref name="path"/> is <c>Content\data\file.txt</c>, then <c>Content</c> will be returned if <paramref name="isFilePath"/> is <see langword="true"/>. <para/>
+        /// If <paramref name="path"/> is the root directory (ex: <c>Content</c>), then <see cref="string.Empty"/> is returned.
+        /// </summary>
+        /// <param name="path">The path to get the root directory of.</param>
+        /// <param name="isFilePath">Determines whether the path provided is a path to a directory or a file.</param>
+        /// <returns>The root directory of the path or <see cref="string.Empty"/> if there is no root directory.</returns>
+        public static string GetRootDirectory(string path, bool isFilePath = false)
+        {
+            if (string.IsNullOrEmpty(path))
+                return string.Empty;
+
+            var separator = GetSeperator(path);
+            var pathParts = path.Split(separator);
+
+            if (isFilePath && pathParts.Length > 1)
+                return pathParts[0];
+
+            if (!isFilePath && pathParts.Length > 0)
+                return pathParts[0];
+
+            return string.Empty;
         }
         /// <summary>
         /// Checks for whether the given <paramref name="path"/> is attempting to directory tranverse.
