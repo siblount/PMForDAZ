@@ -6,6 +6,8 @@ using DAZ_Installer.IO;
 using DAZ_Installer.IO.Fakes;
 using DAZ_Installer.Core.Extraction;
 using Serilog;
+using System.Text;
+using System.Xml;
 
 namespace DAZ_Installer.CoreTests.Extraction
 {
@@ -123,6 +125,76 @@ namespace DAZ_Installer.CoreTests.Extraction
         {
             foreach (var file in arc.Contents.Values)
                 file.TargetPath = Path.Combine(basePath, file.FileName);
+        }
+
+        public static Stream CreateMetadataStream(DPFile file)
+        {
+            var stream = new MemoryStream();
+            var json = @"
+                {
+                ""file_version"" : ""0.6.0.0"",
+                ""asset_info"" : {
+                	""id"" : ""/{arcPath}"",
+                	""type"" : ""wearable"",
+                	""contributor"" : {
+                		""author"" : ""TheRealSolly"",
+                		""email"" : ""solomon1blount@gmail.com"",
+                		""website"" : ""www.thesolomonchronicles.com""
+                	},
+                }
+
+
+            ";
+            var sw = new StreamWriter(stream);
+            sw.Write(json.Replace("{arcPath}", file.Path));
+            sw.Flush();
+            stream.Position = 0;
+            return stream;
+
+        }
+
+        public static Stream CreateManifestStream(DPArchive arc, IEnumerable<string> files)
+        {
+            var stream = new MemoryStream();
+            var doc = new XmlDocument();
+
+            var header = doc.CreateElement("DAZInstallManifest");
+            header.SetAttribute("VERSION", "0.1");
+            doc.AppendChild(header);
+
+            foreach (var file in files)
+            {
+                var node = doc.CreateElement("File");
+                node.SetAttribute("TARGET", "Content");
+                node.SetAttribute("ACTION", "Install");
+                node.SetAttribute("VALUE", file);
+
+                header.AppendChild(node);
+            }
+            doc.Save(stream);
+            stream.Position = 0;
+            return stream;
+        }
+
+        public static Stream CreateSupplementStream()
+        {
+            const string supplementStr = "" +
+                "<ProductSupplement VERSION=\"0.1\"> " +
+                 "<ProductName VALUE=\"Gentlemen's Library\"/> " +
+                 "<InstallTypes VALUE=\"Content\"/>            " +
+                 "<ProductTags VALUE=\"DAZStudio4_5\"/>        " +
+                "</ProductSupplement>";
+
+            MemoryStream stream = new(Encoding.ASCII.GetBytes(supplementStr));
+            stream.Position = 0;
+            return stream;
+        }
+        public static Stream DetermineFileStream(DPFile file, DPArchive arc, IEnumerable<string> pathsForManifest = null)
+        {
+            if (file.FileName == "Manifest.dsx") return CreateManifestStream(arc, pathsForManifest ?? arc.Contents.Values.Select(x => x.Path));
+            else if (file.FileName == "Supplement.dsx") return CreateSupplementStream();
+            else if (DPFile.DAZFormats.Contains(file.Ext)) return CreateMetadataStream(file);
+            return Stream.Null;
         }
 
     }
