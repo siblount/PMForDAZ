@@ -72,35 +72,20 @@ namespace DAZ_Installer.Core
 
         public void UpdateChildrenRelativePaths(DPProcessSettings settings)
         {
-            // Needs to be relative to the content folder.
-            if (IsContentFolder)
+            DPFolder? contentFolder = IsContentFolder ? this : GetContentFolder();
+            if (contentFolder is null)
             {
-                foreach (DPFile child in contents.Values)
-                {
-                    // This prevents the code for running twice on a child that was previously processed when ManifestAndAuto is on.
-                    if (!string.IsNullOrEmpty(child.RelativePathToContentFolder) && !string.IsNullOrEmpty(child.RelativeTargetPath))
-                        continue;
-                    child.RelativePathToContentFolder = CalculateChildRelativePath(child);
-                    child.RelativeTargetPath = CalculateChildRelativeTargetPath(child, settings);
-                }
-
+                Logger.Warning("Content folder was null, could not update relative paths for {Path}", Path);
+                return;
             }
-            else
+            foreach (DPFile child in contents.Values)
             {
-                DPFolder? contentFolder = GetContentFolder();
-                if (contentFolder != null)
-                {
-                    foreach (DPFile child in contents.Values)
-                    {
-                        // This prevents the code for running twice on a child that was previously processed when ManifestAndAuto is on.
-                        if (!string.IsNullOrEmpty(child.RelativePathToContentFolder) && !string.IsNullOrEmpty(contentFolder.RelativeTargetPath))
-                            continue;
-                        child.RelativePathToContentFolder = contentFolder.CalculateChildRelativePath(child);
-                        child.RelativeTargetPath = CalculateChildRelativeTargetPath(child, settings);
-                    }
-                }
+                // This prevents the code for running twice on a child that was previously processed when ManifestAndAuto is on.
+                if (!string.IsNullOrEmpty(child.RelativePathToContentFolder) && !string.IsNullOrEmpty(child.RelativeTargetPath))
+                    continue;
+                child.RelativePathToContentFolder = contentFolder.CalculateChildRelativePath(child);
+                child.RelativeTargetPath = contentFolder.CalculateChildRelativeTargetPath(child, settings);
             }
-
         }
 
         /// <summary>
@@ -121,14 +106,15 @@ namespace DAZ_Installer.Core
         {
             // TODO: In Processor, make sure the ContentRedirectFolders is never null.
             var containsKey = settings.ContentRedirectFolders.ContainsKey(FileName);
-            if (!containsKey || (IsContentFolder && !containsKey)) return child.RelativePathToContentFolder!;
+            if (!IsContentFolder || !containsKey) return child.RelativePathToContentFolder!;
 
             var i = Path.LastIndexOf(PathHelper.GetSeperator(Path));
             var newPath = PathHelper.NormalizePath(
                 i != -1 ? string.Concat(Path.AsSpan(0, i + 1), settings.ContentRedirectFolders[FileName]) : settings.ContentRedirectFolders[FileName]
             );
             var childNewPath = PathHelper.NormalizePath(child.Path);
-            childNewPath = childNewPath.Replace(IOPath.GetDirectoryName(childNewPath)!, newPath);
+            i = childNewPath.IndexOf(Path);
+            if (i != -1) childNewPath = childNewPath.Remove(i, Path.Length).Insert(i, newPath);
 
             return PathHelper.GetRelativePathOfRelativeParent(childNewPath, newPath);
         }
