@@ -11,25 +11,66 @@ namespace DAZ_Installer.Core
     public class DPDestinationDeterminer : AbstractDestinationDeterminer
     {
         protected override ILogger Logger { get; set; } = Log.Logger.ForContext<DPDestinationDeterminer>();
+
+        public DPDestinationDeterminer() { }
+        public DPDestinationDeterminer(ILogger logger) : base(logger) { }
+
         public override HashSet<DPFile> DetermineDestinations(DPArchive arc, DPProcessSettings settings)
         {
             // Handle Manifest first if a combo of both.
             var filesToExtract = new HashSet<DPFile>(arc.Contents.Count);
-            if (settings.InstallOption == InstallOptions.ManifestOnly || settings.InstallOption == InstallOptions.ManifestAndAuto) 
-                DetermineFromManifests(arc, settings, filesToExtract);
-
-            if (settings.InstallOption == InstallOptions.ManifestOnly) return filesToExtract;
-
-            // Prepare for file sense.
-            DetermineContentFolders(arc, settings);
+            HashSet<DPFolder> contentFolders = new HashSet<DPFolder>(4);
+            List<Dictionary<string, string>>? destinations = null;
+            if (settings.InstallOption == InstallOptions.ManifestOnly || settings.InstallOption == InstallOptions.ManifestAndAuto)
+                contentFolders = SetContentFoldersFromManifest(arc, out destinations);
+            if (settings.InstallOption == InstallOptions.ManifestAndAuto || settings.InstallOption == InstallOptions.Automatic)
+                DetermineContentFolders(arc, contentFolders, settings);
             UpdateRelativePaths(arc, settings);
 
-            // Determine via file sense next.
-            DetermineViaFileSense(arc, settings, filesToExtract);
+            if (settings.InstallOption != InstallOptions.ManifestOnly)
+                DetermineViaFileSense(arc, settings, filesToExtract);
+
+            // Determine manifest after file sense if manifest and auto. This way the manifest can override the file sense destinations.
+            if (settings.InstallOption == InstallOptions.ManifestOnly || settings.InstallOption == InstallOptions.ManifestAndAuto)
+                DetermineFromManifests(arc, destinations, settings, filesToExtract);
             return filesToExtract;
         }
 
-        private void DetermineContentFolders(DPArchive arc, in DPProcessSettings settings)
+        private HashSet<DPFolder> SetContentFoldersFromManifest(DPArchive arc, out List<Dictionary<string, string>> destinations)
+        {
+            HashSet<DPFolder> contentFolders = new HashSet<DPFolder>(4);
+            destinations = new List<Dictionary<string, string>>(arc.ManifestFiles.Count);
+            foreach (var manifest in arc.ManifestFiles.Where(x => x.Extracted))
+            {
+                try
+                {
+                    var dest = manifest.GetManifestDestinations();
+                    destinations.Add(dest);
+                    // The first folder after the "content" folder is the content folder.
+                    foreach (var path in dest.Values)
+                    {
+                        var rootDir = PathHelper.GetRootDirectory(path, true);
+                        if (string.IsNullOrEmpty(rootDir)) continue;
+                        var result = arc.Folders.TryGetValue(PathHelper.NormalizePath(Path.Combine("Content", rootDir)), out var folder);
+                        if (!result)
+                        {
+                            Logger.Warning("Could not find content folder {0} that was defined in manifest", rootDir, arc.FileName);
+                            continue;
+                        }
+                        contentFolders.Add(folder);
+                        folder.IsContentFolder = true;
+                    }
+                } catch (Exception ex)
+                {
+                    Logger.Error(ex, "Failed to get manifest destinations for {0}", manifest.FileName);
+                }
+            }
+            return contentFolders;
+        }
+
+        // TODO: Update this function to determine content folders from the manifest.
+        // Or make this exclusive to auto mode.
+        private void DetermineContentFolders(DPArchive arc, HashSet<DPFolder> ignoreSet, in DPProcessSettings settings)
         {
             // A content folder is a folder whose name is contained in the user's common content folders list
             // or in their folder redirects map.
@@ -49,6 +90,7 @@ namespace DAZ_Installer.Core
 
             foreach (DPFolder? folder in folders)
             {
+                if (ignoreSet.Contains(folder)) continue;
                 var folderName = Path.GetFileName(folder.Path);
                 var elgibleForContentFolderStatus = settings.ContentFolders.Contains(folderName) ||
                                                     settings.ContentRedirectFolders.ContainsKey(folderName);
@@ -61,6 +103,11 @@ namespace DAZ_Installer.Core
                 }
             }
         }
+        /// <summary>
+        /// Updates the relative paths of all files and folders in the archive relative to the content folder.
+        /// </summary>
+        /// <param name="arc">The archive to check.</param>
+        /// <param name="settings">The settings to use.</param>
         private void UpdateRelativePaths(DPArchive arc, in DPProcessSettings settings)
         {
             foreach (DPFile content in arc.RootContents)
@@ -84,22 +131,32 @@ namespace DAZ_Installer.Core
         private string GetTargetPath(DPFile file, in DPProcessSettings settings, bool saveToTemp = false, string? overridePath = null)
         {
             var tmpLocation = Path.Combine(settings.TempPath, "DazProductInstaller");
+            // file.RelativeTargetPath already substituted the content folder name with the redirect folder name.
             var filePathPart = !string.IsNullOrEmpty(overridePath) ? overridePath : file.RelativeTargetPath;
 
-            if (file.Parent is null || !settings.ContentRedirectFolders!.ContainsKey(Path.GetFileName(file.Parent.Path)))
+            if (filePathPart is null) Log.Warning("GetTargetPath() filePathPart is null.");
+
+            if (file.Parent is null)
                 return Path.Combine(saveToTemp ? tmpLocation : settings.DestinationPath, filePathPart);
 
+            var contentFolderName = GetContentFolderManifestString(file.Path);
+            var hasRedirect = settings.ContentRedirectFolders!.ContainsKey(contentFolderName);
+            // We need to 
+            if (overridePath is not null && hasRedirect)
+                return Path.Combine(settings.DestinationPath, settings.ContentRedirectFolders[contentFolderName], filePathPart.Remove(0, contentFolderName.Length + 1));
+
+            // If the installation method includes Automatic, then relative target path calculations have been done prior to this function.
+            // Therefore, we can just use the relative target path.
             return Path.Combine(saveToTemp ? tmpLocation : settings.DestinationPath,
-                file.RelativeTargetPath ?? file.Parent.CalculateChildRelativeTargetPath(file, settings));
+                filePathPart ?? file.Parent.CalculateChildRelativeTargetPath(file, settings));
         }
 
-        private void DetermineFromManifests(DPArchive arc, in DPProcessSettings settings, HashSet<DPFile> filesToExtract)
+        private void DetermineFromManifests(DPArchive arc, List<Dictionary<string, string>>? dests, in DPProcessSettings settings, HashSet<DPFile> filesToExtract)
         {
+            if (dests is null) dests = arc!.ManifestFiles.Select(f => f.GetManifestDestinations()).ToList();
             if (settings.InstallOption != InstallOptions.ManifestAndAuto && settings.InstallOption != InstallOptions.ManifestOnly) return;
-            foreach (DPDSXFile? manifest in arc!.ManifestFiles.Where(f => f.Extracted))
+            foreach (var manifestDestinations in dests)
             {
-                Dictionary<string, string> manifestDestinations = manifest.GetManifestDestinations();
-
                 foreach (DPFile file in arc.Contents.Values)
                 {
                     try
@@ -113,11 +170,6 @@ namespace DAZ_Installer.Core
                         Logger.Error("Failed to determine file to extract: {0}", file.Path);
                         Logger.Debug("File information: {@0}", file);
                     }
-
-                    //else
-                    //{
-                    //    file.WillExtract = settingsToUse.InstallOption != InstallOptions.ManifestOnly;
-                    //}
                 }
             }
         }
@@ -168,6 +220,18 @@ namespace DAZ_Installer.Core
                 arc.Subarchives.Add(nestedArc);
                 filesToExtract.Add(nestedArc);
             }
+        }
+
+        /// <summary>
+        /// A function that determines the content folder of the archive based off of the manifest.
+        /// It returns the folder name after the "Content/" folder in the manifest in the <paramref name="path"/>.
+        /// </summary>
+        /// <param name="path"> The path that the manifest has for a file. </param>
+        /// <returns>The content folder of the archive.</returns>
+        private string GetContentFolderManifestString(string path)
+        {
+            var segments = path.Split(new[] { '/', '\\' }, StringSplitOptions.RemoveEmptyEntries);
+            return segments.Length > 1 ? segments[1] : string.Empty;
         }
     }
 }
