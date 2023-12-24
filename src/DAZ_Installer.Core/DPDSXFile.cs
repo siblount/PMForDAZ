@@ -21,7 +21,7 @@ namespace DAZ_Installer.Core
             base(_path, arc, __parent)
         {
             arc.DSXFiles.Add(this);
-            if (FileName.Contains("Manifest.dsx")) arc.ManifestFiles.Add(this);
+            if (FileName == "Manifest.dsx") arc.ManifestFiles.Add(this);
             Tags.Clear(); // Do not include us.
         }
 
