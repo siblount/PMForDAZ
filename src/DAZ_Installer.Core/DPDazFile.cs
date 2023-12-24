@@ -2,7 +2,6 @@
 // You may find a full copy of this license at root project directory\LICENSE
 
 using Serilog;
-using DAZ_Installer.IO;
 
 namespace DAZ_Installer.Core
 {
@@ -28,7 +27,7 @@ namespace DAZ_Installer.Core
         /// Parses through the content info and updates the <c>ContentInfo</c> struct. Only reads lines 1 - 8.
         /// </summary>
         /// <param name="contents">A collection of strings.</param>
-        public void UpdateContentInfo(ReadOnlySpan<string?> contents)
+        private void UpdateContentInfo(ReadOnlySpan<string?> contents)
         {
             // 1..9
             foreach (var line in contents.Slice(1, 9))
@@ -45,12 +44,11 @@ namespace DAZ_Installer.Core
                 catch (Exception e)
                 {
                     Logger.Error(e, "Failed to add metadata for file: {0}");
-                    // DPCommon.WriteToLog($"Failed to add metadata for file: {RelativePath} REASON: {e}");
                 }
             }
         }
 
-        public static string ParseJsonValue(ReadOnlySpan<char> jsonString)
+        private static string ParseJsonValue(ReadOnlySpan<char> jsonString)
         {
             var colIndex = jsonString.IndexOf(':');
             if (colIndex == -1) return string.Empty;
@@ -65,7 +63,7 @@ namespace DAZ_Installer.Core
             return afterColString.Slice(startSearchIndex + 1, lastQuoteIndex - startSearchIndex - 1).ToString();
         }
 
-        public static ReadOnlySpan<char> GetPropertyName(ReadOnlySpan<char> msg)
+        private static ReadOnlySpan<char> GetPropertyName(ReadOnlySpan<char> msg)
         {
             var colonIndex = msg.IndexOf(':');
             if (colonIndex == -1) return string.Empty;
