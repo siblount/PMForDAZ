@@ -9,7 +9,7 @@ namespace DAZ_Installer.Core
     /// <summary>
     /// Provides tags for <see cref="DPArchive"/>s and updates them in the archive.
     /// </summary>
-    internal class DPTagProvider : AbstractTagProvider
+    public class DPTagProvider : AbstractTagProvider
     {
         /// <inheritdoc/>
         public override HashSet<string> GetTags(DPArchive arc, DPProcessSettings settings)
@@ -30,7 +30,9 @@ namespace DAZ_Installer.Core
                 DPContentInfo contentInfo = file.ContentInfo;
                 if (contentInfo.Website.Length != 0) tagsSet.Add(contentInfo.Website);
                 if (contentInfo.Email.Length != 0) tagsSet.Add(contentInfo.Email);
-                tagsSet.UnionWith(contentInfo.Authors);
+                if (contentInfo.ContentType != ContentType.Unknown) tagsSet.Add(contentInfo.ContentType.ToString());
+                tagsSet.UnionWith(contentInfo.Authors); // <-- I think this can be omitted since arc.ProductInfo includes
+                                                        //     the authors already.     
             }
             foreach (DPFile content in arc.Contents.Values)
             {
@@ -42,9 +44,9 @@ namespace DAZ_Installer.Core
                 tagsSet.UnionWith(PathHelper.GetFileName(folder.Key).Split(' '));
             }
             tagsSet.UnionWith(arc.ProductInfo.Authors);
-            tagsSet.UnionWith(DPArchive.RegexSplitName(arc.ProductInfo.ProductName));
+            tagsSet.UnionWith(DPArchive.RegexSplitName(Path.GetFileNameWithoutExtension(arc.FileName)));
             if (arc.ProductInfo.SKU.Length != 0) tagsSet.Add(arc.ProductInfo.SKU);
-            if (arc.ProductInfo.ProductName.Length != 0) tagsSet.Add(arc.ProductInfo.ProductName);
+            if (!string.IsNullOrEmpty(arc.ProductName)) tagsSet.Add(arc.ProductName);
             return arc.ProductInfo.Tags = tagsSet;
         }
 
@@ -55,9 +57,9 @@ namespace DAZ_Installer.Core
         {
             // Extract the DAZ Files that have not been extracted.
             var extractSettings = new DPExtractSettings(settings.TempPath,
-                arc!.DazFiles.Where((f) => f.FileInfo is null || !f.FileInfo.Exists),
+                arc!.DazFiles.Where(f => f.FileInfo is null || !f.FileInfo.Exists),
                 true, arc);
-            if (extractSettings.FilesToExtract.Count > 0) arc.ExtractToTemp(extractSettings);
+            if (extractSettings.FilesToExtract.Count > 0) arc.ExtractContentsToTemp(extractSettings);
             Stream? stream = null;
             // Read the contents of the files.
             foreach (DPDazFile file in arc!.DazFiles)
