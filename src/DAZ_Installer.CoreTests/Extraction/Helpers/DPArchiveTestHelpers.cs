@@ -127,26 +127,28 @@ namespace DAZ_Installer.CoreTests.Extraction
                 file.TargetPath = Path.Combine(basePath, file.FileName);
         }
 
-        public static Stream CreateMetadataStream(DPFile file)
+        public static Stream CreateMetadataStream(DPFile file,
+                                                  string type = "wearable",
+                                                  string author = "TheRealSolly",
+                                                  string email = "solomon1blount@gmail.com",
+                                                  string website = "www.thesolomonchronicles.com")
         {
             var stream = new MemoryStream();
-            var json = @"
-                {
+            var json = $@"
+                {{
                 ""file_version"" : ""0.6.0.0"",
-                ""asset_info"" : {
-                	""id"" : ""/{arcPath}"",
-                	""type"" : ""wearable"",
-                	""contributor"" : {
-                		""author"" : ""TheRealSolly"",
-                		""email"" : ""solomon1blount@gmail.com"",
-                		""website"" : ""www.thesolomonchronicles.com""
-                	},
-                }
-
-
-            ";
+                ""asset_info"" : {{
+                	""id"" : ""/{file.Path}"",
+                	""type"" : ""{type}"",
+                	""contributor"" : {{
+                		""author"" : ""{author}"",
+                		""email"" : ""{email}"",
+                		""website"" : ""{website}""
+                	}}
+                }}
+            }}";
             var sw = new StreamWriter(stream);
-            sw.Write(json.Replace("{arcPath}", file.Path));
+            sw.Write(json);
             sw.Flush();
             stream.Position = 0;
             return stream;
@@ -176,11 +178,11 @@ namespace DAZ_Installer.CoreTests.Extraction
             return stream;
         }
 
-        public static Stream CreateSupplementStream()
+        public static Stream CreateSupplementStream(string productName = "Gentlemen's Library")
         {
-            const string supplementStr = "" +
+            string supplementStr = "" +
                 "<ProductSupplement VERSION=\"0.1\"> " +
-                 "<ProductName VALUE=\"Gentlemen's Library\"/> " +
+                 $"<ProductName VALUE=\"{productName}\"/> " +
                  "<InstallTypes VALUE=\"Content\"/>            " +
                  "<ProductTags VALUE=\"DAZStudio4_5\"/>        " +
                 "</ProductSupplement>";
@@ -189,7 +191,7 @@ namespace DAZ_Installer.CoreTests.Extraction
             stream.Position = 0;
             return stream;
         }
-        public static Stream DetermineFileStream(DPFile file, DPArchive arc, IEnumerable<string> pathsForManifest = null)
+        public static Stream DetermineFileStream(DPFile file, DPArchive arc, IEnumerable<string>? pathsForManifest = null)
         {
             if (file.FileName == "Manifest.dsx") return CreateManifestStream(arc, pathsForManifest ?? arc.Contents.Values.Select(x => x.Path));
             else if (file.FileName == "Supplement.dsx") return CreateSupplementStream();
