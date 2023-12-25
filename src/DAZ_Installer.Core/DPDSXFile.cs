@@ -26,12 +26,12 @@ namespace DAZ_Installer.Core
         }
 
         /// <summary>
-        /// Reads the contents of this file and updates the <c>ContentInfo</c> variables.
+        /// Reads the contents of this file and updates the <c>ContentInfo</c> variables. 
+        /// This is usually called for the Support dsx file in the Runtime/Support folder.
         /// </summary>
         public void CheckContents(StreamReader stream)
         {
             if (AssociatedArchive is null) return;
-            if (!Extracted) throw new InvalidOperationException("Cannot check contents of a file that has not been extracted.");
             var parser = new DPDSXParser(stream);
             DPDSXElementCollection collection = parser.GetDSXFile();
             List<DPDSXElement> search = collection.FindElementViaTag("ProductName");
