@@ -62,7 +62,7 @@ namespace DAZ_Installer.Core
             if (extractSettings.FilesToExtract.Count > 0) arc.ExtractContentsToTemp(extractSettings);
             Stream? stream = null;
             // Read the contents of the files.
-            foreach (DPDazFile file in arc!.DazFiles)
+            foreach (DPDazFile file in arc!.DazFiles.Where(f => f.FileInfo?.Exists ?? false))
             {
                 using (LogContext.PushProperty("File", file.Path))
                 // If it did not extract correctly we don't have acces, just skip it.
@@ -117,7 +117,7 @@ namespace DAZ_Installer.Core
         {
             // Extract the DAZ Files that have not been extracted.
             var extractSettings = new DPExtractSettings(settings.TempPath,
-                arc!.DazFiles.Where((f) => f.FileInfo is null || !f.FileInfo.Exists),
+                arc!.DSXFiles.Where((f) => f.FileInfo is null || !f.FileInfo.Exists),
                 true, arc);
             arc.ExtractContentsToTemp(extractSettings);
             Stream? stream = null!;
