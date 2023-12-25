@@ -9,7 +9,7 @@ namespace DAZ_Installer.Core.Integration
 {
     internal class DPIntegrationArchiveHelpers
     {
-        const string ManifestContent = 
+        internal const string ManifestContent = 
         @"<DAZInstallManifest VERSION=""0.1"">
             <GlobalID VALUE=""this doesnt matter ayy lmao""/>
             <File TARGET=""Content"" ACTION=""Install"" VALUE=""Content\data\TheRealSolly\data.dsf""/>
@@ -17,14 +17,14 @@ namespace DAZ_Installer.Core.Integration
             <File TARGET=""Content"" ACTION=""Install"" VALUE=""Content\data\TheRealSolly\b.txt""/>
         </DAZInstallManifest>";
 
-        const string SupplementContent = 
+        internal const string SupplementContent = 
         @"<ProductSupplement VERSION=""0.1"">
             <ProductName VALUE=""Test Product""/>
             <InstallTypes VALUE=""Content""/>
             <ProductTags VALUE=""DAZStudio4_5""/>
         </ProductSupplement>";
 
-        const string DSFContent =
+        internal const string DSFContent =
         @"{
             ""file_version"" : ""0.6.0.0"",
             ""asset_info"" : {
