@@ -185,6 +185,29 @@ namespace DAZ_Installer.Core.Extraction.Tests
             DPArchiveTestHelpers.AssertExtractFileInfosCorrectlySet(successFiles);
         }
         [TestMethod]
+        public void ExtractTest_PartialExtract()
+        {
+            var arc = SetupArchiveWithPartiallyFakedDependencies(DefaultOptions, out var e, out var _, out _, out _, out _, out _);
+            var skippedFile = arc.Contents.Values.ElementAt(1);
+            var successFiles = arc.Contents.Values.Except(new[] { skippedFile }).ToList();
+            var settings = new DPExtractSettings("Z:/temp", successFiles, archive: arc);
+            var expectedReport = new DPExtractionReport()
+            {
+                ExtractedFiles = successFiles,
+                ErroredFiles = new(0),
+                Settings = settings
+            };
+            DPArchiveTestHelpers.SetupTargetPaths(arc, "Z:/abc/");
+
+            // Testing Extract() here:
+            var report = DPArchiveTestHelpers.RunAndAssertExtractEvents(e, settings);
+            DPArchiveTestHelpers.AssertReport(expectedReport, report);
+            Assert.AreEqual(arc.FileSystem, e.FileSystem);
+            DPArchiveTestHelpers.AssertExtractorSetPathsCorrectly(arc, successFiles.Select(x => x.Path));
+            DPArchiveTestHelpers.AssertExtractFileInfosCorrectlySet(successFiles);
+        }
+
+        [TestMethod]
         public void ExtractTest_FilesNotWhitelisted()
         {
             var arc = SetupArchiveWithPartiallyFakedDependencies(DefaultOptions, out var e, out var _, out _, out _, out _, out var fs);
@@ -204,6 +227,7 @@ namespace DAZ_Installer.Core.Extraction.Tests
             DPArchiveTestHelpers.AssertReport(expectedReport, report);
             Assert.AreEqual(arc.FileSystem, e.FileSystem);
         }
+
         [TestMethod]
         public void ExtractTest_UnexpectedExtractErrorEverythingFine()
         {

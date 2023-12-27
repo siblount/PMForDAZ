@@ -113,7 +113,7 @@ namespace DAZ_Installer.Core.Extraction
                         {
                             CancellationToken.ThrowIfCancellationRequested();
                             var arcHasFile = arc.Contents.TryGetValue(PathHelper.NormalizePath(RARHandler.CurrentFile.FileName), out var file);
-                            if (!RARHandler.CurrentFile.IsDirectory && arcHasFile && file?.AssociatedArchive == arc)
+                            if (!RARHandler.CurrentFile.IsDirectory && arcHasFile && file!.AssociatedArchive == arc && settings.FilesToExtract.Contains(file))
                             {
                                 if (!ExtractFile(RARHandler, settings, report))
                                     RARHandler.Skip();
