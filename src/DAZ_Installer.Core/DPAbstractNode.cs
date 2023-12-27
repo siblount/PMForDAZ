@@ -55,7 +55,7 @@ namespace DAZ_Installer.Core
         /// <summary>
         /// The final, absolute path that the file is supposed to be extracted to. 
         /// </summary>
-        public string TargetPath { get; internal set; } = string.Empty;
+        public string TargetPath { get; set; } = string.Empty;
         /// <summary>
         /// The full relative path of the file (or folder) relative to the determined content folder (if any). 
         /// If no content folder is detected, relative path will be <see cref="string.Empty"/>.
