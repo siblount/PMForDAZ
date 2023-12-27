@@ -159,6 +159,27 @@ namespace DAZ_Installer.Core.Extraction.Tests
         }
 
         [TestMethod]
+        public void ExtractTest_PartialExtract()
+        {
+            var arc = NewMockedArchive(DefaultOptions, out var outputs);
+            var e = outputs.extractor;
+
+            var skippedFile = arc.Contents.Values.ElementAt(1);
+            var successFiles = arc.Contents.Values.Except(new[] { skippedFile }).ToList();
+            var settings = new DPExtractSettings("Z:/temp", successFiles, archive: arc);
+            var expectedReport = new DPExtractionReport() { ExtractedFiles = successFiles, ErroredFiles = new(0), Settings = settings };
+            DPArchiveTestHelpers.SetupTargetPaths(arc, "Z:/abc/");
+
+            // Testing Extract() here:
+            var report = RunAndAssertExtractEvents(e, settings);
+            DPArchiveTestHelpers.AssertReport(expectedReport, report);
+
+            DPArchiveTestHelpers.AssertExtractorSetPathsCorrectly(arc, DefaultContents);
+            DPArchiveTestHelpers.AssertExtractFileInfosCorrectlySet(successFiles);
+            Assert.AreEqual(arc.FileSystem, e.FileSystem);
+        }
+
+        [TestMethod]
         public void ExtractTest_QuitsOnArcNotExists()
         {
             var arc = NewMockedArchive(DefaultOptions, out var outputs);
