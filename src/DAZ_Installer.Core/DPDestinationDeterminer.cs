@@ -205,7 +205,6 @@ namespace DAZ_Installer.Core
                     if (file is not DPArchive nestedArc) continue;
                     arc.TargetPath = GetTargetPath(nestedArc, settings, true);
                     // Add to queue.
-                    arc.Subarchives.Add(nestedArc);
                     filesToExtract.Add(nestedArc);
                 }
             }
@@ -217,7 +216,6 @@ namespace DAZ_Installer.Core
                 if (content is not DPArchive nestedArc) continue;
                 nestedArc.TargetPath = GetTargetPath(nestedArc, settings, true);
                 // Add to queue.
-                arc.Subarchives.Add(nestedArc);
                 filesToExtract.Add(nestedArc);
             }
         }
