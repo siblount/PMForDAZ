@@ -123,6 +123,7 @@ namespace DAZ_Installer.Core.Extraction
                             {
                                 if (arcHasFile && file!.AssociatedArchive != arc)
                                     handleError(arc, string.Format(DPArchiveErrorArgs.FileNotPartOfArchiveErrorFormat, file.Path), report, file, null);
+                                RARHandler.Skip();
                                 i--;
                             }
 

@@ -7,6 +7,11 @@ namespace DAZ_Installer.Core.Extraction.Fakes
         public IEnumerator<RARFileInfo> FilesEnumerable;
         public virtual bool Disposed { get; set; } = false;
         public virtual bool Closed { get; set; } = true;
+        /// <summary>
+        /// ActionCalled is a variable used to determine if after a call to <see cref="ReadHeader"/>, 
+        /// that either <see cref="Skip"/>, <see cref="Extract(string)"/>, or <see cref="Test"/> was called.
+        /// </summary>
+        public virtual bool ActionCalled { get; set; } = true;
         public virtual RAR.OpenMode Mode { get; set; } = RAR.OpenMode.List;
 
         public virtual event RAR.MissingVolumeHandler? MissingVolume;
@@ -53,6 +58,7 @@ namespace DAZ_Installer.Core.Extraction.Fakes
             if (CurrentFile is null) throw new InvalidOperationException("No file is selected.");
             if (CurrentFile.encrypted) throw new IOException("File could not be opened."); // do not change this err message or type.
             DestinationPath = Path.GetDirectoryName(destinationName) ?? string.Empty;
+            ActionCalled = true;
         }
         /// <summary>
         /// Resets the enumerator and sets the <see cref="Closed"/> flag to false. Throws if <see cref="Disposed"/> is true or <see cref="Closed"/> is false
@@ -65,6 +71,7 @@ namespace DAZ_Installer.Core.Extraction.Fakes
             throwIfDisposed();
             if (!Closed) throw new InvalidOperationException("Archive is already open.");
             Closed = false;
+            ActionCalled = true;
             Mode = mode;
             FilesEnumerable.Reset();
         }
@@ -78,10 +85,11 @@ namespace DAZ_Installer.Core.Extraction.Fakes
         /// <exception cref="ObjectDisposedException"/>
         public virtual bool ReadHeader()
         {
-            var a = throwIfDisposed() || throwIfClosed() || FilesEnumerable.MoveNext();
+            var a = throwIfDisposed() || throwIfClosed() || throwIfActionNotCalled() || FilesEnumerable.MoveNext();
             if (!a) return a;
             if (Mode == RAR.OpenMode.List) 
                 NewFile?.Invoke(this, new NewFileEventArgs(FilesEnumerable.Current));
+            ActionCalled = false;
             return true;
 
         }
@@ -90,7 +98,11 @@ namespace DAZ_Installer.Core.Extraction.Fakes
         /// </summary>
         /// <exception cref="InvalidOperationException"/>
         /// <exception cref="ObjectDisposedException"/>
-        public virtual void Skip() => _ = throwIfDisposed() || throwIfClosed();
+        public virtual void Skip()
+        {
+            _ = throwIfDisposed() || throwIfClosed();
+            ActionCalled = true;
+        }
         /// <summary>
         /// Throws an exception if <see cref="CurrentFile"/> is null or <see cref="Disposed"/> or <see cref="Closed"/> is true.
         /// </summary>
@@ -100,6 +112,7 @@ namespace DAZ_Installer.Core.Extraction.Fakes
         {
             _ = throwIfDisposed() && throwIfClosed();
             ArgumentNullException.ThrowIfNull(FilesEnumerable.Current);
+            ActionCalled = true;
         }
 
         /// <summary>
@@ -108,10 +121,17 @@ namespace DAZ_Installer.Core.Extraction.Fakes
         /// <exception cref="ObjectDisposedException"/>
         private bool throwIfDisposed() => Disposed ? throw new ObjectDisposedException(nameof(FakeRAR)) : false;
         /// <summary>
-        /// Throws an exception if <see cref="Cloosed"/> is true. Always returns false.
+        /// Throws an exception if <see cref="Closed"/> is true. Always returns false.
         /// </summary>
         /// <exception cref="InvalidOperationException"/>
         private bool throwIfClosed() => Closed ? throw new InvalidOperationException("Archive is closed.") : false;
+
+        /// <summary>
+        /// Throws an exception if <see cref="ActionCalled"/> is false and the current mode is set to <see cref="RAR.OpenMode.Extract"/>. Always returns false.
+        /// </summary>
+        /// <exception cref="InvalidOperationException"/>
+        private bool throwIfActionNotCalled() => ActionCalled || Mode != RAR.OpenMode.Extract ? false : 
+                                                                                                throw new InvalidOperationException("Archive is corrupt.");
 
         internal static RARFileInfo CreateFileInfoForEntity(string path) => new()
         {

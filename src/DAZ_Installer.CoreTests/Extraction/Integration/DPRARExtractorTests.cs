@@ -98,6 +98,29 @@ namespace DAZ_Installer.Core.Extraction.Integration.Tests
         }
 
         [TestMethod]
+        [DataRow("Test.rar")]
+        public void ExtractTest_PartialExtract(string path)
+        {
+            var e = new DPRARExtractor();
+            var fi = FileSystem.CreateFileInfo(Path.Combine(TestSubjectsPath, path));
+            var arc = new DPArchive(fi);
+            arc.PeekContents();
+            var skippedFile = arc.Contents.Values.ElementAt(1);
+            var successFiles = arc.Contents.Values.Except(new[] { skippedFile }).ToList();
+            var settings = new DPExtractSettings(ExtractPath, successFiles);
+            var expectedReport = new DPExtractionReport() { ExtractedFiles = successFiles, ErroredFiles = new(0), Settings = settings };
+            DPArchiveTestHelpers.SetupTargetPaths(arc, ExtractPath);
+
+            //// Testing Extract() here:
+            var report = DPArchiveTestHelpers.RunAndAssertExtractEvents(e, settings);
+
+            DPArchiveTestHelpers.AssertReport(expectedReport, report);
+            DPArchiveTestHelpers.AssertExtractFileInfosCorrectlySet(successFiles);
+
+            Assert.AreEqual(arc.FileSystem, e.FileSystem);
+        }
+
+        [TestMethod]
         public void ExtractTest_AfterExtract()
         {
             var e = new DPRARExtractor();
