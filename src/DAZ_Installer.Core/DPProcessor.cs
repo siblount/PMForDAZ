@@ -352,7 +352,7 @@ namespace DAZ_Installer.Core
         {
             // Extract the DAZ Files that have not been extracted.
             var extractSettings = new DPExtractSettings(settings.TempPath,
-                CurrentArchive!.DazFiles.Where((f) => f.FileInfo is null || !f.FileInfo.Exists),
+                CurrentArchive!.DSXFiles.Where((f) => f.FileInfo is null || !f.FileInfo.Exists),
                 true, CurrentArchive);
             CurrentArchive.ExtractContentsToTemp(extractSettings);
             Stream? stream = null!;
