@@ -44,7 +44,7 @@ namespace DAZ_Installer.Core
         /// <summary>
         /// Determines whether the file has been extracted to the target path or not. <para/>
         /// </summary>
-        public bool ExtractedToTarget => FileInfo != null && FileInfo.Path == IOPath.GetFullPath(TargetPath);
+        public bool ExtractedToTarget => FileInfo != null && !string.IsNullOrEmpty(TargetPath) && FileInfo.Path == IOPath.GetFullPath(TargetPath);
         /// <summary>
         /// The FileInfo object that represents the file that is on disk. This should only be set during initialization
         /// or by the extractor.
