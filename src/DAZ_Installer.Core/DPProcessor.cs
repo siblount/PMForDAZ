@@ -110,12 +110,6 @@ namespace DAZ_Installer.Core
                 ArchiveCancellationSource = new();
                 ArchiveCancellationToken = ArchiveCancellationSource.Token;
                 EmitOnArchiveEnter();
-                
-                foreach (var subarc in arc.Subarchives)
-                {
-                    if (subarc.Extracted) archivesToProcess.Push(subarc);
-                }
-
                 try
                 {
                     using (LogContext.PushProperty("Archive", arc.FileName))
@@ -187,6 +181,12 @@ namespace DAZ_Installer.Core
                     if (!tryCatch(() => arc.Type = arc.DetermineArchiveType(), "Failed to analyze archive")) continue;
                     if (!tryCatch(() => TagProvider.GetTags(arc, settings), "Failed to get tags for archive")) continue;
 
+
+                    foreach (var subarc in arc.Subarchives.Where(x => x.Extracted))
+                    {
+                        archivesToProcess.Push(subarc);
+                    }
+
                     // Create record.
                     parentArchives.Push(new Tuple<DPArchive, DPExtractionReport>(arc, report)); // TODO: Use method to determine whether an archive was successfully processed.
                 }
@@ -196,6 +196,7 @@ namespace DAZ_Installer.Core
                     EmitOnArchiveExit(false, report);
                 }
             }
+
             PopParentArchive(parentArchives);
 
         }
@@ -251,12 +252,8 @@ namespace DAZ_Installer.Core
         /// <returns></returns>
         private static DPFileScopeSettings setupScope(DPProcessSettings settings)
         {
-            var list = new List<string>(settings.ContentFolders!.Count + settings.ContentRedirectFolders!.Count + 1);
-            list.AddRange(settings.ContentFolders.Select(x => Path.Combine(settings.DestinationPath, x)));
-            list.AddRange(settings.ContentRedirectFolders.Select(x => Path.Combine(settings.DestinationPath, x.Value)));
-            list.Add(settings.TempPath);
             var filesToAllow = new List<string>(settings.ForceFileToDest.Values);
-            return new DPFileScopeSettings(filesToAllow, list, false, false, true, false);
+            return new DPFileScopeSettings(filesToAllow, new[] { settings.DestinationPath, settings.TempPath }, false, false, true, false);
         }
 
         /// <summary>
