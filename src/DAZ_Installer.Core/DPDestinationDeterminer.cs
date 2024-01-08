@@ -134,7 +134,10 @@ namespace DAZ_Installer.Core
             // file.RelativeTargetPath already substituted the content folder name with the redirect folder name.
             var filePathPart = !string.IsNullOrEmpty(overridePath) ? overridePath : file.RelativeTargetPath;
 
-            if (filePathPart is null) Log.Warning("GetTargetPath() filePathPart is null.");
+            // This is the case for files determined by file sense but are not in a content folder
+            // (aka archives, since they are always extracted but usually never in a content folder).
+            // This would result in overridePath and RelativeTargetPath being empty.
+            if (string.IsNullOrEmpty(filePathPart)) filePathPart = file.FileName;
 
             if (file.Parent is null)
                 return Path.Combine(saveToTemp ? tmpLocation : settings.DestinationPath, filePathPart);
@@ -203,7 +206,7 @@ namespace DAZ_Installer.Core
                 foreach (DPFile file in folder.Contents)
                 {
                     if (file is not DPArchive nestedArc) continue;
-                    arc.TargetPath = GetTargetPath(nestedArc, settings, true);
+                    nestedArc.TargetPath = GetTargetPath(nestedArc, settings, true);
                     // Add to queue.
                     filesToExtract.Add(nestedArc);
                 }
