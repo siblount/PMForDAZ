@@ -235,12 +235,14 @@ namespace DAZ_Installer.Core
         }
 
         /// <summary>
-        /// Previews the archive by discovering files in this archive. If the archive is not on disk, then it will be extracted to default temp location.
+        /// Previews the archive by discovering files in this archive. If the archive is not on disk, then it will be first extracted to <paramref name="temp"/>.
+        /// If <paramref name="temp"/> is null, then it will be extracted to the temp directory.
         /// </summary>
-        public void PeekContents()
+        /// <param name="temp">The temp path to extract if the archive is not on disk, otherwise it will extract to <see cref="IOPath.GetTempPath"/></param>
+        public void PeekContents(string? temp = null)
         {
             // Just extract to temp.
-            var settings = new DPExtractSettings(IOPath.GetTempPath(), Array.Empty<DPFile>(), archive: this);
+            var settings = new DPExtractSettings(temp ?? IOPath.GetTempPath(), Array.Empty<DPFile>(), archive: this);
             if (!Extracted && !ExtractToTemp(settings))
                 throw new IOException("Archive was not on disk and could not be extracted.");
             if (Extractor is null)
