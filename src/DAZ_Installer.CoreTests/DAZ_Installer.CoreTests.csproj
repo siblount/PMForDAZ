@@ -50,11 +50,10 @@
 
   <ItemGroup>
     <Folder Include="RealData\Archives\" />
-    <Folder Include="RealData\Manifests\" />
   </ItemGroup>
 
   <Target Name="PostBuild" AfterTargets="PostBuildEvent">
-    <Exec Command="copy &quot;$(SolutionDir)DAZ_Installer.Core\libs\UnRAR.dll&quot; &quot;$(OutDir)UnRAR.dll&quot;&#xD;&#xA;copy &quot;$(SolutionDir)DAZ_Installer.Core\External\7za.exe&quot; &quot;$(OutDir)7za.exe&quot;&#xD;&#xA;echo OutDir: $(OutDir)&#xD;&#xA;echo TargetDir: $(TargetDir)&#xD;&#xA;echo ProjectDir: $(ProjectDir)" />
+    <Exec Command="copy &quot;$(SolutionDir)DAZ_Installer.Core\libs\UnRAR.dll&quot; &quot;$(OutDir)UnRAR.dll&quot;&#xD;&#xA;copy &quot;$(SolutionDir)DAZ_Installer.Core\External\7za.exe&quot; &quot;$(OutDir)7za.exe&quot;&#xD;&#xA;xcopy /e &quot;$(SolutionDir)DAZ_Installer.CoreTests\RealData\Manifests&quot; &quot;$(OutDir)RealData\Manifests&quot;&#xD;&#xA;xcopy /e /b &quot;$(SolutionDir)DAZ_Installer.CoreTests\RealData\Archives&quot; &quot;$(OutDir)RealData\Archives&quot;  &#xD;&#xA;echo OutDir: $(OutDir)&#xD;&#xA;echo TargetDir: $(TargetDir)&#xD;&#xA;echo ProjectDir: $(ProjectDir)&#xD;&#xA;echo SolutionDir: $(SolutionDir)" />
   </Target>
 
 </Project>

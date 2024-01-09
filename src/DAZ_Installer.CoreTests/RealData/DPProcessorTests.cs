@@ -26,9 +26,10 @@ namespace DAZ_Installer.Core.RealData.Tests
         public static readonly string ArchivesPath = Path.Combine(Environment.CurrentDirectory, "RealData", "Archives");
         public static readonly string ManifestsPath = Path.Combine(Environment.CurrentDirectory, "RealData", "Manifests");
         public static readonly string ExtractPath = Path.Combine(TempPath, "Extract");
-        public static readonly DPFileScopeSettings DefaultScope = new(Enumerable.Empty<string>(), new[] { TempPath, ExtractPath }, false);
+        public static readonly DPFileScopeSettings DefaultScope = new(Enumerable.Empty<string>(), new[] { Path.GetTempPath(), TempPath, ExtractPath }, false);
         public static readonly DPFileSystem FileSystem = new(DefaultScope);
         public static List<DPProcessorTestManifest> Manifests = RealDataHelper.GetValidTestCases(ArchivesPath, ManifestsPath);
+        public TestContext TestContext { get; set; } = null!;
 
         [ClassInitialize]
         public static void ClassInitialize(TestContext _)
@@ -38,19 +39,43 @@ namespace DAZ_Installer.Core.RealData.Tests
                         .WriteTo.Sink(new MSTestLoggerSink(SerilogLoggerConstants.LoggerTemplate, MSTestLogger.LogMessage))
                         .MinimumLevel.Information()
                         .CreateLogger();
+            Manifests = RealDataHelper.GetValidTestCases(ArchivesPath, ManifestsPath);
         }
 
-        public static IEnumerable<DPProcessorTestManifest> ArchivesToTest => Manifests.ToArray();
+        [TestCleanup]
+        public void TestCleanup()
+        {
+            try
+            {
+                FileSystem.DeleteDirectory(TempPath, true);
+            }
+            catch { }
+        }
 
         [TestMethod]
-        [DynamicData(nameof(ArchivesToTest), typeof(DPProcessorTestManifest), DynamicDataSourceType.Property)]
-        public void ProcessArchiveTest(DPProcessorTestManifest manifest)
+        public void ProcessArchiveTest()
         {
-            var a = new DPArchive(FileSystem.CreateFileInfo(Path.Combine(ArchivesPath, manifest.ArchiveName)));
-            var p = new DPProcessor();
+            foreach (var manifest in Manifests)
+            {
+                var arcPath = Path.Combine(ArchivesPath, manifest.ArchiveName);
+                var a = new DPArchive(FileSystem.CreateFileInfo(arcPath));
+                var p = new DPProcessor() { CancellationToken = TestContext.CancellationTokenSource.Token };
+                var exitArgs = new List<DPArchiveExitArgs>();
+                p.ArchiveExit += (_, a) => exitArgs.Add(a);
+                p.ArchiveExit += (_, a) =>
+                {
+                    if (!a.Processed) p.CancelProcessing();
+                    Assert.Fail($"Archive processing for {a.Archive.FileName} failed");
+                };
 
-            var processSettings = manifest.Settings with { TempPath = TempPath, DestinationPath = ExtractPath };
-            p.ProcessArchive(a, processSettings);
+                var processSettings = manifest.Settings with { TempPath = TempPath, DestinationPath = ExtractPath };
+                p.ProcessArchive(a, processSettings);
+
+                RealDataHelper.AssertProcess(exitArgs, manifest);
+                Log.Information("{Archive} passed.", manifest.ArchiveName);
+
+            }
+
         }
     }
 }
