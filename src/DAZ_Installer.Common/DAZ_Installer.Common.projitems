@@ -9,6 +9,8 @@
     <Import_RootNamespace>DAZ_Installer.Common</Import_RootNamespace>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="..\DAZ_Installer.Common\DPArchiveMap.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)DPProcessorTestManifest.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)MSTestLoggerSink.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)SerilogLoggerConstants.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)SpanExtensions.cs" />

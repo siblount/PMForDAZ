@@ -12,49 +12,34 @@ namespace DAZ_Installer.TestingSuiteWindows
 {
     internal static class ResultCompiler
     {
-        public struct ObjectResult
+        public static string CompileResults(IEnumerable<DPExtractionReport> extractionReports, DPProcessSettings settings, DPArchive arc)
         {
-            public string ArchiveName { get; set; }
-            public Dictionary<string, string> Mappings;
-        }
-
-        private static readonly JsonSerializerOptions options = new()
-        {
-            IncludeFields = true,
-            WriteIndented = true,
-            DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull,
-            IgnoreReadOnlyProperties = false,
-            IgnoreReadOnlyFields = false,
-        };
-
-        public static string CompileResults(IEnumerable<DPExtractionReport> extractionReports, DPProcessSettings settings)
-        {
-            var a = new List<ObjectResult>();
+            var l = new List<DPArchiveMap>();
             foreach (var report in extractionReports)
             {
-                a.Add(new ObjectResult
+                l.Add(new DPArchiveMap
                 {
                     ArchiveName = report.Settings.Archive.FileName,
                     Mappings = report.ExtractedFiles.ToDictionary(x => x.Path, x => x.RelativePathToContentFolder)
-                }) ;
+                });
             }
 
-            return JsonSerializer.Serialize(new { ProcessSettings = settings, Results = a }, options);
+            return new DPProcessorTestManifest(settings, arc.FileName, l).ToJson();
         }
 
-        public static string CompileResults(TreeNodeCollection rootNodes, DPProcessSettings settings)
+        public static string CompileResults(TreeNodeCollection rootNodes, DPProcessSettings settings, DPArchive arc)
         {
-            var l = new List<ObjectResult>();
-            foreach (TreeNode rootNode in rootNodes) 
+            var l = new List<DPArchiveMap>();
+            foreach (TreeNode rootNode in rootNodes)
             {
-                l.Add(new ObjectResult
+                l.Add(new DPArchiveMap
                 {
                     ArchiveName = rootNode.Text,
                     Mappings = makeMappings(rootNode)
                 });
             }
 
-            return JsonSerializer.Serialize(new { ProcessSettings = settings, Results = l }, options);
+            return new DPProcessorTestManifest(settings, arc.FileName, l).ToJson();
         }
 
         private static Dictionary<string, string> makeMappings(TreeNode node)

@@ -68,6 +68,7 @@
             saveBrowseBtn = new Button();
             saveTxtBox = new TextBox();
             autoSaveBtn = new CheckBox();
+            progressBar1 = new ProgressBar();
             treeViewMnuStrip.SuspendLayout();
             tabControl1.SuspendLayout();
             logsTab.SuspendLayout();
@@ -186,7 +187,7 @@
             // processBtn
             // 
             processBtn.Anchor = AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
-            processBtn.Location = new Point(382, 686);
+            processBtn.Location = new Point(382, 689);
             processBtn.Name = "processBtn";
             processBtn.Size = new Size(98, 33);
             processBtn.TabIndex = 11;
@@ -245,7 +246,7 @@
             // peekBtn
             // 
             peekBtn.Anchor = AnchorStyles.Bottom | AnchorStyles.Left;
-            peekBtn.Location = new Point(12, 686);
+            peekBtn.Location = new Point(12, 689);
             peekBtn.Name = "peekBtn";
             peekBtn.Size = new Size(98, 33);
             peekBtn.TabIndex = 16;
@@ -256,7 +257,7 @@
             // determineBtn
             // 
             determineBtn.Anchor = AnchorStyles.Bottom | AnchorStyles.Left;
-            determineBtn.Location = new Point(116, 686);
+            determineBtn.Location = new Point(116, 689);
             determineBtn.Name = "determineBtn";
             determineBtn.Size = new Size(155, 33);
             determineBtn.TabIndex = 17;
@@ -267,7 +268,7 @@
             // extractBtn
             // 
             extractBtn.Anchor = AnchorStyles.Bottom | AnchorStyles.Left;
-            extractBtn.Location = new Point(277, 686);
+            extractBtn.Location = new Point(277, 689);
             extractBtn.Name = "extractBtn";
             extractBtn.Size = new Size(99, 33);
             extractBtn.TabIndex = 18;
@@ -278,7 +279,7 @@
             // peekRecursivelyBtn
             // 
             peekRecursivelyBtn.Anchor = AnchorStyles.Bottom | AnchorStyles.Left;
-            peekRecursivelyBtn.Location = new Point(13, 725);
+            peekRecursivelyBtn.Location = new Point(13, 728);
             peekRecursivelyBtn.Name = "peekRecursivelyBtn";
             peekRecursivelyBtn.Size = new Size(97, 47);
             peekRecursivelyBtn.TabIndex = 19;
@@ -288,7 +289,7 @@
             // 
             // tabControl1
             // 
-            tabControl1.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
+            tabControl1.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
             tabControl1.Controls.Add(logsTab);
             tabControl1.Controls.Add(filesExtractedTab);
             tabControl1.Location = new Point(13, 493);
@@ -330,7 +331,7 @@
             // extractRecursivelyBtn
             // 
             extractRecursivelyBtn.Anchor = AnchorStyles.Bottom | AnchorStyles.Left;
-            extractRecursivelyBtn.Location = new Point(116, 725);
+            extractRecursivelyBtn.Location = new Point(116, 728);
             extractRecursivelyBtn.Name = "extractRecursivelyBtn";
             extractRecursivelyBtn.Size = new Size(155, 47);
             extractRecursivelyBtn.TabIndex = 21;
@@ -341,7 +342,7 @@
             // 
             cancelBtn.Anchor = AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
             cancelBtn.Enabled = false;
-            cancelBtn.Location = new Point(382, 725);
+            cancelBtn.Location = new Point(382, 728);
             cancelBtn.Name = "cancelBtn";
             cancelBtn.Size = new Size(98, 47);
             cancelBtn.TabIndex = 22;
@@ -385,7 +386,7 @@
             // saveBtn
             // 
             saveBtn.Anchor = AnchorStyles.Bottom | AnchorStyles.Left;
-            saveBtn.Location = new Point(278, 725);
+            saveBtn.Location = new Point(278, 728);
             saveBtn.Name = "saveBtn";
             saveBtn.Size = new Size(98, 47);
             saveBtn.TabIndex = 26;
@@ -397,7 +398,7 @@
             // 
             label1.Anchor = AnchorStyles.Bottom | AnchorStyles.Left;
             label1.AutoSize = true;
-            label1.Location = new Point(93, 657);
+            label1.Location = new Point(93, 660);
             label1.Name = "label1";
             label1.Size = new Size(119, 15);
             label1.TabIndex = 27;
@@ -406,7 +407,7 @@
             // saveBrowseBtn
             // 
             saveBrowseBtn.Anchor = AnchorStyles.Bottom | AnchorStyles.Right;
-            saveBrowseBtn.Location = new Point(450, 652);
+            saveBrowseBtn.Location = new Point(450, 655);
             saveBrowseBtn.Name = "saveBrowseBtn";
             saveBrowseBtn.Size = new Size(31, 23);
             saveBrowseBtn.TabIndex = 29;
@@ -417,7 +418,7 @@
             // saveTxtBox
             // 
             saveTxtBox.Anchor = AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
-            saveTxtBox.Location = new Point(213, 652);
+            saveTxtBox.Location = new Point(213, 655);
             saveTxtBox.Name = "saveTxtBox";
             saveTxtBox.Size = new Size(231, 23);
             saveTxtBox.TabIndex = 28;
@@ -426,18 +427,28 @@
             // 
             autoSaveBtn.Anchor = AnchorStyles.Bottom | AnchorStyles.Left;
             autoSaveBtn.AutoSize = true;
-            autoSaveBtn.Location = new Point(12, 656);
+            autoSaveBtn.Location = new Point(12, 659);
             autoSaveBtn.Name = "autoSaveBtn";
             autoSaveBtn.Size = new Size(75, 19);
             autoSaveBtn.TabIndex = 30;
             autoSaveBtn.Text = "Autosave";
             autoSaveBtn.UseVisualStyleBackColor = true;
             // 
+            // progressBar1
+            // 
+            progressBar1.Location = new Point(12, 781);
+            progressBar1.MarqueeAnimationSpeed = 10;
+            progressBar1.Name = "progressBar1";
+            progressBar1.Size = new Size(469, 26);
+            progressBar1.Style = ProgressBarStyle.Marquee;
+            progressBar1.TabIndex = 31;
+            // 
             // MainForm
             // 
             AutoScaleDimensions = new SizeF(96F, 96F);
             AutoScaleMode = AutoScaleMode.Dpi;
-            ClientSize = new Size(492, 788);
+            ClientSize = new Size(492, 819);
+            Controls.Add(progressBar1);
             Controls.Add(autoSaveBtn);
             Controls.Add(saveBrowseBtn);
             Controls.Add(saveTxtBox);
@@ -518,5 +529,6 @@
         private ToolStripMenuItem copyFullPathToolStripMenuItem;
         private ToolStripMenuItem markAsShouldProcessToolStripMenuItem;
         private ToolStripMenuItem markAsShouldntProcessToolStripMenuItem;
+        private ProgressBar progressBar1;
     }
 }

@@ -30,7 +30,7 @@ namespace DAZ_Installer.TestingSuiteWindows
 
         private void MainForm_Load(object sender, EventArgs e)
         {
-            saveTxtBox.Text = Directory.GetCurrentDirectory();
+            saveTxtBox.Text = Path.Combine(Environment.CurrentDirectory, "Output");
             settings.TempPath = tempPathTxtBox.Text = Path.Combine(Program.TempPath, "Temp");
             settings.DestinationPath = destPathTxtBox.Text = Path.Combine(Program.TempPath, "Destination");
             settings.ForceFileToDest = new(0);
@@ -40,7 +40,7 @@ namespace DAZ_Installer.TestingSuiteWindows
             settings.OverwriteFiles = true;
             Scope = new(Enumerable.Empty<string>(), new[] { settings.TempPath, settings.DestinationPath }, false, false, true);
             MessageBox.Show("Warning! Do NOT use this application on your main DAZ Studio library. This application is meant for testing purposes only. " +
-                "Doing so WILL result in your data being lost! If you are unsure, leave the settings at default or as instructed by a contributor of this project. " +
+                "Doing so WILL result in your data being lost!\n\nIf you are unsure, leave the settings at default or as instructed by a contributor of this project. " +
                 "YOU HAVE BEEN WARNED!", 
                 "Warning", 
                 MessageBoxButtons.OK, MessageBoxIcon.Warning);
@@ -94,8 +94,63 @@ namespace DAZ_Installer.TestingSuiteWindows
             a.ShowDialog();
             a.Settings = settings;
         }
+        private void saveBrowseBtn_Click(object sender, EventArgs e)
+        {
+            folderBrowserDialog1.Description = "Select the folder to save process output";
+            if (folderBrowserDialog1.ShowDialog() != DialogResult.OK) return;
+            saveTxtBox.Text = folderBrowserDialog1.SelectedPath;
+        }
 
+        private void saveBtn_Click(object sender, EventArgs e)
+        {
+            saveProcess(true);
+        }
 
+        private void treeViewMnuStrip_Opening(object sender, System.ComponentModel.CancelEventArgs e)
+        {
+            if (treeView1.SelectedNode is null) return;
+            var processed = treeView1.SelectedNode.ForeColor == Color.Green;
+            markAsShouldntProcessToolStripMenuItem.Enabled = processed;
+            markAsShouldProcessToolStripMenuItem.Enabled = !processed;
+        }
+
+        private void copyNameToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            Clipboard.SetText(treeView1.SelectedNode.Text);
+        }
+
+        private void copyFullPathToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            var node = treeView1.SelectedNode.Tag as DPAbstractNode;
+            Clipboard.SetText(node!.NormalizedPath);
+        }
+
+        private void markAsShouldProcessToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            treeView1.BeginUpdate();
+            var color = Color.Green;
+            markNodeAndDescendants(treeView1.SelectedNode, ref color, true);
+            treeView1.EndUpdate();
+        }
+
+        private void markNodeAndDescendants(TreeNode node, ref Color color, bool bold = false)
+        {
+            node.ForeColor = color;
+            if (bold) node.NodeFont = new Font(treeView1.Font, FontStyle.Bold);
+            else node.NodeFont = new Font(treeView1.Font, FontStyle.Regular);
+            foreach (var child in node.Nodes.Cast<TreeNode>())
+            {
+                markNodeAndDescendants(child, ref color, bold);
+            }
+        }
+
+        private void markAsShouldntProcessToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            treeView1.BeginUpdate();
+            var color = Color.Black;
+            markNodeAndDescendants(treeView1.SelectedNode, ref color);
+            treeView1.EndUpdate();
+        }
 
         private bool validateSettings()
         {
@@ -262,6 +317,29 @@ namespace DAZ_Installer.TestingSuiteWindows
             {
                 buildTree(subArchive);
             }
+        }
+
+        private void saveProcess(bool manual = false)
+        {
+            if (lastSession is null) return;
+            var time = DateTime.Now.ToString("d-m-yyyy-hh-mm-ss");
+            if (!Directory.Exists(saveTxtBox.Text))
+            {
+                try
+                {
+                    Directory.CreateDirectory(saveTxtBox.Text);
+                }
+                catch
+                {
+                    MessageBox.Show("Failed to save process output. The directory does not exist and could not be created.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+            }
+                
+            var path = Path.Combine(saveTxtBox.Text, $"{lastSession.archive.FileName}_results_{time}.json");
+            if (manual)
+                File.WriteAllTextAsync(path, ResultCompiler.CompileResults(treeView1.Nodes, lastSession.settings, lastSession.archive));
+            else
+                File.WriteAllTextAsync(path, ResultCompiler.CompileResults(lastSession.reports, lastSession.settings, lastSession.archive));
         }
 
         private void colorDetermined(HashSet<DPFile> determinedFiles)
@@ -557,74 +635,5 @@ namespace DAZ_Installer.TestingSuiteWindows
         }
 
         #endregion
-
-        private void saveBrowseBtn_Click(object sender, EventArgs e)
-        {
-            folderBrowserDialog1.Description = "Select the folder to save process output";
-            if (folderBrowserDialog1.ShowDialog() != DialogResult.OK) return;
-            saveTxtBox.Text = folderBrowserDialog1.SelectedPath;
-        }
-
-        private void saveProcess(bool manual = false)
-        {
-            if (lastSession is null) return;
-            var time = DateTime.Now.ToString("d-m-yyyy-hh-mm-ss");
-            var path = Path.Combine(saveTxtBox.Text, $"{lastSession.archive.FileName}_results_{time}.json");
-            if (manual)
-                File.WriteAllTextAsync(path, ResultCompiler.CompileResults(treeView1.Nodes, lastSession.settings));
-            else
-                File.WriteAllTextAsync(path, ResultCompiler.CompileResults(lastSession.reports, lastSession.settings));
-        }
-
-        private void saveBtn_Click(object sender, EventArgs e)
-        {
-            saveProcess(true);
-        }
-
-        private void treeViewMnuStrip_Opening(object sender, System.ComponentModel.CancelEventArgs e)
-        {
-            if (treeView1.SelectedNode is null) return;
-            var processed = treeView1.SelectedNode.ForeColor == Color.Green;
-            markAsShouldntProcessToolStripMenuItem.Enabled = processed;
-            markAsShouldProcessToolStripMenuItem.Enabled = !processed;
-        }
-
-        private void copyNameToolStripMenuItem_Click(object sender, EventArgs e)
-        {
-            Clipboard.SetText(treeView1.SelectedNode.Text);
-        }
-
-        private void copyFullPathToolStripMenuItem_Click(object sender, EventArgs e)
-        {
-            var node = treeView1.SelectedNode.Tag as DPAbstractNode;
-            Clipboard.SetText(node!.NormalizedPath);
-        }
-
-        private void markAsShouldProcessToolStripMenuItem_Click(object sender, EventArgs e)
-        {
-            treeView1.BeginUpdate();
-            var color = Color.Green;
-            markNodeAndDescendants(treeView1.SelectedNode, ref color, true);
-            treeView1.EndUpdate();
-        }
-
-        private void markNodeAndDescendants(TreeNode node, ref Color color, bool bold = false)
-        {
-            node.ForeColor = color;
-            if (bold) node.NodeFont = new Font(treeView1.Font, FontStyle.Bold);
-            else node.NodeFont = new Font(treeView1.Font, FontStyle.Regular);
-            foreach (var child in node.Nodes.Cast<TreeNode>())
-            {
-                markNodeAndDescendants(child, ref color, bold);
-            }
-        }
-
-        private void markAsShouldntProcessToolStripMenuItem_Click(object sender, EventArgs e)
-        {
-            treeView1.BeginUpdate();
-            var color = Color.Black;
-            markNodeAndDescendants(treeView1.SelectedNode, ref color);
-            treeView1.EndUpdate();
-        }
     }
 }

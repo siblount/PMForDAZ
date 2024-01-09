@@ -48,6 +48,11 @@
     </None>
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="RealData\Archives\" />
+    <Folder Include="RealData\Manifests\" />
+  </ItemGroup>
+
   <Target Name="PostBuild" AfterTargets="PostBuildEvent">
     <Exec Command="copy &quot;$(SolutionDir)DAZ_Installer.Core\libs\UnRAR.dll&quot; &quot;$(OutDir)UnRAR.dll&quot;&#xD;&#xA;copy &quot;$(SolutionDir)DAZ_Installer.Core\External\7za.exe&quot; &quot;$(OutDir)7za.exe&quot;&#xD;&#xA;echo OutDir: $(OutDir)&#xD;&#xA;echo TargetDir: $(TargetDir)&#xD;&#xA;echo ProjectDir: $(ProjectDir)" />
   </Target>

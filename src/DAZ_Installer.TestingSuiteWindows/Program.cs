@@ -23,8 +23,7 @@ namespace DAZ_Installer.TestingSuiteWindows
                                            fileSizeLimitBytes: 20 * 1024 * 1024, // 20 MB
                                            rollOnFileSizeLimit: true,
                                            retainedFileCountLimit: 5,
-                                           retainedFileTimeLimit: TimeSpan.FromDays(5)),
-                blockWhenFull: true)
+                                           retainedFileTimeLimit: TimeSpan.FromDays(5)))
                 .CreateLogger();
             // To customize application configuration such as set high DPI settings or default font,
             // see https://aka.ms/applicationconfiguration.
