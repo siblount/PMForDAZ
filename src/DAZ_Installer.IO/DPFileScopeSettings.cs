@@ -105,7 +105,6 @@ namespace DAZ_Installer.IO
         {
             if (ThrowOnPathTransversal) PathTransversalException.ThrowIfTransversalDetected(directoryPath);
             directoryPath = Path.GetFullPath(directoryPath);
-            Console.WriteLine($"Directory Path: ${directoryPath}");
             if (NoEnforcement) return true;
             if (ExplicitDirectoryPaths)
                 return WhitelistedDirectories.Contains(directoryPath);
@@ -132,7 +131,6 @@ namespace DAZ_Installer.IO
             if (ThrowOnPathTransversal) PathTransversalException.ThrowIfTransversalDetected(path);
             path = Path.GetFullPath(path);
             var dirPath = Path.GetDirectoryName(path) ?? string.Empty;
-            Console.WriteLine($"Path: {path}, DirPath: {dirPath}");
             if (NoEnforcement) return true;
             if (ExplicitFilePaths && !ExplicitDirectoryPaths)
                 return WhitelistedFilePaths.Contains(path);
