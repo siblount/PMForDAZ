@@ -19,7 +19,7 @@ namespace DAZ_Installer.Core.Extraction
         }
         private bool _hasEncryptedFiles = false;
         private bool _hasEncryptedHeader = false;
-        private IProcess? _process = null;
+        private volatile IProcess? _process = null;
         private bool _processHasStarted = false;
         private string _arcPassword = string.Empty;
 
@@ -35,6 +35,8 @@ namespace DAZ_Installer.Core.Extraction
         private bool _movingEventEmitted = false;
 
         private bool _seekingFiles = false;
+
+        private bool _stopListening = false;
 
         private Entity _lastEntity = new() { };
         private DPExtractionReport workingExtractionReport = null!;
@@ -157,6 +159,7 @@ namespace DAZ_Installer.Core.Extraction
 
         private void Handle7zErrors(string? data)
         {
+            if (_stopListening) return;
             Logger.Debug("7z error output: {output}", data ?? "null");
             if (data is null) _peekFinished = true;
             ReadOnlySpan<char> msg = data;
@@ -173,16 +176,19 @@ namespace DAZ_Installer.Core.Extraction
         {
             using var _ = LogContext.PushProperty("Archive", workingArchive.FileName);
             
+            if (CancellationToken.IsCancellationRequested || _stopListening) return;
             Logger.Debug("7z output: {output}", data ?? "null");
-            if (CancellationToken.IsCancellationRequested) return;
-            if (data == null || _hasEncryptedFiles)
+
+            var isEncrypted = _hasEncryptedFiles || _hasEncryptedHeader;
+            if (data is null || isEncrypted)
             {
                 if (mode == Mode.Peek) _peekFinished = true;
                 else _extractFinished = true;
 
-                if (_hasEncryptedFiles)
+                if (isEncrypted)
                 {
                     handleError(workingArchive, DPArchiveErrorArgs.EncryptedFilesExplanation, null, null, null);
+                    _extractFinished = _peekFinished = _moveFinished = _stopListening = true;
                     return;
                 }
                 // Finalize the last 7z content.
@@ -294,7 +300,8 @@ namespace DAZ_Installer.Core.Extraction
         private void Reset()
         {
             _moveFinished = _extractFinished = _movingEventEmitted = _extractEventEmitted =
-                _peekFinished = _seekingFiles = _hasEncryptedFiles = _hasEncryptedHeader = false;
+                _peekFinished = _seekingFiles = _hasEncryptedFiles = _hasEncryptedHeader = 
+                _stopListening = false;
             _lastEntity = new Entity { };
             KillProcess();
             _processHasStarted = false;
