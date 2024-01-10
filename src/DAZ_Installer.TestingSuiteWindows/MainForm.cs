@@ -11,7 +11,7 @@ namespace DAZ_Installer.TestingSuiteWindows
 {
     public partial class MainForm : Form
     {
-        private record class ProcessSession(DPArchive archive, DPProcessSettings settings, List<DPExtractionReport> reports);
+        private record class ProcessSession(DPProcessor Processor, DPArchive Archive, DPProcessSettings Settings, List<DPExtractionReport> Reports);
 
         public static MainForm Instance = null!;
         DPFileScopeSettings Scope = new DPFileScopeSettings();
@@ -19,8 +19,6 @@ namespace DAZ_Installer.TestingSuiteWindows
         private Task? lastTask;
         private DPArchive? lastRootArchive;
         ProcessSession? lastSession = null;
-
-
         CancellationTokenSource tokenSource = new();
         public MainForm()
         {
@@ -41,8 +39,8 @@ namespace DAZ_Installer.TestingSuiteWindows
             Scope = new(Enumerable.Empty<string>(), new[] { settings.TempPath, settings.DestinationPath }, false, false, true);
             MessageBox.Show("Warning! Do NOT use this application on your main DAZ Studio library. This application is meant for testing purposes only. " +
                 "Doing so WILL result in your data being lost!\n\nIf you are unsure, leave the settings at default or as instructed by a contributor of this project. " +
-                "YOU HAVE BEEN WARNED!", 
-                "Warning", 
+                "YOU HAVE BEEN WARNED!",
+                "Warning",
                 MessageBoxButtons.OK, MessageBoxIcon.Warning);
         }
 
@@ -247,11 +245,22 @@ namespace DAZ_Installer.TestingSuiteWindows
                     Log.Error(ex, $"An error occurred while running task: {a.Method.Name}");
                     MessageBox.Show($"An error occurred while running a task.\nError message: \n{ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 }
-                BeginInvoke(() => cancelBtn.Enabled = false);
+                BeginInvoke(() => updateProgression(false));
                 if (deleteFiles) this.deleteFiles();
             });
-            cancelBtn.Enabled = true;
+            updateProgression(true);
             return true;
+        }
+
+        private void updateProgression(bool enable = true)
+        {
+            cancelBtn.Enabled = enable;
+            changeProgressionBar(enable);
+        }
+        private void changeProgressionBar(bool marquee = false)
+        {
+            progressBar1.Style = marquee ? ProgressBarStyle.Marquee : ProgressBarStyle.Continuous;
+            progressBar1.Value = marquee ? 0 : 100;
         }
 
         private void deleteFiles()
@@ -305,18 +314,30 @@ namespace DAZ_Installer.TestingSuiteWindows
             }
 
             // Add it to the tree.
-            Invoke(() =>
+            try
             {
-                treeView1.BeginUpdate();
-                treeView1.Nodes.Add(rootNode);
-                treeView1.EndUpdate();
-            });
+                // If this is the root archive, then we need to pause drawing operations.
+                if (arc.AssociatedArchive is null) BeginInvoke(treeView1.BeginUpdate);
 
-            // Add the subarchives.
-            foreach (var subArchive in arc.Subarchives)
-            {
-                buildTree(subArchive);
+                // Let the UI thread begin adding the nodes (we are on a thread pool thread).
+                var result = BeginInvoke(() => treeView1.Nodes.Add(rootNode));
+
+                // Add the subarchives.
+                foreach (var subArchive in arc.Subarchives)
+                {
+                    buildTree(subArchive);
+                }
+
+                // Wait for the tree to finish updating.
+                result.AsyncWaitHandle.WaitOne();
             }
+            finally
+            {
+                // We need to resume drawing operations at all costs.
+                if (arc.AssociatedArchive is null) BeginInvoke(treeView1.EndUpdate);
+            }
+
+
         }
 
         private void saveProcess(bool manual = false)
@@ -334,12 +355,12 @@ namespace DAZ_Installer.TestingSuiteWindows
                     MessageBox.Show("Failed to save process output. The directory does not exist and could not be created.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 }
             }
-                
-            var path = Path.Combine(saveTxtBox.Text, $"{lastSession.archive.FileName}_results_{time}.json");
+
+            var path = Path.Combine(saveTxtBox.Text, $"{lastSession.Archive.FileName}_results_{time}.json");
             if (manual)
-                File.WriteAllTextAsync(path, ResultCompiler.CompileResults(treeView1.Nodes, lastSession.settings, lastSession.archive));
+                File.WriteAllTextAsync(path, ResultCompiler.CompileResults(treeView1.Nodes, lastSession.Settings, lastSession.Archive));
             else
-                File.WriteAllTextAsync(path, ResultCompiler.CompileResults(lastSession.reports, lastSession.settings, lastSession.archive));
+                File.WriteAllTextAsync(path, ResultCompiler.CompileResults(lastSession.Reports, lastSession.Settings, lastSession.Archive));
         }
 
         private void colorDetermined(HashSet<DPFile> determinedFiles)
@@ -469,7 +490,7 @@ namespace DAZ_Installer.TestingSuiteWindows
                 Log.Error(ex, "An error occurred while peeking at archive contents");
             }
             Log.Information("Finished peeking at archive contents.");
-            BeginInvoke(() => treeView1.Nodes.Clear());
+            BeginInvoke(treeView1.Nodes.Clear);
             buildTree(lastRootArchive);
         }
 
@@ -500,7 +521,7 @@ namespace DAZ_Installer.TestingSuiteWindows
                 Log.Error(ex, "An error occurred while determining destinations");
             }
             Log.Information("Finished determining destinations.");
-            BeginInvoke(() => treeView1.Nodes.Clear());
+            BeginInvoke(treeView1.Nodes.Clear);
             buildTree(lastRootArchive);
             if (determinedFiles.Count != 0) colorDetermined(determinedFiles);
         }
@@ -540,7 +561,7 @@ namespace DAZ_Installer.TestingSuiteWindows
                 Log.Error(ex, "An error occurred while extracting archive");
             }
             Log.Information("Finished extracting archive.");
-            BeginInvoke(() => treeView1.Nodes.Clear());
+            BeginInvoke(treeView1.Nodes.Clear);
             buildTree(lastRootArchive);
             colorExtractedToTarget(lastRootArchive);
         }
@@ -563,17 +584,15 @@ namespace DAZ_Installer.TestingSuiteWindows
             Log.Information("Beginning to process archive.");
             Log.Information("Archive File: {lastRootArchive}", archiveTxtBox.Text);
             Log.Information("Settings to use: \n{@Settings}", JsonSerializer.Serialize(settings, new JsonSerializerOptions { WriteIndented = true }));
-
+            var processor = new DPProcessor();
             try
             {
-                var processor = new DPProcessor() { CancellationToken = tokenSource.Token };
                 processor.ArchiveEnter += (_, a) => arcs.Add(a.Archive);
                 processor.ArchiveExit += (_, a) =>
                 {
                     if (a.Processed) records.Add(a.Report!);
                 };
                 processor.ProcessArchive(archiveTxtBox.Text, this.settings);
-
             }
             catch (Exception ex)
             {
@@ -583,7 +602,7 @@ namespace DAZ_Installer.TestingSuiteWindows
             BeginInvoke(treeView1.Nodes.Clear);
             if (arcs.Count == 0) return;
             lastRootArchive = arcs[0];
-            lastSession = new(lastRootArchive, this.settings, records);
+            lastSession = new(processor, lastRootArchive, this.settings, records);
             if (autoSave) saveProcess();
             buildTree(arcs[0]);
             colorExtractedToTarget(arcs[0]);
@@ -630,10 +649,31 @@ namespace DAZ_Installer.TestingSuiteWindows
                 Log.Error(ex, "An error occurred while peeking at archive contents");
             }
             Log.Information("Finished recursive peek.");
-            BeginInvoke(() => treeView1.Nodes.Clear());
+            BeginInvoke(treeView1.Nodes.Clear);
             buildTree(lastRootArchive);
         }
 
         #endregion
+
+        private void MainForm_DragEnter(object sender, DragEventArgs e)
+        {
+            if (e.Data is not null && e.Data.GetDataPresent(DataFormats.FileDrop))
+                e.Effect = DragDropEffects.Copy;
+        }
+
+        private void MainForm_DragDrop(object sender, DragEventArgs e)
+        {
+            if (e.Data is null || !e.Data.GetDataPresent(DataFormats.FileDrop)) return;
+            string[] files = (string[])e.Data.GetData(DataFormats.FileDrop);
+            if (files.Length != 1) return;
+            archiveTxtBox.Text = files[0];
+        }
+
+        private void cancelBtn_Click(object sender, EventArgs e)
+        {
+            lastSession?.Processor.CancelProcessing();
+            tokenSource.Cancel();
+            tokenSource = new();
+        }
     }
 }

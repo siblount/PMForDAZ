@@ -348,6 +348,7 @@
             cancelBtn.TabIndex = 22;
             cancelBtn.Text = "Cancel";
             cancelBtn.UseVisualStyleBackColor = true;
+            cancelBtn.Click += cancelBtn_Click;
             // 
             // deleteFilesChkBox
             // 
@@ -436,15 +437,17 @@
             // 
             // progressBar1
             // 
+            progressBar1.Anchor = AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
             progressBar1.Location = new Point(12, 781);
             progressBar1.MarqueeAnimationSpeed = 10;
             progressBar1.Name = "progressBar1";
             progressBar1.Size = new Size(469, 26);
-            progressBar1.Style = ProgressBarStyle.Marquee;
+            progressBar1.Style = ProgressBarStyle.Continuous;
             progressBar1.TabIndex = 31;
             // 
             // MainForm
             // 
+            AllowDrop = true;
             AutoScaleDimensions = new SizeF(96F, 96F);
             AutoScaleMode = AutoScaleMode.Dpi;
             ClientSize = new Size(492, 819);
@@ -480,6 +483,8 @@
             Name = "MainForm";
             Text = "Testing Suite";
             Load += MainForm_Load;
+            DragDrop += MainForm_DragDrop;
+            DragEnter += MainForm_DragEnter;
             treeViewMnuStrip.ResumeLayout(false);
             tabControl1.ResumeLayout(false);
             logsTab.ResumeLayout(false);
