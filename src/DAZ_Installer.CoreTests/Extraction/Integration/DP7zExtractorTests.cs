@@ -19,6 +19,7 @@ namespace DAZ_Installer.Core.Extraction.Integration.Tests
         public static readonly string RegularArchivePath = Path.Combine(TempPath, "regular.7z");
         public static readonly string SolidArchivePath = Path.Combine(TempPath, "solid.7z");
         public static readonly string EncryptedArchivePath = Path.Combine(TempPath, "encrypted.7z");
+        public static readonly string EncryptedHeadersArchivePath = Path.Combine(TempPath, "encrypted.7z");
         public static readonly string MultiVolumeArchivePathInit = Path.Combine(TempPath, "multivolume.7z");
         public static readonly string MultiVolumeArchivePath = Path.Combine(TempPath, "multivolume.7z.001");
         public static readonly string MultiVolumeArchivePath2 = Path.Combine(TempPath, "multivolume.7z.002");
@@ -42,6 +43,12 @@ namespace DAZ_Installer.Core.Extraction.Integration.Tests
             new[] { SolidArchivePath },
             new[] { MultiVolumeArchivePath },
         };
+        public static IEnumerable<string[]> EncryptedArchiveEnumerable => new[]
+        {
+            new[] { EncryptedArchivePath },
+            new[] { EncryptedHeadersArchivePath },
+        };
+
         [ClassInitialize]
         public static void ClassInitialize(TestContext _)
         {
@@ -56,8 +63,9 @@ namespace DAZ_Installer.Core.Extraction.Integration.Tests
             Create7zArchiveOnDisk(SolidArchivePath, ArchiveContentsPath, DefaultOpts.SkipLast(1));
             Create7zArchiveOnDisk(MultiVolumeArchivePathInit, ArchiveContentsPath, DefaultOpts.Append("-v6m"));
             if (!File.Exists(MultiVolumeArchivePath2)) throw new Exception("Failed to create multivolume archive");
-            Create7zArchiveOnDisk(EncryptedArchivePath, ArchiveContentsPath, DefaultOpts.Append("-pPASSWORD")
-                                                                                    .Append("-mhe"));
+            Create7zArchiveOnDisk(EncryptedArchivePath, ArchiveContentsPath, DefaultOpts.Append("-pPASSWORD"));
+            Create7zArchiveOnDisk(EncryptedHeadersArchivePath, ArchiveContentsPath, DefaultOpts.Append("-pPASSWORD")
+                                                                                               .Append("-mhe"));
             Directory.CreateDirectory(ExtractPath);
         }
         [ClassCleanup]
@@ -187,6 +195,32 @@ namespace DAZ_Installer.Core.Extraction.Integration.Tests
         }
 
         [TestMethod]
+        [Timeout(6000)]
+        [DynamicData(nameof(EncryptedArchiveEnumerable), DynamicDataSourceType.Property)]
+        public void ExtractTest_Encrypted(string path)
+        {
+            var cts = new CancellationTokenSource();
+            cts.CancelAfter(TimeSpan.FromSeconds(5));
+            var fi = FileSystem.CreateFileInfo(path);
+            var e = new DP7zExtractor(Log.Logger, new ProcessFactory());
+            var arc = new DPArchive(fi) { Extractor = e };
+            var settings = new DPExtractSettings(ExtractPath, arc.Contents.Values, archive: arc);
+            DPArchiveTestHelpers.SetupTargetPaths(arc, ExtractPath);
+
+            // Testing Extract() here
+            bool encryptedFilesShowed = false;
+            e.ArchiveErrored += (a, b) =>
+            {
+                Assert.IsFalse(encryptedFilesShowed, "Encrypted files event called more than once.");
+                if (b.Explaination == DPArchiveErrorArgs.EncryptedFilesExplanation) encryptedFilesShowed = true;
+            };
+            var report = e.Extract(settings);
+
+            Assert.IsTrue(encryptedFilesShowed, "Encrypted files event was not called.");
+            Assert.AreEqual(arc.FileSystem, e.FileSystem);
+        }
+
+        [TestMethod]
         public void ExtractTest_FilesNotWhitelisted()
         {
             var scope = new DPFileScopeSettings(Array.Empty<string>(), new[] { Path.Combine(ExtractPath, "regular") }, true);
@@ -308,10 +342,11 @@ namespace DAZ_Installer.Core.Extraction.Integration.Tests
         }
 
         [TestMethod]
-        public void PeekTest_Encrypted()
+        [DynamicData(nameof(EncryptedArchiveEnumerable), DynamicDataSourceType.Property)]
+        public void PeekTest_Encrypted(string path)
         {
             var e = new DP7zExtractor();
-            var fi = FileSystem.CreateFileInfo(EncryptedArchivePath);
+            var fi = FileSystem.CreateFileInfo(path);
             var arc = new DPArchive(fi);
 
             // Testing Peek() here:

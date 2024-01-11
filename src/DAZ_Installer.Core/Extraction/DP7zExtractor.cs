@@ -180,17 +180,11 @@ namespace DAZ_Installer.Core.Extraction
             Logger.Debug("7z output: {output}", data ?? "null");
 
             var isEncrypted = _hasEncryptedFiles || _hasEncryptedHeader;
-            if (data is null || isEncrypted)
+            if (data == null)
             {
                 if (mode == Mode.Peek) _peekFinished = true;
                 else _extractFinished = true;
 
-                if (isEncrypted)
-                {
-                    handleError(workingArchive, DPArchiveErrorArgs.EncryptedFilesExplanation, null, null, null);
-                    _extractFinished = _peekFinished = _moveFinished = _stopListening = true;
-                    return;
-                }
                 // Finalize the last 7z content.
                 if (data is null && !_lastEntity.IsEmpty)
                 {
@@ -198,6 +192,11 @@ namespace DAZ_Installer.Core.Extraction
                     _lastEntity = new Entity { };
                 }
                 if (tempOnly) finalizeTempOnlyOperation();
+                return;
+            }
+            if (data.Contains("Enter password (will not be echoed):"))
+            {
+                handleEncryptedArchive(true);
                 return;
             }
             ReadOnlySpan<char> msg = data;
@@ -221,9 +220,8 @@ namespace DAZ_Installer.Core.Extraction
                     ReadOnlySpan<char> attributes = msg.Slice("Attributes = ".Length);
                     _lastEntity.isDirectory = attributes.Contains("D");
                 }
-                else if (msg.StartsWith("Encrypted"))
-                    _hasEncryptedFiles = msg.Contains("+");
-                else if (msg.Contains("Errors:")) 
+                else if (msg.StartsWith("Encrypted = +")) handleEncryptedArchive();
+                else if (msg.Contains("Errors:"))
                     Logger.Warning("7z reported errors while peeking");
             }
             else
@@ -237,6 +235,19 @@ namespace DAZ_Installer.Core.Extraction
                 if (!tempOnly) MoveFiles();
             }
         }
+
+        /// <summary>
+        /// Emits an error due to encrypted archive and stops processing outputs.
+        /// </summary>
+        /// <param name="encryptedHeader">Set whether <see cref="_hasEncryptedFiles"/> should be set to true or not.</param>
+        private void handleEncryptedArchive(bool encryptedHeader = false)
+        {
+            handleError(workingArchive, DPArchiveErrorArgs.EncryptedFilesExplanation, null, null, null);
+            _extractFinished = _peekFinished = _moveFinished = _stopListening = true;
+            if (encryptedHeader) _hasEncryptedHeader = true;
+            else _hasEncryptedFiles = true;
+        }
+
         /// <summary>
         /// Relocates the files from the temporary directory to their final destination. It also updates their file info.
         /// </summary>
