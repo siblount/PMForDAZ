@@ -19,6 +19,7 @@ namespace DAZ_Installer.TestingSuiteWindows
         private Task? lastTask;
         private DPArchive? lastRootArchive;
         ProcessSession? lastSession = null;
+        DPProcessor? currentProcessor = null;
         CancellationTokenSource tokenSource = new();
         public MainForm()
         {
@@ -584,7 +585,7 @@ namespace DAZ_Installer.TestingSuiteWindows
             Log.Information("Beginning to process archive.");
             Log.Information("Archive File: {lastRootArchive}", archiveTxtBox.Text);
             Log.Information("Settings to use: \n{@Settings}", JsonSerializer.Serialize(settings, new JsonSerializerOptions { WriteIndented = true }));
-            var processor = new DPProcessor();
+            var processor = currentProcessor = new DPProcessor();
             try
             {
                 processor.ArchiveEnter += (_, a) => arcs.Add(a.Archive);
@@ -600,6 +601,7 @@ namespace DAZ_Installer.TestingSuiteWindows
             }
             Log.Information("Finished processing archive.");
             BeginInvoke(treeView1.Nodes.Clear);
+            currentProcessor = null;
             if (arcs.Count == 0) return;
             lastRootArchive = arcs[0];
             lastSession = new(processor, lastRootArchive, this.settings, records);
@@ -671,6 +673,7 @@ namespace DAZ_Installer.TestingSuiteWindows
 
         private void cancelBtn_Click(object sender, EventArgs e)
         {
+            currentProcessor?.CancelProcessing();
             lastSession?.Processor.CancelProcessing();
             tokenSource.Cancel();
             tokenSource = new();
