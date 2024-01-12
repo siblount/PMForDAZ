@@ -137,12 +137,14 @@ namespace DAZ_Installer.Core
                     }
                     catch (Exception e)
                     {
-                        EmitOnProcessError(new DPProcessorErrorArgs(e, "Unable to create temp directory."));
+                        EmitOnProcessError(new DPProcessorErrorArgs(e, "Unable to create temp directory.") { Continuable = true });
                     }
 
                     State = ProcessorState.Peeking;
                     if (ArchiveCancelled) { HandleEarlyExit(); return; }
+                    if (arc.Extractor is null)
                     {
+                        EmitOnProcessError(new DPProcessorErrorArgs(null, "Unable to process archive. Potentially not an archive or archive is corrupted."));
                         HandleEarlyExit();
                         continue;
                     }
@@ -180,7 +182,6 @@ namespace DAZ_Installer.Core
                     State = ProcessorState.Analyzing;
                     if (!tryCatch(() => arc.Type = arc.DetermineArchiveType(), "Failed to analyze archive")) continue;
                     if (!tryCatch(() => TagProvider.GetTags(arc, settings), "Failed to get tags for archive")) continue;
-
 
                     foreach (var subarc in arc.Subarchives.Where(x => x.Extracted))
                     {
@@ -437,8 +438,9 @@ namespace DAZ_Installer.Core
             if (s.TryPop(out var parentArc))
             {
                 var temp = CurrentArchive;
+                var report = parentArc.Item2;
                 CurrentArchive = parentArc.Item1;
-                try { EmitOnArchiveExit(true, parentArc.Item2); } catch { }
+                try { EmitOnArchiveExit(report.SuccessPercentage >= 0.1f, report); } catch { }
                 CurrentArchive = temp;
             }
         }
