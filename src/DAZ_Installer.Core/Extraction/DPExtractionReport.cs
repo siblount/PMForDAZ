@@ -14,7 +14,7 @@
         /// </summary>
         public DPExtractSettings Settings;
         /// <summary>
-        /// Errors that occurred while attempting to extract files. This may be empty if an error occured interanlly
+        /// Errors that occurred while attempting to extract files. This may be empty if an error occured internally
         /// before the extractor could extract the files.
         /// </summary>
         /// <typeparam name="DPFile">The file that errored while attempting to extract it.</typeparam>
@@ -23,6 +23,6 @@
         /// <summary>
         /// The percentage of files that successfully extracted.
         /// </summary>
-        public float SuccessPercentage => (float)ExtractedFiles.Count / ExtractedFiles.Count + ErroredFiles.Count;
+        public float SuccessPercentage => (float)ExtractedFiles.Count / (ExtractedFiles.Count + ErroredFiles.Count);
     }
 }
