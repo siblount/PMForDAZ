@@ -18,7 +18,7 @@
         /// </summary>
         public string Explaination { get; internal set; } = string.Empty;
         /// <summary>
-        /// Represents whether the operation can be continued or not.
+        /// Represents whether the operation can be continued or not. Default is false.
         /// </summary>
         public bool Continuable { get; internal set; } = false;
         /// <summary>
