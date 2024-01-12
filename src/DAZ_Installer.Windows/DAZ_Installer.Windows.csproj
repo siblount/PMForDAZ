@@ -138,6 +138,9 @@
   <Target Name="PostBuild" AfterTargets="PostBuildEvent">
     <Exec Command="copy &quot;$(SolutionDir)DAZ_Installer.Core\libs\UnRAR.dll&quot; &quot;$(OutDir)UnRAR.dll&quot;&#xD;&#xA;copy &quot;$(SolutionDir)DAZ_Installer.Core\External\7za.exe&quot; &quot;$(OutDir)7za.exe&quot;&#xD;&#xA;echo OutDir: $(OutDir)&#xD;&#xA;echo TargetDir: $(TargetDir)&#xD;&#xA;echo ProjectDir: $(ProjectDir)" />
   </Target>
+	<Target Name="PostPublish" AfterTargets="Publish">
+		<Exec Command="copy &quot;$(SolutionDir)DAZ_Installer.Core\libs\UnRAR.dll&quot; &quot;$(OutDir)UnRAR.dll&quot;&#xD;&#xA;copy &quot;$(SolutionDir)DAZ_Installer.Core\External\7za.exe&quot; &quot;$(OutDir)7za.exe&quot;&#xD;&#xA;echo OutDir: $(OutDir)&#xD;&#xA;echo TargetDir: $(TargetDir)&#xD;&#xA;echo ProjectDir: $(ProjectDir)" />
+	</Target>
 
   <Import Project="..\DAZ_Installer.Common\DAZ_Installer.Common.projitems" Label="Shared" />
 
