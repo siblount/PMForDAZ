@@ -22,7 +22,12 @@ namespace DAZ_Installer.Core
         // We use these variables in case the user changes the settings in mist of an extraction process
         public static readonly ImmutableDictionary<string, string> DefaultRedirects = ImmutableDictionary.Create<string, string>(StringComparer.OrdinalIgnoreCase)
                                                                                                          .AddRange(new KeyValuePair<string, string>[]{ new("docs", "Documentation"),
-                                                                                                                                                       new("Documents", "Documentation") });
+                                                                                                                                                       new("Documents", "Documentation"),
+                                                                                                                                                       new("Readme", "Documentation"),
+                                                                                                                                                       new("ReadMe's", "Documentation"),
+                                                                                                                                                       new("Readmes", "Documentation"),
+                                                                                                                                                       new("Transport", "Vehicles"),
+                                                                                                                                                       new("Scene", "Scenes")});
         public static readonly ImmutableHashSet<string> DefaultContentFolders = ImmutableHashSet.Create<string>(StringComparer.OrdinalIgnoreCase)
                                                                                                 .Union(new[] {"aniBlocks", "Animals", "Architecture", "Camera Presets", "data", "DAZ Studio Tutorials", "Documentation", "Documents",
                                                                                                               "Environments", "General", "Light Presets", "Lights", "People", "Presets", "Props", "Render Presets", "Render Settings", "Runtime",
@@ -116,7 +121,6 @@ namespace DAZ_Installer.Core
                         Logger.Information("Processing archive");
                     var arcDebugInfo = new
                     {
-                        NestedArchive = arc.IsInnerArchive,
                         Name = arc.FileName,
                         NestedArchive = arc.IsInnerArchive,
                         Path = arc.IsInnerArchive ? arc.Path : arc?.FileInfo?.Path,
@@ -124,7 +128,7 @@ namespace DAZ_Installer.Core
                         ParentArchiveNestedArchive = arc?.AssociatedArchive?.IsInnerArchive,
                         ParentArchiveName = arc?.AssociatedArchive?.FileName,
                         ParentArchivePath = arc?.AssociatedArchive?.IsInnerArchive ?? false ? arc?.AssociatedArchive?.Path :
-                                                                                                      arc?.AssociatedArchive?.FileInfo?.Path,
+                                                                                              arc?.AssociatedArchive?.FileInfo?.Path,
                         ParentExtractor = arc?.AssociatedArchive?.Extractor?.GetType().Name,
                     };
                     Logger.Debug("Archive that is about to be processed: {@Arc}", arcDebugInfo);
