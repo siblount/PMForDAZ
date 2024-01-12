@@ -127,11 +127,7 @@ namespace DAZ_Installer.Core
                         ParentExtractor = arc?.AssociatedArchive?.Extractor,
                     };
                     Logger.Debug("Archive that is about to be processed: {@Arc}", arcDebugInfo);
-                    if (CancellationToken.IsCancellationRequested)
-                    {
-                        HandleEarlyExit();
-                        return;
-                    }
+                    if (CancellationToken.IsCancellationRequested) { HandleEarlyExit(); return; }
 
                     State = ProcessorState.Starting;
                     try
@@ -144,11 +140,12 @@ namespace DAZ_Installer.Core
                     }
 
                     State = ProcessorState.Peeking;
-                    if (ArchiveCancelled)
+                    if (ArchiveCancelled) { HandleEarlyExit(); return; }
                     {
                         HandleEarlyExit();
                         continue;
                     }
+                    arc.Extractor.CancellationToken = ArchiveCancellationToken;
                     if (!tryCatch(() => arc!.PeekContents(), "Failed to peek into archive")) continue;
 
                     // Check if we have enough room.
@@ -161,6 +158,7 @@ namespace DAZ_Installer.Core
                     State = ProcessorState.PreparingExtraction;
                     HashSet<DPFile> filesToExtract = null!;
                     if (!tryCatch(prepareOperations, "Failed to prepare for extraction")) continue;
+                    if (ArchiveCancelled) { HandleEarlyExit(); continue; }
                     if (!tryCatch(() => filesToExtract = DestinationDeterminer.DetermineDestinations(arc, settings), "Failed to determine destinations for files")) continue;
 
                     State = ProcessorState.Extracting;
@@ -173,6 +171,7 @@ namespace DAZ_Installer.Core
                         CancelToken = ArchiveCancellationToken,
                     };
 
+                    if (ArchiveCancelled) { HandleEarlyExit(); continue; }
                     if (!tryCatch(() => report = arc.ExtractContents(extractSettings), "Failed to extract contents for archive")) continue;
 
                     // DPCommon.WriteToLog("We are done");
@@ -351,10 +350,12 @@ namespace DAZ_Installer.Core
             var extractSettings = new DPExtractSettings(settings.TempPath,
                 CurrentArchive!.DSXFiles.Where((f) => f.FileInfo is null || !f.FileInfo.Exists),
                 true, CurrentArchive);
+            if (ArchiveCancelled) return;
             CurrentArchive.ExtractContentsToTemp(extractSettings);
             Stream? stream = null!;
             foreach (DPDSXFile file in CurrentArchive!.DSXFiles)
             {
+                if (ArchiveCancelled) return;
                 using (LogContext.PushProperty("File", file.Path))
                 // If it did not extract correctly we don't have acces, just skip it.
                 if (file.FileInfo is null || !file.FileInfo.Exists)
