@@ -71,11 +71,24 @@ namespace DAZ_Installer.Windows.DP
             if (Processor.State == ProcessorState.PreparingExtraction)
             {
                 // TO DO: Highlight files in red for files that failed to extract.
-                Extract.ExtractPage.AddToList(Processor.CurrentArchive);
-                Extract.ExtractPage.AddToHierachy(Processor.CurrentArchive);
-                ProgressCombo.ChangeProgressBarStyle(true);
-                ProgressCombo.UpdateText($"Preparing to extract contents in {Processor.CurrentArchive.FileName}...");
-                ProgressCombo.ProgressBar.Value = 0;
+                Extract.ExtractPage.BeginInvoke(() =>
+                {
+                    Extract.ExtractPage.SuspendLayout();
+                    try
+                    {
+                        Extract.ExtractPage.AddToList(Processor.CurrentArchive);
+                        Extract.ExtractPage.AddToHierachy(Processor.CurrentArchive);
+                        ProgressCombo.ChangeProgressBarStyle(true);
+                        ProgressCombo.UpdateText($"Preparing to extract contents in {Processor.CurrentArchive.FileName}...");
+                        ProgressCombo.ProgressBar.Value = 0;
+                    } catch (Exception ex)
+                    {
+                        Logger.Error(ex, "An error occurred while attempting to add archive to list");
+                    } finally
+                    {
+                        Extract.ExtractPage.ResumeLayout();
+                    }
+                });
             }
             else if (Processor.State == ProcessorState.Analyzing)
             {

@@ -19,6 +19,10 @@ namespace DAZ_Installer.Windows.Pages
         internal static Dictionary<DPAbstractNode, ListViewItem> associatedListItems = new(2048);
         internal static Dictionary<DPAbstractNode, TreeNode> associatedTreeNodes = new(2048);
 
+        /// <summary>
+        /// Completely resets the main table layout panel by removing (and disposing) all controls and resetting the row/column count. 
+        /// Assure that this function is called from the UI thread with either <see cref="Control.Invoke(Delegate)"/> or <see cref="Control.BeginInvoke(Delegate)"/>.
+        /// </summary>
         public void ResetMainTable()
         {
             mainTableLayoutPanel.SuspendLayout();
@@ -40,16 +44,22 @@ namespace DAZ_Installer.Windows.Pages
             UpdateMainTableRowSizing();
             mainTableLayoutPanel.ResumeLayout();
         }
-        public void UpdateMainTableRowSizing()
+
+        /// <summary>
+        /// Updates the main table row sizing to be equal to the amount of controls in the table.
+        /// Set <paramref name="suspend"/> to true to suspend and resume the layout after updating. Default is false.
+        /// </summary>
+        /// <param name="suspend">Whether to suspend and resume the layout after updating.</param>
+        public void UpdateMainTableRowSizing(bool suspend = false)
         {
-            // TO DO : Invoke.
-            mainTableLayoutPanel.SuspendLayout();
+            if (suspend) mainTableLayoutPanel.SuspendLayout();
             var percentageMultiplied = 1f / mainTableLayoutPanel.Controls.Count * 100f;
             for (var i = 0; i < mainTableLayoutPanel.RowStyles.Count; i++)
             {
                 mainTableLayoutPanel.RowStyles[i] = new RowStyle(SizeType.Percent, percentageMultiplied);
             }
 
+            if (!suspend) return;
             mainTableLayoutPanel.ResumeLayout();
             mainTableLayoutPanel.Update();
         }
@@ -64,6 +74,10 @@ namespace DAZ_Installer.Windows.Pages
             queuePage.Dispose();
         }
 
+        /// <summary>
+        /// Adds all the contents found in <paramref name="archive"/> to the list view.
+        /// Assure that this function is called from the UI thread with either <see cref="Control.Invoke(Delegate)"/> or <see cref="Control.BeginInvoke(Delegate)"/>.
+        /// </summary>
         internal void AddToList(DPArchive archive)
         {
             fileListView.BeginUpdate();
@@ -77,63 +91,48 @@ namespace DAZ_Installer.Windows.Pages
             fileListView.EndUpdate();
         }
 
+        /// <summary>
+        /// Process the child nodes of <paramref name="folder"/> and add them to <paramref name="parentNode"/>.
+        /// Assure that this function is called from the UI thread with either <see cref="Control.Invoke(Delegate)"/> or <see cref="Control.BeginInvoke(Delegate)"/>.
+        /// </summary>
+        /// <param name="folder"></param>
+        /// <param name="parentNode"></param>
         private void ProcessChildNodes(DPFolder folder, TreeNode parentNode)
         {
             var fileName = Path.GetFileName(folder.Path);
-            TreeNode folder1 = null;
             // We don't need associations for folders.
-            if (InvokeRequired)
-            {
-                folder1 = (TreeNode)Invoke(new Func<string, TreeNode>(parentNode.Nodes.Add), fileName);
-                AddIcon(folder1, null);
-            }
-            else
-            {
-                folder1 = parentNode.Nodes.Add(fileName);
-                AddIcon(folder1, null);
-            }
+            var folder1 = parentNode.Nodes.Add(fileName);
+            AddIcon(folder1, null);
+
             // Add the DPFiles.
             foreach (DPFile file in folder.Contents)
             {
                 fileName = Path.GetFileName(file.Path);
                 // TO DO: Add condition if file is a DPArchive & extract == true
-                if (InvokeRequired)
-                {
-                    var node = (TreeNode)Invoke(new Func<string, TreeNode>(folder1.Nodes.Add), fileName);
-                    node.Tag = file;
-                    associatedTreeNodes[file] = node;
-                    AddIcon(node, file.Ext);
-                }
-                else
-                {
-                    TreeNode node = folder1.Nodes.Add(fileName);
-                    node.Tag = file;
-                    associatedTreeNodes[file] = node;
-                    AddIcon(node, file.Ext);
-                }
+                TreeNode node = folder1.Nodes.Add(fileName);
+                node.Tag = file;
+                associatedTreeNodes[file] = node;
+                AddIcon(node, file.Ext);
             }
             foreach (DPFolder subfolder in folder.subfolders)
                 ProcessChildNodes(subfolder, folder1);
         }
 
+        /// <summary>
+        /// Adds the contents of <paramref name="workingArchive"/> to the file hierachy tree.
+        /// Assure that this function is called from the UI thread with either <see cref="Control.Invoke(Delegate)"/> or <see cref="Control.BeginInvoke(Delegate)"/>.
+        /// </summary>
+        /// <param name="workingArchive">The archive to add to the hierachy</param>
         internal void AddToHierachy(DPArchive workingArchive)
         {
-            if (InvokeRequired)
-            {
-                Invoke(AddToHierachy, workingArchive);
-                return;
-            }
-
             fileHierachyTree.BeginUpdate();
 
             // Add root node for DPArchive.
             var fileName = workingArchive.FileName;
-            TreeNode rootNode = null;
-            rootNode = fileHierachyTree.Nodes.Add(fileName);
+            TreeNode rootNode = fileHierachyTree.Nodes.Add(fileName);
             rootNode.Tag = workingArchive;
             associatedTreeNodes[workingArchive] = rootNode;
             AddIcon(rootNode, workingArchive.Ext);
-
 
             // Add any files that aren't in any folder.
             foreach (DPFile file in workingArchive.RootContents)
@@ -152,13 +151,15 @@ namespace DAZ_Installer.Windows.Pages
             fileHierachyTree.EndUpdate();
         }
 
-        private void AddIcon(TreeNode node, string ext)
+        /// <summary>
+        /// Assigns an icon to the <paramref name="node"/> based on the <paramref name="ext"/> of the file.
+        /// This only assigns icons for archives and folders. <br/>
+        /// Assure that this function is called from the UI thread with either <see cref="Control.Invoke(Delegate)"/> or <see cref="Control.BeginInvoke(Delegate)"/>.
+        /// </summary>
+        /// <param name="node">The node to set the icon to</param>
+        /// <param name="ext">The extension used to determine the icon to set (7z, zip, rar, null, or "").</param>
+        private void AddIcon(TreeNode node, string? ext)
         {
-            if (InvokeRequired)
-            {
-                Invoke(AddIcon, node, ext);
-                return;
-            }
             if (string.IsNullOrEmpty(ext))
                 node.StateImageIndex = 0;
             else if (ext.Contains("zip") || ext.Contains("7z"))
@@ -205,14 +206,14 @@ namespace DAZ_Installer.Windows.Pages
         }
 
         #region Handle DPPrecssor Events
+
+        /// <summary>
+        /// Deletes the progression combo from the main table layout panel.
+        /// Assure that this function is called from the UI thread with either <see cref="Control.Invoke(Delegate)"/> or <see cref="Control.BeginInvoke(Delegate)"/>.
+        /// </summary>
+        /// <param name="combo">The DPProgressCombo to remove.</param>
         internal void DeleteProgressionCombo(DPProgressCombo combo)
         {
-            if (InvokeRequired)
-            {
-                Invoke(DeleteProgressionCombo, combo);
-                return;
-            }
-
             mainTableLayoutPanel.SuspendLayout();
             mainTableLayoutPanel.Controls.Remove(combo.Panel);
             mainTableLayoutPanel.RowCount = Math.Max(1, mainTableLayoutPanel.Controls.Count);
@@ -220,12 +221,15 @@ namespace DAZ_Installer.Windows.Pages
             for (var i = 0; i < mainTableLayoutPanel.RowCount; i++)
                 mainTableLayoutPanel.RowStyles.Add(new RowStyle());
             mainTableLayoutPanel.ResumeLayout();
-            UpdateMainTableRowSizing();
+            UpdateMainTableRowSizing(true);
         }
 
         /// <summary>
         /// Creates a progress bar and adds it to the table.
+        /// Assure that this function is called from the UI thread with either <see cref="Control.Invoke(Delegate)"/> or <see cref="Control.BeginInvoke(Delegate)"/>.
         /// </summary>
+        /// <param name="combo">The DPProgressCombo to add to the main table layout panel.</param>
+        // This function is called once on the UI thread.
         internal void AddNewProgressCombo(DPProgressCombo combo)
         {
             mainTableLayoutPanel.SuspendLayout();

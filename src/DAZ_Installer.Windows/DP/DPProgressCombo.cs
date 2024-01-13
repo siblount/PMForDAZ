@@ -18,14 +18,17 @@ namespace DAZ_Installer.Windows.DP
 
         internal DPProgressCombo()
         {
-            Extract.ExtractPage.Invoke(CreateProgressCombo);
-            Extract.ExtractPage.Invoke(Extract.ExtractPage.AddNewProgressCombo, this);
+            Extract.ExtractPage.BeginInvoke(CreateProgressCombo);
+            Extract.ExtractPage.BeginInvoke(Extract.ExtractPage.AddNewProgressCombo, this);
             ProgressCombos.Push(this);
         }
 
+        /// <summary>
+        /// Creates a new DPProgressCombo.
+        /// </summary>
+        // This function is called once on the UI thread.
         private void CreateProgressCombo()
         {
-
             // Panel
             Panel = new TableLayoutPanel();
             Panel.Dock = DockStyle.Fill;
@@ -53,48 +56,81 @@ namespace DAZ_Installer.Windows.DP
             // ProgressBar.CheckForIllegalCrossThreadCalls = false;
         }
 
-
+        /// <summary>
+        /// Changes the process bar style to either <see cref="ProgressBarStyle.Marquee"/> or <see cref="ProgressBarStyle.Blocks"/>". 
+        /// It automatically checks if Invoke is required.
+        /// </summary>
+        /// <param name="marqueue">Whether to set the progress bar style to Marqueue or not.</param>
         internal void ChangeProgressBarStyle(bool marqueue)
         {
             if (IsMarqueueProgressBar == marqueue) return;
             if (Extract.ExtractPage.InvokeRequired)
             {
-                Extract.ExtractPage.Invoke(ChangeProgressBarStyle, marqueue);
+                Extract.ExtractPage.BeginInvoke(ChangeProgressBarStyle, marqueue);
                 return;
             }
-
-            ProgressBar.SuspendLayout();
-            if (marqueue)
+            try
             {
-                ProgressBar.Value = 10;
-                ProgressBar.Style = ProgressBarStyle.Marquee;
-            }
-            else
+                if (marqueue)
+                {
+                    ProgressBar.Value = 10;
+                    ProgressBar.Style = ProgressBarStyle.Marquee;
+                }
+                else
+                {
+                    ProgressBar.Value = 50;
+                    ProgressBar.Style = ProgressBarStyle.Blocks;
+                }
+            } finally
             {
-                ProgressBar.Value = 50;
-                ProgressBar.Style = ProgressBarStyle.Blocks;
+                ProgressBar.ResumeLayout();
             }
-            ProgressBar.ResumeLayout();
-
         }
 
+        /// <summary>
+        /// Removes all DPProgressCombos from the UI. This is a blocking UI call.
+        /// </summary>
         internal static void RemoveAll()
         {
             Extract.ExtractPage.Invoke(Extract.ExtractPage.ResetExtractPage);
             ProgressCombos.Clear();
         }
 
-        internal void Remove()
+        /// <summary>
+        /// Pops the last DPProgressCombo from the stack and removes it from the UI. This is a blocking UI call.
+        /// </summary>
+        internal void Pop()
         {
             if (ProgressCombos.TryPop(out _))
-                Extract.ExtractPage.DeleteProgressionCombo(this);
+                Extract.ExtractPage.Invoke(Extract.ExtractPage.DeleteProgressionCombo, this);
         }
 
+        /// <summary>
+        /// Sets the value of the progress bar. Automatically checks if Invoke is required.
+        /// </summary>
+        /// <param name="value"></param>
+        internal void SetProgressBarValue(int value)
+        {
+            if (Extract.ExtractPage.InvokeRequired)
+            {
+                Extract.ExtractPage.BeginInvoke(SetProgressBarValue, value);
+                return;
+            }
+            ProgressBar.Value = value;
+        }
+
+        /// <summary>
+        /// Updates the text of the progress bar label and the main process label. Automatically checks if Invoke is required.
+        /// </summary>
+        /// <param name="text">The text to set it to.</param>
         internal void UpdateText(string text)
         {
-            ProgressBarLbl.Text =
-            Extract.ExtractPage.mainProcLbl.Text =
-            text;
+            if (Extract.ExtractPage.InvokeRequired)
+            {
+                Extract.ExtractPage.BeginInvoke(UpdateText, text);
+                return;
+            }
+            ProgressBarLbl.Text = Extract.ExtractPage.mainProcLbl.Text = text;
         }
 
         ~DPProgressCombo()
