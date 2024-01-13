@@ -80,7 +80,7 @@ namespace DAZ_Installer.Windows.DP
                         Extract.ExtractPage.AddToHierachy(Processor.CurrentArchive);
                         ProgressCombo.ChangeProgressBarStyle(true);
                         ProgressCombo.UpdateText($"Preparing to extract contents in {Processor.CurrentArchive.FileName}...");
-                        ProgressCombo.ProgressBar.Value = 0;
+                        ProgressCombo.SetProgressBarValue(0);
                     } catch (Exception ex)
                     {
                         Logger.Error(ex, "An error occurred while attempting to add archive to list");
@@ -101,7 +101,7 @@ namespace DAZ_Installer.Windows.DP
         {
             if (ProgressCombo.ProgressBar.Style == ProgressBarStyle.Marquee)
                 ProgressCombo.ChangeProgressBarStyle(false);
-            ProgressCombo.ProgressBar.Value = e.ExtractionPercentage;
+            ProgressCombo.SetProgressBarValue(e.ExtractionPercentage);
             ProgressCombo.UpdateText($"Extracting contents from {e.Archive.FileName}...{e.ExtractionPercentage}%");
         }
 
@@ -191,14 +191,14 @@ namespace DAZ_Installer.Windows.DP
                 for (var i = 0; i < c; i++)
                 {
                     var x = FilesToProcess[i];
-                    ProgressCombo.ProgressBar.Value = (int)((double)i / c * 100);
+                    ProgressCombo.SetProgressBarValue((int)((double)i / c * 100));
                     ProgressCombo.UpdateText($"Processing archive {i + 1}/{c}: " +
                         $"{Path.GetFileName(x)}...({ProgressCombo.ProgressBar.Value}%)");
                     Processor.ProcessArchive(x, processSettings);
                 }
                 ProgressCombo.UpdateText($"Finished processing archives");
                 ProgressCombo.ChangeProgressBarStyle(false);
-                ProgressCombo.ProgressBar.Value = 100;
+                ProgressCombo.SetProgressBarValue(100);
 
                 // Update the database after this run.
                 Program.Database.GetInstalledArchiveNamesQ();
