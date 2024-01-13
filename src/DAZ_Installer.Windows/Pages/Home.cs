@@ -38,7 +38,8 @@ namespace DAZ_Installer.Windows.Pages
             }
 
             // Clear everything from extract page.
-            DPProgressCombo.RemoveAll();
+            Extract.ExtractPage.ResetExtractPage();
+
             // Goto next page.
             MainForm.SwitchPage(Extract.ExtractPage);
 

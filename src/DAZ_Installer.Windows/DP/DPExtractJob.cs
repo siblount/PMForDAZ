@@ -5,6 +5,7 @@ using DAZ_Installer.Core;
 using DAZ_Installer.Core.Extraction;
 using DAZ_Installer.Database;
 using DAZ_Installer.IO;
+using DAZ_Installer.UI;
 using DAZ_Installer.Windows.Pages;
 using Microsoft.VisualBasic.FileIO;
 using Serilog;
@@ -27,9 +28,9 @@ namespace DAZ_Installer.Windows.DP
         public DPProcessor Processor = new();
         public Task TaskJob { get; protected set; }
         public DPSettings UserSettings { get; protected set; }
-        private DPProgressCombo ProgressCombo;
 
         public static DPTaskManager extractJobs = new();
+        private ProgressCombo progressCombo = Extract.ExtractPage.progressCombo;
         public static Queue<DPExtractJob> Jobs { get; } = new Queue<DPExtractJob>();
         // TODO: Check if a product is already in list.
 
@@ -78,9 +79,9 @@ namespace DAZ_Installer.Windows.DP
                     {
                         Extract.ExtractPage.AddToList(Processor.CurrentArchive);
                         Extract.ExtractPage.AddToHierachy(Processor.CurrentArchive);
-                        ProgressCombo.ChangeProgressBarStyle(true);
-                        ProgressCombo.UpdateText($"Preparing to extract contents in {Processor.CurrentArchive.FileName}...");
-                        ProgressCombo.SetProgressBarValue(0);
+                        progressCombo.ChangeProgressBarStyle(true);
+                        progressCombo.SetText($"Preparing to extract contents in {Processor.CurrentArchive.FileName}...");
+                        progressCombo.SetProgress(0);
                     } catch (Exception ex)
                     {
                         Logger.Error(ex, "An error occurred while attempting to add archive to list");
@@ -92,24 +93,22 @@ namespace DAZ_Installer.Windows.DP
             }
             else if (Processor.State == ProcessorState.Analyzing)
             {
-                ProgressCombo.ChangeProgressBarStyle(true);
-                ProgressCombo.UpdateText($"Analyzing file contents in {Processor.CurrentArchive.FileName}...");
+                progressCombo.ChangeProgressBarStyle(true);
+                progressCombo.SetText($"Analyzing file contents in {Processor.CurrentArchive.FileName}...");
             }
         }
 
         private void Processor_ExtractProgress(object sender, DPExtractProgressArgs e)
         {
-            if (ProgressCombo.ProgressBar.Style == ProgressBarStyle.Marquee)
-                ProgressCombo.ChangeProgressBarStyle(false);
-            ProgressCombo.SetProgressBarValue(e.ExtractionPercentage);
-            ProgressCombo.UpdateText($"Extracting contents from {e.Archive.FileName}...{e.ExtractionPercentage}%");
+            progressCombo.ChangeProgressBarStyle(false);
+            progressCombo.SetProgress(e.ExtractionPercentage);
+            progressCombo.SetText($"Extracting contents from {e.Archive.FileName}...{e.ExtractionPercentage}%");
         }
 
         private void Processor_MoveProgress(DPProcessor sender, DPExtractProgressArgs e)
         {
-            if (ProgressCombo.ProgressBar.Style != ProgressBarStyle.Marquee)
-                ProgressCombo.ChangeProgressBarStyle(true);
-            ProgressCombo.UpdateText($"Moving files from {e.Archive.FileName} to destination...%");
+            progressCombo.ChangeProgressBarStyle(true);
+            progressCombo.SetText($"Moving files from {e.Archive.FileName} to destination...%");
         }
 
         private void Processor_FileError(object sender, DPErrorArgs e) =>
@@ -129,9 +128,9 @@ namespace DAZ_Installer.Windows.DP
             if (!e.Processed) return;
             // Create records if applicable.
             // TODO: Only add if successful extraction, and all files from temp were moved, and/or user didn't cancel operation.
-            ProgressCombo.ChangeProgressBarStyle(true);
+            progressCombo.ChangeProgressBarStyle(true);
             Logger.Information("Creating records for {arc}", e.Archive.FileName);
-            ProgressCombo.UpdateText($"Creating records for {e.Archive.FileName}...");
+            progressCombo.SetText($"Creating records for {e.Archive.FileName}...");
             CreateRecords(e.Archive, e.Report!);
 
             switch (UserSettings.PermDeleteSource)
@@ -170,7 +169,13 @@ namespace DAZ_Installer.Windows.DP
         {
             try
             {
-                ProgressCombo = new DPProgressCombo();
+                // Tell the progress combo we are beginning by enabling visibility of the progress bar and cancel button.
+                progressCombo.StartProgress();
+
+                // Register the cancellation token so we can cancel the process.
+                var token = progressCombo.CancellationTokenSource.Token;
+                token.Register(Processor.CancelProcessing);
+
                 // Snapshot the settings and this will be what we use
                 // throughout the entire extraction process.
                 UserSettings = DPSettings.GetCopy();
@@ -192,14 +197,11 @@ namespace DAZ_Installer.Windows.DP
                 {
                     var x = FilesToProcess[i];
                     int percentage = (int)((double)i / c * 100);
-                    ProgressCombo.SetProgressBarValue(percentage);
-                    ProgressCombo.UpdateText($"Processing archive {i + 1}/{c}: " +
+                    progressCombo.SetProgress(percentage);
+                    progressCombo.SetText($"Processing archive {i + 1}/{c}: " +
                         $"{Path.GetFileName(x)}...({percentage}%)");
                     Processor.ProcessArchive(x, processSettings);
                 }
-                ProgressCombo.UpdateText($"Finished processing archives");
-                ProgressCombo.ChangeProgressBarStyle(false);
-                ProgressCombo.SetProgressBarValue(100);
 
                 // Update the database after this run.
                 Program.Database.GetInstalledArchiveNamesQ();
@@ -208,7 +210,11 @@ namespace DAZ_Installer.Windows.DP
                 Logger.Error(ex, "An error occurred while attempting to process archive list");
             } finally
             {
-                // We are finished. Remove this job from the queue.
+                progressCombo.SetText($"Finished processing archives");
+                progressCombo.ChangeProgressBarStyle(false);
+                progressCombo.SetProgress(100);
+                progressCombo.EndProgress();
+
                 Completed = true;
                 Jobs.Dequeue();
                 GC.Collect();

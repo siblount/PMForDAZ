@@ -17,53 +17,9 @@ namespace DAZ_Installer.Windows.Pages
 
     public partial class Extract : UserControl
     {
-        public static Extract ExtractPage;
+        public static Extract ExtractPage = null!;
         internal static Dictionary<DPAbstractNode, ListViewItem> associatedListItems = new(2048);
         internal static Dictionary<DPAbstractNode, TreeNode> associatedTreeNodes = new(2048);
-
-        /// <summary>
-        /// Completely resets the main table layout panel by removing (and disposing) all controls and resetting the row/column count. 
-        /// Assure that this function is called from the UI thread with either <see cref="Control.Invoke(Delegate)"/> or <see cref="Control.BeginInvoke(Delegate)"/>.
-        /// </summary>
-        public void ResetMainTable()
-        {
-            mainTableLayoutPanel.SuspendLayout();
-            try
-            {
-                if (mainTableLayoutPanel.Controls.Count != 0)
-                {
-                    foreach (Control control in RecursivelyGetControls(mainTableLayoutPanel))
-                        control.Dispose();
-                }
-            }
-            catch { }
-            mainTableLayoutPanel.Controls.Clear();
-            mainTableLayoutPanel.RowStyles.Clear();
-            mainTableLayoutPanel.ColumnCount = 1;
-            mainTableLayoutPanel.RowStyles.Add(new RowStyle());
-            mainTableLayoutPanel.RowCount = 1;
-            UpdateMainTableRowSizing();
-            mainTableLayoutPanel.ResumeLayout();
-        }
-
-        /// <summary>
-        /// Updates the main table row sizing to be equal to the amount of controls in the table.
-        /// Set <paramref name="suspend"/> to true to suspend and resume the layout after updating. Default is false.
-        /// </summary>
-        /// <param name="suspend">Whether to suspend and resume the layout after updating.</param>
-        public void UpdateMainTableRowSizing(bool suspend = false)
-        {
-            if (suspend) mainTableLayoutPanel.SuspendLayout();
-            var percentageMultiplied = 1f / mainTableLayoutPanel.Controls.Count * 100f;
-            for (var i = 0; i < mainTableLayoutPanel.RowStyles.Count; i++)
-            {
-                mainTableLayoutPanel.RowStyles[i] = new RowStyle(SizeType.Percent, percentageMultiplied);
-            }
-
-            if (!suspend) return;
-            mainTableLayoutPanel.ResumeLayout();
-            mainTableLayoutPanel.Update();
-        }
 
         public Extract()
         {
@@ -170,7 +126,7 @@ namespace DAZ_Installer.Windows.Pages
         public void ResetExtractPage()
         {
             // Later show nothing to extract panel.
-            ResetMainTable();
+            progressCombo.EndProgress();
             fileListView.Items.Clear();
             fileHierachyTree.Nodes.Clear();
             associatedListItems.Clear();
@@ -201,46 +157,6 @@ namespace DAZ_Installer.Windows.Pages
         {
 
         }
-
-        #region Handle DPPrecssor Events
-
-        /// <summary>
-        /// Deletes the progression combo from the main table layout panel.
-        /// Assure that this function is called from the UI thread with either <see cref="Control.Invoke(Delegate)"/> or <see cref="Control.BeginInvoke(Delegate)"/>.
-        /// </summary>
-        /// <param name="combo">The DPProgressCombo to remove.</param>
-        internal void DeleteProgressionCombo(DPProgressCombo combo)
-        {
-            mainTableLayoutPanel.SuspendLayout();
-            mainTableLayoutPanel.Controls.Remove(combo.Panel);
-            mainTableLayoutPanel.RowCount = Math.Max(1, mainTableLayoutPanel.Controls.Count);
-            mainTableLayoutPanel.RowStyles.Clear();
-            for (var i = 0; i < mainTableLayoutPanel.RowCount; i++)
-                mainTableLayoutPanel.RowStyles.Add(new RowStyle());
-            mainTableLayoutPanel.ResumeLayout();
-            UpdateMainTableRowSizing(true);
-        }
-
-        /// <summary>
-        /// Creates a progress bar and adds it to the table.
-        /// Assure that this function is called from the UI thread with either <see cref="Control.Invoke(Delegate)"/> or <see cref="Control.BeginInvoke(Delegate)"/>.
-        /// </summary>
-        /// <param name="combo">The DPProgressCombo to add to the main table layout panel.</param>
-        // This function is called once on the UI thread.
-        internal void AddNewProgressCombo(DPProgressCombo combo)
-        {
-            mainTableLayoutPanel.SuspendLayout();
-            if (mainTableLayoutPanel.Controls.Count != 0)
-            {
-                mainTableLayoutPanel.RowCount += 1;
-                mainTableLayoutPanel.RowStyles.Add(new RowStyle(SizeType.AutoSize));
-            }
-            mainTableLayoutPanel.Controls.Add(combo.Panel);
-            UpdateMainTableRowSizing();
-            mainTableLayoutPanel.ResumeLayout(true);
-        }
-
-        #endregion
 
         #region Context Strip Events
         private void selectInHierachyToolStripMenuItem_Click(object sender, EventArgs e)
