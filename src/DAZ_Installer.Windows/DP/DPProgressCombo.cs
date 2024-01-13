@@ -63,7 +63,7 @@ namespace DAZ_Installer.Windows.DP
         /// <param name="marqueue">Whether to set the progress bar style to Marqueue or not.</param>
         internal void ChangeProgressBarStyle(bool marqueue)
         {
-            if (IsMarqueueProgressBar == marqueue) return;
+            // Removed check if marque is already set to marquee due to the fact that it could change later due to async queued' calls.
             if (Extract.ExtractPage.InvokeRequired)
             {
                 Extract.ExtractPage.BeginInvoke(ChangeProgressBarStyle, marqueue);
@@ -71,6 +71,7 @@ namespace DAZ_Installer.Windows.DP
             }
             try
             {
+                ProgressBar.SuspendLayout();
                 if (marqueue)
                 {
                     ProgressBar.Value = 10;
