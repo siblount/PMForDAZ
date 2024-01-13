@@ -3,11 +3,13 @@
 
 using DAZ_Installer.Core;
 using DAZ_Installer.Windows.DP;
+using Serilog;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Windows.Forms;
 
 namespace DAZ_Installer.Windows.Pages
@@ -30,8 +32,7 @@ namespace DAZ_Installer.Windows.Pages
             {
                 if (mainTableLayoutPanel.Controls.Count != 0)
                 {
-                    Control[] arr = RecursivelyGetControls(mainTableLayoutPanel);
-                    foreach (Control control in arr)
+                    foreach (Control control in RecursivelyGetControls(mainTableLayoutPanel))
                         control.Dispose();
                 }
             }
@@ -178,26 +179,24 @@ namespace DAZ_Installer.Windows.Pages
             associatedTreeNodes.Clear();
         }
 
-        public static Control[] RecursivelyGetControls(Control obj)
+        /// <summary>
+        /// Recursively gets the controls of the <paramref name="obj"/> and returns them as an array.
+        /// </summary>
+        /// <param name="obj"></param>
+        /// <returns></returns>
+        public static IEnumerable<Control> RecursivelyGetControls(Control obj)
         {
-            if (obj.Controls.Count == 0) return null;
-            else
+            Log.Information($"RecursivelyGetControls: {obj.Controls.Count}");
+            if (obj.Controls.Count == 0) return Enumerable.Empty<Control>();
+            var list = new List<Control>(obj.Controls.Count);
+            var enumerator = list.AsEnumerable();
+            foreach (Control control in obj.Controls)
             {
-                var workingArr = new List<Control>(obj.Controls.Count);
-                foreach (Control control in obj.Controls)
-                {
-                    Control[] result = RecursivelyGetControls(control);
-                    if (result != null)
-                    {
-                        foreach (Control childControl in result)
-                            workingArr.Add(childControl);
-                    }
-                    workingArr.Add(control);
-                }
-                Control[] controlArr = workingArr.ToArray();
-                return controlArr;
+                enumerator.Concat(RecursivelyGetControls(control));
+                list.Add(control);
             }
-
+            
+            return enumerator;
         }
 
         private void mainProcLbl_Click(object sender, EventArgs e)
