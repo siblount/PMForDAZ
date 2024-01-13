@@ -6,6 +6,7 @@ using DAZ_Installer.Core.Extraction;
 using DAZ_Installer.Database;
 using DAZ_Installer.IO;
 using DAZ_Installer.Windows.Pages;
+using Microsoft.VisualBasic.FileIO;
 using Serilog;
 using Serilog.Core;
 using System;
@@ -154,38 +155,51 @@ namespace DAZ_Installer.Windows.DP
 
         private void ProcessListAsync(CancellationToken t)
         {
-            ProgressCombo = new DPProgressCombo();
-            // Snapshot the settings and this will be what we use
-            // throughout the entire extraction process.
-            UserSettings = DPSettings.GetCopy();
-            var processSettings = new DPProcessSettings
+            try
             {
-                ContentFolders = UserSettings.CommonContentFolderNames,
-                ContentRedirectFolders = UserSettings.FolderRedirects,
-                DestinationPath = UserSettings.DestinationPath,
-                TempPath = UserSettings.TempDir,
-                InstallOption = UserSettings.HandleInstallation,
-                OverwriteFiles = UserSettings.OverwriteFiles == SettingOptions.Yes ||
-                                UserSettings.OverwriteFiles == SettingOptions.Prompt,
-                ForceFileToDest = new Dictionary<DPFile, string>(0),
-            };
-            SetupEventHandlers();
+                ProgressCombo = new DPProgressCombo();
+                // Snapshot the settings and this will be what we use
+                // throughout the entire extraction process.
+                UserSettings = DPSettings.GetCopy();
+                var processSettings = new DPProcessSettings
+                {
+                    ContentFolders = UserSettings.CommonContentFolderNames,
+                    ContentRedirectFolders = UserSettings.FolderRedirects,
+                    DestinationPath = UserSettings.DestinationPath,
+                    TempPath = UserSettings.TempDir,
+                    InstallOption = UserSettings.HandleInstallation,
+                    OverwriteFiles = UserSettings.OverwriteFiles == SettingOptions.Yes ||
+                                    UserSettings.OverwriteFiles == SettingOptions.Prompt,
+                    ForceFileToDest = new Dictionary<DPFile, string>(0),
+                };
+                SetupEventHandlers();
 
-            var c = FilesToProcess.Count;
-            for (var i = 0; i < c; i++)
+                var c = FilesToProcess.Count;
+                for (var i = 0; i < c; i++)
+                {
+                    var x = FilesToProcess[i];
+                    ProgressCombo.ProgressBar.Value = (int)((double)i / c * 100);
+                    ProgressCombo.UpdateText($"Processing archive {i + 1}/{c}: " +
+                        $"{Path.GetFileName(x)}...({ProgressCombo.ProgressBar.Value}%)");
+                    Processor.ProcessArchive(x, processSettings);
+                }
+                ProgressCombo.UpdateText($"Finished processing archives");
+                ProgressCombo.ChangeProgressBarStyle(false);
+                ProgressCombo.ProgressBar.Value = 100;
+
+                // Update the database after this run.
+                Program.Database.GetInstalledArchiveNamesQ();
+            } catch (Exception ex)
             {
-                var x = FilesToProcess[i];
-                ProgressCombo.ProgressBar.Value = (int)((double)i / c * 100);
-                ProgressCombo.UpdateText($"Processing archive {i + 1}/{c}: " +
-                    $"{Path.GetFileName(x)}...({ProgressCombo.ProgressBar.Value}%)");
-                Processor.ProcessArchive(x, processSettings);
+                Logger.Error(ex, "An error occurred while attempting to process archive list");
+            } finally
+            {
+                // We are finished. Remove this job from the queue.
+                Completed = true;
+                Jobs.Dequeue();
+                GC.Collect();
             }
-            ProgressCombo.UpdateText($"Finished processing archives");
-            ProgressCombo.ChangeProgressBarStyle(false);
-            ProgressCombo.ProgressBar.Value = 100;
-            Completed = true;
-            Jobs.Dequeue();
-            GC.Collect();
+            
         }
 
         public void RemoveSourceFiles()
@@ -200,16 +214,6 @@ namespace DAZ_Installer.Windows.DP
                     fs.CreateFileInfo(file).TryAndFixDelete(out ex);
                 else
                 {
-                    if (File.Exists(file)) File.Delete(file);
-                }
-                catch (UnauthorizedAccessException ex)
-                {
-                    if (del)
-                    {
-                        del = !del;
-                        continue;
-                    }
-                    // Check to see if the file has a read-only attribute.
                     try
                     {
                         if (fs.Scope.IsFilePathWhitelisted(file)) 
