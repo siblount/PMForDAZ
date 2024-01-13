@@ -18,7 +18,7 @@ namespace DAZ_Installer.Windows.DP
 
         internal DPProgressCombo()
         {
-            Extract.ExtractPage.BeginInvoke(CreateProgressCombo);
+            Extract.ExtractPage.Invoke(CreateProgressCombo);
             Extract.ExtractPage.BeginInvoke(Extract.ExtractPage.AddNewProgressCombo, this);
             ProgressCombos.Push(this);
         }
