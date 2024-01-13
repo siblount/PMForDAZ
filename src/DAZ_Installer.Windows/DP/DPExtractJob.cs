@@ -190,11 +190,15 @@ namespace DAZ_Installer.Windows.DP
 
         public void RemoveSourceFiles()
         {
+            var scopeSettings = new DPFileScopeSettings(FilesToProcess, Array.Empty<string>(), false, true);
+            var fs = new DPFileSystem(scopeSettings);
+
             foreach (var file in FilesToProcess)
             {
-                var del = false;
-            DELETE_AGAIN:
-                try
+                Exception? ex = null;
+                if (UserSettings.DeleteAction == RecycleOption.DeletePermanently)
+                    fs.CreateFileInfo(file).TryAndFixDelete(out ex);
+                else
                 {
                     if (File.Exists(file)) File.Delete(file);
                 }
@@ -208,33 +212,12 @@ namespace DAZ_Installer.Windows.DP
                     // Check to see if the file has a read-only attribute.
                     try
                     {
-                        if (!File.Exists(file)) return;
-                        FileAttributes attr = File.GetAttributes(file);
-                        if (attr.HasFlag(FileAttributes.ReadOnly))
-                        {
-                            try
-                            {
-                                File.SetAttributes(file, attr ^ FileAttributes.ReadOnly);
-                                del = true;
-                                goto DELETE_AGAIN;
-                            }
-                            catch
-                            {
-                                // TODO: Log failed to change file attribute to readonly.
-                                continue;
-                            }
-                        }
-                        // TODO: Log we do not have access to the file...maybe due to security app or security policy.
-                    }
-                    catch (Exception e)
-                    {
-                        // TODO: Log failed to get file attributes.
-                    }
+                        if (fs.Scope.IsFilePathWhitelisted(file)) 
+                            FileSystem.DeleteFile(file, UIOption.OnlyErrorDialogs, RecycleOption.SendToRecycleBin);
+                    } catch (Exception e) { ex = e; }
                 }
-                catch (Exception)
-                {
-                    // Now...this...is unexpected.
-                }
+                if (ex != null)
+                    Logger.Error(ex, "Failed to delete source file: {file}", file);
             }
         }
 
