@@ -65,8 +65,6 @@ namespace DAZ_Installer.Windows.Pages
             mainTableLayoutPanel.Update();
         }
 
-        public DialogResult DoPromptMessage(string message, string title, MessageBoxButtons buttons = MessageBoxButtons.YesNo) => MessageBox.Show(message, title, buttons, MessageBoxIcon.Hand);
-
         public Extract()
         {
             InitializeComponent();
