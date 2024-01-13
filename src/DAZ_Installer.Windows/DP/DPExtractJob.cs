@@ -191,9 +191,10 @@ namespace DAZ_Installer.Windows.DP
                 for (var i = 0; i < c; i++)
                 {
                     var x = FilesToProcess[i];
-                    ProgressCombo.SetProgressBarValue((int)((double)i / c * 100));
+                    int percentage = (int)((double)i / c * 100);
+                    ProgressCombo.SetProgressBarValue(percentage);
                     ProgressCombo.UpdateText($"Processing archive {i + 1}/{c}: " +
-                        $"{Path.GetFileName(x)}...({ProgressCombo.ProgressBar.Value}%)");
+                        $"{Path.GetFileName(x)}...({percentage}%)");
                     Processor.ProcessArchive(x, processSettings);
                 }
                 ProgressCombo.UpdateText($"Finished processing archives");
