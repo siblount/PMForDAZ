@@ -213,6 +213,7 @@ namespace DAZ_Installer.Windows.Forms
             // 
             // MainForm
             // 
+            AllowDrop = true;
             AutoScaleDimensions = new System.Drawing.SizeF(96F, 96F);
             AutoScaleMode = System.Windows.Forms.AutoScaleMode.Dpi;
             ClientSize = new System.Drawing.Size(659, 344);
@@ -225,6 +226,8 @@ namespace DAZ_Installer.Windows.Forms
             Text = "Product Manager for DAZ Studio";
             FormClosing += Form1_FormClosing;
             Load += Form1_Load;
+            DragDrop += MainForm_DragDrop;
+            DragEnter += MainForm_DragEnter;
             tableLayoutPanel1.ResumeLayout(false);
             tableLayoutPanel1.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)pictureBox1).EndInit();

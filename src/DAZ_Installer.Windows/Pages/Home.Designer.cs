@@ -107,8 +107,6 @@ namespace DAZ_Installer.Windows.Pages
             listView1.TabIndex = 4;
             listView1.UseCompatibleStateImageBehavior = false;
             listView1.View = System.Windows.Forms.View.Details;
-            listView1.DragDrop += dropBtn_DragDrop;
-            listView1.DragEnter += listView1_DragEnter;
             // 
             // columnHeader1
             // 
@@ -183,12 +181,12 @@ namespace DAZ_Installer.Windows.Pages
             dropBtn.Text = "Click here to select file(s) or drag them here.";
             dropBtn.UseVisualStyleBackColor = false;
             dropBtn.Click += dropBtn_Click;
-            dropBtn.DragDrop += dropBtn_DragDrop;
             dropBtn.DragEnter += dropBtn_DragEnter;
             dropBtn.DragLeave += dropBtn_DragLeave;
             // 
             // Home
             // 
+            AllowDrop = true;
             AutoScaleMode = System.Windows.Forms.AutoScaleMode.Inherit;
             AutoSize = true;
             BackColor = System.Drawing.Color.White;
@@ -197,6 +195,8 @@ namespace DAZ_Installer.Windows.Pages
             Controls.Add(tableLayoutPanel1);
             Name = "Home";
             Size = new System.Drawing.Size(542, 344);
+            DragDrop += Home_DragDrop;
+            DragEnter += Home_DragEnter;
             homeListContextMenuStrip.ResumeLayout(false);
             tableLayoutPanel1.ResumeLayout(false);
             ResumeLayout(false);

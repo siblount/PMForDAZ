@@ -122,5 +122,20 @@ namespace DAZ_Installer.Windows.Forms
         }
 
         private void pictureBox1_Click(object sender, EventArgs e) => new AboutForm().ShowDialog();
+
+        private void MainForm_DragDrop(object sender, DragEventArgs e)
+        {
+
+        }
+
+        private void MainForm_DragEnter(object sender, DragEventArgs e)
+        {
+            e.Effect = Program.DropEffect;
+            // Get the page we are currently in... If we are not on the home page, then switch to it.
+            if (visiblePage != homePage1)
+            {
+                SwitchPage(homePage1);
+            }
+        }
     }
 }

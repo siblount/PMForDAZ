@@ -21,6 +21,19 @@ namespace DAZ_Installer.Windows.Pages
             InitializeComponent();
             HomePage = this;
             titleLbl.Text = Program.AppName;
+
+            RegisterGlobalEvents(this);
+        }
+
+        private void RegisterGlobalEvents(Control parent)
+        {
+            foreach (Control control in parent.Controls)
+            {
+                control.AllowDrop = true;
+                control.DragDrop += Home_DragDrop;
+                control.DragEnter += Home_DragEnter;
+                RegisterGlobalEvents(control);
+            }
         }
 
         private void dropBtn_Click(object sender, EventArgs e) => HandleOpenDialogue();
@@ -51,54 +64,9 @@ namespace DAZ_Installer.Windows.Pages
             clearListBtn_Click(null, null);
         }
 
-        private void dropBtn_DragEnter(object sender, DragEventArgs e)
-        {
-            dropBtn.Text = "Drop here!";
-            e.Effect = Program.DropEffect;
-        }
+        private void dropBtn_DragEnter(object sender, DragEventArgs e) => dropBtn.Text = "Drop here!";
 
         private void dropBtn_DragLeave(object sender, EventArgs e) => dropBtn.Text = "Click here to select file(s) or drag them here.";
-
-        private void dropBtn_DragDrop(object sender, DragEventArgs e)
-        {
-            if (e.Data is null) return;
-            var tmp = (string[])e.Data.GetData(DataFormats.FileDrop, false);
-            Queue<string> invalidFiles = new();
-            listView1.BeginUpdate();
-            // Check for string if it's valid.
-            foreach (var path in tmp)
-            {
-                var fileInfo = new FileInfo(path);
-                var ext = fileInfo.Extension;
-                ext = ext.IndexOf('.') != -1 ? ext.Substring(1) : ext;
-                if (fileInfo.Exists && DPFile.ValidImportExtension(ext))
-                {
-                    // Add to list.
-                    listView1.Items.Add(path);
-                }
-                else
-                {
-                    ArchiveFormat type = DPArchive.DetermineArchiveFormatPrecise(path); // TODO: I'm pretty sure this can be removed.
-                    if (type == ArchiveFormat.SevenZ && ext.EndsWith("001"))
-                        listView1.Items.Add(path);
-                    else invalidFiles.Enqueue(path);
-                }
-            }
-            listView1.EndUpdate();
-            if (invalidFiles.Count > 0)
-            {
-                var builder = new StringBuilder(50);
-                while (invalidFiles.Count != 0)
-                    builder.AppendLine(" \u2022 " + invalidFiles.Dequeue());
-                MessageBox.Show("Files that cannot be processed where removed from the list." +
-                    "\nRemoved files:\n" + builder.ToString(), "Invalid files removed", MessageBoxButtons.OK,
-                    MessageBoxIcon.Warning);
-            }
-            if (listView1.Items.Count != 0)
-                dropBtn.Visible = dropBtn.Enabled = false;
-
-            dropBtn.Text = "Click here to select file(s) or drag them here.";
-        }
 
         private void removeToolStripMenuItem_Click(object sender, EventArgs e)
         {
@@ -148,6 +116,47 @@ namespace DAZ_Installer.Windows.Pages
 
         private void addMoreItemsToolStripMenuItem_Click(object sender, EventArgs e) => HandleOpenDialogue();
 
-        private void listView1_DragEnter(object sender, DragEventArgs e) => e.Effect = Program.DropEffect;
+        private void Home_DragEnter(object sender, DragEventArgs e) => e.Effect = Program.DropEffect;
+
+        private void Home_DragDrop(object sender, DragEventArgs e)
+        {
+            if (e.Data is null) return;
+            var tmp = (string[])e.Data.GetData(DataFormats.FileDrop, false);
+            Queue<string> invalidFiles = new();
+            listView1.BeginUpdate();
+            // Check for string if it's valid.
+            foreach (var path in tmp)
+            {
+                var fileInfo = new FileInfo(path);
+                var ext = fileInfo.Extension;
+                ext = ext.IndexOf('.') != -1 ? ext.Substring(1) : ext;
+                if (fileInfo.Exists && DPFile.ValidImportExtension(ext))
+                {
+                    // Add to list.
+                    listView1.Items.Add(path);
+                }
+                else
+                {
+                    ArchiveFormat type = DPArchive.DetermineArchiveFormatPrecise(path); // TODO: I'm pretty sure this can be removed.
+                    if (type == ArchiveFormat.SevenZ && ext.EndsWith("001"))
+                        listView1.Items.Add(path);
+                    else invalidFiles.Enqueue(path);
+                }
+            }
+            listView1.EndUpdate();
+            if (invalidFiles.Count > 0)
+            {
+                var builder = new StringBuilder(50);
+                while (invalidFiles.Count != 0)
+                    builder.AppendLine(" \u2022 " + invalidFiles.Dequeue());
+                MessageBox.Show("Files that cannot be processed where removed from the list." +
+                    "\nRemoved files:\n" + builder.ToString(), "Invalid files removed", MessageBoxButtons.OK,
+                    MessageBoxIcon.Warning);
+            }
+            if (listView1.Items.Count != 0)
+                dropBtn.Visible = dropBtn.Enabled = false;
+
+            dropBtn.Text = "Click here to select file(s) or drag them here.";
+        }
     }
 }
