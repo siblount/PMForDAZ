@@ -22,7 +22,7 @@ namespace DAZ_Installer.Windows.Forms
             InitializeComponent();
             activeForm = this;
             InitalizePages();
-
+            Text = Program.AppName;
             if (Environment.OSVersion.Version.Build >= 22000) DPGlobal.isWindows11 = true;
         }
 

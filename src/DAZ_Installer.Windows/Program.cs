@@ -9,13 +9,16 @@ using System.Threading;
 using System.Windows.Forms;
 using Serilog;
 using Serilog.Templates;
+using System.Reflection;
 
 namespace DAZ_Installer.Windows
 {
     static class Program
     {
-        public const string AppName = "Product Manager for DAZ Studio";
-        public const string AppVersion = "0.7";
+        public static readonly string AppName = Assembly.GetExecutingAssembly().GetCustomAttribute<AssemblyProductAttribute>().Product;
+        public static readonly string AppVersion = Assembly.GetExecutingAssembly().GetName().Version.ToString();
+        public static readonly string Authors = Assembly.GetExecutingAssembly().GetCustomAttribute<AssemblyCompanyAttribute>().Company;
+        public static readonly string VersionSuffix = "Pre-Alpha";
         public static bool IsRunByIDE => Debugger.IsAttached;
         public static readonly DragDropEffects DropEffect = DragDropEffects.All;
         public static int MainThreadID { get; private set; } = 0;

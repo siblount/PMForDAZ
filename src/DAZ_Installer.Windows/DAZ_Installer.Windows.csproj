@@ -7,6 +7,32 @@
     <UseWindowsForms>true</UseWindowsForms>
 	<ForceDesignerDpiUnaware>true</ForceDesignerDpiUnaware>
     <ImplicitUsings>disable</ImplicitUsings>
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <Title>Product Manager for Daz Studio</Title>
+    <Version>$(AssemblyVersion)$(VersionSuffix)</Version>
+    <Product>Product Manager for Daz Studio</Product>
+    <Authors>Solomon Blount and the community</Authors>
+    <Description>Product Manager for Daz Studio</Description>
+    <Copyright>Solomon Blount</Copyright>
+    <FileVersion>0.9.*</FileVersion>
+    <SignAssembly>True</SignAssembly>
+    <GenerateDocumentationFile>True</GenerateDocumentationFile>
+    <AssemblyOriginatorKeyFile></AssemblyOriginatorKeyFile>
+	<InformationalVersion>$(AssemblyVersion)$(VersionSuffix)</InformationalVersion>
+    <AssemblyVersion>0.9.*</AssemblyVersion>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <Deterministic>False</Deterministic>
+    <FileAlignment>512</FileAlignment>
+	<VersionSuffix>Pre-alpha</VersionSuffix>
+	<IsPreRelease>True</IsPreRelease>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+    <Deterministic>False</Deterministic>
+    <FileAlignment>512</FileAlignment>
+	  
   </PropertyGroup>
 
   <ItemGroup>
@@ -94,6 +120,11 @@
       <AutoGen>True</AutoGen>
       <DependentUpon>Resources.resx</DependentUpon>
     </Compile>
+    <Compile Update="Properties\Settings.Designer.cs">
+      <DesignTimeSharedInput>True</DesignTimeSharedInput>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Settings.settings</DependentUpon>
+    </Compile>
   </ItemGroup>
 
   <ItemGroup>
@@ -134,6 +165,13 @@
       <LastGenOutput>Resources.Designer.cs</LastGenOutput>
       <CustomToolNamespace>DAZ_Installer.Windows</CustomToolNamespace>
     </EmbeddedResource>
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="Properties\Settings.settings">
+      <Generator>SettingsSingleFileGenerator</Generator>
+      <LastGenOutput>Settings.Designer.cs</LastGenOutput>
+    </None>
   </ItemGroup>
 
   <Target Name="PostBuild" AfterTargets="PostBuildEvent">
