@@ -1,0 +1,1 @@
+Use this folder to insert the corresponding manifests to test. A manifest is a JSON file (a file with the .json extension).

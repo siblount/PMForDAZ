@@ -1,0 +1,186 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net6.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <UseWindowsForms>true</UseWindowsForms>
+	<ForceDesignerDpiUnaware>true</ForceDesignerDpiUnaware>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <Title>Product Manager for Daz Studio</Title>
+    <Version>$(AssemblyVersion)$(VersionSuffix)</Version>
+    <Product>Product Manager for Daz Studio</Product>
+    <Authors>Solomon Blount and the community</Authors>
+    <Description>Product Manager for Daz Studio</Description>
+    <Copyright>Solomon Blount</Copyright>
+    <FileVersion>0.9.*</FileVersion>
+    <SignAssembly>True</SignAssembly>
+    <GenerateDocumentationFile>True</GenerateDocumentationFile>
+    <AssemblyOriginatorKeyFile></AssemblyOriginatorKeyFile>
+	<InformationalVersion>$(AssemblyVersion)$(VersionSuffix)</InformationalVersion>
+    <AssemblyVersion>0.9.*</AssemblyVersion>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <Deterministic>False</Deterministic>
+    <FileAlignment>512</FileAlignment>
+	<VersionSuffix>Pre-alpha</VersionSuffix>
+	<IsPreRelease>True</IsPreRelease>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+    <Deterministic>False</Deterministic>
+    <FileAlignment>512</FileAlignment>
+	  
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Remove="Assets\ArrowDown.png" />
+    <None Remove="Assets\ArrowRight.jpg" />
+    <None Remove="Assets\ArrowRight.png" />
+    <None Remove="Assets\ArrowUp.png" />
+    <None Remove="Assets\favicon.ico" />
+    <None Remove="Assets\Icon1.ico" />
+    <None Remove="Assets\loading.gif" />
+    <None Remove="Assets\logo.png" />
+    <None Remove="Assets\Logo2-256x.png" />
+    <None Remove="Assets\NoImageFound.jpg" />
+    <None Remove="Assets\RAR-Icon-New-Original-APK.png" />
+    <None Remove="Assets\thumb_14366704070ZIP.png" />
+    <None Remove="Assets\WindowsFolderIcon.png" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="Assets\ArrowDown.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Assets\ArrowRight.jpg">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Assets\ArrowRight.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Assets\ArrowUp.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Assets\favicon.ico">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Assets\Icon1.ico">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Assets\loading.gif">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Assets\logo.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Assets\Logo2-256x.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Assets\NoImageFound.jpg">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Assets\RAR-Icon-New-Original-APK.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Assets\thumb_14366704070ZIP.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Assets\WindowsFolderIcon.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="Properties\PublishProfiles\FolderProfile.pubxml.user" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="HtmlAgilityPack" Version="1.11.49" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+    <PackageReference Include="Serilog" Version="3.1.1" />
+    <PackageReference Include="Serilog.Enrichers.Thread" Version="3.2.0-dev-00752" />
+    <PackageReference Include="Serilog.Expressions" Version="4.0.0" />
+    <PackageReference Include="Serilog.Sinks.Async" Version="1.5.0" />
+    <PackageReference Include="Serilog.Sinks.Debug" Version="2.0.0" />
+    <PackageReference Include="Serilog.Sinks.File" Version="5.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\DAZ_Installer.Core\DAZ_Installer.Core.csproj" />
+    <ProjectReference Include="..\DAZ_Installer.Database\DAZ_Installer.Database.csproj" />
+    <ProjectReference Include="..\DAZ_Installer.UI\DAZ_Installer.UI.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Update="Properties\Resources.Designer.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Resources.resx</DependentUpon>
+    </Compile>
+    <Compile Update="Properties\Settings.Designer.cs">
+      <DesignTimeSharedInput>True</DesignTimeSharedInput>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Settings.settings</DependentUpon>
+    </Compile>
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Update="Forms\AboutForm.resx">
+      <Generator></Generator>
+      <CustomToolNamespace></CustomToolNamespace>
+    </EmbeddedResource>
+    <EmbeddedResource Update="Forms\ContentFolderAliasManager.resx">
+      <CustomToolNamespace></CustomToolNamespace>
+      <Generator></Generator>
+    </EmbeddedResource>
+    <EmbeddedResource Update="Forms\ContentFolderManager.resx">
+      <Generator></Generator>
+      <CustomToolNamespace></CustomToolNamespace>
+    </EmbeddedResource>
+    <EmbeddedResource Update="Forms\DatabaseView.resx">
+      <CustomToolNamespace></CustomToolNamespace>
+      <Generator></Generator>
+    </EmbeddedResource>
+    <EmbeddedResource Update="Forms\MainForm.resx">
+      <Generator></Generator>
+      <CustomToolNamespace></CustomToolNamespace>
+    </EmbeddedResource>
+    <EmbeddedResource Update="Forms\PasswordInput.resx">
+      <CustomToolNamespace></CustomToolNamespace>
+      <Generator></Generator>
+    </EmbeddedResource>
+    <EmbeddedResource Update="Forms\ProductRecordForm.resx">
+      <Generator></Generator>
+      <CustomToolNamespace></CustomToolNamespace>
+    </EmbeddedResource>
+    <EmbeddedResource Update="Forms\TagsManager.resx">
+      <Generator></Generator>
+      <CustomToolNamespace></CustomToolNamespace>
+    </EmbeddedResource>
+    <EmbeddedResource Update="Properties\Resources.resx">
+      <Generator>ResXFileCodeGenerator</Generator>
+      <LastGenOutput>Resources.Designer.cs</LastGenOutput>
+      <CustomToolNamespace>DAZ_Installer.Windows</CustomToolNamespace>
+    </EmbeddedResource>
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="Properties\Settings.settings">
+      <Generator>SettingsSingleFileGenerator</Generator>
+      <LastGenOutput>Settings.Designer.cs</LastGenOutput>
+    </None>
+  </ItemGroup>
+
+  <Target Name="PostBuild" AfterTargets="PostBuildEvent">
+    <Exec Command="copy &quot;$(SolutionDir)DAZ_Installer.Core\libs\UnRAR.dll&quot; &quot;$(OutDir)UnRAR.dll&quot;&#xD;&#xA;copy &quot;$(SolutionDir)DAZ_Installer.Core\External\7za.exe&quot; &quot;$(OutDir)7za.exe&quot;&#xD;&#xA;echo OutDir: $(OutDir)&#xD;&#xA;echo TargetDir: $(TargetDir)&#xD;&#xA;echo ProjectDir: $(ProjectDir)" />
+  </Target>
+	<Target Name="PostPublish" AfterTargets="Publish">
+		<Exec Command="copy &quot;$(SolutionDir)DAZ_Installer.Core\libs\UnRAR.dll&quot; &quot;$(OutDir)UnRAR.dll&quot;&#xD;&#xA;copy &quot;$(SolutionDir)DAZ_Installer.Core\External\7za.exe&quot; &quot;$(OutDir)7za.exe&quot;&#xD;&#xA;echo OutDir: $(OutDir)&#xD;&#xA;echo TargetDir: $(TargetDir)&#xD;&#xA;echo ProjectDir: $(ProjectDir)" />
+	</Target>
+
+  <Import Project="..\DAZ_Installer.Common\DAZ_Installer.Common.projitems" Label="Shared" />
+
+</Project>
