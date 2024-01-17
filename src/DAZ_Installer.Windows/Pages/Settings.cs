@@ -78,7 +78,7 @@ namespace DAZ_Installer.Windows.Pages
             }
             catch (Exception ex)
             {
-                // DPCommon.WriteToLog($"Failed to parse settings. REASON: {ex}");
+                Logger.Error(ex, "Failed to save settings");
             }
             return false;
         }
@@ -263,10 +263,6 @@ namespace DAZ_Installer.Windows.Pages
                     removeActionCombo.SelectedItem = "Move to Recycle Bin";
                     return;
             }
-        }
-        private void downloadThumbnailsComboBox_SelectedIndexChanged(object sender, EventArgs e)
-        {
-
         }
 
         private void applySettingsBtn_Click(object sender, EventArgs e)

@@ -29,478 +29,457 @@ namespace DAZ_Installer.Windows.Pages
         /// </summary>
         private void InitializeComponent()
         {
-            this.titleLbl = new System.Windows.Forms.Label();
-            this.label6 = new System.Windows.Forms.Label();
-            this.label4 = new System.Windows.Forms.Label();
-            this.label3 = new System.Windows.Forms.Label();
-            this.destinationPathCombo = new System.Windows.Forms.ComboBox();
-            this.label2 = new System.Windows.Forms.Label();
-            this.label1 = new System.Windows.Forms.Label();
-            this.downloadThumbnailsComboBox = new System.Windows.Forms.ComboBox();
-            this.fileHandlingCombo = new System.Windows.Forms.ComboBox();
-            this.panel1 = new System.Windows.Forms.Panel();
-            this.openDatabaseBtn = new System.Windows.Forms.Button();
-            this.button2 = new System.Windows.Forms.Button();
-            this.button1 = new System.Windows.Forms.Button();
-            this.removeActionCombo = new System.Windows.Forms.ComboBox();
-            this.label10 = new System.Windows.Forms.Label();
-            this.allowOverwritingCombo = new System.Windows.Forms.ComboBox();
-            this.label9 = new System.Windows.Forms.Label();
-            this.chooseTempPathBtn = new System.Windows.Forms.Button();
-            this.chooseDestPathBtn = new System.Windows.Forms.Button();
-            this.installPrevProductsCombo = new System.Windows.Forms.ComboBox();
-            this.label8 = new System.Windows.Forms.Label();
-            this.removeSourceFilesCombo = new System.Windows.Forms.ComboBox();
-            this.label7 = new System.Windows.Forms.Label();
-            this.modifyContentRedirectsBtn = new System.Windows.Forms.Button();
-            this.modifyContentFoldersBtn = new System.Windows.Forms.Button();
-            this.tempTxtBox = new System.Windows.Forms.TextBox();
-            this.contentFolderRedirectsListBox = new System.Windows.Forms.ListBox();
-            this.contentFoldersListBox = new System.Windows.Forms.ListBox();
-            this.label5 = new System.Windows.Forms.Label();
-            this.loadingPanel = new System.Windows.Forms.Panel();
-            this.progressBar1 = new System.Windows.Forms.ProgressBar();
-            this.loadingLbl = new System.Windows.Forms.Label();
-            this.applySettingsBtn = new System.Windows.Forms.Button();
-            this.panel1.SuspendLayout();
-            this.loadingPanel.SuspendLayout();
-            this.SuspendLayout();
+            titleLbl = new System.Windows.Forms.Label();
+            label6 = new System.Windows.Forms.Label();
+            label4 = new System.Windows.Forms.Label();
+            label3 = new System.Windows.Forms.Label();
+            destinationPathCombo = new System.Windows.Forms.ComboBox();
+            label2 = new System.Windows.Forms.Label();
+            label1 = new System.Windows.Forms.Label();
+            downloadThumbnailsComboBox = new System.Windows.Forms.ComboBox();
+            fileHandlingCombo = new System.Windows.Forms.ComboBox();
+            panel1 = new System.Windows.Forms.Panel();
+            openDatabaseBtn = new System.Windows.Forms.Button();
+            button2 = new System.Windows.Forms.Button();
+            button1 = new System.Windows.Forms.Button();
+            removeActionCombo = new System.Windows.Forms.ComboBox();
+            label10 = new System.Windows.Forms.Label();
+            allowOverwritingCombo = new System.Windows.Forms.ComboBox();
+            label9 = new System.Windows.Forms.Label();
+            chooseTempPathBtn = new System.Windows.Forms.Button();
+            chooseDestPathBtn = new System.Windows.Forms.Button();
+            installPrevProductsCombo = new System.Windows.Forms.ComboBox();
+            label8 = new System.Windows.Forms.Label();
+            removeSourceFilesCombo = new System.Windows.Forms.ComboBox();
+            label7 = new System.Windows.Forms.Label();
+            modifyContentRedirectsBtn = new System.Windows.Forms.Button();
+            modifyContentFoldersBtn = new System.Windows.Forms.Button();
+            tempTxtBox = new System.Windows.Forms.TextBox();
+            contentFolderRedirectsListBox = new System.Windows.Forms.ListBox();
+            contentFoldersListBox = new System.Windows.Forms.ListBox();
+            label5 = new System.Windows.Forms.Label();
+            loadingPanel = new System.Windows.Forms.Panel();
+            progressBar1 = new System.Windows.Forms.ProgressBar();
+            loadingLbl = new System.Windows.Forms.Label();
+            applySettingsBtn = new System.Windows.Forms.Button();
+            panel1.SuspendLayout();
+            loadingPanel.SuspendLayout();
+            SuspendLayout();
             // 
             // titleLbl
             // 
-            this.titleLbl.AutoSize = true;
-            this.titleLbl.Font = new System.Drawing.Font("Segoe UI Variable Display Semil", 17.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
-            this.titleLbl.Location = new System.Drawing.Point(27, 18);
-            this.titleLbl.Name = "titleLbl";
-            this.titleLbl.Size = new System.Drawing.Size(93, 31);
-            this.titleLbl.TabIndex = 2;
-            this.titleLbl.Text = "Settings";
-            this.titleLbl.TextAlign = System.Drawing.ContentAlignment.TopCenter;
+            titleLbl.AutoSize = true;
+            titleLbl.Font = new System.Drawing.Font("Segoe UI Variable Display Semil", 17.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
+            titleLbl.Location = new System.Drawing.Point(27, 18);
+            titleLbl.Name = "titleLbl";
+            titleLbl.Size = new System.Drawing.Size(93, 31);
+            titleLbl.TabIndex = 2;
+            titleLbl.Text = "Settings";
+            titleLbl.TextAlign = System.Drawing.ContentAlignment.TopCenter;
             // 
             // label6
             // 
-            this.label6.AutoSize = true;
-            this.label6.Font = new System.Drawing.Font("Segoe UI", 10.2F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
-            this.label6.Location = new System.Drawing.Point(45, 62);
-            this.label6.Name = "label6";
-            this.label6.Size = new System.Drawing.Size(106, 19);
-            this.label6.TabIndex = 10;
-            this.label6.Text = "Temporary Path";
+            label6.AutoSize = true;
+            label6.Font = new System.Drawing.Font("Segoe UI", 10.2F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
+            label6.Location = new System.Drawing.Point(45, 62);
+            label6.Name = "label6";
+            label6.Size = new System.Drawing.Size(106, 19);
+            label6.TabIndex = 10;
+            label6.Text = "Temporary Path";
             // 
             // label4
             // 
-            this.label4.Font = new System.Drawing.Font("Segoe UI", 10.2F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
-            this.label4.Location = new System.Drawing.Point(1, 176);
-            this.label4.Name = "label4";
-            this.label4.Size = new System.Drawing.Size(150, 46);
-            this.label4.TabIndex = 6;
-            this.label4.Text = "Content Folder Redirects";
-            this.label4.TextAlign = System.Drawing.ContentAlignment.MiddleRight;
+            label4.Font = new System.Drawing.Font("Segoe UI", 10.2F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
+            label4.Location = new System.Drawing.Point(1, 176);
+            label4.Name = "label4";
+            label4.Size = new System.Drawing.Size(150, 46);
+            label4.TabIndex = 6;
+            label4.Text = "Content Folder Redirects";
+            label4.TextAlign = System.Drawing.ContentAlignment.MiddleRight;
             // 
             // label3
             // 
-            this.label3.AutoSize = true;
-            this.label3.Font = new System.Drawing.Font("Segoe UI", 10.2F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
-            this.label3.Location = new System.Drawing.Point(11, 274);
-            this.label3.Name = "label3";
-            this.label3.Size = new System.Drawing.Size(141, 19);
-            this.label3.TabIndex = 4;
-            this.label3.Text = "File Handling Method";
-            this.label3.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
+            label3.AutoSize = true;
+            label3.Font = new System.Drawing.Font("Segoe UI", 10.2F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
+            label3.Location = new System.Drawing.Point(11, 274);
+            label3.Name = "label3";
+            label3.Size = new System.Drawing.Size(141, 19);
+            label3.TabIndex = 4;
+            label3.Text = "File Handling Method";
+            label3.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
             // 
             // destinationPathCombo
             // 
-            this.destinationPathCombo.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
-            | System.Windows.Forms.AnchorStyles.Right)));
-            this.destinationPathCombo.FormattingEnabled = true;
-            this.destinationPathCombo.Location = new System.Drawing.Point(187, 35);
-            this.destinationPathCombo.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
-            this.destinationPathCombo.Name = "destinationPathCombo";
-            this.destinationPathCombo.Size = new System.Drawing.Size(209, 23);
-            this.destinationPathCombo.TabIndex = 3;
-            this.destinationPathCombo.TextChanged += new System.EventHandler(this.destinationPathCombo_TextChanged);
-            this.destinationPathCombo.Leave += new System.EventHandler(this.destinationPathCombo_Leave);
+            destinationPathCombo.Anchor = System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right;
+            destinationPathCombo.FormattingEnabled = true;
+            destinationPathCombo.Location = new System.Drawing.Point(187, 35);
+            destinationPathCombo.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            destinationPathCombo.Name = "destinationPathCombo";
+            destinationPathCombo.Size = new System.Drawing.Size(209, 23);
+            destinationPathCombo.TabIndex = 3;
+            destinationPathCombo.TextChanged += destinationPathCombo_TextChanged;
+            destinationPathCombo.Leave += destinationPathCombo_Leave;
             // 
             // label2
             // 
-            this.label2.AutoSize = true;
-            this.label2.Font = new System.Drawing.Font("Segoe UI", 10.2F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
-            this.label2.Location = new System.Drawing.Point(38, 36);
-            this.label2.Name = "label2";
-            this.label2.Size = new System.Drawing.Size(111, 19);
-            this.label2.TabIndex = 2;
-            this.label2.Text = "Destination Path";
-            this.label2.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
+            label2.AutoSize = true;
+            label2.Font = new System.Drawing.Font("Segoe UI", 10.2F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
+            label2.Location = new System.Drawing.Point(38, 36);
+            label2.Name = "label2";
+            label2.Size = new System.Drawing.Size(111, 19);
+            label2.TabIndex = 2;
+            label2.Text = "Destination Path";
+            label2.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
             // 
             // label1
             // 
-            this.label1.AutoSize = true;
-            this.label1.Font = new System.Drawing.Font("Segoe UI", 10.2F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
-            this.label1.Location = new System.Drawing.Point(7, 9);
-            this.label1.Name = "label1";
-            this.label1.Size = new System.Drawing.Size(143, 19);
-            this.label1.TabIndex = 0;
-            this.label1.Text = "Download thumbnails";
-            this.label1.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
+            label1.AutoSize = true;
+            label1.Font = new System.Drawing.Font("Segoe UI", 10.2F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
+            label1.Location = new System.Drawing.Point(7, 9);
+            label1.Name = "label1";
+            label1.Size = new System.Drawing.Size(143, 19);
+            label1.TabIndex = 0;
+            label1.Text = "Download thumbnails";
+            label1.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
             // 
             // downloadThumbnailsComboBox
             // 
-            this.downloadThumbnailsComboBox.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
-            | System.Windows.Forms.AnchorStyles.Right)));
-            this.downloadThumbnailsComboBox.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
-            this.downloadThumbnailsComboBox.FormattingEnabled = true;
-            this.downloadThumbnailsComboBox.Location = new System.Drawing.Point(187, 8);
-            this.downloadThumbnailsComboBox.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
-            this.downloadThumbnailsComboBox.Name = "downloadThumbnailsComboBox";
-            this.downloadThumbnailsComboBox.Size = new System.Drawing.Size(244, 23);
-            this.downloadThumbnailsComboBox.TabIndex = 1;
-            this.downloadThumbnailsComboBox.SelectedIndexChanged += new System.EventHandler(this.downloadThumbnailsComboBox_SelectedIndexChanged);
-            this.downloadThumbnailsComboBox.TextChanged += new System.EventHandler(this.downloadThumbnailsComboBox_TextChanged);
+            downloadThumbnailsComboBox.Anchor = System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right;
+            downloadThumbnailsComboBox.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
+            downloadThumbnailsComboBox.FormattingEnabled = true;
+            downloadThumbnailsComboBox.Location = new System.Drawing.Point(187, 8);
+            downloadThumbnailsComboBox.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            downloadThumbnailsComboBox.Name = "downloadThumbnailsComboBox";
+            downloadThumbnailsComboBox.Size = new System.Drawing.Size(244, 23);
+            downloadThumbnailsComboBox.TabIndex = 1;
+            downloadThumbnailsComboBox.TextChanged += downloadThumbnailsComboBox_TextChanged;
             // 
             // fileHandlingCombo
             // 
-            this.fileHandlingCombo.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
-            | System.Windows.Forms.AnchorStyles.Right)));
-            this.fileHandlingCombo.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
-            this.fileHandlingCombo.FormattingEnabled = true;
-            this.fileHandlingCombo.Location = new System.Drawing.Point(187, 274);
-            this.fileHandlingCombo.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
-            this.fileHandlingCombo.Name = "fileHandlingCombo";
-            this.fileHandlingCombo.Size = new System.Drawing.Size(244, 23);
-            this.fileHandlingCombo.TabIndex = 5;
-            this.fileHandlingCombo.TextChanged += new System.EventHandler(this.fileHandlingCombo_TextChanged);
+            fileHandlingCombo.Anchor = System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right;
+            fileHandlingCombo.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
+            fileHandlingCombo.FormattingEnabled = true;
+            fileHandlingCombo.Location = new System.Drawing.Point(187, 274);
+            fileHandlingCombo.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            fileHandlingCombo.Name = "fileHandlingCombo";
+            fileHandlingCombo.Size = new System.Drawing.Size(244, 23);
+            fileHandlingCombo.TabIndex = 5;
+            fileHandlingCombo.TextChanged += fileHandlingCombo_TextChanged;
             // 
             // panel1
             // 
-            this.panel1.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
-            | System.Windows.Forms.AnchorStyles.Left) 
-            | System.Windows.Forms.AnchorStyles.Right)));
-            this.panel1.AutoScroll = true;
-            this.panel1.Controls.Add(this.openDatabaseBtn);
-            this.panel1.Controls.Add(this.button2);
-            this.panel1.Controls.Add(this.button1);
-            this.panel1.Controls.Add(this.removeActionCombo);
-            this.panel1.Controls.Add(this.label10);
-            this.panel1.Controls.Add(this.allowOverwritingCombo);
-            this.panel1.Controls.Add(this.label9);
-            this.panel1.Controls.Add(this.chooseTempPathBtn);
-            this.panel1.Controls.Add(this.chooseDestPathBtn);
-            this.panel1.Controls.Add(this.installPrevProductsCombo);
-            this.panel1.Controls.Add(this.label8);
-            this.panel1.Controls.Add(this.removeSourceFilesCombo);
-            this.panel1.Controls.Add(this.label7);
-            this.panel1.Controls.Add(this.modifyContentRedirectsBtn);
-            this.panel1.Controls.Add(this.modifyContentFoldersBtn);
-            this.panel1.Controls.Add(this.label3);
-            this.panel1.Controls.Add(this.tempTxtBox);
-            this.panel1.Controls.Add(this.contentFolderRedirectsListBox);
-            this.panel1.Controls.Add(this.label4);
-            this.panel1.Controls.Add(this.fileHandlingCombo);
-            this.panel1.Controls.Add(this.label6);
-            this.panel1.Controls.Add(this.label1);
-            this.panel1.Controls.Add(this.contentFoldersListBox);
-            this.panel1.Controls.Add(this.destinationPathCombo);
-            this.panel1.Controls.Add(this.downloadThumbnailsComboBox);
-            this.panel1.Controls.Add(this.label2);
-            this.panel1.Controls.Add(this.label5);
-            this.panel1.Location = new System.Drawing.Point(27, 49);
-            this.panel1.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
-            this.panel1.Name = "panel1";
-            this.panel1.Size = new System.Drawing.Size(503, 685);
-            this.panel1.TabIndex = 7;
+            panel1.Anchor = System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right;
+            panel1.AutoScroll = true;
+            panel1.Controls.Add(openDatabaseBtn);
+            panel1.Controls.Add(button2);
+            panel1.Controls.Add(button1);
+            panel1.Controls.Add(removeActionCombo);
+            panel1.Controls.Add(label10);
+            panel1.Controls.Add(allowOverwritingCombo);
+            panel1.Controls.Add(label9);
+            panel1.Controls.Add(chooseTempPathBtn);
+            panel1.Controls.Add(chooseDestPathBtn);
+            panel1.Controls.Add(installPrevProductsCombo);
+            panel1.Controls.Add(label8);
+            panel1.Controls.Add(removeSourceFilesCombo);
+            panel1.Controls.Add(label7);
+            panel1.Controls.Add(modifyContentRedirectsBtn);
+            panel1.Controls.Add(modifyContentFoldersBtn);
+            panel1.Controls.Add(label3);
+            panel1.Controls.Add(tempTxtBox);
+            panel1.Controls.Add(contentFolderRedirectsListBox);
+            panel1.Controls.Add(label4);
+            panel1.Controls.Add(fileHandlingCombo);
+            panel1.Controls.Add(label6);
+            panel1.Controls.Add(label1);
+            panel1.Controls.Add(contentFoldersListBox);
+            panel1.Controls.Add(destinationPathCombo);
+            panel1.Controls.Add(downloadThumbnailsComboBox);
+            panel1.Controls.Add(label2);
+            panel1.Controls.Add(label5);
+            panel1.Location = new System.Drawing.Point(27, 49);
+            panel1.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            panel1.Name = "panel1";
+            panel1.Size = new System.Drawing.Size(503, 685);
+            panel1.TabIndex = 7;
             // 
             // openDatabaseBtn
             // 
-            this.openDatabaseBtn.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
-            | System.Windows.Forms.AnchorStyles.Right)));
-            this.openDatabaseBtn.Location = new System.Drawing.Point(186, 475);
-            this.openDatabaseBtn.Name = "openDatabaseBtn";
-            this.openDatabaseBtn.Size = new System.Drawing.Size(244, 23);
-            this.openDatabaseBtn.TabIndex = 25;
-            this.openDatabaseBtn.Text = "Open Database";
-            this.openDatabaseBtn.UseVisualStyleBackColor = true;
-            this.openDatabaseBtn.Click += new System.EventHandler(this.openDatabaseBtn_Click);
+            openDatabaseBtn.Anchor = System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right;
+            openDatabaseBtn.Location = new System.Drawing.Point(186, 475);
+            openDatabaseBtn.Name = "openDatabaseBtn";
+            openDatabaseBtn.Size = new System.Drawing.Size(244, 23);
+            openDatabaseBtn.TabIndex = 25;
+            openDatabaseBtn.Text = "Open Database";
+            openDatabaseBtn.UseVisualStyleBackColor = true;
+            openDatabaseBtn.Click += openDatabaseBtn_Click;
             // 
             // button2
             // 
-            this.button2.Location = new System.Drawing.Point(187, 515);
-            this.button2.Name = "button2";
-            this.button2.Size = new System.Drawing.Size(100, 23);
-            this.button2.TabIndex = 24;
-            this.button2.Text = "Documentation";
-            this.button2.UseVisualStyleBackColor = true;
+            button2.Location = new System.Drawing.Point(187, 515);
+            button2.Name = "button2";
+            button2.Size = new System.Drawing.Size(100, 23);
+            button2.TabIndex = 24;
+            button2.Text = "Documentation";
+            button2.UseVisualStyleBackColor = true;
             // 
             // button1
             // 
-            this.button1.Location = new System.Drawing.Point(33, 515);
-            this.button1.Name = "button1";
-            this.button1.Size = new System.Drawing.Size(75, 23);
-            this.button1.TabIndex = 23;
-            this.button1.Text = "Licenses";
-            this.button1.UseVisualStyleBackColor = true;
+            button1.Location = new System.Drawing.Point(33, 515);
+            button1.Name = "button1";
+            button1.Size = new System.Drawing.Size(75, 23);
+            button1.TabIndex = 23;
+            button1.Text = "Licenses";
+            button1.UseVisualStyleBackColor = true;
             // 
             // removeActionCombo
             // 
-            this.removeActionCombo.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
-            | System.Windows.Forms.AnchorStyles.Right)));
-            this.removeActionCombo.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
-            this.removeActionCombo.FormattingEnabled = true;
-            this.removeActionCombo.Location = new System.Drawing.Point(187, 434);
-            this.removeActionCombo.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
-            this.removeActionCombo.Name = "removeActionCombo";
-            this.removeActionCombo.Size = new System.Drawing.Size(243, 23);
-            this.removeActionCombo.TabIndex = 22;
+            removeActionCombo.Anchor = System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right;
+            removeActionCombo.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
+            removeActionCombo.FormattingEnabled = true;
+            removeActionCombo.Location = new System.Drawing.Point(187, 434);
+            removeActionCombo.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            removeActionCombo.Name = "removeActionCombo";
+            removeActionCombo.Size = new System.Drawing.Size(243, 23);
+            removeActionCombo.TabIndex = 22;
             // 
             // label10
             // 
-            this.label10.AutoSize = true;
-            this.label10.Font = new System.Drawing.Font("Segoe UI", 10.2F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
-            this.label10.Location = new System.Drawing.Point(29, 438);
-            this.label10.Name = "label10";
-            this.label10.Size = new System.Drawing.Size(123, 19);
-            this.label10.TabIndex = 21;
-            this.label10.Text = "I/O Remove action";
-            this.label10.TextAlign = System.Drawing.ContentAlignment.MiddleRight;
+            label10.AutoSize = true;
+            label10.Font = new System.Drawing.Font("Segoe UI", 10.2F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
+            label10.Location = new System.Drawing.Point(29, 438);
+            label10.Name = "label10";
+            label10.Size = new System.Drawing.Size(123, 19);
+            label10.TabIndex = 21;
+            label10.Text = "I/O Remove action";
+            label10.TextAlign = System.Drawing.ContentAlignment.MiddleRight;
             // 
             // allowOverwritingCombo
             // 
-            this.allowOverwritingCombo.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
-            | System.Windows.Forms.AnchorStyles.Right)));
-            this.allowOverwritingCombo.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
-            this.allowOverwritingCombo.FormattingEnabled = true;
-            this.allowOverwritingCombo.Location = new System.Drawing.Point(187, 398);
-            this.allowOverwritingCombo.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
-            this.allowOverwritingCombo.Name = "allowOverwritingCombo";
-            this.allowOverwritingCombo.Size = new System.Drawing.Size(243, 23);
-            this.allowOverwritingCombo.TabIndex = 20;
-            this.allowOverwritingCombo.TextChanged += new System.EventHandler(this.allowOverwritingCombo_TextChanged);
+            allowOverwritingCombo.Anchor = System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right;
+            allowOverwritingCombo.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
+            allowOverwritingCombo.FormattingEnabled = true;
+            allowOverwritingCombo.Location = new System.Drawing.Point(187, 398);
+            allowOverwritingCombo.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            allowOverwritingCombo.Name = "allowOverwritingCombo";
+            allowOverwritingCombo.Size = new System.Drawing.Size(243, 23);
+            allowOverwritingCombo.TabIndex = 20;
+            allowOverwritingCombo.TextChanged += allowOverwritingCombo_TextChanged;
             // 
             // label9
             // 
-            this.label9.AutoSize = true;
-            this.label9.Font = new System.Drawing.Font("Segoe UI", 10.2F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
-            this.label9.Location = new System.Drawing.Point(36, 398);
-            this.label9.Name = "label9";
-            this.label9.Size = new System.Drawing.Size(115, 19);
-            this.label9.TabIndex = 19;
-            this.label9.Text = "Allow overwriting";
-            this.label9.TextAlign = System.Drawing.ContentAlignment.MiddleRight;
+            label9.AutoSize = true;
+            label9.Font = new System.Drawing.Font("Segoe UI", 10.2F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
+            label9.Location = new System.Drawing.Point(36, 398);
+            label9.Name = "label9";
+            label9.Size = new System.Drawing.Size(115, 19);
+            label9.TabIndex = 19;
+            label9.Text = "Allow overwriting";
+            label9.TextAlign = System.Drawing.ContentAlignment.MiddleRight;
             // 
             // chooseTempPathBtn
             // 
-            this.chooseTempPathBtn.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
-            this.chooseTempPathBtn.Location = new System.Drawing.Point(401, 59);
-            this.chooseTempPathBtn.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
-            this.chooseTempPathBtn.Name = "chooseTempPathBtn";
-            this.chooseTempPathBtn.Size = new System.Drawing.Size(30, 20);
-            this.chooseTempPathBtn.TabIndex = 18;
-            this.chooseTempPathBtn.Text = "...";
-            this.chooseTempPathBtn.UseVisualStyleBackColor = true;
-            this.chooseTempPathBtn.Click += new System.EventHandler(this.chooseTempPathBtn_Click);
+            chooseTempPathBtn.Anchor = System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right;
+            chooseTempPathBtn.Location = new System.Drawing.Point(401, 59);
+            chooseTempPathBtn.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            chooseTempPathBtn.Name = "chooseTempPathBtn";
+            chooseTempPathBtn.Size = new System.Drawing.Size(30, 20);
+            chooseTempPathBtn.TabIndex = 18;
+            chooseTempPathBtn.Text = "...";
+            chooseTempPathBtn.UseVisualStyleBackColor = true;
+            chooseTempPathBtn.Click += chooseTempPathBtn_Click;
             // 
             // chooseDestPathBtn
             // 
-            this.chooseDestPathBtn.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
-            this.chooseDestPathBtn.Location = new System.Drawing.Point(401, 35);
-            this.chooseDestPathBtn.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
-            this.chooseDestPathBtn.Name = "chooseDestPathBtn";
-            this.chooseDestPathBtn.Size = new System.Drawing.Size(30, 21);
-            this.chooseDestPathBtn.TabIndex = 17;
-            this.chooseDestPathBtn.Text = "...";
-            this.chooseDestPathBtn.UseVisualStyleBackColor = true;
-            this.chooseDestPathBtn.Click += new System.EventHandler(this.chooseDestPathBtn_Click);
+            chooseDestPathBtn.Anchor = System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right;
+            chooseDestPathBtn.Location = new System.Drawing.Point(401, 35);
+            chooseDestPathBtn.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            chooseDestPathBtn.Name = "chooseDestPathBtn";
+            chooseDestPathBtn.Size = new System.Drawing.Size(30, 21);
+            chooseDestPathBtn.TabIndex = 17;
+            chooseDestPathBtn.Text = "...";
+            chooseDestPathBtn.UseVisualStyleBackColor = true;
+            chooseDestPathBtn.Click += chooseDestPathBtn_Click;
             // 
             // installPrevProductsCombo
             // 
-            this.installPrevProductsCombo.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
-            | System.Windows.Forms.AnchorStyles.Right)));
-            this.installPrevProductsCombo.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
-            this.installPrevProductsCombo.FormattingEnabled = true;
-            this.installPrevProductsCombo.Location = new System.Drawing.Point(188, 355);
-            this.installPrevProductsCombo.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
-            this.installPrevProductsCombo.Name = "installPrevProductsCombo";
-            this.installPrevProductsCombo.Size = new System.Drawing.Size(243, 23);
-            this.installPrevProductsCombo.TabIndex = 16;
-            this.installPrevProductsCombo.TextChanged += new System.EventHandler(this.installPrevProducts_TextChanged);
+            installPrevProductsCombo.Anchor = System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right;
+            installPrevProductsCombo.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
+            installPrevProductsCombo.FormattingEnabled = true;
+            installPrevProductsCombo.Location = new System.Drawing.Point(188, 355);
+            installPrevProductsCombo.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            installPrevProductsCombo.Name = "installPrevProductsCombo";
+            installPrevProductsCombo.Size = new System.Drawing.Size(243, 23);
+            installPrevProductsCombo.TabIndex = 16;
+            installPrevProductsCombo.TextChanged += installPrevProducts_TextChanged;
             // 
             // label8
             // 
-            this.label8.Font = new System.Drawing.Font("Segoe UI", 10.2F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
-            this.label8.Location = new System.Drawing.Point(11, 345);
-            this.label8.Name = "label8";
-            this.label8.Size = new System.Drawing.Size(141, 38);
-            this.label8.TabIndex = 15;
-            this.label8.Text = "Install previously installed products";
-            this.label8.TextAlign = System.Drawing.ContentAlignment.MiddleRight;
+            label8.Font = new System.Drawing.Font("Segoe UI", 10.2F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
+            label8.Location = new System.Drawing.Point(11, 345);
+            label8.Name = "label8";
+            label8.Size = new System.Drawing.Size(141, 38);
+            label8.TabIndex = 15;
+            label8.Text = "Install previously installed products";
+            label8.TextAlign = System.Drawing.ContentAlignment.MiddleRight;
             // 
             // removeSourceFilesCombo
             // 
-            this.removeSourceFilesCombo.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
-            | System.Windows.Forms.AnchorStyles.Right)));
-            this.removeSourceFilesCombo.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
-            this.removeSourceFilesCombo.FormattingEnabled = true;
-            this.removeSourceFilesCombo.Location = new System.Drawing.Point(187, 311);
-            this.removeSourceFilesCombo.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
-            this.removeSourceFilesCombo.Name = "removeSourceFilesCombo";
-            this.removeSourceFilesCombo.Size = new System.Drawing.Size(243, 23);
-            this.removeSourceFilesCombo.TabIndex = 14;
-            this.removeSourceFilesCombo.TextChanged += new System.EventHandler(this.removeSourceFiles_TextChanged);
+            removeSourceFilesCombo.Anchor = System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right;
+            removeSourceFilesCombo.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
+            removeSourceFilesCombo.FormattingEnabled = true;
+            removeSourceFilesCombo.Location = new System.Drawing.Point(187, 311);
+            removeSourceFilesCombo.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            removeSourceFilesCombo.Name = "removeSourceFilesCombo";
+            removeSourceFilesCombo.Size = new System.Drawing.Size(243, 23);
+            removeSourceFilesCombo.TabIndex = 14;
+            removeSourceFilesCombo.TextChanged += removeSourceFiles_TextChanged;
             // 
             // label7
             // 
-            this.label7.AutoSize = true;
-            this.label7.Font = new System.Drawing.Font("Segoe UI", 10.2F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
-            this.label7.Location = new System.Drawing.Point(11, 311);
-            this.label7.Name = "label7";
-            this.label7.Size = new System.Drawing.Size(141, 19);
-            this.label7.TabIndex = 13;
-            this.label7.Text = "Remove Source File(s)";
-            this.label7.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
+            label7.AutoSize = true;
+            label7.Font = new System.Drawing.Font("Segoe UI", 10.2F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
+            label7.Location = new System.Drawing.Point(11, 311);
+            label7.Name = "label7";
+            label7.Size = new System.Drawing.Size(141, 19);
+            label7.TabIndex = 13;
+            label7.Text = "Remove Source File(s)";
+            label7.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
             // 
             // modifyContentRedirectsBtn
             // 
-            this.modifyContentRedirectsBtn.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
-            this.modifyContentRedirectsBtn.Location = new System.Drawing.Point(372, 248);
-            this.modifyContentRedirectsBtn.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
-            this.modifyContentRedirectsBtn.Name = "modifyContentRedirectsBtn";
-            this.modifyContentRedirectsBtn.Size = new System.Drawing.Size(59, 22);
-            this.modifyContentRedirectsBtn.TabIndex = 12;
-            this.modifyContentRedirectsBtn.Text = "Modify";
-            this.modifyContentRedirectsBtn.UseVisualStyleBackColor = true;
-            this.modifyContentRedirectsBtn.Click += new System.EventHandler(this.modifyContentRedirectsBtn_Click_1);
+            modifyContentRedirectsBtn.Anchor = System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right;
+            modifyContentRedirectsBtn.Location = new System.Drawing.Point(372, 248);
+            modifyContentRedirectsBtn.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            modifyContentRedirectsBtn.Name = "modifyContentRedirectsBtn";
+            modifyContentRedirectsBtn.Size = new System.Drawing.Size(59, 22);
+            modifyContentRedirectsBtn.TabIndex = 12;
+            modifyContentRedirectsBtn.Text = "Modify";
+            modifyContentRedirectsBtn.UseVisualStyleBackColor = true;
+            modifyContentRedirectsBtn.Click += modifyContentRedirectsBtn_Click_1;
             // 
             // modifyContentFoldersBtn
             // 
-            this.modifyContentFoldersBtn.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
-            this.modifyContentFoldersBtn.Location = new System.Drawing.Point(372, 154);
-            this.modifyContentFoldersBtn.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
-            this.modifyContentFoldersBtn.Name = "modifyContentFoldersBtn";
-            this.modifyContentFoldersBtn.Size = new System.Drawing.Size(59, 22);
-            this.modifyContentFoldersBtn.TabIndex = 1;
-            this.modifyContentFoldersBtn.Text = "Modify";
-            this.modifyContentFoldersBtn.UseVisualStyleBackColor = true;
-            this.modifyContentFoldersBtn.Click += new System.EventHandler(this.modifyContentFoldersBtn_Click);
+            modifyContentFoldersBtn.Anchor = System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right;
+            modifyContentFoldersBtn.Location = new System.Drawing.Point(372, 154);
+            modifyContentFoldersBtn.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            modifyContentFoldersBtn.Name = "modifyContentFoldersBtn";
+            modifyContentFoldersBtn.Size = new System.Drawing.Size(59, 22);
+            modifyContentFoldersBtn.TabIndex = 1;
+            modifyContentFoldersBtn.Text = "Modify";
+            modifyContentFoldersBtn.UseVisualStyleBackColor = true;
+            modifyContentFoldersBtn.Click += modifyContentFoldersBtn_Click;
             // 
             // tempTxtBox
             // 
-            this.tempTxtBox.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
-            | System.Windows.Forms.AnchorStyles.Right)));
-            this.tempTxtBox.Location = new System.Drawing.Point(187, 59);
-            this.tempTxtBox.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
-            this.tempTxtBox.Name = "tempTxtBox";
-            this.tempTxtBox.Size = new System.Drawing.Size(209, 23);
-            this.tempTxtBox.TabIndex = 11;
-            this.tempTxtBox.KeyUp += new System.Windows.Forms.KeyEventHandler(this.tempTxtBox_KeyUp);
-            this.tempTxtBox.Leave += new System.EventHandler(this.tempTxtBox_Leave);
+            tempTxtBox.Anchor = System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right;
+            tempTxtBox.Location = new System.Drawing.Point(187, 59);
+            tempTxtBox.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            tempTxtBox.Name = "tempTxtBox";
+            tempTxtBox.Size = new System.Drawing.Size(209, 23);
+            tempTxtBox.TabIndex = 11;
+            tempTxtBox.KeyUp += tempTxtBox_KeyUp;
+            tempTxtBox.Leave += tempTxtBox_Leave;
             // 
             // contentFolderRedirectsListBox
             // 
-            this.contentFolderRedirectsListBox.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
-            | System.Windows.Forms.AnchorStyles.Right)));
-            this.contentFolderRedirectsListBox.FormattingEnabled = true;
-            this.contentFolderRedirectsListBox.ItemHeight = 15;
-            this.contentFolderRedirectsListBox.Location = new System.Drawing.Point(187, 180);
-            this.contentFolderRedirectsListBox.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
-            this.contentFolderRedirectsListBox.Name = "contentFolderRedirectsListBox";
-            this.contentFolderRedirectsListBox.Size = new System.Drawing.Size(244, 64);
-            this.contentFolderRedirectsListBox.TabIndex = 0;
+            contentFolderRedirectsListBox.Anchor = System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right;
+            contentFolderRedirectsListBox.FormattingEnabled = true;
+            contentFolderRedirectsListBox.ItemHeight = 15;
+            contentFolderRedirectsListBox.Location = new System.Drawing.Point(187, 180);
+            contentFolderRedirectsListBox.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            contentFolderRedirectsListBox.Name = "contentFolderRedirectsListBox";
+            contentFolderRedirectsListBox.Size = new System.Drawing.Size(244, 64);
+            contentFolderRedirectsListBox.TabIndex = 0;
             // 
             // contentFoldersListBox
             // 
-            this.contentFoldersListBox.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
-            | System.Windows.Forms.AnchorStyles.Right)));
-            this.contentFoldersListBox.FormattingEnabled = true;
-            this.contentFoldersListBox.ItemHeight = 15;
-            this.contentFoldersListBox.Location = new System.Drawing.Point(187, 86);
-            this.contentFoldersListBox.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
-            this.contentFoldersListBox.Name = "contentFoldersListBox";
-            this.contentFoldersListBox.Size = new System.Drawing.Size(244, 64);
-            this.contentFoldersListBox.TabIndex = 1;
+            contentFoldersListBox.Anchor = System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right;
+            contentFoldersListBox.FormattingEnabled = true;
+            contentFoldersListBox.ItemHeight = 15;
+            contentFoldersListBox.Location = new System.Drawing.Point(187, 86);
+            contentFoldersListBox.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            contentFoldersListBox.Name = "contentFoldersListBox";
+            contentFoldersListBox.Size = new System.Drawing.Size(244, 64);
+            contentFoldersListBox.TabIndex = 1;
             // 
             // label5
             // 
-            this.label5.AutoSize = true;
-            this.label5.Font = new System.Drawing.Font("Segoe UI", 10.2F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
-            this.label5.Location = new System.Drawing.Point(45, 86);
-            this.label5.Name = "label5";
-            this.label5.Size = new System.Drawing.Size(107, 19);
-            this.label5.TabIndex = 8;
-            this.label5.Text = "Content Folders";
-            this.label5.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
+            label5.AutoSize = true;
+            label5.Font = new System.Drawing.Font("Segoe UI", 10.2F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
+            label5.Location = new System.Drawing.Point(45, 86);
+            label5.Name = "label5";
+            label5.Size = new System.Drawing.Size(107, 19);
+            label5.TabIndex = 8;
+            label5.Text = "Content Folders";
+            label5.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
             // 
             // loadingPanel
             // 
-            this.loadingPanel.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
-            | System.Windows.Forms.AnchorStyles.Left) 
-            | System.Windows.Forms.AnchorStyles.Right)));
-            this.loadingPanel.Controls.Add(this.progressBar1);
-            this.loadingPanel.Controls.Add(this.loadingLbl);
-            this.loadingPanel.Location = new System.Drawing.Point(0, 49);
-            this.loadingPanel.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
-            this.loadingPanel.Name = "loadingPanel";
-            this.loadingPanel.Size = new System.Drawing.Size(541, 724);
-            this.loadingPanel.TabIndex = 4;
-            this.loadingPanel.Visible = false;
+            loadingPanel.Anchor = System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right;
+            loadingPanel.Controls.Add(progressBar1);
+            loadingPanel.Controls.Add(loadingLbl);
+            loadingPanel.Location = new System.Drawing.Point(0, 49);
+            loadingPanel.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            loadingPanel.Name = "loadingPanel";
+            loadingPanel.Size = new System.Drawing.Size(541, 724);
+            loadingPanel.TabIndex = 4;
+            loadingPanel.Visible = false;
             // 
             // progressBar1
             // 
-            this.progressBar1.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
-            | System.Windows.Forms.AnchorStyles.Left) 
-            | System.Windows.Forms.AnchorStyles.Right)));
-            this.progressBar1.Location = new System.Drawing.Point(60, 204);
-            this.progressBar1.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
-            this.progressBar1.MarqueeAnimationSpeed = 25;
-            this.progressBar1.Name = "progressBar1";
-            this.progressBar1.Size = new System.Drawing.Size(423, 429);
-            this.progressBar1.Style = System.Windows.Forms.ProgressBarStyle.Marquee;
-            this.progressBar1.TabIndex = 1;
-            this.progressBar1.Value = 5;
+            progressBar1.Anchor = System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right;
+            progressBar1.Location = new System.Drawing.Point(60, 204);
+            progressBar1.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            progressBar1.MarqueeAnimationSpeed = 25;
+            progressBar1.Name = "progressBar1";
+            progressBar1.Size = new System.Drawing.Size(423, 429);
+            progressBar1.Style = System.Windows.Forms.ProgressBarStyle.Marquee;
+            progressBar1.TabIndex = 1;
+            progressBar1.Value = 5;
             // 
             // loadingLbl
             // 
-            this.loadingLbl.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
-            | System.Windows.Forms.AnchorStyles.Left) 
-            | System.Windows.Forms.AnchorStyles.Right)));
-            this.loadingLbl.AutoSize = true;
-            this.loadingLbl.Font = new System.Drawing.Font("Segoe UI", 36F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
-            this.loadingLbl.Location = new System.Drawing.Point(150, 130);
-            this.loadingLbl.Name = "loadingLbl";
-            this.loadingLbl.Size = new System.Drawing.Size(228, 65);
-            this.loadingLbl.TabIndex = 0;
-            this.loadingLbl.Text = "Loading...";
+            loadingLbl.Anchor = System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right;
+            loadingLbl.AutoSize = true;
+            loadingLbl.Font = new System.Drawing.Font("Segoe UI", 36F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
+            loadingLbl.Location = new System.Drawing.Point(150, 130);
+            loadingLbl.Name = "loadingLbl";
+            loadingLbl.Size = new System.Drawing.Size(228, 65);
+            loadingLbl.TabIndex = 0;
+            loadingLbl.Text = "Loading...";
             // 
             // applySettingsBtn
             // 
-            this.applySettingsBtn.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
-            this.applySettingsBtn.Enabled = false;
-            this.applySettingsBtn.Location = new System.Drawing.Point(400, 738);
-            this.applySettingsBtn.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
-            this.applySettingsBtn.Name = "applySettingsBtn";
-            this.applySettingsBtn.Size = new System.Drawing.Size(130, 24);
-            this.applySettingsBtn.TabIndex = 2;
-            this.applySettingsBtn.Text = "Apply Changes";
-            this.applySettingsBtn.UseVisualStyleBackColor = true;
-            this.applySettingsBtn.Click += new System.EventHandler(this.applySettingsBtn_Click);
+            applySettingsBtn.Anchor = System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right;
+            applySettingsBtn.Enabled = false;
+            applySettingsBtn.Location = new System.Drawing.Point(400, 738);
+            applySettingsBtn.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            applySettingsBtn.Name = "applySettingsBtn";
+            applySettingsBtn.Size = new System.Drawing.Size(130, 24);
+            applySettingsBtn.TabIndex = 2;
+            applySettingsBtn.Text = "Apply Changes";
+            applySettingsBtn.UseVisualStyleBackColor = true;
+            applySettingsBtn.Click += applySettingsBtn_Click;
             // 
             // Settings
             // 
-            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Inherit;
-            this.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(192)))), ((int)(((byte)(255)))), ((int)(((byte)(192)))));
-            this.Controls.Add(this.panel1);
-            this.Controls.Add(this.applySettingsBtn);
-            this.Controls.Add(this.titleLbl);
-            this.Controls.Add(this.loadingPanel);
-            this.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
-            this.Name = "Settings";
-            this.Size = new System.Drawing.Size(542, 773);
-            this.Load += new System.EventHandler(this.Settings_Load);
-            this.panel1.ResumeLayout(false);
-            this.panel1.PerformLayout();
-            this.loadingPanel.ResumeLayout(false);
-            this.loadingPanel.PerformLayout();
-            this.ResumeLayout(false);
-            this.PerformLayout();
-
+            AutoScaleMode = System.Windows.Forms.AutoScaleMode.Inherit;
+            BackColor = System.Drawing.Color.FromArgb(192, 255, 192);
+            Controls.Add(panel1);
+            Controls.Add(applySettingsBtn);
+            Controls.Add(titleLbl);
+            Controls.Add(loadingPanel);
+            Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            Name = "Settings";
+            Size = new System.Drawing.Size(542, 773);
+            Load += Settings_Load;
+            panel1.ResumeLayout(false);
+            panel1.PerformLayout();
+            loadingPanel.ResumeLayout(false);
+            loadingPanel.PerformLayout();
+            ResumeLayout(false);
+            PerformLayout();
         }
 
         #endregion
