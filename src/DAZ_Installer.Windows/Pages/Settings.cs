@@ -11,6 +11,7 @@ using System.IO;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using Serilog;
+using DAZ_Installer.IO;
 
 namespace DAZ_Installer.Windows.Pages
 {
@@ -34,25 +35,7 @@ namespace DAZ_Installer.Windows.Pages
         private void Settings_Load(object sender, EventArgs e)
         {
             Logger.Debug("Settings_Load called");
-            Task.Run(LoadSettings).ContinueWith((t) =>
-            {
-                Logger.Information("Setting up Settings' controls");
-                SetupDownloadThumbnailsSetting();
-                SetupDestinationPathSetting();
-                SetupFileHandling();
-                SetupTempPath();
-                SetupContentFolders();
-                SetupContentRedirects();
-                SetupDeleteSourceFiles();
-                SetupPreviouslyInstalledProducts();
-                SetupAllowOverwriting();
-                SetupRemoveAction();
-
-                loadingPanel.Visible = false;
-                loadingPanel.Dispose();
-                validating = false;
-                Logger.Information("Settings loaded");
-            });
+            Task.Run(LoadSettings);
             loadingPanel.Visible = true;
             loadingPanel.BringToFront();
         }
@@ -67,6 +50,23 @@ namespace DAZ_Installer.Windows.Pages
                 DPSettings.CurrentSettingsObject = SetupSettings();
 
             ValidateDirectoryPaths(DPSettings.CurrentSettingsObject);
+
+            Logger.Information("Setting up Settings' controls");
+            SetupDownloadThumbnailsSetting();
+            SetupDestinationPathSetting();
+            SetupFileHandling();
+            SetupTempPath();
+            SetupContentFolders();
+            SetupContentRedirects();
+            SetupDeleteSourceFiles();
+            SetupPreviouslyInstalledProducts();
+            SetupAllowOverwriting();
+            SetupRemoveAction();
+
+            loadingPanel.Visible = false;
+            loadingPanel.Dispose();
+            validating = false;
+            Logger.Information("Settings loaded");
         }
         public bool SaveSettings()
         {
@@ -117,9 +117,14 @@ namespace DAZ_Installer.Windows.Pages
 
         private void ValidateDirectoryPaths(DPSettings settings)
         {
+            var fs = new DPFileSystem(DPFileScopeSettings.All);
+            fs.CreateDirectoryInfo(settings.DestinationPath).TryCreate();
+            fs.CreateDirectoryInfo(settings.ThumbnailsDir).TryCreate();
+            fs.CreateDirectoryInfo(settings.TempDir).TryCreate();
+            fs.CreateDirectoryInfo(settings.DatabaseDir).TryCreate();
             var destExists = !string.IsNullOrEmpty(settings.DestinationPath) && Directory.Exists(settings.DestinationPath);
             var thumbExists = !string.IsNullOrEmpty(settings.ThumbnailsDir) && Directory.Exists(settings.ThumbnailsDir);
-            var tempExists = !string.IsNullOrEmpty(settings.TempDir) && (Directory.Exists(settings.TempDir) || Path.Combine(Path.GetTempPath(), "DazProductInstaller") == settings.TempDir);
+            var tempExists = !string.IsNullOrEmpty(settings.TempDir) && (Directory.Exists(settings.TempDir));
             var databaseExists = !string.IsNullOrEmpty(settings.DatabaseDir) && Directory.Exists(settings.DatabaseDir);
             var anyEmpty = !string.IsNullOrEmpty(settings.DatabaseDir) ||
                                 !string.IsNullOrEmpty(settings.TempDir) ||
@@ -148,43 +153,12 @@ namespace DAZ_Installer.Windows.Pages
                 }
                 else settings.DestinationPath = DPRegistry.ContentDirectories[0];
             }
-            if (!thumbExists)
-            {
-                settings.ThumbnailsDir = "Thumbnails";
-                try
-                {
-                    Directory.CreateDirectory(settings.ThumbnailsDir);
-                }
-                catch (Exception ex)
-                {
-                    // DPCommon.WriteToLog($"Failed to create directories for default thumbnail path. REASON: {ex}");
-                }
-            }
-            if (!tempExists)
-            {
-                settings.TempDir = Path.Combine(Path.GetTempPath(), "DazProductInstaller");
-                try
-                {
-                    Directory.CreateDirectory(settings.TempDir);
-                }
-                catch (Exception ex)
-                {
-                    // DPCommon.WriteToLog($"Failed to create directories for default temp path. REASON: {ex}");
-                }
-            }
-            if (!databaseExists)
-            {
-                settings.DatabaseDir = "Database";
-                try
-                {
-                    Directory.CreateDirectory(settings.DatabaseDir);
-                }
-                catch (Exception ex)
-                {
-                    // DPCommon.WriteToLog($"Failed to create directories for default database path. REASON: {ex}");
-                }
-            }
-
+            if (!thumbExists && !fs.CreateDirectoryInfo("Thumbnails").TryCreate())
+                Logger.Warning("Failed to create default Thumbnails directory.");
+            if (!tempExists && !fs.CreateDirectoryInfo(Path.Combine(Path.GetTempPath(), "DazProductInstaller")).TryCreate())
+                Logger.Warning("Failed to create default temp directory.");
+            if (!databaseExists && !fs.CreateDirectoryInfo("Database").TryCreate())
+                Logger.Warning("Failed to create default database directory.");
         }
 
         private void SetupContentRedirects()
@@ -216,7 +190,6 @@ namespace DAZ_Installer.Windows.Pages
 
         private void SetupFileHandling()
         {
-
             fileHandlingCombo.Items.AddRange(names);
 
             // Now show the one we selected.
