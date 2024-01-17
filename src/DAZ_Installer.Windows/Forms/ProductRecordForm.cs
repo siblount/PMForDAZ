@@ -13,11 +13,13 @@ using System.IO;
 using System.Linq;
 using System.Windows.Forms;
 using DAZ_Installer.IO;
+using Serilog;
 
 namespace DAZ_Installer.Windows.Forms
 {
     public partial class ProductRecordForm : Form
     {
+        private ILogger logger = Log.Logger.ForContext<ProductRecordForm>();
         private DPProductRecord record;
         private DPExtractionRecord extractionRecord;
         private uint[] maxFontWidthPerListView = new uint[5];
@@ -278,7 +280,7 @@ namespace DAZ_Installer.Windows.Forms
                     "Root content folder doesn't exist", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
                 if (r == DialogResult.No) return;
             }
-            deletedFiles = DeleteFiles(extractionRecord.DestinationPath);
+            deletedFiles = DeleteFiles();
             if (deletedFiles == 0)
             {
                 // Quick test.
@@ -291,12 +293,6 @@ namespace DAZ_Installer.Windows.Forms
                     "Root content folder doesn't exist", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
                     if (r == DialogResult.No) return;
                 }
-
-                foreach (var contentFolder in DPSettings.CurrentSettingsObject.detectedDazContentPaths)
-                {
-                    deletedFiles = DeleteFiles(contentFolder);
-                    if (deletedFiles > 0) break;
-                }
             }
 
             var delta = extractionRecord.Files.Length - deletedFiles;
@@ -306,24 +302,18 @@ namespace DAZ_Installer.Windows.Forms
                 MessageBox.Show($"Some product files failed to be removed.",
                     "Some files failed to be removed", MessageBoxButtons.OK, MessageBoxIcon.Information);
             else Program.Database.RemoveProductRecord(record);
+            Program.Database.RemoveProductRecord(record, OnProductRecordRemoval);
         }
 
-        private uint DeleteFiles(string destinationPath)
+        private uint DeleteFiles()
         {
+            var fs = new DPFileSystem(new DPFileScopeSettings(Array.Empty<string>(), new[] { extractionRecord.DestinationPath }, false));
             uint deleteCount = 0;
             foreach (var file in extractionRecord.Files)
             {
-                var deletePath = Path.Combine(extractionRecord.DestinationPath, file);
-                var info = new FileInfo(deletePath);
-                try
-                {
-                    info.Delete();
-                    deleteCount++;
-                }
-                catch (Exception ex)
-                {
-                    // DPCommon.WriteToLog($"Failed to remove product file for {record.ProductName}, file: {file}. REASON: {ex}");
-                }
+                fs.CreateFileInfo(Path.Combine(extractionRecord.DestinationPath, file)).TryAndFixDelete(out var ex);
+                if (ex != null) logger.Error(ex, "Failed to remove product file {file} for {record}", file, record.ProductName);
+                else deleteCount++;
             }
             return deleteCount;
         }
