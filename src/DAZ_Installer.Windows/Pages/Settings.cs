@@ -61,11 +61,10 @@ namespace DAZ_Installer.Windows.Pages
         private void LoadSettings()
         {
             Logger.Information("Loading Settings");
-            // DPCommon.WriteToLog("Loading settings...");
             // Get our settings.
             validating = true;
             if (!DPSettings.CurrentSettingsObject.Valid)
-            DPSettings.CurrentSettingsObject = SetupSettings();
+                DPSettings.CurrentSettingsObject = SetupSettings();
 
             ValidateDirectoryPaths(DPSettings.CurrentSettingsObject);
         }
@@ -110,6 +109,7 @@ namespace DAZ_Installer.Windows.Pages
                         "Directory selection required", MessageBoxButtons.OK, MessageBoxIcon.Error);
                     path = AskForDirectory();
                 }
+                settings.DestinationPath = path;
             }
             else settings.DestinationPath = DPRegistry.ContentDirectories[0];
             return settings;
@@ -132,7 +132,7 @@ namespace DAZ_Installer.Windows.Pages
             applySettingsBtn.Enabled = invalidSettings;
             if (!destExists)
             {
-                if (DPRegistry.ContentDirectories.Length == 0)
+                if (DPRegistry.ContentDirectories.Length == 0 && !Directory.Exists(settings.DestinationPath))
                 {
                     MessageBox.Show("Couldn't find DAZ Studio Content Directories located in registry. On the next prompt, please select where you want your products to be installed to. You can always change this later in the settings.",
                         "Content Directories not found", MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
@@ -144,9 +144,9 @@ namespace DAZ_Installer.Windows.Pages
                             "Directory selection required", MessageBoxButtons.OK, MessageBoxIcon.Error);
                         path = AskForDirectory();
                     }
+                    settings.DestinationPath = path;
                 }
-                else
-                    settings.DestinationPath = DPRegistry.ContentDirectories[0];
+                else settings.DestinationPath = DPRegistry.ContentDirectories[0];
             }
             if (!thumbExists)
             {
