@@ -84,6 +84,20 @@ namespace DAZ_Installer.Database.Tests
             Assert.AreEqual(1, results.Count);
             Assert.That.ProductRecordEqual(expected, results[0]);
         }
+
+        [TestMethod]
+        public void randomTest()
+        {
+            var expected = new DPProductRecord("Test Product", new[] { "TheRealSolly" }, DateTime.UtcNow, "J:/a.png",
+                "ArcName.zip", "J:/Destination", new[] { "Test1", "Test2" }, new[] { "a.file", "b.file" }, 0);
+
+            Database.ProductRecordAdded += (actual) => Assert.That.ProductRecordEqual(expected, actual);
+            Database.AddNewRecordEntry(expected).Wait();
+
+            var results = DPDatabaseTestHelpers.GetAllProductRecords(DatabasePath);
+            Assert.AreEqual(1, results.Count);
+            Assert.That.ProductRecordEqual(expected, results[0]);
+        }
         //[TestMethod]
         //public void AddNewRecordEntryTest_Multithreaded()
         //{

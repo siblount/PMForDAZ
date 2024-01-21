@@ -3,6 +3,7 @@
 using Serilog;
 using System.Data;
 using System.Data.SQLite;
+using Microsoft.Data.Sqlite;
 using System.Text;
 
 namespace DAZ_Installer.Database
@@ -15,13 +16,13 @@ namespace DAZ_Installer.Database
         /// </summary>
         /// <param name="connection">A connection to reuse, if any.</param>
         /// <param name="t">Cancel token. Required, cannot be null. Use CancellationToken.None instead (though not recommended).</param>
-        private void UpdateProductRecordCount(SQLiteConnection? connection, CancellationToken t)
+        private void UpdateProductRecordCount(SqliteConnection? connection, CancellationToken t)
         {
             const string getCmd = $@"SELECT ""Product Record Count"" FROM {DatabaseInfoTable};";
             if (t.IsCancellationRequested) return;
             try
             {
-                using SQLiteCommand cmd = new(getCmd, connection);
+                using SqliteCommand cmd = new(getCmd, connection);
                 ProductRecordCount = Convert.ToUInt32(cmd.ExecuteScalar());
             }
             catch (Exception e)
@@ -38,12 +39,12 @@ namespace DAZ_Installer.Database
         /// <param name="t">Cancel token. Required, cannot be null. Use CancellationToken.None instead (though not recommended).</param>
         /// <returns>A list of <see cref="DPProductRecordLite"/>s or an empty list if cancelled.</returns>
         /// <exception cref="Exception"/>
-        private List<DPProductRecordLite> SearchProductRecords(SQLiteCommand command, CancellationToken t)
+        private List<DPProductRecordLite> SearchProductRecords(SqliteCommand command, CancellationToken t)
         {
             List<DPProductRecordLite> searchResults = new(25);
             if (t.IsCancellationRequested) return new List<DPProductRecordLite>(0);
             // TODO: I'm not sure if this should be disposed.
-            SQLiteDataReader reader = command.ExecuteReader();
+            SqliteDataReader reader = command.ExecuteReader();
             while (reader.Read())
             {
                 if (t.IsCancellationRequested) return new List<DPProductRecordLite>(0);
@@ -62,14 +63,14 @@ namespace DAZ_Installer.Database
         /// Returns an array of columns for the table name specified.
         /// </summary>
         /// <param name="tableName">The table to get columns from.</param>
-        /// <param name="c">The SQLiteConnection to use, if any.</param>
+        /// <param name="c">The SqliteConnection to use, if any.</param>
         /// <param name="t">Cancel token. Required, cannot be null. Use CancellationToken.None instead (though not recommended).</param>
         /// <returns>The columns of the table, or an empty array if cancelled or an error occurred.</returns>
-        private string[] GetColumns(string tableName, SQLiteConnection? c, CancellationToken t)
+        private string[] GetColumns(string tableName, SqliteConnection? c, CancellationToken t)
         {
             if (t.IsCancellationRequested || tableName.Length == 0) return Array.Empty<string>();
-            SQLiteConnection? connection = null;
-            SQLiteCommand sqlCommand = null!;
+            SqliteConnection? connection = null;
+            SqliteCommand sqlCommand = null!;
             try
             {
                 connection = CreateAndOpenConnection(c, true);
@@ -77,8 +78,8 @@ namespace DAZ_Installer.Database
                 if (!success) return Array.Empty<string>();
 
                 var randomCommand = $"SELECT * FROM {tableName} LIMIT 1;";
-                sqlCommand = new SQLiteCommand(randomCommand, connection);
-                SQLiteDataReader reader = sqlCommand.ExecuteReader();
+                sqlCommand = new SqliteCommand(randomCommand, connection);
+                SqliteDataReader reader = sqlCommand.ExecuteReader();
                 DataTable table = reader.GetSchemaTable();
 
                 List<string> columns = new();
@@ -107,22 +108,22 @@ namespace DAZ_Installer.Database
         /// <summary>
         /// Returns all an array of all of the tables in the database.
         /// </summary>
-        /// <param name="c">The SQLiteConnection to use, if any.</param>
+        /// <param name="c">The SqliteConnection to use, if any.</param>
         /// <param name="cancellationToken">Cancel token. Required, cannot be null. Use CancellationToken.None instead (though not recommended).</param>
-        private string[] GetTables(SQLiteConnection? c, CancellationToken cancellationToken)
+        private string[] GetTables(SqliteConnection? c, CancellationToken cancellationToken)
         {
             if (cancellationToken.IsCancellationRequested) return Array.Empty<string>();
             List<string> tables = new();
-            SQLiteConnection? connection = null;
-            SQLiteCommand? sqlCommand = null;
+            SqliteConnection? connection = null;
+            SqliteCommand? sqlCommand = null;
 
             try
             {
                 connection = CreateAndOpenConnection(c, true);
                 if (connection == null) return Array.Empty<string>();
                 var randomCommand = $"SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%'";
-                sqlCommand = new SQLiteCommand(randomCommand, connection);
-                using (SQLiteDataReader reader = sqlCommand.ExecuteReader())
+                sqlCommand = new SqliteCommand(randomCommand, connection);
+                using (SqliteDataReader reader = sqlCommand.ExecuteReader())
                 {
                     while (reader.Read())
                         tables.Add(reader.GetString(0));
@@ -151,23 +152,23 @@ namespace DAZ_Installer.Database
         /// which may be null if it fails to create & open a connection, and execute the reader. Otherwise, it may
         /// return an empty hashset indicating there was nothing there.
         /// </summary>
-        /// <param name="c">The SQLiteCOnnection to use, if any.</param>
+        /// <param name="c">The SqliteConnection to use, if any.</param>
         /// <param name="t">Cancel token. Required, cannot be null. Use CancellationToken.None instead (though not recommended).</param>
         /// <returns>A hashset containing successfully extracted archive file names.</returns>
-        private HashSet<string>? GetArchiveFileNameList(SQLiteConnection? c, CancellationToken t)
+        private HashSet<string>? GetArchiveFileNameList(SqliteConnection? c, CancellationToken t)
         {
-            SQLiteConnection _connection = null;
-            SQLiteCommand cmd = null;
-            SQLiteDataReader reader = null;
-            HashSet<string> names = null;
+            SqliteConnection? _connection = null;
+            SqliteCommand? cmd = null;
+            SqliteDataReader? reader = null;
+            HashSet<string>? names = null;
             var getCmd = $@"SELECT ""ArcName"" FROM {ProductTable}";
             try
             {
                 _connection = CreateAndOpenConnection(c, true);
                 if (_connection == null) return names;
-                cmd = new SQLiteCommand(getCmd, _connection);
+                cmd = new SqliteCommand(getCmd, _connection);
                 reader = cmd.ExecuteReader();
-                names = new HashSet<string>(reader.StepCount);
+                names = new HashSet<string>(reader.FieldCount);
                 while (reader.Read())
                 {
                     names.Add(reader.GetString(0));
@@ -195,19 +196,19 @@ namespace DAZ_Installer.Database
         /// Returns the last product ID which indicates the latest product record added to the database.
         /// It may return 0 if an error occurred (or if there are no product records in the database).
         /// </summary>
-        /// <param name="conn">The SQLiteConnection to use, if any.</param>
+        /// <param name="conn">The SqliteConnection to use, if any.</param>
         /// <param name="t">Cancel token. Required, cannot be null. Use CancellationToken.None instead (though not recommended).</param>
         /// <returns>The last product record ID in the database.</returns>
-        private long GetLastProductID(SQLiteConnection? conn, CancellationToken t)
+        private long GetLastProductID(SqliteConnection? conn, CancellationToken t)
         {
             if (t.IsCancellationRequested) return 0;
             var c = $@"SELECT ID FROM {ProductTable} ORDER BY ID DESC LIMIT 1;";
-            SQLiteConnection? connection = null;
-            SQLiteCommand? cmd = null;
+            SqliteConnection? connection = null;
+            SqliteCommand? cmd = null;
             try
             {
                 connection = CreateAndOpenConnection(conn, true);
-                cmd = new SQLiteCommand(c, connection);
+                cmd = new SqliteCommand(c, connection);
                 return Convert.ToInt64(cmd.ExecuteScalar());
             }
             catch (Exception ex)
@@ -230,22 +231,22 @@ namespace DAZ_Installer.Database
         /// empty indicating there was an issue internally or that there was nothing in the table.
         /// </summary>
         /// <param name="tableName">The table to get all rows from.</param>
-        /// <param name="c">The SQLiteConnection to use, if any.</param>
+        /// <param name="c">The SqliteConnection to use, if any.</param>
         /// <param name="token">Cancel token. Required, cannot be null. Use CancellationToken.None instead (though not recommended).</param>
         /// <returns>A dataset containing all of the values from the table specified. May return null.</returns>
-        private DataSet? GetAllValuesFromTable(string tableName, SQLiteConnection? c,
+        private DataSet? GetAllValuesFromTable(string tableName, SqliteConnection? c,
             CancellationToken token)
         {
             DataSet? dataset = null;
-            SQLiteConnection? connection = null;
-            SQLiteCommand? sqlCommand = null;
-            SQLiteDataAdapter? adapter = null;
+            SqliteConnection? connection = null;
+            SqliteCommand? sqlCommand = null;
+            DPDatabaseDataAdapter? adapter = null;
             if (token.IsCancellationRequested) return dataset;
             try
             {
                 connection = CreateAndOpenConnection(c, true);
                 var getCommand = $"SELECT * FROM {tableName}";
-                sqlCommand = new SQLiteCommand(getCommand, connection);
+                sqlCommand = new SqliteCommand(getCommand, connection);
                 adapter = new(sqlCommand);
                 dataset = new DataSet(tableName);
                 adapter.Fill(dataset);
@@ -277,17 +278,17 @@ namespace DAZ_Installer.Database
         /// <param name="c">The connection to use, if any. Otherwise, one will be created.</param>
         /// <param name="t">The cancellation token to use for cancellation. If none, use <see cref="CancellationToken.None"/>.</param>
         /// <returns>The associated destination ID of <paramref name="destination"/>, otherwise -1 on errors.</returns>
-        private int GetDestinationID(string destination, SQLiteConnection? c, CancellationToken t)
+        private int GetDestinationID(string destination, SqliteConnection? c, CancellationToken t)
         {
-            SQLiteConnection? connection = null;
-            SQLiteCommand? sqlCommand = null;
+            SqliteConnection? connection = null;
+            SqliteCommand? sqlCommand = null;
             if (t.IsCancellationRequested) return -1;
             try
             {
                 connection = CreateAndOpenConnection(c, true);
                 if (connection == null) return -1;
                 var getCommand = $"SELECT ID from {DestinationTable} WHERE Destination = {destination}";
-                sqlCommand = new SQLiteCommand(getCommand, connection);
+                sqlCommand = new SqliteCommand(getCommand, connection);
                 return Convert.ToInt32(sqlCommand.ExecuteScalar());
             }
             catch (Exception ex)
@@ -312,18 +313,18 @@ namespace DAZ_Installer.Database
         /// <param name="c">The connection to use, if any. Otherwise, one will be created.</param>
         /// <param name="t">The cancellation token to use for cancellation. If none, use <see cref="CancellationToken.None"/>.</param>
         /// <returns></returns>
-        private DPProductRecord? GetProductRecord(long pid, SQLiteConnection? c, CancellationToken t)
+        private DPProductRecord? GetProductRecord(long pid, SqliteConnection? c, CancellationToken t)
         {
             if (t.IsCancellationRequested) return null;
-            SQLiteConnection? connection = null;
-            SQLiteCommand? command = null;
-            SQLiteDataReader? reader = null;
+            SqliteConnection? connection = null;
+            SqliteCommand? command = null;
+            SqliteDataReader? reader = null;
             try
             {
                 connection = CreateAndOpenConnection(c, true);
                 if (connection == null) return null;
                 var getCmd = $"SELECT * FROM {ProductFullView} WHERE ID = {pid};";
-                command = new SQLiteCommand(getCmd, connection);
+                command = new SqliteCommand(getCmd, connection);
                 reader = command.ExecuteReader();
                 if (!reader.HasRows) return null;
                 reader.Read();
@@ -361,10 +362,10 @@ namespace DAZ_Installer.Database
         /// remove all records safely. In the event of an internal failure, you should make sure the triggers are
         /// re-enabled by calling <c>CreateTriggers()</c>.
         /// </summary>
-        /// <param name="c">The SQLiteConnection to use, if any.</param>
+        /// <param name="c">The SqliteConnection to use, if any.</param>
         /// <param name="t">Cancel token. Required, cannot be null. Use CancellationToken.None instead (though not recommended).</param>
         /// <returns>Whether the removal was a success (true) or not (false).</returns>
-        private bool RemoveAllRecords(SQLiteConnection? c, CancellationToken t) => ResetDatabase(c, t);
+        private bool RemoveAllRecords(SqliteConnection? c, CancellationToken t) => ResetDatabase(c, t);
 
         /// <summary>
         /// Removes values from the table specified with the conditions specified.
@@ -372,11 +373,11 @@ namespace DAZ_Installer.Database
         /// <param name="tableName">The table you wish to remove values from.</param>
         /// <param name="conditions">An array of conditions to consider when removing rows.</param>
         /// <param name="or">Combine conditions with an OR statement (true) or an AND statement (false).</param>
-        /// <param name="c">The SQLiteConnection to use, if any.</param>
+        /// <param name="c">The SqliteConnection to use, if any.</param>
         /// <param name="t">Cancel token. Required, cannot be null. Use CancellationToken.None instead (though not recommended).</param>
         /// <returns>Whether the removal was a success (true) or not (false).</returns>
         private bool RemoveValuesWithCondition(string tableName, Tuple<string, object>[] conditions,
-            bool or, SQLiteConnection? c, CancellationToken t)
+            bool or, SqliteConnection? c, CancellationToken t)
         {
             // Build columns.
             List<string> args = new(conditions.Length);
@@ -401,9 +402,9 @@ namespace DAZ_Installer.Database
                 vals[i] = item;
             }
             builder.Append(';');
-            SQLiteConnection? connection = null;
-            SQLiteTransaction? transaction = null;
-            SQLiteCommand? sqlCommand = null;
+            SqliteConnection? connection = null;
+            SqliteTransaction? transaction = null;
+            SqliteCommand? sqlCommand = null;
             try
             {
                 connection = CreateAndOpenConnection(c);
@@ -411,7 +412,7 @@ namespace DAZ_Installer.Database
                 transaction = connection.BeginTransaction();
                 try
                 {
-                    sqlCommand = new SQLiteCommand(builder.ToString(), connection, transaction);
+                    sqlCommand = new SqliteCommand(builder.ToString(), connection, transaction);
                     FillParamsToConnection(sqlCommand, args, vals);
                     sqlCommand.ExecuteNonQuery();
                     transaction.Commit();
@@ -444,17 +445,17 @@ namespace DAZ_Installer.Database
         /// Removes all of the rows from the table specified. 
         /// </summary>
         /// <param name="tableName">The table to remove everything from.</param>
-        /// <param name="c">The SQLiteConnection to use, if any.</param>
+        /// <param name="c">The SqliteConnection to use, if any.</param>
         /// <param name="t">Cancel token. Required, cannot be null. Use CancellationToken.None instead (though not recommended).</param>
         /// <returns>Whether the removal was a success (true) or not (false).</returns>
-        private bool RemoveAllFromTable(string tableName, SQLiteConnection? c, CancellationToken t)
+        private bool RemoveAllFromTable(string tableName, SqliteConnection? c, CancellationToken t)
         {
             if (t.IsCancellationRequested) return false;
 
             var deleteCommand = $"DELETE FROM {tableName}; pragma vaccum;";
-            SQLiteConnection? connection = null;
-            SQLiteTransaction? transaction = null;
-            SQLiteCommand? sqlCommand = null;
+            SqliteConnection? connection = null;
+            SqliteTransaction? transaction = null;
+            SqliteCommand? sqlCommand = null;
             try
             {
                 connection = CreateAndOpenConnection(c);
@@ -462,7 +463,7 @@ namespace DAZ_Installer.Database
                 transaction = connection.BeginTransaction();
                 try
                 {
-                    sqlCommand = new SQLiteCommand(deleteCommand, connection, transaction);
+                    sqlCommand = new SqliteCommand(deleteCommand, connection, transaction);
                     sqlCommand.ExecuteNonQuery();
                     transaction.Commit();
                     TableUpdated?.Invoke(tableName);
@@ -498,16 +499,16 @@ namespace DAZ_Installer.Database
         /// Insert or replace files into the database for the associated PID. If the PID is 0, it will get the last PID.
         /// </summary>
         /// <param name="files">A list of files to insert into the database. Make sure there are no duplicates, otherwise this will fail. </param>
-        /// <param name="c">The SQLiteConnection to use, if any.</param>
+        /// <param name="c">The SqliteConnection to use, if any.</param>
         /// <param name="t">Cancel token. Required, cannot be null. Use CancellationToken.None instead (though not recommended).</param>
         /// <param name="pid">The product ID to insert the files to. If 0, it will get the last product ID in the database.</param>
         /// <returns>Whether the insertion was successful (true) or not (false).</returns>
-        private bool UpdateFiles(IReadOnlyList<string> files, SQLiteConnection? c, CancellationToken t, long pid = 0)
+        private bool UpdateFiles(IReadOnlyList<string> files, SqliteConnection? c, CancellationToken t, long pid = 0)
         {
             if (t.IsCancellationRequested) return false;
-            SQLiteConnection? connection = null;
-            SQLiteCommand? sqlCommand = null;
-            SQLiteTransaction? transaction = null;
+            SqliteConnection? connection = null;
+            SqliteCommand? sqlCommand = null;
+            SqliteTransaction? transaction = null;
             try
             {
                 connection = CreateAndOpenConnection(c);
@@ -520,7 +521,7 @@ namespace DAZ_Installer.Database
                 }
                 transaction = connection.BeginTransaction();
                 var insertCommand = $"INSERT INTO {FilesTable} VALUES ({pid}, @A0);";
-                sqlCommand = new SQLiteCommand(insertCommand, connection, transaction);
+                sqlCommand = new SqliteCommand(insertCommand, connection, transaction);
                 sqlCommand.Parameters.Add(new("@A0", string.Join(", ", files)));
                 sqlCommand.ExecuteNonQuery();
                 transaction.Commit();
@@ -547,15 +548,15 @@ namespace DAZ_Installer.Database
         /// Inserts default values to the table specified.
         /// </summary>
         /// <param name="tableName">The table name to insert multiple values to.</param>
-        /// <param name="c">The SQLiteConnection to use, if any.</param>
+        /// <param name="c">The SqliteConnection to use, if any.</param>
         /// <param name="t">Cancel token. Required, cannot be null. Use CancellationToken.None instead (though not recommended).</param>
         /// <returns>Whether the insertion was successful (true) or not (false).</returns>
-        private bool InsertDefaultValuesToTable(string tableName, SQLiteConnection? c, CancellationToken t)
+        private bool InsertDefaultValuesToTable(string tableName, SqliteConnection? c, CancellationToken t)
         {
             if (t.IsCancellationRequested) return false;
-            SQLiteConnection? connection = null;
-            SQLiteTransaction? transaction = null;
-            SQLiteCommand? sqlCommand = null;
+            SqliteConnection? connection = null;
+            SqliteTransaction? transaction = null;
+            SqliteCommand? sqlCommand = null;
             try
             {
                 connection = CreateAndOpenConnection(c);
@@ -564,7 +565,7 @@ namespace DAZ_Installer.Database
                 var insertCommand = $"INSERT INTO {tableName} DEFAULT VALUES;";
                 try
                 {
-                    sqlCommand = new SQLiteCommand(insertCommand, connection, transaction);
+                    sqlCommand = new SqliteCommand(insertCommand, connection, transaction);
                     sqlCommand.ExecuteNonQuery();
                     transaction.Commit();
                     TableUpdated?.Invoke(tableName);
@@ -603,16 +604,16 @@ namespace DAZ_Installer.Database
         /// <param name="tableName">The table name to insert multiple values to.</param>
         /// <param name="columns">The columns to insert values into. Cannot be null.</param>
         /// <param name="values">The values to insert into the table. Cannot be null.</param>
-        /// <param name="c">The SQLiteConnection to use, if any.</param>
+        /// <param name="c">The SqliteConnection to use, if any.</param>
         /// <param name="t">Cancel token. Required, cannot be null. Use CancellationToken.None instead (though not recommended).</param>
         /// <returns>Whether the insertion was successful (true) or not (false).</returns>
         private bool InsertValuesToTable(string tableName, string[] columns, object?[] values,
-            SQLiteConnection? c, CancellationToken t)
+            SqliteConnection? c, CancellationToken t)
         {
             if (t.IsCancellationRequested) return false;
-            SQLiteConnection? connection = null;
-            SQLiteTransaction? transaction = null;
-            SQLiteCommand? sqlCommand = null;
+            SqliteConnection? connection = null;
+            SqliteTransaction? transaction = null;
+            SqliteCommand? sqlCommand = null;
             try
             {
                 connection = CreateAndOpenConnection(c);
@@ -636,7 +637,7 @@ namespace DAZ_Installer.Database
                 insertCommand += ");";
                 try
                 {
-                    sqlCommand = new SQLiteCommand(insertCommand, connection, transaction);
+                    sqlCommand = new SqliteCommand(insertCommand, connection, transaction);
                     FillParamsToConnection(sqlCommand, args, values);
                     sqlCommand.ExecuteNonQuery();
                     transaction.Commit();
@@ -671,15 +672,15 @@ namespace DAZ_Installer.Database
         /// Inserts a product record into the database. 
         /// </summary>
         /// <param name="pRecord">The product record to insert. Cannot be null.</param>
-        /// <param name="c">The SQLiteConnection to use, if any.</param>
+        /// <param name="c">The SqliteConnection to use, if any.</param>
         /// <param name="t">Cancel token. Required, cannot be null. Use CancellationToken.None instead (though not recommended).</param>
-        private bool InsertRecords(DPProductRecord pRecord, SQLiteConnection? c, CancellationToken t)
+        private bool InsertRecords(DPProductRecord pRecord, SqliteConnection? c, CancellationToken t)
         {
             // Trigger will update the product record's extraction record ID to the newly created record.
             if (t.IsCancellationRequested) return false;
 
-            SQLiteConnection? connection = null;
-            SQLiteTransaction? transaction = null;
+            SqliteConnection? connection = null;
+            SqliteTransaction? transaction = null;
             // We do not care about ID.
             pRecord.Deconstruct(out var productName, out var authors, out var time, out var thumbnailPath, out var arcName, out var destination, out var tags, out var files, out var _);
             try
@@ -731,16 +732,16 @@ namespace DAZ_Installer.Database
         /// <param name="tableName">The table name to insert multiple values to.</param>
         /// <param name="columns">The columns to update values into. Cannot be null.</param>
         /// <param name="newValues">The values to update into the table. Cannot be null.</param>
-        /// <param name="c">The SQLiteConnection to use, if any.</param>
+        /// <param name="c">The SqliteConnection to use, if any.</param>
         /// <param name="t">Cancel token. Required, cannot be null. Use CancellationToken.None instead (though not recommended).</param>
         /// <returns>Whether the insertion was successful (true) or not (false).</returns>
         private bool UpdateValues(string tableName, string[] columns, object[] newValues,
-            int id, SQLiteConnection? c, CancellationToken t)
+            int id, SqliteConnection? c, CancellationToken t)
         {
             if (t.IsCancellationRequested) return false;
-            SQLiteConnection? connection = null;
-            SQLiteTransaction transaction = null!;
-            SQLiteCommand sqlCommand = null!;
+            SqliteConnection? connection = null;
+            SqliteTransaction transaction = null!;
+            SqliteCommand sqlCommand = null!;
             try
             {
                 connection = CreateAndOpenConnection(c);
@@ -756,7 +757,7 @@ namespace DAZ_Installer.Database
                 updateCommand += $" WHERE ROWID = {id};";
                 try
                 {
-                    sqlCommand = new SQLiteCommand(updateCommand, connection, transaction);
+                    sqlCommand = new SqliteCommand(updateCommand, connection, transaction);
                     FillAssignmentParamsToConnection(sqlCommand, aParams, columns, newValues);
                     sqlCommand.ExecuteNonQuery();
                     transaction.Commit();
@@ -791,10 +792,10 @@ namespace DAZ_Installer.Database
         /// </summary>
         /// <param name="pid">The product record ID to update.</param>
         /// <param name="newRecord">The newly constructed DPProductRecord with new values to insert/update.</param>
-        /// <param name="c">The SQLiteConnection to use, if any.</param>
+        /// <param name="c">The SqliteConnection to use, if any.</param>
         /// <param name="t">Cancel token. Required, cannot be null. Use CancellationToken.None instead (though not recommended).</param>
         /// <returns>Whether the insertion was successful (true) or not (false).</returns>
-        private bool UpdateProductRecord(long pid, DPProductRecord newRecord, SQLiteConnection? c, CancellationToken t)
+        private bool UpdateProductRecord(long pid, DPProductRecord newRecord, SqliteConnection? c, CancellationToken t)
         {
             if (t.IsCancellationRequested || newRecord == null || pid < 0)
                 return false;
@@ -805,9 +806,9 @@ namespace DAZ_Installer.Database
             productName = productName?.Length > 70 ? productName.Substring(0, 70) : productName;
 
             // TODO: Determine if Destination was updated or not.
-            SQLiteConnection? connection = null;
-            SQLiteTransaction? transaction = null;
-            SQLiteCommand? sqlCommand = null;
+            SqliteConnection? connection = null;
+            SqliteTransaction? transaction = null;
+            SqliteCommand? sqlCommand = null;
             try
             {
                 connection = CreateAndOpenConnection(c);
@@ -829,7 +830,7 @@ namespace DAZ_Installer.Database
                 try
                 {
                     if (t.IsCancellationRequested || !UpdateFiles(files, connection, t, pid)) return false;
-                    sqlCommand = new SQLiteCommand(updateCommand.ToString(), connection, transaction);
+                    sqlCommand = new SqliteCommand(updateCommand.ToString(), connection, transaction);
                     sqlCommand.Parameters.Add(new("@A0", destination));
                     for (var i = 1; i < pColumns.Length + 1; i++)
                     {
@@ -863,20 +864,20 @@ namespace DAZ_Installer.Database
             return true;
         }
 
-        private bool SetDestination(string dest, out int destID, SQLiteConnection? c, CancellationToken t)
+        private bool SetDestination(string dest, out int destID, SqliteConnection? c, CancellationToken t)
         {
             destID = -1;
             if (t.IsCancellationRequested) return false;
-            SQLiteConnection? connection = null;
-            SQLiteCommand? sqlCommand = null;
-            SQLiteTransaction? transaction = null;
+            SqliteConnection? connection = null;
+            SqliteCommand? sqlCommand = null;
+            SqliteTransaction? transaction = null;
             try
             {
                 connection = CreateAndOpenConnection(c);
                 if (connection == null) return false;
                 transaction = connection.BeginTransaction();
                 var insertCommand = $"INSERT OR IGNORE INTO {DestinationTable} (Destination) VALUES (@A0);";
-                sqlCommand = new SQLiteCommand(insertCommand, connection, transaction);
+                sqlCommand = new SqliteCommand(insertCommand, connection, transaction);
                 sqlCommand.Parameters.AddWithValue("@A0", dest);
                 sqlCommand.ExecuteNonQuery();
                 transaction.Commit();
@@ -901,15 +902,15 @@ namespace DAZ_Installer.Database
         #endregion
         #endregion
         #region Update
-        private bool UpdateToVersion3(SQLiteConnection c, CancellationToken t)
+        private bool UpdateToVersion3(SqliteConnection c, CancellationToken t)
         {
             /// <summary>
             /// We will create a new database file and copy all of the data from the old database file to the new one.
             /// </summary>
             if (t.IsCancellationRequested) return false;
-            SQLiteConnection? connection = null;
-            SQLiteTransaction transaction = null!;
-            SQLiteCommand sqlCommand = null!;
+            SqliteConnection? connection = null;
+            SqliteTransaction transaction = null!;
+            SqliteCommand sqlCommand = null!;
             try
             {
                 connection = CreateAndOpenConnection(c);
@@ -933,7 +934,7 @@ namespace DAZ_Installer.Database
                 ";
                 try
                 {
-                    sqlCommand = new SQLiteCommand(dropTablesCommand, c, transaction);
+                    sqlCommand = new SqliteCommand(dropTablesCommand, c, transaction);
                     sqlCommand.ExecuteNonQuery();
                     if (!CreateTables(connection, t)) return false;
                     if (!CreateIndexes(connection, t)) return false;
@@ -1005,9 +1006,9 @@ namespace DAZ_Installer.Database
             var pragmaCheckpoint = "PRAGMA wal_checkpoint(TRUNCATE);";
             try
             {
-                using SQLiteConnection? connection = CreateAndOpenConnection(null, false);
+                using SqliteConnection? connection = CreateAndOpenConnection(null, false);
                 if (connection == null) return;
-                using SQLiteCommand cmd = new(pragmaCheckpoint, connection);
+                using SqliteCommand cmd = new(pragmaCheckpoint, connection);
                 cmd.ExecuteNonQuery();
             }
             catch (Exception ex)
@@ -1020,7 +1021,7 @@ namespace DAZ_Installer.Database
             var shmFile = System.IO.Path.GetFullPath(Path + "-shm");
             var walFile = System.IO.Path.GetFullPath(Path + "-wal");
 
-            // This is required for the SQLiteConnection to truly release the handle on 
+            // This is required for the SqliteConnection to truly release the handle on 
             // the database file.
             GC.Collect();
             GC.WaitForPendingFinalizers();
@@ -1137,7 +1138,7 @@ namespace DAZ_Installer.Database
             return args;
         }
         /// <summary>
-        /// Associates parameter placeholds with a value to the SQLiteCommand. You should call <c>CreateParams()</c> before
+        /// Associates parameter placeholds with a value to the SqliteCommand. You should call <c>CreateParams()</c> before
         /// to generate the parameter list to include into <paramref name="cArgs"/> and update the command string.
         /// For example, if the args is {"@A1", "@A2", "@A3"} and the values are {"hello", "solomon", "blount"}, then 
         /// the args will be replaced with its values when the query is executed.
@@ -1145,7 +1146,7 @@ namespace DAZ_Installer.Database
         /// <param name="command">The command to add parameters into. Cannot be null.</param>
         /// <param name="cArgs">The argument placeholders to fill. Cannot be null.</param>
         /// <param name="values">The values to replace placeholders with. Cannot be null.</param>
-        private void FillParamsToConnection(SQLiteCommand command, IReadOnlyList<string> cArgs, params object[] values)
+        private void FillParamsToConnection(SqliteCommand command, IReadOnlyList<string> cArgs, params object[] values)
         {
             for (var i = 0; i < cArgs.Count; i++)
             {
@@ -1153,7 +1154,7 @@ namespace DAZ_Installer.Database
             }
         }
         /// <summary>
-        /// Associates parameter placeholds with a value to the SQLiteCommand. You should call <c>CreateAssignmentParams()</c> before
+        /// Associates parameter placeholds with a value to the SqliteCommand. You should call <c>CreateAssignmentParams()</c> before
         /// to generate the parameter list to include into <paramref name="cArgs"/> and update the command string. <para/>
         /// Then, use <paramref name="leftVals"/> for values that should be on the left side of the equal sign.
         /// Use <paramref name="rightVals"/> for values that should be on the right. <para/>
@@ -1166,7 +1167,7 @@ namespace DAZ_Installer.Database
         /// <param name="leftVals">The values to replace placeholders with on the left side of the equal sign. Cannot be null.</param>
         /// <param name="rightVals">The values to replace placeholders with on the right side of the equal sign. Cannot be null.</param>
         /// 
-        private void FillAssignmentParamsToConnection(SQLiteCommand command, IReadOnlyList<string> cArgs, object[] leftVals, object[] rightVals)
+        private void FillAssignmentParamsToConnection(SqliteCommand command, IReadOnlyList<string> cArgs, object[] leftVals, object[] rightVals)
         {
             if (leftVals.Length != rightVals.Length)
             {

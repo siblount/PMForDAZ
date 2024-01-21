@@ -11,6 +11,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Microsoft.Data.Sqlite" Version="8.0.1" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.5.0" />
     <PackageReference Include="MSTest.TestAdapter" Version="2.2.10" />
     <PackageReference Include="MSTest.TestFramework" Version="2.2.10" />
@@ -22,5 +23,9 @@
   </ItemGroup>
 
   <Import Project="..\DAZ_Installer.Common\DAZ_Installer.Common.projitems" Label="Shared" />
+
+  <Target Name="PostBuild" AfterTargets="PostBuildEvent">
+    <Exec Command="copy &quot;$(SolutionDir)DAZ_Installer.Database\libs\fts5.dll&quot; &quot;$(OutDir)fts5.dll&quot;" />
+  </Target>
 
 </Project>

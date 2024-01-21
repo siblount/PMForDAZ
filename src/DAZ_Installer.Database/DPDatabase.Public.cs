@@ -1,5 +1,5 @@
 ﻿using System.Data;
-using System.Data.SQLite;
+using Microsoft.Data.Sqlite;
 
 namespace DAZ_Installer.Database
 {
@@ -83,14 +83,14 @@ namespace DAZ_Installer.Database
             return result;
         }
         
-        public Task AddNewRecordEntry(DPProductRecord record) => _mainTaskManager.AddToQueue(InsertRecords, record, null as SQLiteConnection);
+        public Task AddNewRecordEntry(DPProductRecord record) => _mainTaskManager.AddToQueue(InsertRecords, record, null as SqliteConnection);
         
-        public Task InsertNewRowQ(string tableName, object[] values, string[] columns) => _mainTaskManager.AddToQueue(InsertValuesToTable, tableName, columns, values, null as SQLiteConnection);
+        public Task InsertNewRowQ(string tableName, object[] values, string[] columns) => _mainTaskManager.AddToQueue(InsertValuesToTable, tableName, columns, values, null as SqliteConnection);
         
         public Task RemoveRowQ(string tableName, int id)
         {
             var arg = new Tuple<string, object>[1] { new Tuple<string, object>("ID", id) };
-            return _mainTaskManager.AddToQueue(RemoveValuesWithCondition, tableName, arg, false, null as SQLiteConnection);
+            return _mainTaskManager.AddToQueue(RemoveValuesWithCondition, tableName, arg, false, null as SqliteConnection);
         }
 
         public Task RemoveProductRecordQ(DPProductRecord record, Action<long>? callback = null)
@@ -107,9 +107,9 @@ namespace DAZ_Installer.Database
             });
         }
         
-        public Task ClearTableQ(string tableName) => _mainTaskManager.AddToQueue(RemoveAllFromTable, tableName, null as SQLiteConnection);
+        public Task ClearTableQ(string tableName) => _mainTaskManager.AddToQueue(RemoveAllFromTable, tableName, null as SqliteConnection);
 
-        public Task UpdateValuesQ(string tableName, object[] values, string[] columns, int id) => _mainTaskManager.AddToQueue(UpdateValues, tableName, columns, values, id, null as SQLiteConnection);
+        public Task UpdateValuesQ(string tableName, object[] values, string[] columns, int id) => _mainTaskManager.AddToQueue(UpdateValues, tableName, columns, values, id, null as SqliteConnection);
 
         public Task UpdateRecordQ(long id, DPProductRecord newProductRecord, Action<long>? callback = null)
         {
@@ -125,20 +125,20 @@ namespace DAZ_Installer.Database
         public Task RemoveProductRecordsQ(Tuple<string, object> condition)
         {
             var t = new Tuple<string, object>[] { condition };
-            return _mainTaskManager.AddToQueue(RemoveValuesWithCondition, ProductTable, t, false, null as SQLiteConnection);
+            return _mainTaskManager.AddToQueue(RemoveValuesWithCondition, ProductTable, t, false, null as SqliteConnection);
         }
         
-        public Task RemoveProductRecordsQ(Tuple<string, object>[] conditions) => _mainTaskManager.AddToQueue(RemoveValuesWithCondition, ProductTable, conditions, false, null as SQLiteConnection);
+        public Task RemoveProductRecordsQ(Tuple<string, object>[] conditions) => _mainTaskManager.AddToQueue(RemoveValuesWithCondition, ProductTable, conditions, false, null as SqliteConnection);
         
         public Task RemoveRowWithConditionQ(string tableName, Tuple<string, object> condition)
         {
             var t = new Tuple<string, object>[] { condition };
-            return _mainTaskManager.AddToQueue(RemoveValuesWithCondition, tableName, t, false, null as SQLiteConnection);
+            return _mainTaskManager.AddToQueue(RemoveValuesWithCondition, tableName, t, false, null as SqliteConnection);
         }
         
-        public Task RemoveRowWithConditionsQ(string tableName, Tuple<string, object>[] conditions) => _mainTaskManager.AddToQueue(RemoveValuesWithCondition, tableName, conditions, false, null as SQLiteConnection);
+        public Task RemoveRowWithConditionsQ(string tableName, Tuple<string, object>[] conditions) => _mainTaskManager.AddToQueue(RemoveValuesWithCondition, tableName, conditions, false, null as SqliteConnection);
         
-        public Task RemoveAllRecordsQ() => _mainTaskManager.AddToQueue(RemoveAllRecords, null as SQLiteConnection);
+        public Task RemoveAllRecordsQ() => _mainTaskManager.AddToQueue(RemoveAllRecords, null as SqliteConnection);
         
         public async Task<HashSet<string>?> GetInstalledArchiveNamesQ(Action<HashSet<string>>? callback = null)
         {
