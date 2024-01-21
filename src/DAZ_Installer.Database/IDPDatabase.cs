@@ -15,9 +15,7 @@ namespace DAZ_Installer.Database
     public interface IDPDatabase
     {
         /// <summary>
-        /// Search asynchroniously does a database search based on a user search query (ex: "hello world"). Do not 
-        /// use this function for regex expressions; Instead use <c>RegexSearch</c>. This function does not return
-        ///  the search results but instead returns it to the callback and/or an event. If you wish to retrieve 
+        /// Search asynchroniously does a database search based on a user search query (ex: "hello world"). If you wish to retrieve 
         /// the values through an event, use a caller ID to identify the event is for that particular class at that
         /// time.
         /// </summary>
@@ -26,24 +24,11 @@ namespace DAZ_Installer.Database
         /// <param name="callerID">A caller id for classifying event invocations.</param>
         /// <param name="callback">The function to return values to.</param>
         /// <returns> The results of the search query. </returns>
-        Task<DPProductRecord[]> SearchQ(string searchQuery, DPSortMethod sortMethod = DPSortMethod.None, uint callerID = 0, Action<DPProductRecord[]>? callback = null);
-        /// <summary>
-        /// RegexSearch asynchroniously does a database search based on a user regex pattern (ex: "[^abc]").
-        /// This function does not return the search results but instead returns it to the callback and/or an event. 
-        /// If you wish to retrieve the values through an event, use a caller ID to identify the event is for that particular
-        /// class at that time.
-        /// </summary>
-        /// <param name="regex">A regex expression.</param>
-        /// <param name="sortMethod">The sorting method to apply for results.</param>
-        /// <param name="callerID">A caller id for classifying event invocations.</param>
-        /// <param name="callback">The function to return values to.</param>
-        /// <returns> The results of the search query. </returns> 
-        Task<DPProductRecord[]> RegexSearchQ(string regex, DPSortMethod sortMethod = DPSortMethod.None, uint callerID = 0, Action<DPProductRecord[]>? callback = null);
+        Task<List<DPProductRecordLite>> SearchQ(string searchQuery, DPSortMethod sortMethod = DPSortMethod.None, uint callerID = 0, Action<List<DPProductRecordLite>>? callback = null);
         /// <summary>
         /// Gets product records on the page specified by <paramref name="page"/>. The page is determined by the 
         /// limit of <paramref name="limit"/>. This means that if there are 50 records, and the limit is 10, the max
-        /// amount of pages is 5. This function does not return any results but will return the results via the callback
-        /// and via MainQueryCompleted event.
+        /// amount of pages is 5.
         /// </summary>
         /// <param name="sortMethod">The sorting method to apply to the results.</param>
         /// <param name="page">The page to get product records from.</param>
@@ -51,7 +36,14 @@ namespace DAZ_Installer.Database
         /// <param name="callerID">A caller id for classifying event invocations.</param>
         /// <param name="callback">The function to return values to.</param>
         /// <returns> The results of the search query. </returns> 
-        Task<DPProductRecord[]> GetProductRecordsQ(DPSortMethod sortMethod, uint page = 1, uint limit = 0, uint callerID = 0, Action<DPProductRecord[]>? callback = null);
+        Task<List<DPProductRecordLite>> GetProductRecordsQ(DPSortMethod sortMethod, uint page = 1, uint limit = 0, uint callerID = 0, Action<List<DPProductRecordLite>>? callback = null);
+        /// <summary>
+        /// Gets a product record by it's ID. This returns a full product record. 
+        /// </summary>
+        /// <param name="id">The ID of the product record to fetch.</param>
+        /// <param name="callback">The function to return values to.</param>
+        /// <returns>The full product record.</returns>
+        Task<DPProductRecord?> GetFullProductRecord(long id, Action<DPProductRecord?>? callback = null);
         /// <summary>
         /// Stops the pending chain of main queries such as insert, update, and delete queries.
         /// </summary>
@@ -76,17 +68,10 @@ namespace DAZ_Installer.Database
         /// <returns> The table, if successfully fetched. Otherwise, null. </returns> 
         Task<DataSet?> ViewTableQ(string tableName, uint callerID = 0, Action<DataSet?>? callback = null);
         /// <summary>
-        /// Adds a new product record to the database. DOES NOT WORK!
+        /// Adds a new product record to the database.
         /// </summary>
         /// <param name="pRecord">The new product record to add.</param>
-        [Obsolete("This function does not work. Use AddNewRecordEntry(DPProductRecord, DPExtractionRecord) instead.")]
         Task AddNewRecordEntry(DPProductRecord pRecord);
-        /// <summary>
-        /// Adds a new product and extraction record to the database.
-        /// </summary>
-        /// <param name="pRecord">The new product record to add.</param>
-        /// <param name="eRecord">The new extraction record to add.</param>
-        Task AddNewRecordEntry(DPProductRecord pRecord, DPExtractionRecord eRecord);
         /// <summary>
         /// Inserts a new row to the table specified by <paramref name="tableName">. It requires the columns that
         /// new values will be inserted into. Columns and values length must match.
@@ -110,7 +95,7 @@ namespace DAZ_Installer.Database
         /// <param name="record">The record to delete.</param>
         /// <param name="callback">The function to callback when the product record was removed.</param>
         /// <returns></returns>
-        Task RemoveProductRecord(DPProductRecord record, Action<uint>? callback = null);
+        Task RemoveProductRecordQ(DPProductRecord record, Action<long>? callback = null);
         /// <summary>
         /// Removes all the values from the table. Triggers in the database are temporarly disabled for deleting.
         /// </summary>
@@ -130,15 +115,7 @@ namespace DAZ_Installer.Database
         /// </summary>
         /// <param name="id"></param>
         /// <param name="newProductRecord"></param>
-        /// <param name="newExtractionRecord"></param>
-        Task UpdateRecordQ(uint id, DPProductRecord newProductRecord, DPExtractionRecord newExtractionRecord, Action<uint>? callback = null);
-        /// <summary>
-        /// Removes all product records (and corresonding extraction records) from the database that contain a tag
-        /// specified in tags. Basically, for every record in product records, if the product record contains ANY 
-        /// of the tags specified in <paramref name="tags"/>, it is removed from the database.
-        /// </summary>
-        /// <param name="tags">Product records' tags to specify for deletion.</param>
-        Task RemoveProductRecordsViaTagsQ(string[] tags);
+        Task UpdateRecordQ(long id, DPProductRecord newProductRecord, Action<long>? callback = null);
         /// <summary>
         /// Removes all product records that satisfy the condition specified by <paramref name="condition"/>.
         /// </summary>
@@ -165,21 +142,6 @@ namespace DAZ_Installer.Database
         /// Removes all product and extraction records from the database.
         /// </summary>
         Task RemoveAllRecordsQ();
-        /// <summary>
-        /// Removes all tags associated with the product ID specified by <paramref name="pid"/> from the database.
-        /// </summary>
-        /// <param name="pid"></param>
-        Task RemoveTagsQ(uint pid);
-        /// <summary>
-        /// Gets the extraction records associated with the extraction record ID specified by <paramref name="eid"/> 
-        /// from the database. This function returns the records via the callback function or via the RecordQueryCompleted
-        /// event. This may return null if the record does not exist in the database or an internal error occurred.
-        /// </summary>
-        /// <param name="eid">The extraction record ID to get.</param>
-        /// <param name="callerID">A caller id for classifying event invocations.</param>
-        /// <param name="callback">The function to return values to.</param>
-        /// <returns> The extraction record, if successfully fetched. Otherwise, null. </returns>
-        Task<DPExtractionRecord?> GetExtractionRecordQ(uint eid, uint callerID = 0, Action<DPExtractionRecord>? callback = null);
         /// <summary>
         /// Updates the <c>ArchiveFileNames</c> variable and returns it via callback function.
         /// It returns a unique set of installed archive names.

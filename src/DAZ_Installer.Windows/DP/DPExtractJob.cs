@@ -264,7 +264,7 @@ namespace DAZ_Installer.Windows.DP
                     foldersExtracted.Add(Path.GetDirectoryName(file.RelativePathToContentFolder)!);
             }
             var erroredFiles = report.ErroredFiles.Keys.Select(x => x.RelativePathToContentFolder!).ToArray();
-            var workingExtractionRecord = new DPExtractionRecord(arc.FileName,
+            var workingExtractionRecord = new DPProductRecordLite(arc.FileName,
                                                                  UserSettings.DestinationPath,
                                                                  successfulFiles.ToArray(),
                                                                  erroredFiles,

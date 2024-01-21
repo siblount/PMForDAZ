@@ -5,6 +5,7 @@ using DAZ_Installer.Core;
 using Serilog;
 using System.Data;
 using System.Data.SQLite;
+using static System.Net.Mime.MediaTypeNames;
 
 namespace DAZ_Installer.Database
 {
@@ -34,17 +35,28 @@ namespace DAZ_Installer.Database
         public ILogger Logger { get; set; } = Log.Logger;
         public bool DatabaseExists { get; private set; } = false;
         public bool Initalized { get; private set; } = false;
+        public bool Locked { get; private set; } = false;
         public string[] tableNames;
-
         public uint ProductRecordCount { get; private set; } = 0;
         public uint ExtractionRecordCount { get; private set; } = 0;
+
+        public const string ProductTable = "Products";
+        public const string DestinationTable = "Destinations";
+        public const string FilesTable = "Files";
+        public const string ProductFTS5Table = "ProductFTS5";
+        public const string DatabaseInfoTable = "DatabaseInfo";
+        public const string ProductFullView = "ProductFull";
+        public const string ProductLiteView = "ProductLite";
+        public const string ProductLiteAlphabeticalView = "ProductLite_Alphabetical";
+        public const string ProductLiteDateView = "ProductLite_Date";
+        public const string ArchivesView = "Archives";
         public HashSet<string> ArchiveFileNames { get; private set; } = new HashSet<string>();
 
         // Events
         /// <summary>
         /// This event is invoked whenever a Search function has completed searching whether any results were found or not.
         /// </summary>
-        public event Action<DPProductRecord[], uint>? SearchUpdated;
+        public event Action<List<DPProductRecordLite>, long>? SearchUpdated;
         /// <summary>
         /// This event is invoked whenever the database schema, database connection status, or other database configurations have been changed.
         /// </summary>
@@ -60,42 +72,29 @@ namespace DAZ_Installer.Database
         /// <summary>
         /// This event is currently not being used.
         /// </summary>
-        public event Action<DPProductRecord[], uint>? LibraryQueryCompleted;
+        public event Action<List<DPProductRecordLite>, long>? LibraryQueryCompleted;
         /// <summary>
         /// This event is invoked whenever requesting for an extraction record has been successfully completed.
         /// </summary>
-        public event Action<DPExtractionRecord, uint>? RecordQueryCompleted;
+        public event Action<DPProductRecordLite, long>? RecordQueryCompleted;
         /// <summary>
         /// This event is invoked whenever a library query has been completed regardless if it yields any product records or not.
         /// </summary>
-        public event Action<uint>? MainQueryCompleted;
+        public event Action<long>? MainQueryCompleted;
 
         // Product Record events
         /// <summary>
         /// This event is invoked whenever a product record has been removed (aside from when the table has been cleared).
         /// </summary>
-        public event Action<uint>? ProductRecordRemoved;
+        public event Action<long>? ProductRecordRemoved;
         /// <summary>
         /// This event is invoked whenever a product record has been modified.
         /// </summary>
-        public event Action<DPProductRecord, uint>? ProductRecordModified;
+        public event Action<DPProductRecord, long>? ProductRecordModified;
         /// <summary>
         /// This event is invoked whenever a new product record has been added.
         /// </summary>
         public event Action<DPProductRecord>? ProductRecordAdded;
-
-        /// <summary>
-        /// This event is invoked whenever an extraction record has been removed (aside from when the table has been cleared).
-        /// </summary>
-        public event Action<uint>? ExtractionRecordRemoved;
-        /// <summary>
-        /// This event is invoked whenever a extraction record has been modified.
-        /// </summary>
-        public event Action<DPExtractionRecord?, uint>? ExtractionRecordModified;
-        /// <summary>
-        /// This event is invoked whenever a new extraction record has been added.
-        /// </summary>
-        public event Action<DPExtractionRecord>? ExtractionRecordAdded;
         /// <summary>
         /// This event is invoked whenever all of the records have been removed from the database.
         /// </summary>
@@ -114,7 +113,7 @@ namespace DAZ_Installer.Database
         private DPTaskManager _priorityTaskManager = new();
 
         // Task state.
-        private const byte DATABASE_VERSION = 2;
+        private const byte DATABASE_VERSION = 3;
         private bool _initializing = false;
         ~DPDatabase()
         {
@@ -160,7 +159,7 @@ namespace DAZ_Installer.Database
                     // Update database info.
                     using SQLiteConnection? connection = CreateInitialConnection();
                     if (connection == null) return false;
-                    InsertDefaultValuesToTable("DatabaseInfo", connection, CancellationToken.None);
+                    InsertDefaultValuesToTable(DatabaseInfoTable, connection, CancellationToken.None);
                 }
                 DatabaseUpdated?.Invoke();
                 Initalized = true;
@@ -168,7 +167,7 @@ namespace DAZ_Installer.Database
             }
             catch (Exception ex)
             {
-                // DPCommon.WriteToLog($"An error occurred while initializing. REASON: {ex}");
+                Logger.Error(ex, "An error occurred while initializing");
                 _initializing = false;
                 return false;
             }
@@ -200,7 +199,7 @@ namespace DAZ_Installer.Database
             }
             catch (Exception e)
             {
-                // DPCommon.WriteToLog($"Failed to create connection. REASON: {e}");
+                Logger.Error(e, "Failed to create connection");
             }
             return null;
         }
@@ -221,7 +220,7 @@ namespace DAZ_Installer.Database
             }
             catch (Exception e)
             {
-                // DPCommon.WriteToLog($"Failed to create connection. REASON: {e}");
+                Logger.Error(e, "Failed to create initial connection");
             }
             return null;
         }
@@ -260,7 +259,7 @@ namespace DAZ_Installer.Database
             }
             catch (Exception ex)
             {
-                // DPCommon.WriteToLog($"Failed to open connection. REASON: {ex}");
+                Logger.Error(ex, "Failed to open connection");
             }
             return false;
         }
@@ -275,10 +274,13 @@ namespace DAZ_Installer.Database
                 Directory.CreateDirectory(System.IO.Path.GetDirectoryName(Path)!);
 
             SQLiteConnection.CreateFile(Path);
-            // Create tables, indexes, and triggers.
-            CreateTables();
-            CreateIndexes();
-            CreateTriggers();
+            using var connection = CreateInitialConnection();
+            if (connection is null) return;
+            // Create tables, views, indexes, and triggers.
+            CreateTables(connection, CancellationToken.None);
+            CreateIndexes(connection, CancellationToken.None);
+            CreateTriggers(connection, CancellationToken.None);
+            CreateViews(connection, CancellationToken.None);
             ExecutePragmas();
         }
 
@@ -286,194 +288,192 @@ namespace DAZ_Installer.Database
         /// Adds the tables required for application to properly execute into the database.
         /// Does not check if they exist. May throw an error if the tables already exist.
         /// </summary>
+        /// <param name="c">The SQLiteConnection to use, if any. Recommended to use a connection, otherwise use <c>CreateTables()</c> instead.</param>
+        /// <param name="t">The cancellation token to use, if any. Use <see cref="CancellationToken.None"/> if it should never cancel.</param>
         /// <returns>Whether creating tables was a success.</returns>
-        private bool CreateTables()
+        private bool CreateTables(SQLiteConnection? c, CancellationToken t)
         {
 
-            const string createProductRecordsCommand = @"
-            CREATE TABLE ""ProductRecords"" (
+            var cmd = $@"
+            CREATE TABLE IF NOT EXISTS {ProductTable} (
+                Name TEXT NOT NULL,
+                Authors TEXT,
+                Date INTEGER NOT NULL,
+                Thumbnail TEXT,
+                ArcName TEXT NOT NULL,
+                DestID INTEGER,
+                Tags TEXT
+            ); 
 
-                ""ID""    INTEGER NOT NULL UNIQUE,
+            CREATE VIRTUAL TABLE IF NOT EXISTS {ProductFTS5Table}
+                    USING fts5(ID UNINDEXED, Name, Tags);
 
-                ""Product Name""  TEXT NOT NULL,
-	            ""Tags""  TEXT,
-	            ""Author""    TEXT,
-	            ""SKU""   TEXT,
-                ""Date Created"" INTEGER,
-                ""Extraction Record ID""  INTEGER UNIQUE,
-                ""Thumbnail Full Path""	TEXT,
-                PRIMARY KEY(""ID"" AUTOINCREMENT)
-            ); ";
-            const string createExtractionRecordsCommand = @"
-            CREATE TABLE ""ExtractionRecords"" (
+            CREATE TABLE IF NOT EXISTS {FilesTable} (
+                PID INTEGER,
+                File TEXT,
+                PRIMARY KEY(PID)
+            ) WITHOUT ROWID;
 
-                ""ID""    INTEGER NOT NULL UNIQUE,
+            CREATE TABLE IF NOT EXISTS {DestinationTable} (
+                ID INTEGER NOT NULL,
+                Destination TEXT UNIQUE NOT NULL,
+                PRIMARY KEY(ID AUTOINCREMENT)
+            );
 
-	            ""Files"" TEXT,
-                ""Folders"" TEXT,
-	            ""Destination Path""  TEXT,
-                ""Errored Files""   TEXT,
-	            ""Error Messages""    TEXT,
-	            ""Archive Name""  TEXT,
-	            ""Product Record ID"" INTEGER UNIQUE,
-                PRIMARY KEY(""ID"" AUTOINCREMENT)
-            ); ";
-            const string createCachedSearchCommand = @"
-            CREATE TABLE ""CachedSearches"" (
-
-                ""Search String"" TEXT NOT NULL UNIQUE,
-                ""Result Product IDs""    TEXT,
-	            PRIMARY KEY(""Search String"")
-            ); ";
-            var createDatabaseInfoCommand = $@"
-            CREATE TABLE ""DatabaseInfo"" (
-
-                ""Version""   INTEGER NOT NULL DEFAULT {DATABASE_VERSION},
+            CREATE TABLE IF NOT EXISTS {DatabaseInfoTable} (
+                Version   INTEGER NOT NULL DEFAULT {DATABASE_VERSION},
 	            ""Product Record Count""  INTEGER NOT NULL DEFAULT 0,
-	            ""Extraction Record Count""   INTEGER NOT NULL DEFAULT 0
-            );";
-            const string createTagsCommand = @"
-                CREATE TABLE ""Tags""(
-                ""Tag""   TEXT NOT NULL COLLATE NOCASE,
-                ""Product Record ID""	INTEGER NOT NULL
-            )";
+            ); ";
+            SQLiteConnection? connection = c;
             try
             {
-                using SQLiteConnection? connection = CreateInitialConnection();
-                var success = OpenConnection(connection);
-                if (!success) return false;
-                SQLiteCommand createCommand = new(createProductRecordsCommand, connection);
-                createCommand.ExecuteNonQuery();
-                createCommand.CommandText = createExtractionRecordsCommand;
-                createCommand.ExecuteNonQuery();
-                createCommand.CommandText = createCachedSearchCommand;
-                createCommand.ExecuteNonQuery();
-                createCommand.CommandText = createDatabaseInfoCommand;
-                createCommand.ExecuteNonQuery();
-                createCommand.CommandText = createTagsCommand;
+                connection ??= CreateInitialConnection();
+                if (!OpenConnection(connection) || t.IsCancellationRequested) return false;
+                SQLiteCommand createCommand = new(cmd, connection);
                 createCommand.ExecuteNonQuery();
             }
             catch (Exception ex)
             {
-                // DPCommon.WriteToLog($"An error occurred while attempting to create database. REASON: {ex}");
+                Logger.Error(ex, "Failed to create tables");
                 return false;
+            } finally
+            {
+                if (c is null) connection?.Dispose();
             }
             return true;
         }
         /// <summary>
         /// Adds indexes to the database to improve searching and sorting performance.
-        /// Does not check if they exist. May throw an error if the tables already exist.
+        /// Does not check if they exist.
         /// </summary>
+        /// <param name="c">The SQLiteConnection to use, if any.</param>
+        /// <param name="t">The cancellation token to use, if any. Use <see cref="CancellationToken.None"/> if it should never cancel.</param>
         /// <returns>Whether creating indexes was a success.</returns>
-        private bool CreateIndexes()
+        private bool CreateIndexes(SQLiteConnection? c, CancellationToken t)
         {
-            const string createTagToPIDCommand = @"
-            CREATE INDEX ""idx_TagToPID"" ON ""Tags"" (
-                ""Tag""   COLLATE NOCASE ASC,
-	            ""Product Record ID""
-            );";
+            const string createProductNameToPIDCommand = @$"
+            CREATE INDEX ""idx_Name_Products"" ON {ProductTable} (
+                ""Name"" ASC
+            );
 
-            const string createPIDtoTagCommand = @"
-            CREATE INDEX ""idx_PIDtoTag"" ON ""Tags"" (
-                ""Product Record ID"" ASC,
-                ""Tag""	COLLATE NOCASE
-            );";
+            CREATE INDEX ""idx_Date_Products"" ON {ProductTable} (
+	            ""Date""	ASC
+            );
 
-            const string createProductNameToPIDCommand = @"
-            CREATE INDEX ""idx_ProductNameToPID"" ON ""ProductRecords"" (
-                ""Product Name"" ASC,
-                ""ID""	            
-            );";
 
-            const string createDateCreatedToPIDCommand = @"
-            CREATE INDEX ""idx_DateCreatedToPID"" ON ""ProductRecords"" (
-                ""Date Created"" ASC,
-                ""ID""	            
-            );";
-
+            CREATE INDEX ""idx_Arc_Products"" ON {ProductTable} (
+	            ""ArcName""
+            );
+";
+            SQLiteConnection? connection = c;
             try
             {
-                using (SQLiteConnection? connection = CreateInitialConnection())
-                {
-                    var success = OpenConnection(connection);
-                    if (!success) return false;
-                    using SQLiteCommand cmdObj = new(createTagToPIDCommand, connection);
-                    cmdObj.ExecuteNonQuery();
-                    cmdObj.CommandText = createPIDtoTagCommand;
-                    cmdObj.ExecuteNonQuery();
-                    cmdObj.CommandText = createProductNameToPIDCommand;
-                    cmdObj.ExecuteNonQuery();
-                    cmdObj.CommandText = createDateCreatedToPIDCommand;
-                    cmdObj.ExecuteNonQuery();
-                }
+                connection ??= CreateInitialConnection();
+                var success = OpenConnection(connection);
+                if (!success || t.IsCancellationRequested) return false;
+                using SQLiteCommand cmdObj = new(createProductNameToPIDCommand, connection);
+                cmdObj.ExecuteNonQuery();
                 DatabaseUpdated?.Invoke();
             }
             catch (Exception ex)
             {
-                // DPCommon.WriteToLog($"An error occurred creating indexes. REASON: {ex}");
+                Logger.Error(ex, "Failed to create indexes");
                 return false;
+            } finally
+            {
+                if (c is null) connection?.Dispose();
             }
             return true;
         }
         /// <summary>
         /// Adds the triggers required for application to properly execute into the database.
         /// </summary>
+        /// <param name="c">The SQLiteConnection to use, if any. Recommended to use a connection, otherwise use <c>CreateTables()</c> instead.</param>
+        /// <param name="t">The cancellation token to use, if any. Use <see cref="CancellationToken.None"/> if it should never cancel.</param>
         /// <returns>Whether creating triggers was a success.</returns>
-        private bool CreateTriggers()
+        private bool CreateTriggers(SQLiteConnection? c, CancellationToken t)
         {
-            const string deleteOnProductRemoveTriggerCommand =
-                        @"CREATE TRIGGER IF NOT EXISTS delete_on_product_removal
-                            AFTER DELETE ON ProductRecords FOR EACH ROW
+            const string triggerSQL = @$"
+                        CREATE TRIGGER IF NOT EXISTS delete_on_product_removal
+                            AFTER DELETE ON {ProductTable} FOR EACH ROW
                         BEGIN
-                            UPDATE DatabaseInfo SET ""Product Record Count"" = (SELECT COUNT(*) FROM ProductRecords);
-                            DELETE FROM ExtractionRecords WHERE ID = old.""Extraction Record ID"";
-                            DELETE FROM TAGS WHERE ""Product Record ID"" = old.ID;
-                        END;";
-            const string deleteOnExtractionRemoveTriggerCommand =
-                        @"CREATE TRIGGER IF NOT EXISTS delete_on_extraction_removal
-                            AFTER DELETE ON ExtractionRecords FOR EACH ROW
-                        BEGIN
-                            UPDATE DatabaseInfo SET ""Extraction Record Count"" = (SELECT COUNT(*) FROM ExtractionRecords);
-                            UPDATE ProductRecords SET ""Extraction Record ID"" = NULL WHERE ""Extraction Record ID"" = old.ID;
-                        END;";
+                            UPDATE {DatabaseInfoTable} SET ""Product Record Count"" = (SELECT ""Product Record Count"" FROM {DatabaseInfoTable}) - 1;
+	                        DELETE FROM {ProductFTS5Table} WHERE ID = old.ID;
+                        END;
 
-            const string updateOnExtractionInsertionTriggerCommand = @"
-                        CREATE TRIGGER update_on_extraction_add
-	                        AFTER INSERT ON ExtractionRecords FOR EACH ROW
+                        CREATE TRIGGER IF NOT EXISTS update_product_count
+	                        AFTER INSERT ON {ProductTable} FOR EACH ROW
                         BEGIN
-	                        UPDATE DatabaseInfo SET ""Extraction Record Count"" = (SELECT COUNT(*) FROM ExtractionRecords);
-                            UPDATE ExtractionRecords SET ""Product Record ID"" = (SELECT ID FROM ProductRecords ORDER BY ID DESC LIMIT 1) WHERE ID = NEW.ID;
-                            UPDATE ProductRecords SET ""Extraction Record ID"" = NEW.ID WHERE ID IN (SELECT ID FROM ProductRecords ORDER BY ID DESC LIMIT 1);
-                        END;";
+	                        UPDATE {DatabaseInfoTable} SET ""Product Record Count"" = (SELECT ""Product Record Count"" FROM {DatabaseInfoTable}) + 1;
+                        END"";
+                        CREATE TRIGGER IF NOT EXISTS add_to_fts5
+	                        AFTER INSERT ON {ProductTable}
+	                    BEGIN
+		                    INSERT INTO {ProductFTS5Table} (ID, Name, Tags) VALUES (new.ROWID, new.Name, new.Tags);
+	                    END;
 
-            const string updateProductCountTriggerCommand = @"
-                        CREATE TRIGGER update_product_count
-	                        AFTER INSERT ON ProductRecords
-                        BEGIN
-	                        UPDATE DatabaseInfo SET ""Product Record Count"" = (SELECT COUNT(*) FROM ProductRecords);
-                        END";
-
+";
+                        
+            SQLiteConnection? connection = c;
             try
             {
-                using (SQLiteConnection? connection = CreateInitialConnection())
-                {
-                    var success = OpenConnection(connection);
-                    if (!success) return false;
-                    using SQLiteCommand createCommand = new(deleteOnProductRemoveTriggerCommand, connection);
-                    createCommand.ExecuteNonQuery();
-                    createCommand.CommandText = deleteOnExtractionRemoveTriggerCommand;
-                    createCommand.ExecuteNonQuery();
-                    createCommand.CommandText = updateOnExtractionInsertionTriggerCommand;
-                    createCommand.ExecuteNonQuery();
-                    createCommand.CommandText = updateProductCountTriggerCommand;
-                    createCommand.ExecuteNonQuery();
-                }
+                connection = CreateInitialConnection();
+                var success = OpenConnection(connection);
+                if (!success || t.IsCancellationRequested) return false;
+                using SQLiteCommand createCommand = new(triggerSQL, connection);
+                createCommand.ExecuteNonQuery();
                 DatabaseUpdated?.Invoke();
             }
             catch (Exception ex)
             {
-                // DPCommon.WriteToLog($"An error occurred creating triggers. REASON: {ex}");
+                Logger.Error(ex, "Failed to create triggers");
                 return false;
+            }
+            finally
+            {
+                if (c is null) connection?.Dispose();
+            }
+            return true;
+        }
+
+        /// <summary>
+        /// Adds the triggers required for application to properly execute into the database.
+        /// </summary>
+        /// <param name="c">The SQLiteConnection to use, if any. Recommended to use a connection, otherwise use <c>CreateTables()</c> instead.</param>
+        /// <param name="t">The cancellation token to use, if any. Use <see cref="CancellationToken.None"/> if it should never cancel.</param>
+        /// <returns>Whether creating triggers was a success.</returns>
+        private bool CreateViews(SQLiteConnection? c, CancellationToken t)
+        {
+            const string viewSQL = @$"
+                        CREATE VIEW {ProductLiteView} AS SELECT Name, Thumbnail, Tags, ROWID FROM {ProductTable};
+                        CREATE VIEW {ProductLiteAlphabeticalView} AS SELECT Name, Thumbnail, Tags, ROWID FROM {ProductTable} ORDER BY Name;
+                        CREATE VIEW {ProductLiteDateView} AS SELECT Name, Thumbnail, Tags, ROWID FROM {ProductTable} ORDER BY Date;
+                        CREATE VIEW {ArchivesView} AS SELECT ArcName FROM {ProductTable}
+                        CREATE VIEW {ProductFullView} AS 
+                        SELECT P.ID, P.Name, P.Author, P.Date, P.Thumbnail, P.ArcName, P.Tags, 
+                               F.File AS Files, D.Destination
+                        FROM {ProductTable} P
+                        JOIN {FilesTable} F ON P.ID = F.PID
+                        JOIN {DestinationTable} D ON P.DestID = D.ID;";
+
+            SQLiteConnection? connection = c;
+            try
+            {
+                connection = CreateInitialConnection();
+                var success = OpenConnection(connection);
+                if (!success || t.IsCancellationRequested) return false;
+                using SQLiteCommand createCommand = new(viewSQL, connection);
+                createCommand.ExecuteNonQuery();
+                DatabaseUpdated?.Invoke();
+            }
+            catch (Exception ex)
+            {
+                Logger.Error(ex, "Failed to create triggers");
+                return false;
+            }
+            finally
+            {
+                if (c is null) connection?.Dispose();
             }
             return true;
 
@@ -504,39 +504,7 @@ namespace DAZ_Installer.Database
             }
             catch (Exception ex)
             {
-                // DPCommon.WriteToLog($"Failed to execute pragmas. REASON: {ex}");
-                return false;
-            }
-            return true;
-        }
-        /// <summary>
-        /// Removes the triggers from the database.
-        /// Does not check if they exist. May throw an error if don't the tables already exist.
-        /// </summary>
-        /// <returns>Whether deleting triggers was a success.</returns>
-        private bool DeleteTriggers()
-        {
-
-            const string removeTriggersCommand =
-                        @"DROP TRIGGER IF EXISTS delete_on_extraction_removal;
-                        DROP TRIGGER IF EXISTS delete_on_product_removal;
-                        DROP TRIGGER IF EXISTS update_on_extraction_add;
-                        DROP TRIGGER IF EXISTS update_product_count;";
-
-            try
-            {
-                using (SQLiteConnection? connection = CreateInitialConnection())
-                {
-                    var success = OpenConnection(connection);
-                    if (!success) return false;
-                    using SQLiteCommand deleteCommand = new(removeTriggersCommand, connection);
-                    deleteCommand.ExecuteNonQuery();
-                }
-                DatabaseUpdated?.Invoke();
-            }
-            catch (Exception ex)
-            {
-                // DPCommon.WriteToLog($"An error occurred removing triggers. REASON: {ex}");
+                Logger.Error(ex, "Failed to execute pragmas");
                 return false;
             }
             return true;
@@ -544,7 +512,6 @@ namespace DAZ_Installer.Database
         /// <summary>
         /// Temporarily deletes triggers from the database. 
         /// Use this for all other code excluding initialization. <para/>
-        /// To restore triggers, use <c>RestoreTriggers()</c> instead of <c>CreateTriggers()</c>.
         /// </summary>
         /// <param name="c">The SQLiteConnection to use, if any. Recommended to use a connection, otherwise use <c>DeleteTriggers()</c> instead.</param>
         /// <param name="token">Cancel token. Required, cannot be null. Use CancellationToken.None instead (though not recommended).</param>
@@ -552,23 +519,22 @@ namespace DAZ_Installer.Database
         private bool TempDeleteTriggers(SQLiteConnection c, CancellationToken token)
         {
             if (token.IsCancellationRequested) return false;
-            const string removeTriggersCommand =
-                        @"DROP TRIGGER IF EXISTS delete_on_extraction_removal;
-                        DROP TRIGGER IF EXISTS delete_on_product_removal;
-                        DROP TRIGGER IF EXISTS update_on_extraction_add;
-                        DROP TRIGGER IF EXISTS update_product_count;";
+            const string removeTriggersCommand = @"DROP TRIGGER IF EXISTS delete_on_product_removal;
+                                                   DROP TRIGGER IF EXISTS update_product_count;
+                                                   DROP TRIGGER IF EXISTS add_to_fts5;";
             SQLiteConnection? connection = null;
-            SQLiteCommand deleteCommand = null;
+            SQLiteCommand? deleteCommand = null;
             try
             {
                 connection = CreateAndOpenConnection(c);
                 deleteCommand = new SQLiteCommand(removeTriggersCommand, connection);
+                if (token.IsCancellationRequested) return false;
                 deleteCommand.ExecuteNonQuery();
                 DatabaseUpdated?.Invoke();
             }
             catch (Exception ex)
             {
-                // DPCommon.WriteToLog($"An error occurred removing triggers. REASON: {ex}");
+                Logger.Error(ex, "Failed to temp delete triggers");
                 return false;
             }
             finally
@@ -583,77 +549,59 @@ namespace DAZ_Installer.Database
         }
 
         /// <summary>
-        /// Restores the triggers previously removed by <c>TempDeleteTriggers()</c>.
+        /// Resets the database by drops every table, view, index, and trigger. Then recreates them.
         /// </summary>
-        /// <param name="c">The SQLiteConnection to use, if any. Recommended to use a connection, otherwise use <c>DeleteTriggers()</c> instead.</param>
-        /// <param name="token">Cancel token. Required, cannot be null. Use CancellationToken.None instead and if you wish to restore triggers that 
-        /// cannot be cancelled.</param>
-        /// <returns>Whether restoring the triggers was a success.</returns>
-        private bool RestoreTriggers(SQLiteConnection c, CancellationToken token)
+        /// <param name="c"></param>
+        /// <param name="t"></param>
+        /// <returns></returns>
+        private bool ResetDatabase(SQLiteConnection? c, CancellationToken t)
         {
-            if (token.IsCancellationRequested) return false;
-            const string deleteOnProductRemoveTriggerCommand =
-                        @"CREATE TRIGGER IF NOT EXISTS delete_on_product_removal
-                            AFTER DELETE ON ProductRecords FOR EACH ROW
-                        BEGIN
-                            UPDATE DatabaseInfo SET ""Product Record Count"" = (SELECT COUNT(*) FROM ProductRecords);
-                            DELETE FROM ExtractionRecords WHERE ID = old.""Extraction Record ID"";
-                            DELETE FROM TAGS WHERE ""Product Record ID"" = old.ID;
-                        END;";
-            const string deleteOnExtractionRemoveTriggerCommand =
-                        @"CREATE TRIGGER IF NOT EXISTS delete_on_extraction_removal
-                            AFTER DELETE ON ExtractionRecords FOR EACH ROW
-                        BEGIN
-                            UPDATE DatabaseInfo SET ""Extraction Record Count"" = (SELECT COUNT(*) FROM ExtractionRecords);
-                            UPDATE ProductRecords SET ""Extraction Record ID"" = NULL WHERE ""Extraction Record ID"" = old.ID;
-                        END;";
-
-            const string updateOnExtractionInsertionTriggerCommand = @"
-                        CREATE TRIGGER IF NOT EXISTS update_on_extraction_add
-	                        AFTER INSERT ON ExtractionRecords FOR EACH ROW
-                        BEGIN
-	                        UPDATE DatabaseInfo SET ""Extraction Record Count"" = (SELECT COUNT(*) FROM ExtractionRecords);
-                            UPDATE ExtractionRecords SET ""Product Record ID"" = (SELECT ID FROM ProductRecords ORDER BY ID DESC LIMIT 1) WHERE ID = NEW.ID;
-                            UPDATE ProductRecords SET ""Extraction Record ID"" = NEW.ID WHERE ID IN (SELECT ID FROM ProductRecords ORDER BY ID DESC LIMIT 1);
-                        END;";
-
-            const string updateProductCountTriggerCommand = @"
-                        CREATE TRIGGER IF NOT EXISTS update_product_count
-	                        AFTER INSERT ON ProductRecords
-                        BEGIN
-	                        UPDATE DatabaseInfo SET ""Product Record Count"" = (SELECT COUNT(*) FROM ProductRecords);
-                        END";
-
-            SQLiteConnection? connection = null;
-            SQLiteCommand createCommand = null;
+            if (t.IsCancellationRequested) return false;
+            SQLiteConnection? connection = c;
+            SQLiteCommand? command = null;
+            SQLiteTransaction? transaction = null;
             try
             {
-                connection = CreateAndOpenConnection(c);
-                createCommand = new SQLiteCommand(deleteOnProductRemoveTriggerCommand, connection);
-                createCommand.ExecuteNonQuery();
-                createCommand.CommandText = deleteOnExtractionRemoveTriggerCommand;
-                createCommand.ExecuteNonQuery();
-                createCommand.CommandText = updateOnExtractionInsertionTriggerCommand;
-                createCommand.ExecuteNonQuery();
-                createCommand.CommandText = updateProductCountTriggerCommand;
-                createCommand.ExecuteNonQuery();
+                if (c is null) connection = CreateInitialConnection();
+                if (!OpenConnection(connection) || t.IsCancellationRequested) return false;
+                transaction = connection!.BeginTransaction();
+                if (!TempDeleteTriggers(connection, t)) return false;
+                var txt = $@"DROP TABLE IF EXISTS {ProductTable};
+                            DROP TABLE IF EXISTS {DestinationTable};
+                            DROP TABLE IF EXISTS {FilesTable};
+                            DROP TABLE IF EXISTS {ProductFTS5Table};
+                            DROP TABLE IF EXISTS {DatabaseInfoTable};
+                            DROP VIEW IF EXISTS {ProductFullView};
+                            DROP VIEW IF EXISTS {ProductLiteView};
+                            DROP VIEW IF EXISTS {ProductLiteAlphabeticalView};
+                            DROP VIEW IF EXISTS {ProductLiteDateView};
+                            DROP VIEW IF EXISTS {ArchivesView};
+                ";
+                command = new SQLiteCommand(txt, connection, transaction);
+                command.ExecuteNonQuery();
+
+                if (!CreateTables(connection, t) || !CreateIndexes(connection, t) || 
+                    !CreateTriggers(connection, t) || !CreateViews(connection, t)) return false;
+
+                transaction.Commit();
+                RecordsCleared?.Invoke();
+                TableUpdated?.Invoke(ProductTable);
+                TableUpdated?.Invoke(FilesTable);
+                TableUpdated?.Invoke(DestinationTable);
+                TableUpdated?.Invoke(ProductFTS5Table);
                 DatabaseUpdated?.Invoke();
             }
             catch (Exception ex)
             {
-                // DPCommon.WriteToLog($"An error occurred creating triggers. REASON: {ex}");
+                Logger.Error(ex, "Failed to reset database");
+                transaction?.Rollback();
                 return false;
             }
             finally
             {
-                if (c == null)
-                {
-                    connection?.Dispose();
-                    createCommand?.Dispose();
-                }
+                if (c is null) connection?.Dispose();
             }
             return true;
-
         }
 
         // TO DO: Refresh database code.
@@ -670,12 +618,12 @@ namespace DAZ_Installer.Database
             }
             catch (Exception e)
             {
-                // DPCommon.WriteToLog($"An unexpected error occured while attempting to refresh the database. REASON: {e}");
+                Logger.Error(e, "Failed to refresh database");
             }
 
         }
 
-        private void BackupDatabase(CancellationToken t)
+        private bool BackupDatabase(CancellationToken t)
         {
             using SQLiteConnection? c = CreateAndOpenConnection(null, true);
             using SQLiteConnection d = new();
@@ -684,22 +632,22 @@ namespace DAZ_Installer.Database
             var newFileName = System.IO.Path.GetFileNameWithoutExtension(Path) + "_backup.db";
             builder.DataSource = System.IO.Path.GetFullPath(System.IO.Path.Combine(System.IO.Path.GetDirectoryName(Path)!, newFileName));
             d.ConnectionString = builder.ConnectionString;
+            if (c is null || !OpenConnection(d) || t.IsCancellationRequested) return false;
             try
             {
                 c.BackupDatabase(d, "main", "main", -1, null, 5000);
             }
-            catch { } // TODO: Log this.
-
+            catch (Exception ex) { 
+                Logger.Error(ex, "Failed to backup database");
+                return false;
+            }
+            return true;
         }
 
+        [Obsolete("Not implemented yet")]
         private void RestoreDatabase(CancellationToken t)
         {
             return;
-        }
-
-        private void RebuildDatabase(CancellationToken t)
-        {
-
         }
 
         // Prep for app closure.

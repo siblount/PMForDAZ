@@ -21,7 +21,7 @@ namespace DAZ_Installer.Windows.Forms
     {
         private ILogger logger = Log.Logger.ForContext<ProductRecordForm>();
         private DPProductRecord record;
-        private DPExtractionRecord extractionRecord;
+        private DPProductRecordLite extractionRecord;
         private uint[] maxFontWidthPerListView = new uint[5];
         private HashSet<string> tagsSet = new();
         public ProductRecordForm()
@@ -69,7 +69,7 @@ namespace DAZ_Installer.Windows.Forms
             record = newProductRecord;
         }
 
-        public void InitializeExtractionRecordInfo(DPExtractionRecord record)
+        public void InitializeExtractionRecordInfo(DPProductRecordLite record)
         {
 
             if (record.PID != this.record.ID) return;
@@ -242,7 +242,7 @@ namespace DAZ_Installer.Windows.Forms
             foreach (var file in extractionRecord.ErroredFiles)
                 normalizedErroredFiles.Add(PathHelper.NormalizePath(file));
 
-            extractionRecord = new DPExtractionRecord(extractionRecord.ArchiveFileName,
+            extractionRecord = new DPProductRecordLite(extractionRecord.ArchiveFileName,
                         extractionRecord.DestinationPath,
                         normalizedFiles.ToArray(), normalizedErroredFiles.ToArray(),
                         extractionRecord.ErrorMessages, normalizedFolders.ToArray(),
@@ -254,7 +254,7 @@ namespace DAZ_Installer.Windows.Forms
             DialogResult result = MessageBox.Show($"Are you sure you want to remove the record for {record.ProductName}? " +
                 "This wont remove the files on disk. Additionally, the record cannot be restored.", "Remove product record confirmation", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
             if (result == DialogResult.No) return;
-            Program.Database.RemoveProductRecord(record, OnProductRecordRemoval);
+            Program.Database.RemoveProductRecordQ(record, OnProductRecordRemoval);
         }
 
         private void OnProductRecordRemoval(uint id)
@@ -301,8 +301,8 @@ namespace DAZ_Installer.Windows.Forms
             else if (delta > 0)
                 MessageBox.Show($"Some product files failed to be removed.",
                     "Some files failed to be removed", MessageBoxButtons.OK, MessageBoxIcon.Information);
-            else Program.Database.RemoveProductRecord(record);
-            Program.Database.RemoveProductRecord(record, OnProductRecordRemoval);
+            else Program.Database.RemoveProductRecordQ(record);
+            Program.Database.RemoveProductRecordQ(record, OnProductRecordRemoval);
         }
 
         private uint DeleteFiles()

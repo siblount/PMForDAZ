@@ -185,7 +185,7 @@ namespace DAZ_Installer
             DialogResult result = MessageBox.Show($"Are you sure you want to remove the record for {ProductRecord.ProductName}? " +
                 "This wont remove the files on disk. Additionally, the record cannot be restored.", "Remove product record confirmation", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
             if (result == DialogResult.No) return;
-            Database?.RemoveProductRecord(ProductRecord);
+            Database?.RemoveProductRecordQ(ProductRecord);
         }
 
         private void removeProductToolStripMenuItem_Click(object sender, EventArgs e)
@@ -196,7 +196,7 @@ namespace DAZ_Installer
             Database?.GetExtractionRecordQ(ProductRecord.EID, callback: OnGetExtractionRecord);
         }
 
-        private void OnGetExtractionRecord(DPExtractionRecord record)
+        private void OnGetExtractionRecord(DPProductRecordLite record)
         {
             if (record.PID != ProductRecord.ID) return;
             var deleteCount = 0;
@@ -222,7 +222,7 @@ namespace DAZ_Installer
             else if (delta > 0)
                 MessageBox.Show($"Some product files failed to be removed for {ProductRecord.ProductName}.",
                     "Some files failed to be removed", MessageBoxButtons.OK, MessageBoxIcon.Information);
-            else Database?.RemoveProductRecord(ProductRecord);
+            else Database?.RemoveProductRecordQ(ProductRecord);
         }
     }
 }

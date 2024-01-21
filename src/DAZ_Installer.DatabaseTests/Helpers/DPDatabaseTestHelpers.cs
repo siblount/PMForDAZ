@@ -6,6 +6,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Serilog;
+using System.Data;
 using System.Data.SQLite;
 using System.ComponentModel;
 using System.Configuration;
@@ -39,58 +40,43 @@ namespace DAZ_Installer.Database.Tests
         {
             using var connection = CreateConnection(path, true);
             using var command = connection.CreateCommand();
-            command.CommandText = "SELECT * FROM ProductRecords";
+            command.CommandText = $"SELECT * FROM {DPDatabase.ProductTable}";
             using var reader = command.ExecuteReader();
             List<DPProductRecord> searchResults = new(4);
-            string productName, author, thumbnailPath, sku;
-            string[] tags;
-            DateTime dateCreated;
-            uint extractionID, pid;
             while (reader.Read())
             {
-                // Construct product records
-                // NULL values return type DB.NULL.
-                productName = (string)reader["Product Name"];
-                // TODO: Tags have returned null; investigate why.
-                var rawTags = reader["Tags"] as string ?? string.Empty;
-                tags = rawTags.Trim().Split(", ");
-                author = reader["Author"] as string; // May return NULL
-                thumbnailPath = reader["Thumbnail Full Path"] as string; // May return NULL
-                extractionID = Convert.ToUInt32(reader["Extraction Record ID"] is DBNull ?
-                    0 : reader["Extraction Record ID"]);
-                dateCreated = DateTime.FromFileTimeUtc((long)reader["Date Created"]);
-                sku = reader["SKU"] as string; // May return NULL
-                pid = Convert.ToUInt32(reader["ID"]);
-                searchResults.Add(
-                    new DPProductRecord(productName, tags, author, sku, dateCreated, thumbnailPath, extractionID, pid));
+                var record = new DPProductRecord(
+                    Name: reader.GetString("Product Name"),
+                    Authors: reader.GetString("Authors").Split(", "),
+                    Time: DateTime.FromFileTimeUtc(reader.GetInt64("Time")),
+                    ThumbnailPath: reader.GetString("Thumbnail"),
+                    ArcName: reader.GetString("ArcName"),
+                    Destination: reader.GetString("Destination"),
+                    Tags: reader.GetString("Tags").Split(", "),
+                    Files: reader.GetString("Files").Split(", "),
+                    ID: reader.GetInt64("ROWID")
+                );
+                searchResults.Add(record);
             }
             return searchResults;
         }
 
-        internal static List<DPExtractionRecord> GetAllExtractionRecords(string path)
+        internal static List<DPProductRecordLite> GetAllProductRecordLites(string path)
         {
             using var connection = CreateConnection(path, true);
             using var command = connection.CreateCommand();
-            command.CommandText = "SELECT * FROM ExtractionRecords";
+            command.CommandText = $"SELECT * FROM {DPDatabase.ProductLiteView}";
             using var reader = command.ExecuteReader();
-            List<DPExtractionRecord> searchResults = new(4);
+            List<DPProductRecordLite> searchResults = new(4);
             while (reader.Read())
             {
-                string[] files, folders, erroredFiles, errorMessages;
-                var archiveFileName = reader["Archive Name"] as string;
-                var filesStr = reader["Files"] as string;
-                var foldersStr = reader["Folders"] as string;
-                var destinationPath = reader["Destination Path"] as string;
-                var erroredFilesStr = reader["Errored Files"] as string;
-                var errorMessagesStr = reader["Error Messages"] as string;
-                var pid = Convert.ToUInt32(reader["Product Record ID"]);
-
-                files = filesStr?.Split(", ") ?? Array.Empty<string>();
-                folders = foldersStr?.Split(", ") ?? Array.Empty<string>();
-                erroredFiles = erroredFilesStr?.Split(", ") ?? Array.Empty<string>();
-                errorMessages = errorMessagesStr?.Split(", ") ?? Array.Empty<string>();
-                searchResults.Add(
-                    new DPExtractionRecord(archiveFileName, destinationPath, files, erroredFiles, errorMessages, folders, pid));
+                var record = new DPProductRecordLite(
+                    Name: reader.GetString("Product Name"),
+                    Thumbnail: reader.GetString("Thumbnail"),
+                    Tags: reader.GetString("Tags").Split(", "),
+                    ID: reader.GetInt64("ID")
+                );
+                searchResults.Add(record);
             }
             return searchResults;
         }
@@ -101,35 +87,31 @@ namespace DAZ_Installer.Database.Tests
         /// <param name="expected">The expected DPProductRecord.</param>
         /// <param name="actual">The actual DPProductRecord.</param>
         /// <param name="assertIDs">Choose whether to assert ID and EIDs or not.</param>
-        internal static void ProductRecordEqual(this Assert a, DPProductRecord expected, DPProductRecord actual, bool assertIDs = false)
+        internal static void ProductRecordEqual(this Assert _, DPProductRecord expected, DPProductRecord actual, bool assertIDs = false)
         {
-            Assert.AreEqual(expected.ProductName, actual.ProductName);
-            CollectionAssert.AreEquivalent(expected.Tags, actual.Tags);
-            Assert.AreEqual(expected.Author, actual.Author);
+            Assert.AreEqual(expected.Name, actual.Name);
+            Assert.AreEqual(expected.TagsString, actual.TagsString);
+            Assert.AreEqual(expected.AuthorsString, actual.AuthorsString);
             Assert.AreEqual(expected.ThumbnailPath, actual.ThumbnailPath);
-            Assert.AreEqual(expected.SKU, actual.SKU);
             Assert.AreEqual(expected.Time, actual.Time);
-            if (!assertIDs) return;
-            Assert.AreEqual(expected.ID, actual.ID);
-            Assert.AreEqual(expected.EID, actual.EID);
+            Assert.AreEqual(expected.ArcName, actual.ArcName);
+            Assert.AreEqual(expected.Destination, actual.Destination);
+            CollectionAssert.AreEquivalent(expected.Files.ToArray(), actual.Files.ToArray());
+            if (assertIDs) Assert.AreEqual(expected.ID, actual.ID);
         }
 
         /// <summary>
-        /// A custom assertion for comparing two <see cref="DPExtractionRecord"/>s.
+        /// A custom assertion for comparing two <see cref="DPProductRecordLite"/>s.
         /// </summary>
-        /// <param name="expected">The expected <see cref="DPExtractionRecord"/>.</param>
-        /// <param name="actual">The actual <see cref="DPExtractionRecord"/>.</param>
+        /// <param name="expected">The expected <see cref="DPProductRecordLite"/>.</param>
+        /// <param name="actual">The actual <see cref="DPProductRecordLite"/>.</param>
         /// <param name="assertIDs">Choose whether to assert IDs or not.</param>
-        internal static void ExtractionRecordEqual(this Assert a, DPExtractionRecord expected, DPExtractionRecord actual, bool assertIDs = false)
+        internal static void ProductRecordLiteEqual(this Assert a, DPProductRecordLite expected, DPProductRecordLite actual, bool assertIDs = false)
         {
-            Assert.AreEqual(expected.ArchiveFileName, actual.ArchiveFileName);
-            Assert.AreEqual(expected.DestinationPath, actual.DestinationPath);
-            CollectionAssert.AreEquivalent(expected.Files, actual.Files);
-            CollectionAssert.AreEquivalent(expected.Folders, actual.Folders);
-            CollectionAssert.AreEquivalent(expected.ErroredFiles, actual.ErroredFiles);
-            CollectionAssert.AreEquivalent(expected.ErrorMessages, actual.ErrorMessages);
-            if (!assertIDs) return;
-            Assert.AreEqual(expected.PID, actual.PID);
+            Assert.AreEqual(expected.Name, actual.Name);
+            Assert.AreEqual(expected.Thumbnail, actual.Thumbnail);
+            CollectionAssert.AreEqual(expected.Tags.ToArray(), actual.Tags.ToArray());
+            if (assertIDs) Assert.AreEqual(expected.ID, actual.ID);
         }
 
         /// <summary>

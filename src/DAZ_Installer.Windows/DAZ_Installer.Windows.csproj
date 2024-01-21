@@ -20,6 +20,7 @@
     <AssemblyOriginatorKeyFile></AssemblyOriginatorKeyFile>
 	<InformationalVersion>$(AssemblyVersion)$(VersionSuffix)</InformationalVersion>
     <AssemblyVersion>0.9.*</AssemblyVersion>
+    <Platforms>AnyCPU;x64</Platforms>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
@@ -29,10 +30,22 @@
 	<IsPreRelease>True</IsPreRelease>
   </PropertyGroup>
 
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <Deterministic>False</Deterministic>
+    <FileAlignment>512</FileAlignment>
+    <VersionSuffix>Pre-alpha</VersionSuffix>
+    <IsPreRelease>True</IsPreRelease>
+  </PropertyGroup>
+
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
     <Deterministic>False</Deterministic>
     <FileAlignment>512</FileAlignment>
 	  
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <Deterministic>False</Deterministic>
+    <FileAlignment>512</FileAlignment>
   </PropertyGroup>
 
   <ItemGroup>
@@ -168,16 +181,18 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Update="favicon.ico">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Update="Properties\Settings.settings">
       <Generator>SettingsSingleFileGenerator</Generator>
       <LastGenOutput>Settings.Designer.cs</LastGenOutput>
     </None>
   </ItemGroup>
-
   <Target Name="PostBuild" AfterTargets="PostBuildEvent">
     <Exec Command="copy &quot;$(SolutionDir)DAZ_Installer.Core\libs\UnRAR.dll&quot; &quot;$(OutDir)UnRAR.dll&quot;&#xD;&#xA;copy &quot;$(SolutionDir)DAZ_Installer.Core\External\7za.exe&quot; &quot;$(OutDir)7za.exe&quot;&#xD;&#xA;echo OutDir: $(OutDir)&#xD;&#xA;echo TargetDir: $(TargetDir)&#xD;&#xA;echo ProjectDir: $(ProjectDir)" />
   </Target>
-	<Target Name="PostPublish" AfterTargets="Publish">
+	<Target Name="PostPublish" AfterTargets="Pasublish">
 		<Exec Command="copy &quot;$(SolutionDir)DAZ_Installer.Core\libs\UnRAR.dll&quot; &quot;$(OutDir)UnRAR.dll&quot;&#xD;&#xA;copy &quot;$(SolutionDir)DAZ_Installer.Core\External\7za.exe&quot; &quot;$(OutDir)7za.exe&quot;&#xD;&#xA;echo OutDir: $(OutDir)&#xD;&#xA;echo TargetDir: $(TargetDir)&#xD;&#xA;echo ProjectDir: $(ProjectDir)" />
 	</Target>
 
