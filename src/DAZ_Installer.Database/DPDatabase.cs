@@ -396,7 +396,7 @@ namespace DAZ_Installer.Database
                             AFTER DELETE ON {ProductTable} FOR EACH ROW
                         BEGIN
                             UPDATE {DatabaseInfoTable} SET ""Product Record Count"" = (SELECT ""Product Record Count"" FROM {DatabaseInfoTable}) - 1;
-	                        DELETE FROM {ProductFTS5Table} WHERE ID = old.ID;
+	                        DELETE FROM {ProductFTS5Table} WHERE ID = old.ROWID;
                         END;
 
                         CREATE TRIGGER IF NOT EXISTS update_product_count
