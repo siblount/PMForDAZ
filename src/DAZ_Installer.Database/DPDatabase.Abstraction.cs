@@ -976,7 +976,7 @@ namespace DAZ_Installer.Database
             {
                 var param = command.CreateParameter();
                 param.ParameterName = cArgs[i];
-                param.Value = values[i];
+                param.Value = values[i] ?? DBNull.Value;
                 command.Parameters.Add(param);
             }
         }
