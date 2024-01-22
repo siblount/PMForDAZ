@@ -233,10 +233,7 @@ namespace DAZ_Installer.Database
                 if (connection == null) return -1;
                 var getCommand = $"SELECT ID from {DestinationTable} WHERE Destination = @A0";
                 using var sqlCommand = opts.CreateCommand(getCommand);
-                var param = sqlCommand.CreateParameter();
-                param.ParameterName = "@A0";
-                param.Value = destination;
-                sqlCommand.Parameters.Add(param);
+                sqlCommand.Parameters.Add(new SqliteParameter("@A0", destination));
                 return Convert.ToInt32(sqlCommand.ExecuteScalar());
             }
             catch (Exception ex)
@@ -423,10 +420,9 @@ namespace DAZ_Installer.Database
                 using var transaction = connection.BeginTransaction(ref opts);
                 var insertCommand = $"INSERT INTO {FilesTable} VALUES ({pid}, @A0);";
                 using var sqlCommand = connection.CreateCommand(insertCommand);
-                var param = sqlCommand.CreateParameter();
-                param.ParameterName = "@A0";
-                param.Value = string.Join(", ", files);
-                param.DbType = DbType.String;
+
+                var filesString = JoinString(", ", files, 70);
+                var param = new SqliteParameter("@A0", filesString is null ? DBNull.Value : filesString);
                 sqlCommand.Parameters.Add(param);
                 sqlCommand.ExecuteNonQuery();
                 transaction.Commit();
@@ -677,16 +673,10 @@ namespace DAZ_Installer.Database
                 {
                     if (opts.IsCancellationRequested || !UpdateFiles(files, opts, pid)) return false;
                     using var sqlCommand = connection.CreateCommand(updateCommand.ToString());
-                    var param = sqlCommand.CreateParameter();
-                    param.ParameterName = "@A0";
-                    param.Value = destination;
-                    sqlCommand.Parameters.Add(param);
+                    sqlCommand.Parameters.Add(new SqliteParameter("@A0", destination));
                     for (var i = 1; i < pColumns.Length + 1; i++)
                     {
-                        param = sqlCommand.CreateParameter();
-                        param.ParameterName = "@A" + i;
-                        param.Value = pObjs[i - 1];
-                        sqlCommand.Parameters.Add(param);
+                        sqlCommand.Parameters.Add(new SqliteParameter("@A" + i, pObjs[i - 1] ?? DBNull.Value));
                     }
                     if (opts.IsCancellationRequested) return false;
                     sqlCommand.ExecuteNonQuery();
@@ -718,10 +708,8 @@ namespace DAZ_Installer.Database
                 using var transaction = connection.BeginTransaction(ref opts);
                 var insertCommand = $"INSERT OR IGNORE INTO {DestinationTable} (Destination) VALUES (@A0);";
                 using var sqlCommand = connection.CreateCommand(insertCommand);
-                var param = sqlCommand.CreateParameter();
-                param.ParameterName = "@A0";
-                param.Value = dest;
-                sqlCommand.Parameters.Add(param);
+
+                sqlCommand.Parameters.Add(new SqliteParameter("@A0", dest));
                 sqlCommand.ExecuteNonQuery();
                 transaction.Commit();
                 destID = GetDestinationID(dest, opts);
@@ -974,10 +962,7 @@ namespace DAZ_Installer.Database
         {
             for (var i = 0; i < cArgs.Count; i++)
             {
-                var param = command.CreateParameter();
-                param.ParameterName = cArgs[i];
-                param.Value = values[i] ?? DBNull.Value;
-                command.Parameters.Add(param);
+                command.Parameters.Add(new SqliteParameter(cArgs[i], values[i] ?? DBNull.Value));
             }
         }
         /// <summary>
@@ -1000,15 +985,8 @@ namespace DAZ_Installer.Database
                 Logger.Warning("FillAssignmentParamsToConnection() did not fill parameters due to unequal lengths in values.");
             for (int i = 0, j = 0; i < cArgs.Count; i += 2, j++)
             {
-                var param = command.CreateParameter();
-                param.ParameterName = cArgs[i];
-                param.Value = leftVals[j];
-                command.Parameters.Add(param);
-
-                param = command.CreateParameter();
-                param.ParameterName = cArgs[i + 1];
-                param.Value = rightVals[j];
-                command.Parameters.Add(param);
+                command.Parameters.Add(new SqliteParameter(cArgs[i], leftVals[j] ?? DBNull.Value));
+                command.Parameters.Add(new SqliteParameter(cArgs[i + 1], rightVals[j] ?? DBNull.Value));
             }
         }
         #endregion
