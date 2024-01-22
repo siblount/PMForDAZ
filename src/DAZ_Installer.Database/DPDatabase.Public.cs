@@ -57,17 +57,24 @@ namespace DAZ_Installer.Database
 
         public void StopMainDatabaseOperations() => _mainTaskManager.Stop();
         
-        public void StopAllDatabaseOperations()
+        public void StopAllDatabaseOperations(bool wait = true)
         {
-            _mainTaskManager.Stop();
-            _priorityTaskManager.Stop();
+            if (wait)
+            {
+                _mainTaskManager.StopAndWait();
+                _priorityTaskManager.StopAndWait();
+            } else
+            {
+                _mainTaskManager.Stop();
+                _priorityTaskManager.Stop();
+            }
         }
 
         #endregion
         #region Queryable methods
         public Task RefreshDatabaseQ(bool forceRefresh = false)
         {
-            if (!forceRefresh) return _mainTaskManager.AddToQueue((t) => 
+            if (!forceRefresh) return _mainTaskManager.AddToQueue((t) =>
                 RefreshDatabase(new SqliteConnectionOpts(null, null, t))
             );
             _mainTaskManager.StopAndWait();
@@ -109,7 +116,7 @@ namespace DAZ_Installer.Database
         
         public Task RemoveRowQ(string tableName, int id)
         {
-            var arg = new Tuple<string, object>[1] { new Tuple<string, object>("ID", id) };
+            var arg = new Tuple<string, object>[1] { new Tuple<string, object>("ROWID", id) };
             return _mainTaskManager.AddToQueue((t) =>
             {
                 var opts = new SqliteConnectionOpts() { CancellationToken = t };
@@ -121,7 +128,7 @@ namespace DAZ_Installer.Database
         {
             return _mainTaskManager.AddToQueue((t) =>
             {
-                var arg = new Tuple<string, object>[1] { new("ID", Convert.ToInt32(record.ID)) };
+                var arg = new Tuple<string, object>[1] { new("ROWID", Convert.ToInt32(record.ID)) };
                 var opts = new SqliteConnectionOpts() { CancellationToken = t };
                 var success = RemoveValuesWithCondition(ProductTable, arg, false, opts);
                 if (success)

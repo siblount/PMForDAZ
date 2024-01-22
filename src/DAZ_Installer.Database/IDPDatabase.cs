@@ -52,7 +52,8 @@ namespace DAZ_Installer.Database
         /// Stops the pending chain of main queries such as insert, update, delete, and get queries. 
         /// This also stops pending search queries and "view" queries.
         /// </summary>
-        void StopAllDatabaseOperations();
+        /// <param name="wait">Whether to block current thread until it is done.</param>
+        void StopAllDatabaseOperations(bool wait);
         /// <summary>
         /// If `forceRefresh` is false, the refresh action will be queued. Otherwise, the action queue will be cleared and database will be refreshed immediately.
         /// </summary>
