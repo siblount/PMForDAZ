@@ -110,28 +110,6 @@ namespace DAZ_Installer.Database
         /// <param name="newProductRecord"></param>
         Task UpdateRecordQ(long id, DPProductRecord newProductRecord, Action<long>? callback = null);
         /// <summary>
-        /// Removes all product records that satisfy the condition specified by <paramref name="condition"/>.
-        /// </summary>
-        /// <param name="condition">The prerequisite for removing a row that must be met.</param>
-        Task RemoveProductRecordsQ(Tuple<string, object> condition);
-        /// <summary>
-        /// Removes all product records that satisfy the conditions specified by <paramref name="conditions"/>.
-        /// </summary>
-        /// <param name="conditions">The prerequisites for removing a row that must be met.</param>
-        Task RemoveProductRecordsQ(Tuple<string, object>[] conditions);
-        /// <summary>
-        /// Removes all rows that satisfy the condition specified by <paramref name="condition"/>.
-        /// </summary>
-        /// <param name="tableName">The table to remove rows from.</param>
-        /// <param name="condition">The prerequisite for removing a row that must be met.</param>
-        Task RemoveRowWithConditionQ(string tableName, Tuple<string, object> condition);
-        /// <summary>
-        /// Removes all rows that satisfy the conditions specified by <paramref name="conditions"/>.
-        /// </summary>
-        /// <param name="tableName">The table to remove rows from.</param>
-        /// <param name="conditions">The prerequisite for removing a row that must be met.</param>
-        Task RemoveRowWithConditionsQ(string tableName, Tuple<string, object>[] conditions);
-        /// <summary>
         /// Removes all product and extraction records from the database.
         /// </summary>
         Task RemoveAllRecordsQ();

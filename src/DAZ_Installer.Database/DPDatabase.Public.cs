@@ -159,43 +159,7 @@ namespace DAZ_Installer.Database
                 ProductRecordModified?.Invoke(newProductRecord, id);
             });
         }
-        
-        public Task RemoveProductRecordsQ(Tuple<string, object> condition)
-        {
-            var t = new Tuple<string, object>[] { condition };
-            return _mainTaskManager.AddToQueue((ct) =>
-            {
-                var opts = new SqliteConnectionOpts() { CancellationToken = ct };
-                RemoveValuesWithCondition(ProductTable, t, false, opts);
-            });
-        }
 
-        public Task RemoveProductRecordsQ(Tuple<string, object>[] conditions)
-        {
-            return _mainTaskManager.AddToQueue((ct) =>
-            {
-                var opts = new SqliteConnectionOpts() { CancellationToken = ct };
-                RemoveValuesWithCondition(ProductTable, conditions, false, opts);
-            });
-        }
-        
-        public Task RemoveRowWithConditionQ(string tableName, Tuple<string, object> condition)
-        {
-            var t = new Tuple<string, object>[] { condition };
-            return _mainTaskManager.AddToQueue((ct) =>
-            {
-                var opts = new SqliteConnectionOpts() { CancellationToken = ct };
-                RemoveValuesWithCondition(tableName, t, false, opts);
-            });
-        }
-
-        public Task RemoveRowWithConditionsQ(string tableName, Tuple<string, object>[] conditions) { 
-            return _mainTaskManager.AddToQueue((ct) =>
-            {
-                var opts = new SqliteConnectionOpts() { CancellationToken = ct };
-                RemoveValuesWithCondition(tableName, conditions, false, opts);
-            });
-        }
         public Task RemoveAllRecordsQ() => _mainTaskManager.AddToQueue((ct) =>
         {
             var opts = new SqliteConnectionOpts() { CancellationToken = ct };
