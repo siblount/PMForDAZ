@@ -17,7 +17,8 @@ namespace DAZ_Installer.Database
             DPProductRecord? record = null;
             await _mainTaskManager.AddToQueue((t) =>
             {
-                record = GetProductRecord(id, null, t);
+                var opts = new SqliteConnectionOpts() { CancellationToken = t };
+                record = GetProductRecord(id, opts);
                 callback?.Invoke(record);
             });
             return record;
@@ -31,7 +32,8 @@ namespace DAZ_Installer.Database
             List<DPProductRecordLite> results = new(0);
             await _priorityTaskManager.AddToQueue((t) =>
             {
-                results = DoSearchS(searchQuery, sortMethod, null, t);
+                var opts = new SqliteConnectionOpts() { CancellationToken = t };
+                results = DoSearchS(searchQuery, sortMethod, opts);
                 callback?.Invoke(results);
                 SearchUpdated?.Invoke(results, callerID);
             });
@@ -45,7 +47,8 @@ namespace DAZ_Installer.Database
             List<DPProductRecordLite> results = new(0);
             await _priorityTaskManager.AddToQueue((t) =>
             {
-                results = DoLibraryQuery(page, limit, sortMethod, null, t);
+                var opts = new SqliteConnectionOpts() { CancellationToken = t };
+                results = DoLibraryQuery(page, limit, sortMethod, opts);
                 callback?.Invoke(results);
                 MainQueryCompleted?.Invoke(callerID);
             });
@@ -64,9 +67,11 @@ namespace DAZ_Installer.Database
         #region Queryable methods
         public Task RefreshDatabaseQ(bool forceRefresh = false)
         {
-            if (!forceRefresh) return _mainTaskManager.AddToQueue(RefreshDatabase);
+            if (!forceRefresh) return _mainTaskManager.AddToQueue((t) => 
+                RefreshDatabase(new SqliteConnectionOpts(null, null, t))
+            );
             _mainTaskManager.StopAndWait();
-            _mainTaskManager.AddToQueue(RefreshDatabase);
+            _mainTaskManager.AddToQueue((t) => RefreshDatabase(new SqliteConnectionOpts(null, null, t)));
             return Task.CompletedTask;
         }
 
@@ -75,7 +80,8 @@ namespace DAZ_Installer.Database
             DataSet? result = null;
             await _mainTaskManager.AddToQueue((t) =>
             {
-                result = GetAllValuesFromTable(tableName, null, t);
+                var opts = new SqliteConnectionOpts() { CancellationToken = t };
+                result = GetAllValuesFromTable(tableName, opts);
                 callback?.Invoke(result);
                 if (result is not null)
                     ViewUpdated?.Invoke(result, callerID);
@@ -83,14 +89,32 @@ namespace DAZ_Installer.Database
             return result;
         }
         
-        public Task AddNewRecordEntry(DPProductRecord record) => _mainTaskManager.AddToQueue(InsertRecords, record, null as SqliteConnection);
-        
-        public Task InsertNewRowQ(string tableName, object[] values, string[] columns) => _mainTaskManager.AddToQueue(InsertValuesToTable, tableName, columns, values, null as SqliteConnection);
+        public Task AddNewRecordEntry(DPProductRecord record)
+        {
+            return _mainTaskManager.AddToQueue((t) =>
+            {
+                var opts = new SqliteConnectionOpts() { CancellationToken = t };
+                var success = InsertRecords(record, opts);
+                if (!success) return;
+            });
+        }
+
+        public Task InsertNewRowQ(string tableName, object[] values, string[] columns) {
+            return _mainTaskManager.AddToQueue((t) =>
+            {
+                var opts = new SqliteConnectionOpts() { CancellationToken = t };
+                InsertValuesToTable(tableName, columns, values, opts);
+            });
+        }
         
         public Task RemoveRowQ(string tableName, int id)
         {
             var arg = new Tuple<string, object>[1] { new Tuple<string, object>("ID", id) };
-            return _mainTaskManager.AddToQueue(RemoveValuesWithCondition, tableName, arg, false, null as SqliteConnection);
+            return _mainTaskManager.AddToQueue((t) =>
+            {
+                var opts = new SqliteConnectionOpts() { CancellationToken = t };
+                RemoveValuesWithCondition(tableName, arg, false, opts);
+            });
         }
 
         public Task RemoveProductRecordQ(DPProductRecord record, Action<long>? callback = null)
@@ -98,7 +122,8 @@ namespace DAZ_Installer.Database
             return _mainTaskManager.AddToQueue((t) =>
             {
                 var arg = new Tuple<string, object>[1] { new("ID", Convert.ToInt32(record.ID)) };
-                var success = RemoveValuesWithCondition(ProductTable, arg, false, null, t);
+                var opts = new SqliteConnectionOpts() { CancellationToken = t };
+                var success = RemoveValuesWithCondition(ProductTable, arg, false, opts);
                 if (success)
                 {
                     callback?.Invoke(record.ID);
@@ -106,16 +131,30 @@ namespace DAZ_Installer.Database
                 }
             });
         }
-        
-        public Task ClearTableQ(string tableName) => _mainTaskManager.AddToQueue(RemoveAllFromTable, tableName, null as SqliteConnection);
 
-        public Task UpdateValuesQ(string tableName, object[] values, string[] columns, int id) => _mainTaskManager.AddToQueue(UpdateValues, tableName, columns, values, id, null as SqliteConnection);
+        public Task ClearTableQ(string tableName)
+        {
+            return _mainTaskManager.AddToQueue((t) =>
+            {
+                var opts = new SqliteConnectionOpts() { CancellationToken = t };
+                RemoveAllFromTable(tableName, opts);
+            });
+        }
+
+        public Task UpdateValuesQ(string tableName, object[] values, string[] columns, int id) {
+            return _mainTaskManager.AddToQueue((t) =>
+            {
+                var opts = new SqliteConnectionOpts() { CancellationToken = t };
+                UpdateValues(tableName, columns, values, id, opts);
+            });
+        }
 
         public Task UpdateRecordQ(long id, DPProductRecord newProductRecord, Action<long>? callback = null)
         {
             return _mainTaskManager.AddToQueue(t =>
             {
-                var success = UpdateProductRecord(id, newProductRecord, null, t);
+                var opts = new SqliteConnectionOpts() { CancellationToken = t };
+                var success = UpdateProductRecord(id, newProductRecord, opts);
                 if (!success) return;
                 callback?.Invoke(newProductRecord.ID);
                 ProductRecordModified?.Invoke(newProductRecord, id);
@@ -125,27 +164,52 @@ namespace DAZ_Installer.Database
         public Task RemoveProductRecordsQ(Tuple<string, object> condition)
         {
             var t = new Tuple<string, object>[] { condition };
-            return _mainTaskManager.AddToQueue(RemoveValuesWithCondition, ProductTable, t, false, null as SqliteConnection);
+            return _mainTaskManager.AddToQueue((ct) =>
+            {
+                var opts = new SqliteConnectionOpts() { CancellationToken = ct };
+                RemoveValuesWithCondition(ProductTable, t, false, opts);
+            });
         }
-        
-        public Task RemoveProductRecordsQ(Tuple<string, object>[] conditions) => _mainTaskManager.AddToQueue(RemoveValuesWithCondition, ProductTable, conditions, false, null as SqliteConnection);
+
+        public Task RemoveProductRecordsQ(Tuple<string, object>[] conditions)
+        {
+            return _mainTaskManager.AddToQueue((ct) =>
+            {
+                var opts = new SqliteConnectionOpts() { CancellationToken = ct };
+                RemoveValuesWithCondition(ProductTable, conditions, false, opts);
+            });
+        }
         
         public Task RemoveRowWithConditionQ(string tableName, Tuple<string, object> condition)
         {
             var t = new Tuple<string, object>[] { condition };
-            return _mainTaskManager.AddToQueue(RemoveValuesWithCondition, tableName, t, false, null as SqliteConnection);
+            return _mainTaskManager.AddToQueue((ct) =>
+            {
+                var opts = new SqliteConnectionOpts() { CancellationToken = ct };
+                RemoveValuesWithCondition(tableName, t, false, opts);
+            });
         }
-        
-        public Task RemoveRowWithConditionsQ(string tableName, Tuple<string, object>[] conditions) => _mainTaskManager.AddToQueue(RemoveValuesWithCondition, tableName, conditions, false, null as SqliteConnection);
-        
-        public Task RemoveAllRecordsQ() => _mainTaskManager.AddToQueue(RemoveAllRecords, null as SqliteConnection);
+
+        public Task RemoveRowWithConditionsQ(string tableName, Tuple<string, object>[] conditions) { 
+            return _mainTaskManager.AddToQueue((ct) =>
+            {
+                var opts = new SqliteConnectionOpts() { CancellationToken = ct };
+                RemoveValuesWithCondition(tableName, conditions, false, opts);
+            });
+        }
+        public Task RemoveAllRecordsQ() => _mainTaskManager.AddToQueue((ct) =>
+        {
+            var opts = new SqliteConnectionOpts() { CancellationToken = ct };
+            RemoveAllFromTable(ProductTable, opts);
+        });
         
         public async Task<HashSet<string>?> GetInstalledArchiveNamesQ(Action<HashSet<string>>? callback = null)
         {
             HashSet<string>? result = null;
             await _priorityTaskManager.AddToQueue((t) =>
             {
-                result = GetArchiveFileNameList(null, t);
+                var opts = new SqliteConnectionOpts() { CancellationToken = t };
+                result = GetArchiveFileNameList(opts);
                 callback?.Invoke(result);
             });
             return result;

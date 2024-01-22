@@ -4,6 +4,7 @@ using DAZ_Installer.Database.External;
 using System.Data;
 using Microsoft.Data.Sqlite;
 using System.Text;
+using System.Data.Common;
 
 namespace DAZ_Installer.Database
 {
@@ -17,31 +18,22 @@ namespace DAZ_Installer.Database
         /// <param name="c">The SqliteConnection to use. If null, a new connection will be created.</param>
         /// <param name="t">The cancellation token to use. Use <see cref="CancellationToken.None"/> if you never wish to cancel.</param>
         /// <returns></returns>
-        private List<DPProductRecordLite> DoSearchS(string searchQuery, DPSortMethod method,
-            SqliteConnection? c, CancellationToken t)
+        private List<DPProductRecordLite> DoSearchS(string searchQuery, DPSortMethod method, SqliteConnectionOpts opts)
         {
-            SqliteConnection? connection = null;
-            SqliteCommand? command = null;
             try
             {
-                connection = CreateAndOpenConnection(c, true);
+                using var connection = CreateAndOpenConnection(ref opts);
                 if (connection == null) return new List<DPProductRecordLite>(0);
-                command = new(string.Empty, connection);
+                using var command = connection.CreateCommand();
                 SetupSearch(searchQuery, method, command);
-                var results = SearchProductRecords(command, t);
-                UpdateProductRecordCount(connection, t);
+                using var reader = command.ExecuteReader();
+                var results = SearchProductRecords(reader, opts);
+                UpdateProductRecordCount(opts);
                 return results;
             }
             catch (Exception ex)
             {
                 Logger.Error(ex, "An error occurred doing a regular search.");
-            } finally
-            {
-                if (c is null)
-                {
-                    command?.Dispose();
-                    connection?.Dispose();
-                }
             }
             return new List<DPProductRecordLite>(0);
         }
@@ -51,31 +43,22 @@ namespace DAZ_Installer.Database
         /// </summary>
         /// <param name="limit">The limit amount of results to return.</param>
         /// <param name="method">The sorting method to apply to query results.</param>
-        private List<DPProductRecordLite> DoLibraryQuery(uint page, ulong limit, DPSortMethod method,
-            SqliteConnection? c, CancellationToken t)
+        private List<DPProductRecordLite> DoLibraryQuery(uint page, ulong limit, DPSortMethod method, SqliteConnectionOpts opts)   
         {
-            SqliteConnection? connection = null;
-            SqliteCommand? command = null;
             try
             {
-                connection = CreateAndOpenConnection(c, true);
+                using var connection = CreateAndOpenConnection(ref opts);
                 if (connection == null) return new List<DPProductRecordLite>(0);
-                command = new(string.Empty, connection);
+                using var command = connection.CreateCommand();
                 SetupSQLLibraryQuery(page, limit, method, command);
-                var results = SearchProductRecords(command, t);
-                UpdateProductRecordCount(connection, t);
+                using var reader = command.ExecuteReader();
+                var results = SearchProductRecords(reader, opts);
+                UpdateProductRecordCount(opts);
                 return results;
             }
             catch (Exception ex)
             {
                 Logger.Error(ex, "An error occurred doing a library query.");
-            } finally
-            {
-                if (c is null)
-                {
-                    command?.Dispose();
-                    connection?.Dispose();
-                }
             }
             return new List<DPProductRecordLite>(0);
         }
@@ -87,7 +70,7 @@ namespace DAZ_Installer.Database
         /// <param name="limit">The maximum number of items to return.</param>
         /// <param name="method">The sorting method to use for search results. Cannot be null.</param>
         /// <param name="command">The command to set up the query for. Cannot be null.</param>
-        private void SetupSQLLibraryQuery(uint page, ulong limit, DPSortMethod method, SqliteCommand command)
+        private void SetupSQLLibraryQuery(uint page, ulong limit, DPSortMethod method, DbCommand command)
         {
             var beginningRowID = (page - 1) * limit;
             command.CommandText = method switch
@@ -108,7 +91,7 @@ namespace DAZ_Installer.Database
         /// <param name="userQuery">The user search query to process.</param>
         /// <param name="method">The sorting method to use for search results. Cannot be null.</param>
         /// <param name="command">The command to set up the query for. Cannot be null.</param>
-        private void SetupSearch(string userQuery, DPSortMethod method, SqliteCommand command)
+        private void SetupSearch(string userQuery, DPSortMethod method, DbCommand command)
         {
             // SELECT * FROM ProductsLite p WHERE p.ROWID IN (SELECT ROWID FROM ProductsFTS5 WHERE Tags MATCH "Genesis" ORDER BY rank LIMIT 25);
             StringBuilder sb = new(userQuery + 50);

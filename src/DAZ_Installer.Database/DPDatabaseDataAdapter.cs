@@ -11,16 +11,16 @@ namespace DAZ_Installer.Database
         private static object _updatedEventPH = new object();
         private bool disposeSelect = true;
         private bool disposed = false;
+
         public DPDatabaseDataAdapter() { }
+        /// <summary>
+        /// The data adapter for the DPDatabase.
+        /// </summary>
+        /// <param name="selectCommand">The pre-configured select command.</param>
         public DPDatabaseDataAdapter(DbCommand cmd)
         {
             SelectCommand = cmd;
             disposeSelect = false;
-        }
-
-        public DPDatabaseDataAdapter(string commandText, SqliteConnection connection)
-        {
-            SelectCommand = new SqliteCommand(commandText, connection);
         }
 
         private void ThrowIfDisposed()
