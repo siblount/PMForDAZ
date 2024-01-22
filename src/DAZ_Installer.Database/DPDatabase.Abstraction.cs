@@ -418,7 +418,7 @@ namespace DAZ_Installer.Database
                     return false;
                 }
                 using var transaction = connection.BeginTransaction(ref opts);
-                var insertCommand = $"INSERT INTO {FilesTable} VALUES ({pid}, @A0);";
+                var insertCommand = $"INSERT OR REPLACE INTO {FilesTable} VALUES ({pid}, @A0);";
                 using var sqlCommand = connection.CreateCommand(insertCommand);
 
                 var filesString = JoinString(", ", files, 70);
@@ -615,8 +615,8 @@ namespace DAZ_Installer.Database
                     // "{Column} = @A{index}"
                     updateCommand.Append('"').Append(pColumns[i - 1]).Append("\" = @A").Append(i).AppendLine(", ");
                 }
-                updateCommand.Remove(updateCommand.Length - ", ".Length, ", ".Length); // Remove last comma and space.
-                updateCommand.Append(" WHERE ID = ").Append(pid).Append(';');
+                updateCommand.Remove(updateCommand.Length - ", ".Length - Environment.NewLine.Length, ", ".Length + Environment.NewLine.Length); // Remove last comma and space.
+                updateCommand.Append(" WHERE ROWID = ").Append(pid).Append(';');
                 try
                 {
                     if (opts.IsCancellationRequested || !UpdateFiles(files, opts, pid)) return false;
