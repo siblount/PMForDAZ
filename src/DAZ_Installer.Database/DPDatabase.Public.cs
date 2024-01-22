@@ -199,7 +199,7 @@ namespace DAZ_Installer.Database
         public Task RemoveAllRecordsQ() => _mainTaskManager.AddToQueue((ct) =>
         {
             var opts = new SqliteConnectionOpts() { CancellationToken = ct };
-            RemoveAllFromTable(ProductTable, opts);
+            RemoveAllRecords(opts);
         });
         
         public async Task<HashSet<string>?> GetInstalledArchiveNamesQ(Action<HashSet<string>>? callback = null)
