@@ -7,7 +7,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Serilog;
 using System.Data;
-using System.Data.SQLite;
+using Microsoft.Data.Sqlite;
 using System.ComponentModel;
 using System.Configuration;
 using Microsoft.VisualBasic;
@@ -17,17 +17,18 @@ namespace DAZ_Installer.Database.Tests
 {
     internal static class DPDatabaseTestHelpers
     {
-        internal static SQLiteConnection? CreateConnection(string path, bool readOnly = false)
+        internal static SqliteConnection? CreateConnection(string path, bool readOnly = false)
         {
             try
             {
-                SQLiteConnection connection = new();
-                SQLiteConnectionStringBuilder builder = new();
+                SqliteConnection connection = new();
+                SqliteConnectionStringBuilder builder = new();
                 builder.DataSource = Path.GetFullPath(path);
                 builder.Pooling = true;
-                builder.ReadOnly = readOnly;
+                builder.Mode = readOnly ? SqliteOpenMode.ReadOnly : SqliteOpenMode.ReadWriteCreate;
                 connection.ConnectionString = builder.ConnectionString;
-                return connection.OpenAndReturn();
+                connection.Open();
+                return connection;
             }
             catch (Exception e)
             {
@@ -40,20 +41,23 @@ namespace DAZ_Installer.Database.Tests
         {
             using var connection = CreateConnection(path, true);
             using var command = connection.CreateCommand();
-            command.CommandText = $"SELECT * FROM {DPDatabase.ProductTable}";
+            command.CommandText = $"SELECT * FROM {DPDatabase.ProductFullView}";
             using var reader = command.ExecuteReader();
             List<DPProductRecord> searchResults = new(4);
             while (reader.Read())
             {
                 var record = new DPProductRecord(
-                    Name: reader.GetString("Product Name"),
-                    Authors: reader.GetString("Authors").Split(", "),
-                    Time: DateTime.FromFileTimeUtc(reader.GetInt64("Time")),
-                    ThumbnailPath: reader.GetString("Thumbnail"),
+                    Name: reader.GetString("Name"),
+                    Authors: reader.IsDBNull("Authors") ? Array.Empty<string>() 
+                                                     : reader.GetString("Authors").Split(", "),
+                    Date: DateTime.FromFileTimeUtc(reader.GetInt64("Date")),
+                    ThumbnailPath: reader.IsDBNull("Thumbnail") ? null : reader.GetString("Thumbnail"),
                     ArcName: reader.GetString("ArcName"),
                     Destination: reader.GetString("Destination"),
-                    Tags: reader.GetString("Tags").Split(", "),
-                    Files: reader.GetString("Files").Split(", "),
+                    Tags: reader.IsDBNull("Tags") ? Array.Empty<string>() 
+                                                  : reader.GetString("Tags").Split(", "),
+                    Files: reader.IsDBNull("Files") ? Array.Empty<string>() 
+                                                    : reader.GetString("Files").Split(", "),
                     ID: reader.GetInt64("ROWID")
                 );
                 searchResults.Add(record);
@@ -71,10 +75,11 @@ namespace DAZ_Installer.Database.Tests
             while (reader.Read())
             {
                 var record = new DPProductRecordLite(
-                    Name: reader.GetString("Product Name"),
-                    Thumbnail: reader.GetString("Thumbnail"),
-                    Tags: reader.GetString("Tags").Split(", "),
-                    ID: reader.GetInt64("ID")
+                    Name: reader.GetString("Name"),
+                    Thumbnail: reader.IsDBNull("Thumbnail") ? null : reader.GetString("Thumbnail"),
+                    Tags: reader.IsDBNull("Tags") ? Array.Empty<string>()
+                                                  : reader.GetString("Tags").Split(", "),
+                    ID: reader.GetInt64("ROWID")
                 );
                 searchResults.Add(record);
             }
@@ -93,7 +98,7 @@ namespace DAZ_Installer.Database.Tests
             Assert.AreEqual(expected.TagsString, actual.TagsString);
             Assert.AreEqual(expected.AuthorsString, actual.AuthorsString);
             Assert.AreEqual(expected.ThumbnailPath, actual.ThumbnailPath);
-            Assert.AreEqual(expected.Time, actual.Time);
+            Assert.AreEqual(expected.Date, actual.Date);
             Assert.AreEqual(expected.ArcName, actual.ArcName);
             Assert.AreEqual(expected.Destination, actual.Destination);
             CollectionAssert.AreEquivalent(expected.Files.ToArray(), actual.Files.ToArray());
@@ -139,6 +144,28 @@ namespace DAZ_Installer.Database.Tests
                 }));
             }
             return tasks;
+        }
+
+        /// <summary>
+        /// Executes the tasks in parallel on the thread pool <paramref name="n"/> times executing <paramref name="action"/> each time.
+        /// Tasks will be chunked into <paramref name="chunkSize"/> sized chunks.
+        /// </summary>
+        /// <param name="n">The amount of times to execute the action sequentially.</param>
+        /// <param name="chunkSize">The size of each chunk.</param>
+        /// <param name="action">The action to perform.</param>
+        internal static Task ExecuteInParallel(int n, byte chunkSize, Action<int> action)
+        {
+            var arr = Enumerable.Range(0, n).ToArray();
+            var chunks = arr.Chunk(chunkSize);
+            var tasks = chunks.Select(chunk => Task.Run(() =>
+            {
+                foreach (var i in chunk)
+                {
+                    action(i);
+                }
+            }));
+
+            return Task.WhenAll(tasks);
         }
     }
 }
