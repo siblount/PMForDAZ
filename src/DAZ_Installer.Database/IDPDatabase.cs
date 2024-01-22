@@ -102,14 +102,6 @@ namespace DAZ_Installer.Database
         /// </summary>
         /// <param name="tableName"></param>
         Task ClearTableQ(string tableName);
-        
-        /// <summary>
-        /// Not fully implemented. Do not use.
-        /// </summary>
-        /// <param name="tableName"></param>
-        /// <param name="values"></param>
-        /// <param name="columns"></param>
-        Task UpdateValuesQ(string tableName, object[] values, string[] columns, int id);
         /// <summary>
         /// Updates a product record and extraction record. This is currently used for applying changes from the product
         /// record form.

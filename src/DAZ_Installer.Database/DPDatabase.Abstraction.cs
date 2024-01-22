@@ -581,58 +581,6 @@ namespace DAZ_Installer.Database
         }
         #endregion
         #region Update
-        /// <summary>
-        /// Updates values from the table and columns specified. The length of columns and the length of values
-        /// must be the same. You do not have to include all of the columns for the table you wish update.
-        /// For example, if you wish to only update the extraction record name, you can set the columns {"name"} and values to {{"hello"}}. 
-        /// Columns may be an empty string array which will use the columns found in the table.
-        /// </summary>
-        /// <param name="tableName">The table name to insert multiple values to.</param>
-        /// <param name="columns">The columns to update values into. Cannot be null.</param>
-        /// <param name="newValues">The values to update into the table. Cannot be null.</param>
-        /// <param name="c">The SqliteConnection to use, if any.</param>
-        /// <param name="t">Cancel token. Required, cannot be null. Use CancellationToken.None instead (though not recommended).</param>
-        /// <returns>Whether the insertion was successful (true) or not (false).</returns>
-        private bool UpdateValues(string tableName, string[] columns, object[] newValues,
-            int id, SqliteConnectionOpts opts)
-        {
-            if (opts.IsCancellationRequested) return false;
-            try
-            {
-                using var connection = CreateAndOpenConnection(ref opts);
-                if (connection == null) return false;
-                using var transaction = connection.BeginTransaction(ref opts);
-
-                columns = columns?.Length == 0 ? GetColumns(tableName, opts) : columns;
-                if (opts.IsCancellationRequested || columns == null ||
-                    columns.Length == 0 || columns.Length != newValues.Length) return false;
-
-                var updateCommand = $"UPDATE {tableName} SET ";
-                var aParams = CreateAssignmentParams(ref updateCommand, columns.Length);
-                updateCommand += $" WHERE ROWID = {id};";
-                try
-                {
-                    using var sqlCommand = connection.CreateCommand(updateCommand);
-                    FillAssignmentParamsToConnection(sqlCommand, aParams, columns, newValues);
-                    sqlCommand.ExecuteNonQuery();
-                    transaction.Commit();
-                    TableUpdated?.Invoke(tableName);
-                }
-                catch (Exception ex)
-                {
-                    Logger.Error(ex, "Failed to update values for table {table} with columns", tableName, string.Join(", ", columns));
-                    transaction.Rollback();
-                    return false;
-                }
-
-            }
-            catch (Exception ex)
-            {
-                Logger.Error(ex, "An unexpected error occurred while updating values for table {table}", tableName);
-                return false;
-            }
-            return true;
-        }
 
         /// <summary>
         /// Updates a product record using values from the <paramref name="newRecord"/> attributes at <paramref name="pid"/>. The ID will not be changed.

@@ -148,14 +148,6 @@ namespace DAZ_Installer.Database
             });
         }
 
-        public Task UpdateValuesQ(string tableName, object[] values, string[] columns, int id) {
-            return _mainTaskManager.AddToQueue((t) =>
-            {
-                var opts = new SqliteConnectionOpts() { CancellationToken = t };
-                UpdateValues(tableName, columns, values, id, opts);
-            });
-        }
-
         public Task UpdateRecordQ(long id, DPProductRecord newProductRecord, Action<long>? callback = null)
         {
             return _mainTaskManager.AddToQueue(t =>
