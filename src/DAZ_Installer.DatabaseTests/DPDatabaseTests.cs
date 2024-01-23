@@ -345,9 +345,9 @@ namespace DAZ_Installer.Database.Tests
             var record = new DPProductRecord("Test Product", new[] { "TheRealSolly" }, DateTime.UtcNow, "a.png", "arc.zip", "J:/",
                 new[] { "tag1", "tag2" }, new[] { "file1", "file2" }, 1);
 
-            Database.AddNewRecordEntry(record).Wait();
+            Database.AddNewRecordEntry(record);
             record = record with { Authors = Array.Empty<string>() };
-            Database.AddNewRecordEntry(record with { ArcName = "arc2.zip" });
+            Database.AddNewRecordEntry(record with { ArcName = "arc2.zip" }).Wait();
 
             var a = Database.GetInstalledArchiveNamesQ();
             var result = a.Result.ToArray();
@@ -380,6 +380,90 @@ namespace DAZ_Installer.Database.Tests
             Database.RemoveProductRecordQ(record).Wait();
 
             Assert.AreEqual(0, DPDatabaseTestHelpers.GetAllProductRecords(DatabasePath).Count);
+        }
+
+        [TestMethod]
+        public void UpdateDatabaseTest()
+        {
+            Database.StopMainDatabaseOperations();
+            SqliteConnection.ClearAllPools();
+            File.Delete(DatabasePath);
+            File.Create(DatabasePath).Close();
+            using var connection = DPDatabaseTestHelpers.CreateConnection(DatabasePath);
+            DPDatabaseTestHelpers.CreateV2Database(connection);
+            using var cmd = connection.CreateCommand();
+            var txt = @"
+                INSERT INTO ProductRecords (""Product Name"", ""Tags"", ""Author"", ""SKU"", ""Date Created"", ""Extraction Record ID"", ""Thumbnail Full Path"")
+                VALUES ('Test Product', 'tag1, tag2', 'TheRealSolly', 'SKU', 0, 1, 'a.png'),
+                       ('Test Product 2', 'tag1, tag2', 'TheRealSolly', 'SKU', 0, 2, 'a.png');
+                INSERT INTO ExtractionRecords (""Files"", ""Folders"", ""Destination Path"", ""Errored Files"", ""Error Messages"", ""Archive Name"", ""Product Record ID"")
+                VALUES ('file1, file2', 'folder1, folder2', 'J:/', '', '', 'arc.zip', 1),
+                       ('file1, file2', 'folder1, folder2', 'J:/', '', '', 'arc2.zip', 2);
+                INSERT INTO DatabaseInfo (""Version"", ""Product Record Count"", ""Extraction Record Count"")
+                VALUES (2, 2, 2);
+";
+            cmd.CommandText = txt;
+            cmd.ExecuteNonQuery();
+            DPDatabaseTestHelpers.FinishV2Database(connection);
+            connection.Dispose();
+            Database = new DPDatabase(DatabasePath);
+            var cts = new CancellationTokenSource();
+            //cts.CancelAfter(5000);
+            Database.UpdateDatabase(cts.Token).Wait();
+
+            using var connection1 = DPDatabaseTestHelpers.CreateConnection(DatabasePath, true);
+            DPDatabaseTestHelpers.AssertOldSchemaRemoved(connection1);
+
+            // Assert that the old records exist in the new database.
+            var records = DPDatabaseTestHelpers.GetAllProductRecords(DatabasePath);
+            Assert.AreEqual(2, records.Count);
+            var expectedRecord = new DPProductRecord("Test Product", new[] { "TheRealSolly" }, DateTime.FromFileTimeUtc(0), "a.png", "arc.zip", "J:/",
+                                              new[] { "tag1", "tag2" }, new[] { "file1", "file2" }, 1);
+            var expectedRecord1 = expectedRecord with { Name = "Test Product 2", ArcName = "arc2.zip" };
+            Assert.That.ProductRecordEqual(expectedRecord, records[0]);
+            Assert.That.ProductRecordEqual(expectedRecord1, records[1]);
+        }
+
+        [TestMethod]
+        public void UpdateDatabaseTest_Fails()
+        {
+            Database.StopMainDatabaseOperations();
+            SqliteConnection.ClearAllPools();
+            File.Delete(DatabasePath);
+            File.Create(DatabasePath).Close();
+            using var connection = DPDatabaseTestHelpers.CreateConnection(DatabasePath);
+            DPDatabaseTestHelpers.CreateV2Database(connection);
+            using var cmd = connection.CreateCommand();
+            var txt = @"
+                INSERT INTO ProductRecords (""Product Name"", ""Tags"", ""Author"", ""SKU"", ""Date Created"", ""Extraction Record ID"", ""Thumbnail Full Path"")
+                VALUES ('Test Product', 'tag1, tag2', 'TheRealSolly', 'SKU', 0, 1, 'a.png'),
+                       ('Test Product 2', 'tag1, tag2', 'TheRealSolly', 'SKU', 0, 2, 'a.png');
+                INSERT INTO ExtractionRecords (""Files"", ""Folders"", ""Destination Path"", ""Errored Files"", ""Error Messages"", ""Archive Name"", ""Product Record ID"")
+                VALUES ('file1, file2', 'folder1, folder2', 'J:/', '', '', 'arc.zip', 1),
+                       ('file1, file2', 'folder1, folder2', 'J:/', '', '', 'arc2.zip', 2);
+                INSERT INTO DatabaseInfo (""Version"", ""Product Record Count"", ""Extraction Record Count"")
+                VALUES (2, 2, 2);
+";
+            cmd.CommandText = txt;
+            cmd.ExecuteNonQuery();
+            DPDatabaseTestHelpers.FinishV2Database(connection);
+            connection.Dispose();
+            Database = new DPDatabase(DatabasePath);
+            var cts = new CancellationTokenSource();
+            //cts.CancelAfter(5000);
+            Database.UpdateDatabase(cts.Token).Wait();
+
+            using var connection1 = DPDatabaseTestHelpers.CreateConnection(DatabasePath, true);
+            DPDatabaseTestHelpers.AssertOldSchemaRemoved(connection1);
+
+            // Assert that the old records exist in the new database.
+            var records = DPDatabaseTestHelpers.GetAllProductRecords(DatabasePath);
+            Assert.AreEqual(2, records.Count);
+            var expectedRecord = new DPProductRecord("Test Product", new[] { "TheRealSolly" }, DateTime.FromFileTimeUtc(0), "a.png", "arc.zip", "J:/",
+                                              new[] { "tag1", "tag2" }, new[] { "file1", "file2" }, 1);
+            var expectedRecord1 = expectedRecord with { Name = "Test Product 2", ArcName = "arc2.zip" };
+            Assert.That.ProductRecordEqual(expectedRecord, records[0]);
+            Assert.That.ProductRecordEqual(expectedRecord1, records[1]);
         }
     }
 }

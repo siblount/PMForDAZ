@@ -697,8 +697,7 @@ namespace DAZ_Installer.Database
 
                     DROP TABLE IF EXISTS CachedSearches;
                     DROP TABLE IF EXISTS DatabaseInfo;
-                    DROP TABLE IF EXISTS sqlite_sequence;
-                    DROP TABLE IF EXISTS Tags;
+                    DELETE FROM sqlite_sequence;
                 ";
                 try
                 {
@@ -707,33 +706,26 @@ namespace DAZ_Installer.Database
                     if (!CreateTables(opts)) return false;
                     if (!CreateIndexes(opts)) return false;
                     if (!CreateTriggers(opts)) return false;
+                    if (!CreateViews(opts)) return false;
+                    if (!ExecutePragmas(opts)) return false;
                     InsertDefaultValuesToTable("DatabaseInfo", opts);
                     // Now we will INSERT INTO the new tables, starting with Products
                     sqlCommand.CommandText =
-                        $@"INSERT INTO Destinations
-                            SELECT DISTINCT ""Destination Path"" FROM ProductRecords;
+                        $@"INSERT INTO Destinations (Destination)
+                            SELECT DISTINCT ""Destination Path"" FROM ExtractionRecords;
                         INSERT INTO Products
                         SELECT ""Product Name"", Author, ""Date Created"", ""Thumbnail Full Path"", ""Archive Name"", (SELECT ""ID"" FROM Destinations WHERE Destination = ""Destination Path""), Tags 
 	                    FROM ProductRecords p 
 	                    JOIN ExtractionRecords e 
-	                    ON p.ID = e.""Product Record ID""
-
-                        -- Split up the files delimited by commas
-
-                        WITH RECURSIVE split(id, pid, file, rest) AS (
-                         SELECT id, ""Product Record ID"", '', ""Files"" || ',' FROM ExtractionRecords
-                         UNION ALL
-                         SELECT id, pid,
-                              substr(rest, 1, instr(rest, ',') - 1),
-                              substr(rest, instr(rest, ',') + 1)
-                         FROM split
-                         WHERE rest <> ''
-                        )
-
-                        -- Insert the split up files into the Files table.
+	                    ON p.ID = e.""Product Record ID"";
 
                         INSERT INTO Files (PID, File)
-                        SELECT DISTINCT pid, trim(file) FROM split WHERE file <> '';
+                        SELECT DISTINCT ""Product Record ID"", ""Files"" FROM ExtractionRecords;
+
+                        DROP TABLE ProductRecords;
+                        DROP TABLE ExtractionRecords;
+                        DROP TABLE Tags;
+                        pragma VACCUM;
 ";
                     sqlCommand.ExecuteNonQuery();
                     transaction.Commit();

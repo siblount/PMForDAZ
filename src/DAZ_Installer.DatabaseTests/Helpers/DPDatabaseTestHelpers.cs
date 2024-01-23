@@ -1,21 +1,12 @@
 ﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
 using Serilog;
 using System.Data;
 using Microsoft.Data.Sqlite;
-using System.ComponentModel;
-using System.Configuration;
-using Microsoft.VisualBasic;
-using System.Runtime.InteropServices;
 
 namespace DAZ_Installer.Database.Tests
 {
-    internal static class DPDatabaseTestHelpers
+    internal static partial class DPDatabaseTestHelpers
     {
         internal static SqliteConnection? CreateConnection(string path, bool readOnly = false)
         {
@@ -167,5 +158,7 @@ namespace DAZ_Installer.Database.Tests
 
             return Task.WhenAll(tasks);
         }
+
+        
     }
 }

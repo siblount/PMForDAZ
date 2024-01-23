@@ -32,11 +32,15 @@ namespace DAZ_Installer.Database
     // TODO: Tool to use backup database.
     {   // TODO : Hold last transcations.
         // Public
-        public ILogger Logger { get; set; } = Log.Logger;
-        public bool DatabaseExists { get; private set; } = false;
-        public bool Initalized { get; private set; } = false;
-        public bool Locked { get; private set; } = false;
-        public string[] tableNames;
+        public ILogger Logger { get; set; } = Log.Logger.ForContext<DPDatabase>();
+        public DPArchiveFlags Flags { get; private set; } = DPArchiveFlags.None;
+        public bool Initialized => Flags.HasFlag(DPArchiveFlags.Initialized);
+        public bool Locked => Flags.HasFlag(DPArchiveFlags.Locked);
+        public bool UpdateRequired => Flags.HasFlag(DPArchiveFlags.UpdateRequired);
+        public bool Corrupted => Flags.HasFlag(DPArchiveFlags.Corrupted);
+        public bool Missing => Flags.HasFlag(DPArchiveFlags.Missing);
+        public bool DatabaseNotReady => (Flags ^ DPArchiveFlags.Initialized) != DPArchiveFlags.None;
+        public string[]? TableNames { get; set; } 
         public ulong ProductRecordCount { get; private set; } = 0;
 
         public const string ProductTable = "Products";
@@ -116,7 +120,7 @@ namespace DAZ_Installer.Database
         private bool _initializing = false;
         ~DPDatabase()
         {
-            StopAllDatabaseOperations();
+            StopAllDatabaseOperations(true);
         }
         public DPDatabase(string path)
         {
@@ -144,15 +148,17 @@ namespace DAZ_Installer.Database
             }
             catch { return false; }
 
-            if (Initalized) return true;
+            if (Flags.HasFlag(DPArchiveFlags.Initialized)) return true;
             _initializing = true;
+            Flags = DPArchiveFlags.None;
             try
             {
                 // Check if database exists.
-                DatabaseExists = File.Exists(Path);
+                if (File.Exists(Path)) Flags &= ~DPArchiveFlags.Missing;
+                else Flags |= DPArchiveFlags.Missing;
                 // TODO: Check if const database version is higher than the one in the database.
                 var opts = new SqliteConnectionOpts();
-                if (!DatabaseExists)
+                if (Flags.HasFlag(DPArchiveFlags.Missing))
                 {
                     // Create the database.
                     CreateDatabase(opts);
@@ -161,9 +167,13 @@ namespace DAZ_Installer.Database
                     if (connection == null) return false;
                     InsertDefaultValuesToTable(DatabaseInfoTable, opts);
                 }
+                // Set the corrupted flag if applicable.
+                CheckCorrupted(opts);
+                // Set the update required flag if applicable.
+                CheckUpdateRequired(opts);
                 DatabaseUpdated?.Invoke();
-                Initalized = true;
-                tableNames = GetTables(opts);
+                Flags |= DPArchiveFlags.Initialized;
+                TableNames = GetTables(opts);
             }
             catch (Exception ex)
             {
@@ -180,9 +190,12 @@ namespace DAZ_Installer.Database
         /// <param name="readOnly">Determines if the connection should be a read-only
         /// connection or not.</param>
         /// <returns>An SqliteConnection if successfully created otherwise null.</returns>
-        private DPConnection? CreateConnection(bool readOnly = false)
+        private DPConnection? CreateConnection(ref SqliteConnectionOpts opts, bool readOnly = false)
         {
-            if (!Initalized)
+            // If opts.Connection is not null, that connection will still work
+            // since it was fine before. Commands will stop working if the database is locked.
+            if (DatabaseNotReady || opts.Connection is not null) return null;
+            if (!Initialized)
             {
                 var success = Initialize();
                 if (!success) return null;
@@ -195,7 +208,6 @@ namespace DAZ_Installer.Database
                 builder.Pooling = true;
                 builder.Mode = readOnly ? SqliteOpenMode.ReadOnly : SqliteOpenMode.ReadWrite;
                 connection.ConnectionString = builder.ConnectionString;
-                connection.LoadExtension("fts5.dll");
                 return new DPConnection(connection, true);
             }
             catch (Exception e)
@@ -238,7 +250,7 @@ namespace DAZ_Installer.Database
         /// null is returned.</returns>
         private DPConnection? CreateAndOpenConnection(ref SqliteConnectionOpts opts, bool readOnly = false)
         {
-            opts.Connection = CreateConnection(readOnly);
+            opts.Connection = CreateConnection(ref opts, readOnly);
             var success = OpenConnection(opts.Connection);
             return success ? opts.Connection : null;
         }
@@ -274,6 +286,7 @@ namespace DAZ_Installer.Database
                 Directory.CreateDirectory(System.IO.Path.GetDirectoryName(Path)!);
 
             File.Create(Path).Close();
+            Flags &= ~DPArchiveFlags.Missing;
 
             using var connection = CreateInitialConnection(ref opts);
 
@@ -584,7 +597,7 @@ namespace DAZ_Installer.Database
             {
                 _mainTaskManager.StopAndWait();
                 _priorityTaskManager.StopAndWait();
-                Initalized = false;
+                Flags = DPArchiveFlags.None;
                 Initialize();
             }
             catch (Exception e)
@@ -592,6 +605,65 @@ namespace DAZ_Installer.Database
                 Logger.Error(e, "Failed to refresh database");
             }
 
+        }
+
+        /// <summary>
+        /// Checks if the database is corrupted. Sets the flags if it is.
+        /// </summary>
+        /// <param name="opts"></param>
+        /// <returns>Whether the operation was successful or not.</returns>
+        private bool CheckCorrupted(SqliteConnectionOpts opts)
+        {
+            using var c = CreateInitialConnection(ref opts);
+            if (c is null || !OpenConnection(c) || opts.IsCancellationRequested) return false;
+            try
+            {
+                using var cmd = opts.CreateCommand($"PRAGMA integrity_check");
+                using var reader = cmd.ExecuteReader();
+                if (reader.Read())
+                {
+                    var result = reader.GetString(0);
+                    if (result == "ok") return true;
+                    Logger.Error("Database is corrupted: {0}", result);
+                    Flags |= DPArchiveFlags.Corrupted;
+                }
+                Flags ^= DPArchiveFlags.Corrupted;
+                return false;
+            }
+            catch (Exception ex)
+            {
+                Logger.Error(ex, "Failed to check if database is corrupted");
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Checks if the database is outdated. Sets the flags if it is.
+        /// </summary>
+        /// <param name="opts"></param>
+        /// <returns>Whether the command executed without error or not.</returns>
+        private bool CheckUpdateRequired(SqliteConnectionOpts opts)
+        {
+            using var c = CreateInitialConnection(ref opts);
+            if (c is null || !OpenConnection(c) || opts.IsCancellationRequested) return false;
+            try
+            {
+                using var cmd = opts.CreateCommand($"SELECT Version FROM {DatabaseInfoTable}");
+                using var reader = cmd.ExecuteReader();
+                if (reader.Read())
+                {
+                    var result = reader.GetInt32(0);
+                    if (result == DATABASE_VERSION) return true;
+                    Logger.Error("Database is outdated: {0}", result);
+                    Flags |= DPArchiveFlags.UpdateRequired;
+                }
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Logger.Error(ex, "Failed to check if database is outdated");
+            }
+            return false;
         }
 
         private bool BackupDatabase(SqliteConnectionOpts opts)

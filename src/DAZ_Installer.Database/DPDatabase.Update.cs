@@ -14,7 +14,15 @@ namespace DAZ_Installer.Database
         public Task UpdateDatabase(CancellationToken t) {
             _mainTaskManager.StopAndWait();
             _priorityTaskManager.StopAndWait();
-            return Task.CompletedTask;
+            return _priorityTaskManager.AddToQueue(() => {
+                var opts = new SqliteConnectionOpts(null, null, t);
+                using var connection = CreateInitialConnection(ref opts);
+                if (!OpenConnection(connection))
+                {
+                    throw new Exception("Failed to open connection.");
+                }
+                UpdateToVersion3(opts);
+            });
         }
         #endregion
     }
