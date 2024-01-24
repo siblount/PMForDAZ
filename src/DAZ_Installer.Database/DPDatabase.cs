@@ -6,6 +6,7 @@ using Serilog;
 using System.Data;
 using Microsoft.Data.Sqlite;
 using System.Diagnostics.CodeAnalysis;
+using System.Collections.Immutable;
 
 namespace DAZ_Installer.Database
 {
@@ -53,6 +54,17 @@ namespace DAZ_Installer.Database
         public const string ProductLiteAlphabeticalView = "ProductLite_Alphabetical";
         public const string ProductLiteDateView = "ProductLite_Date";
         public const string ArchivesView = "Archives";
+        public const string IDX_Name_Products = "idx_Name_Products";
+        public const string IDX_Date_Products = "idx_Date_Products";
+        public const string IDX_Arc_Products = "idx_Arc_Products";
+        public const string DeleteOnProductTrigger = "delete_on_removal";
+        public const string UpdateProductCountTrigger = "update_count";
+        public const string AddToFTSTrigger = "add_to_fts5";
+
+        public readonly ImmutableHashSet<string> DatabaseObjects = new HashSet<string>() { 
+            ProductTable, DestinationTable, FilesTable, ProductFTS5Table, DatabaseInfoTable, ProductFullView,
+            ProductLiteView, ProductLiteAlphabeticalView, ProductLiteDateView, ArchivesView, IDX_Name_Products, IDX_Date_Products, 
+            IDX_Arc_Products, DeleteOnProductTrigger, UpdateProductCountTrigger, AddToFTSTrigger }.ToImmutableHashSet();
         public HashSet<string> ArchiveFileNames { get; private set; } = new HashSet<string>();
 
         // Events
@@ -366,16 +378,15 @@ namespace DAZ_Installer.Database
         private bool CreateIndexes(SqliteConnectionOpts opts)
         {
             const string createProductNameToPIDCommand = @$"
-            CREATE INDEX ""idx_Name_Products"" ON {ProductTable} (
+            CREATE INDEX {IDX_Name_Products} ON {ProductTable} (
                 ""Name"" ASC
             );
 
-            CREATE INDEX ""idx_Date_Products"" ON {ProductTable} (
+            CREATE INDEX {IDX_Date_Products} ON {ProductTable} (
 	            ""Date""	ASC
             );
 
-
-            CREATE INDEX ""idx_Arc_Products"" ON {ProductTable} (
+            CREATE INDEX {IDX_Arc_Products} ON {ProductTable} (
 	            ""ArcName""
             );
 ";
@@ -405,19 +416,19 @@ namespace DAZ_Installer.Database
         private bool CreateTriggers(SqliteConnectionOpts opts)
         {
             const string triggerSQL = @$"
-                        CREATE TRIGGER IF NOT EXISTS delete_on_product_removal
+                        CREATE TRIGGER IF NOT EXISTS {DeleteOnProductTrigger}
                             AFTER DELETE ON {ProductTable} FOR EACH ROW
                         BEGIN
                             UPDATE {DatabaseInfoTable} SET ""Product Record Count"" = (SELECT ""Product Record Count"" FROM {DatabaseInfoTable}) - 1;
 	                        DELETE FROM {ProductFTS5Table} WHERE ID = old.ROWID;
                         END;
 
-                        CREATE TRIGGER IF NOT EXISTS update_product_count
+                        CREATE TRIGGER IF NOT EXISTS {UpdateProductCountTrigger}
 	                        AFTER INSERT ON {ProductTable} FOR EACH ROW
                         BEGIN
 	                        UPDATE {DatabaseInfoTable} SET ""Product Record Count"" = (SELECT ""Product Record Count"" FROM {DatabaseInfoTable}) + 1;
                         END;
-                        CREATE TRIGGER IF NOT EXISTS add_to_fts5
+                        CREATE TRIGGER IF NOT EXISTS {AddToFTSTrigger}
 	                        AFTER INSERT ON {ProductTable}
 	                    BEGIN
 		                    INSERT INTO {ProductFTS5Table} (ID, Name, Tags) VALUES (new.ROWID, new.Name, new.Tags);
@@ -489,8 +500,8 @@ namespace DAZ_Installer.Database
         {
 
             var pramaCommmands = @$"PRAGMA journal_mode = WAL;
-                                            PRAGMA wal_autocheckpoint=2; 
-                                            PRAGMA journal_size_limit=32768;
+                                    PRAGMA wal_autocheckpoint=2; 
+                                    PRAGMA journal_size_limit=32768;
                                     PRAGMA page_size=512;
                                     PRAGMA user_version={DATABASE_VERSION}";
             try
@@ -520,9 +531,9 @@ namespace DAZ_Installer.Database
         private bool TempDeleteTriggers(SqliteConnectionOpts opts)
         {
             if (opts.IsCancellationRequested) return false;
-            const string removeTriggersCommand = @"DROP TRIGGER IF EXISTS delete_on_product_removal;
-                                                   DROP TRIGGER IF EXISTS update_product_count;
-                                                   DROP TRIGGER IF EXISTS add_to_fts5;";
+            const string removeTriggersCommand = @$"DROP TRIGGER IF EXISTS {DeleteOnProductTrigger};
+                                                   DROP TRIGGER IF EXISTS {UpdateProductCountTrigger};
+                                                   DROP TRIGGER IF EXISTS {AddToFTSTrigger};";
             try
             {
                 using var connection = CreateAndOpenConnection(ref opts);
@@ -619,16 +630,30 @@ namespace DAZ_Installer.Database
             if (c is null || !OpenConnection(c) || opts.IsCancellationRequested) return false;
             try
             {
-                using var cmd = opts.CreateCommand($"PRAGMA integrity_check");
+                using var cmd = opts.CreateCommand($"PRAGMA quick_check");
                 using var reader = cmd.ExecuteReader();
                 if (reader.Read())
                 {
                     var result = reader.GetString(0);
-                    if (result == "ok") return true;
-                    Logger.Error("Database is corrupted: {0}", result);
-                    Flags |= DPArchiveFlags.Corrupted;
+                    if (result != "ok")
+                    {
+                        Logger.Error("Database is corrupted: {0}", result);
+                        Flags |= DPArchiveFlags.Corrupted;
+                        return true;
+                    }
                 }
-                Flags ^= DPArchiveFlags.Corrupted;
+                var tables = GetTables(opts).ToHashSet();
+                tables.ExceptWith(DatabaseObjects);
+                tables.RemoveWhere(x => x.StartsWith("sqlite_"));
+                tables.RemoveWhere(x => x.StartsWith(ProductFTS5Table + '_'));
+
+                if (tables.Count > 0)
+                {
+                    Logger.Error("Database is corrupted: Missing tables");
+                    Flags |= DPArchiveFlags.Corrupted;
+                    return true;
+                }
+                Flags &= ~DPArchiveFlags.Corrupted;
                 return false;
             }
             catch (Exception ex)
