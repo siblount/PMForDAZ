@@ -488,10 +488,11 @@ namespace DAZ_Installer.Database
         private bool ExecutePragmas(SqliteConnectionOpts opts)
         {
 
-            const string pramaCommmands = @"PRAGMA journal_mode = WAL;
+            var pramaCommmands = @$"PRAGMA journal_mode = WAL;
                                             PRAGMA wal_autocheckpoint=2; 
                                             PRAGMA journal_size_limit=32768;
-                                            PRAGMA page_size=512;";
+                                    PRAGMA page_size=512;
+                                    PRAGMA user_version={DATABASE_VERSION}";
             try
             {
                 using var connection = CreateInitialConnection(ref opts);
@@ -648,7 +649,7 @@ namespace DAZ_Installer.Database
             if (c is null || !OpenConnection(c) || opts.IsCancellationRequested) return false;
             try
             {
-                using var cmd = opts.CreateCommand($"SELECT Version FROM {DatabaseInfoTable}");
+                using var cmd = opts.CreateCommand($"PRAGMA user_version;");
                 using var reader = cmd.ExecuteReader();
                 if (reader.Read())
                 {
