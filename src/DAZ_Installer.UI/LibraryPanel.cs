@@ -35,14 +35,9 @@ namespace DAZ_Installer
                 if (editMode == value) return;
                 else
                 {
-                    if (value == true)
-                    {
-                        mainContentPanel.SuspendLayout();
-                    }
-                    else
-                    {
-                        mainContentPanel.ResumeLayout(true);
-                    }
+                    
+                    if (value == true) SuspendLayout();
+                    else ResumeLayout();
                     editMode = value;
                 }
             }
