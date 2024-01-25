@@ -117,6 +117,7 @@ namespace DAZ_Installer.Core
                 EmitOnArchiveEnter();
                 try
                 {
+                    if (ArchiveCancelled) { HandleEarlyExit(); continue; }
                     using (LogContext.PushProperty("Archive", arc.FileName))
                         Logger.Information("Processing archive");
                     var arcDebugInfo = new
@@ -132,7 +133,7 @@ namespace DAZ_Installer.Core
                         ParentExtractor = arc?.AssociatedArchive?.Extractor?.GetType().Name,
                     };
                     Logger.Debug("Archive that is about to be processed: {@Arc}", arcDebugInfo);
-                    if (CancellationToken.IsCancellationRequested) { HandleEarlyExit(); return; }
+                    
 
                     State = ProcessorState.Starting;
                     try
@@ -145,7 +146,7 @@ namespace DAZ_Installer.Core
                     }
 
                     State = ProcessorState.Peeking;
-                    if (ArchiveCancelled) { HandleEarlyExit(); return; }
+                    if (ArchiveCancelled) { HandleEarlyExit(); continue; }
                     if (arc.Extractor is null)
                     {
                         EmitOnProcessError(new DPProcessorErrorArgs(null, "Unable to process archive. Potentially not an archive or archive is corrupted."));
