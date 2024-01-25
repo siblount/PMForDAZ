@@ -22,13 +22,12 @@ namespace DAZ_Installer.Windows.Pages
         protected static Image noImageFound;
         protected static Size lastClientSize;
         protected const byte maxImagesLoad = byte.MaxValue;
-        protected const byte maxListSize = 25;
+        protected const byte MAX_CAPACITY = 25;
         protected byte maxImageFit;
         protected List<LibraryItem> libraryItems => libraryPanel1.LibraryItems;
         protected List<LibraryItem> searchItems { get => libraryPanel1.SearchItems; set => libraryPanel1.SearchItems = value; }
-        protected DPProductRecord[] ProductRecords { get; set; } = new DPProductRecord[0];
-        private DPProductRecord[] SearchRecords { get; set; } = new DPProductRecord[0];
-
+        protected List<DPProductRecordLite> ProductRecords { get; set; } = new(MAX_CAPACITY);
+        private List<DPProductRecordLite> SearchRecords { get; set; } = new(MAX_CAPACITY);
         protected bool mainImagesLoaded = false;
 
         internal DPSortMethod SortMethod = DPSortMethod.Date;
@@ -104,7 +103,7 @@ namespace DAZ_Installer.Windows.Pages
                     if (lb == null || lb.ProductRecord == null) continue;
 
                     lb.Image = null;
-                    RemoveReferenceImage(Path.GetFileName(lb.ProductRecord.ThumbnailPath));
+                    RemoveReferenceImage(Path.GetFileName(lb.ProductRecord.Thumbnail));
                     lb.Dispose();
                 }
                 libraryPanel1.LibraryItems.Clear();
@@ -121,7 +120,7 @@ namespace DAZ_Installer.Windows.Pages
                     if (lb == null || lb.ProductRecord == null) continue;
 
                     lb.Image = null;
-                    RemoveReferenceImage(Path.GetFileName(lb.ProductRecord.ThumbnailPath));
+                    RemoveReferenceImage(Path.GetFileName(lb.ProductRecord.Thumbnail));
                     lb.Dispose();
                 }
                 libraryPanel1.SearchItems.Clear();
@@ -129,13 +128,13 @@ namespace DAZ_Installer.Windows.Pages
             libraryPanel1.EditMode = false;
         }
 
-        internal LibraryItem AddNewSearchItem(DPProductRecord record)
+        internal LibraryItem AddNewSearchItem(DPProductRecordLite record)
         {
             if (InvokeRequired)
-                return (LibraryItem)Invoke(new Func<DPProductRecord, LibraryItem>(AddNewSearchItem), record);
+                return (LibraryItem)Invoke(new Func<DPProductRecordLite, LibraryItem>(AddNewSearchItem), record);
 
             var searchItem = new LibraryItem();
-            searchItem.TitleText = record.ProductName;
+            searchItem.TitleText = record.Name;
             searchItem.MaxTagCount = DPSettings.CurrentSettingsObject.MaxTagsToShow;
             searchItem.Tags = record.Tags;
             searchItem.Dock = DockStyle.Top;
@@ -145,16 +144,16 @@ namespace DAZ_Installer.Windows.Pages
             return searchItem;
         }
 
-        internal LibraryItem AddNewLibraryItem(DPProductRecord record)
+        internal LibraryItem AddNewLibraryItem(DPProductRecordLite record)
         {
             if (InvokeRequired)
             {
-                return (LibraryItem)Invoke(new Func<DPProductRecord, LibraryItem>(AddNewLibraryItem), record);
+                return (LibraryItem)Invoke(new Func<DPProductRecordLite, LibraryItem>(AddNewLibraryItem), record);
             }
             var lb = new LibraryItem();
             lb.Database = Program.Database;
             lb.ProductRecordFormType = typeof(ProductRecordForm);
-            lb.TitleText = record.ProductName;
+            lb.TitleText = record.Name;
             lb.MaxTagCount = DPSettings.CurrentSettingsObject.MaxTagsToShow;
             lb.Tags = record.Tags;
             lb.Dock = DockStyle.Top;
@@ -287,7 +286,7 @@ namespace DAZ_Installer.Windows.Pages
         private void UpdatePageCount()
         {
             var pageCount = searchMode ?
-                (uint)Math.Ceiling(SearchRecords.Length / 25f) :
+                (uint)Math.Ceiling(SearchRecords.Count / 25f) :
                 (uint)Math.Ceiling(Program.Database.ProductRecordCount / 25f);
 
             if (pageCount != libraryPanel1.PageCount) libraryPanel1.PageCount = pageCount;
@@ -298,13 +297,13 @@ namespace DAZ_Installer.Windows.Pages
             // DPCommon.WriteToLog("Add library items.");
             libraryPanel1.EditMode = true;
             // Loop while i is less than records count and count is less than 25.
-            for (var i = 0; i < ProductRecords.Length; i++)
+            for (var i = 0; i < ProductRecords.Count; i++)
             {
-                DPProductRecord record = ProductRecords[i];
+                DPProductRecordLite record = ProductRecords[i];
                 LibraryItem lb = AddNewLibraryItem(record);
                 lb.ProductRecord = record;
 
-                lb.Image = File.Exists(record.ThumbnailPath) ? AddReferenceImage(record.ThumbnailPath)
+                lb.Image = File.Exists(record.Thumbnail) ? AddReferenceImage(record.Thumbnail)
                                                             : noImageFound;
 
             }
@@ -318,13 +317,13 @@ namespace DAZ_Installer.Windows.Pages
             // Loop while i is less than records count and count is less than 25.
             var startIndex = (libraryPanel1.CurrentPage - 1) * 25;
             var count = 0;
-            for (var i = startIndex; i < SearchRecords.Length && count < 25; i++, count++)
+            for (var i = startIndex; i < SearchRecords.Count && count < 25; i++, count++)
             {
-                DPProductRecord record = SearchRecords[i];
+                DPProductRecordLite record = SearchRecords[(int)i];
                 LibraryItem lb = AddNewSearchItem(record);
                 lb.ProductRecord = record;
 
-                lb.Image = File.Exists(record.ThumbnailPath) ? AddReferenceImage(record.ThumbnailPath)
+                lb.Image = File.Exists(record.Thumbnail) ? AddReferenceImage(record.Thumbnail)
                                                             : noImageFound;
             }
             libraryPanel1.EditMode = false;
@@ -355,14 +354,14 @@ namespace DAZ_Installer.Windows.Pages
             TryPageUpdate();
         }
 
-        private void OnSearchUpdate(DPProductRecord[] searchResults)
+        private void OnSearchUpdate(List<DPProductRecordLite> searchResults)
         {
             SearchRecords = searchResults;
             if (!searchMode) SwitchModes(true);
             else TryPageUpdate();
         }
 
-        private void OnLibraryQueryUpdate(DPProductRecord[] productRecords)
+        private void OnLibraryQueryUpdate(List<DPProductRecordLite> productRecords)
         {
             ProductRecords = productRecords;
             if (!searchMode) TryPageUpdate();
@@ -370,15 +369,12 @@ namespace DAZ_Installer.Windows.Pages
 
         private void OnAddedProductRecord(DPProductRecord record)
         {
-            // DPCommon.WriteToLog($"A product has been added! {record.ProductName}");
+            // DPCommon.WriteToLog($"A product has been added! {record.Name}");
             // First, check to see if it is in range of the current page.
             // If it is, then we need to update that page.
             if (record.ID <= (libraryPanel1.CurrentPage) * 25 && record.ID > (libraryPanel1.CurrentPage - 1) * 25)
             {
-                var newProductRecords = new DPProductRecord[ProductRecords.Length + 1];
-                ProductRecords.CopyTo(newProductRecords, 0);
-                ProductRecords = newProductRecords;
-                ProductRecords[ProductRecords.Length - 1] = record;
+                ProductRecords.Add(record.ToLite());
                 TryPageUpdate();
             }
 
@@ -389,72 +385,40 @@ namespace DAZ_Installer.Windows.Pages
                 // Now we need to update the current page.
                 // If the ID is higher than the current page range, then we don't do anything.
                 // Otherwise, we need to move the current page up one.
+
+                // 1/25/2024: I think this logic is flawed...might remove.
                 if (record.ID < libraryPanel1.CurrentPage * 25)
                     libraryPanel1.NudgeCurrentPage(libraryPanel1.CurrentPage + 1);
             }
         }
 
-        private void OnRemovedProductRecord(uint ID)
+        private void OnRemovedProductRecord(long ID)
         {
-            for (var i = 0; i < ProductRecords.Length; i++)
-            {
-                // DO NOT FAST DELETE SWAP, ORDER MUST BE MAINTAINED!
-                if (ProductRecords[i].ID == ID)
-                {
-                    var records = new DPProductRecord[ProductRecords.Length - 1];
-                    Array.ConstrainedCopy(ProductRecords, 0, records, 0, i);
-                    Array.ConstrainedCopy(ProductRecords, i + 1, records, i, records.Length - i);
-                    LibraryItem lb = libraryPanel1.LibraryItems.Find(l => l.ProductRecord == ProductRecords[i]);
-                    if (lb != null) DisableLibraryItem(lb);
-                    ProductRecords = records;
-                    break;
-                }
-            }
-            if (!searchMode) goto UPDATE;
-            for (var i = 0; i < SearchRecords.Length; i++)
-            {
-                // DO NOT FAST DELETE SWAP, ORDER MUST BE MAINTAINED!
-                if (SearchRecords[i].ID == ID)
-                {
-                    var records = new DPProductRecord[SearchRecords.Length - 1];
-                    Array.ConstrainedCopy(SearchRecords, 0, records, 0, i);
-                    Array.ConstrainedCopy(SearchRecords, i + 1, records, i, records.Length - i);
-                    LibraryItem lb = libraryPanel1.LibraryItems.Find(l => l.ProductRecord == SearchRecords[i]);
-                    if (lb != null) DisableLibraryItem(lb);
-                    SearchRecords = records;
-                    break;
-                }
-            }
-        UPDATE:
+            var collection = SearchMode ? SearchRecords : ProductRecords;
+            var lb = libraryPanel1.LibraryItems.Find(l => l.ProductRecord.ID == ID);
+            if (lb is null) return;
+            var record = lb.ProductRecord;
+            DisableLibraryItem(lb);
+            collection.RemoveAt(collection.IndexOf(record));
             TryPageUpdate();
         }
 
-        private void OnModifiedProductRecord(DPProductRecord updatedRecord, uint oldID)
+        private void OnModifiedProductRecord(DPProductRecord updatedRecord, long oldID)
         {
-            if (searchMode)
-            {
-                var index = Array.FindIndex(SearchRecords, r => r.ID == oldID);
-                if (index == -1) return;
-                LibraryItem lb = libraryPanel1.LibraryItems.Find(l => l.ProductRecord == SearchRecords[index]);
-                if (lb is null) return;
-                UpdateLibraryItem(lb, updatedRecord);
-                SearchRecords[index] = updatedRecord;
-            }
-            else
-            {
-                var index = Array.FindIndex(ProductRecords, r => r.ID == oldID);
-                if (index == -1) return;
-                LibraryItem lb = libraryPanel1.LibraryItems.Find(l => l.ProductRecord == ProductRecords[index]);
-                if (lb is null) return;
-                UpdateLibraryItem(lb, updatedRecord);
-                ProductRecords[index] = updatedRecord;
-            }
+            List<DPProductRecordLite> collection = searchMode ? SearchRecords : ProductRecords;
+            var i = collection.IndexOf(collection.Find(r => r.ID == oldID));
+            if (i == -1) return;
+            LibraryItem? lb = libraryPanel1.LibraryItems.Find(l => l.ProductRecord == SearchRecords[i]);
+            if (lb is null) return;
+            var liteRecord = updatedRecord.ToLite();
+            UpdateLibraryItem(lb, liteRecord);
+            collection[i] = liteRecord;
         }
 
         public void ClearLibraryItems() => libraryItems.Clear();
         public void ClearSearchItems() => searchItems.Clear();
 
-        private void UpdateLibraryItem(LibraryItem lb, DPProductRecord record)
+        private void UpdateLibraryItem(LibraryItem lb, DPProductRecordLite record)
         {
             if (InvokeRequired)
             {
@@ -462,10 +426,10 @@ namespace DAZ_Installer.Windows.Pages
                 return;
             }
             libraryPanel1.EditMode = true;
-            lb.TitleText = record.ProductName;
+            lb.TitleText = record.Name;
             lb.Tags = record.Tags;
             lb.ProductRecord = record;
-            lb.Image = File.Exists(record.ThumbnailPath) ? AddReferenceImage(record.ThumbnailPath)
+            lb.Image = File.Exists(record.Thumbnail) ? AddReferenceImage(record.Thumbnail)
                                                         : noImageFound;
             libraryPanel1.EditMode = false;
         }
