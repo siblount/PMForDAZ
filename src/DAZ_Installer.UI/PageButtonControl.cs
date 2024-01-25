@@ -62,7 +62,7 @@ namespace DAZ_Installer
         }
 
         private void SwitchPageLeft(object _, EventArgs __) => CurrentPage = currentPage - 1;
-        private void SwitchPageRight(object _, EventArgs __) => CurrentPage = CurrentPage + 1;
+        private void SwitchPageRight(object _, EventArgs __) => CurrentPage = currentPage + 1;
         private void SwitchToFirst(object _, EventArgs __) => CurrentPage = 1;
         private void SwitchToLast(object _, EventArgs __) => CurrentPage = pageCount;
         public void UpdateControl()
@@ -73,13 +73,13 @@ namespace DAZ_Installer
             {
                 if (!IsHandleCreated) return; // Stop failing to create component on designer.
                 invoked = true;
-                Invoke(UpdateControl);
+                BeginInvoke(UpdateControl);
                 return;
             }
             else if (!isOnMainThread && !IsHandleCreated) return;
-            tableLayoutPanel1.SuspendLayout();
+            SuspendLayout();
             pageLbl.Text = $"Page {currentPage} out of {pageCount}";
-            tableLayoutPanel1.ResumeLayout();
+            ResumeLayout();
         }
 
         public void SilentUpdatePageCount(uint newPageCount)
