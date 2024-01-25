@@ -264,31 +264,24 @@ namespace DAZ_Installer.Windows.DP
                     foldersExtracted.Add(Path.GetDirectoryName(file.RelativePathToContentFolder)!);
             }
             var erroredFiles = report.ErroredFiles.Keys.Select(x => x.RelativePathToContentFolder!).ToArray();
-            var workingExtractionRecord = new DPProductRecordLite(arc.FileName,
-                                                                 UserSettings.DestinationPath,
-                                                                 successfulFiles.ToArray(),
-                                                                 erroredFiles,
-                                                                 report.ErroredFiles.Values.ToArray(),
-                                                                 foldersExtracted.ToArray(),
-                                                                 0);
 
             if (UserSettings.DownloadImages == SettingOptions.Yes)
-                imageLocation = DPNetwork.DownloadImage(workingExtractionRecord.ArchiveFileName);
+                imageLocation = DPNetwork.DownloadImage(arc.FileName);
             else if (UserSettings.DownloadImages == SettingOptions.Prompt)
             {
                 // TODO: Use more reliable method! Support files!
                 // Pre-check if the archive file name starts with "IM"
-                if (workingExtractionRecord.ArchiveFileName.StartsWith("IM"))
+                if (arc.FileName.StartsWith("IM"))
                 {
                     DialogResult result = MessageBox.Show("Do you wish to download the thumbnail for this product?", "Download Thumbnail Prompt", MessageBoxButtons.YesNo);
-                    if (result == DialogResult.Yes) imageLocation = DPNetwork.DownloadImage(workingExtractionRecord.ArchiveFileName);
+                    if (result == DialogResult.Yes) imageLocation = DPNetwork.DownloadImage(arc.FileName);
                 }
             }
             
             var author = arc.ProductInfo.Authors.FirstOrDefault(null as string);
-            var workingProductRecord = new DPProductRecord(arc.ProductName, arc.ProductInfo.Tags.ToArray(), author,
-                                        null, DateTime.Now, imageLocation, 0, 0);
-            Program.Database.AddNewRecordEntry(workingProductRecord, workingExtractionRecord);
+            var workingProductRecord = new DPProductRecord(arc.ProductName, arc.ProductInfo.Authors.ToArray(), DateTime.Now, imageLocation, arc.FileName, 
+                UserSettings.DestinationPath, arc.ProductInfo.Tags.ToArray(), successfulFiles, 0);
+            Program.Database.AddNewRecordEntry(workingProductRecord);
             return workingProductRecord;
         }
     }
