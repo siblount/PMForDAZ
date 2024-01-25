@@ -266,7 +266,7 @@ namespace DAZ_Installer.Windows.DP
             var erroredFiles = report.ErroredFiles.Keys.Select(x => x.RelativePathToContentFolder!).ToArray();
 
             if (UserSettings.DownloadImages == SettingOptions.Yes)
-                imageLocation = DPNetwork.DownloadImage(arc.FileName);
+                imageLocation = new DPNetwork().DownloadImage(arc.FileName, TimeSpan.FromSeconds(10));
             else if (UserSettings.DownloadImages == SettingOptions.Prompt)
             {
                 // TODO: Use more reliable method! Support files!
@@ -274,7 +274,7 @@ namespace DAZ_Installer.Windows.DP
                 if (arc.FileName.StartsWith("IM"))
                 {
                     DialogResult result = MessageBox.Show("Do you wish to download the thumbnail for this product?", "Download Thumbnail Prompt", MessageBoxButtons.YesNo);
-                    if (result == DialogResult.Yes) imageLocation = DPNetwork.DownloadImage(arc.FileName);
+                    if (result == DialogResult.Yes) imageLocation = new DPNetwork().DownloadImage(arc.FileName, TimeSpan.FromSeconds(10));
                 }
             }
             
