@@ -629,6 +629,7 @@ namespace DAZ_Installer.Database
                     if (opts.IsCancellationRequested) return false;
                     sqlCommand.ExecuteNonQuery();
                     transaction.Commit();
+                    TableUpdated?.Invoke(ProductTable);
                 }
                 catch (Exception ex)
                 {
