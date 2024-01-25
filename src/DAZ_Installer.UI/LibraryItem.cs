@@ -30,7 +30,7 @@ namespace DAZ_Installer
         }
 
         [Description("Holds the label tags value."), Category("Data"), Browsable(true)]
-        public string[] Tags
+        public IReadOnlyList<string> Tags
         {
             get => GetTags();
             set => UpdateTags(value);
@@ -41,7 +41,7 @@ namespace DAZ_Installer
         public uint MaxTagCount { get; set; } = 4;
         public DPDatabase? Database { get; set; }
 
-        public DPProductRecord ProductRecord { get; set; }
+        public DPProductRecordLite ProductRecord { get; set; }
         /// <summary>
         /// The product record form to 
         /// </summary>
@@ -70,8 +70,9 @@ namespace DAZ_Installer
         }
 
 
-        private void UpdateTags(string[] tags)
+        private void UpdateTags(IReadOnlyList<string> tags)
         {
+
             ReleaseTags(false);
             labels.Clear();
             try
@@ -79,11 +80,11 @@ namespace DAZ_Installer
                 var foundEllipsedLabel = false;
                 var t = 0;
 
-                for (var i = 0; i < tags.Length && t < MaxTagCount; i++)
+                for (var i = 0; i < tags.Count && t < MaxTagCount; i++)
                 // TODO: Use AddRange instead of Controls.Add
                 {
                     var tagName = tags[i];
-                    if (string.IsNullOrEmpty(tagName) || string.IsNullOrWhiteSpace(tagName))
+                    if (string.IsNullOrWhiteSpace(tagName))
                         continue;
                     Label lbl = CreateTag(tags[i]);
                     //// Only immediately add to the tag layout panel if it can be seen.
@@ -182,7 +183,7 @@ namespace DAZ_Installer
 
         private void removeRecordToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            DialogResult result = MessageBox.Show($"Are you sure you want to remove the record for {ProductRecord.ProductName}? " +
+            DialogResult result = MessageBox.Show($"Are you sure you want to remove the record for {ProductRecord.Name}? " +
                 "This wont remove the files on disk. Additionally, the record cannot be restored.", "Remove product record confirmation", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
             if (result == DialogResult.No) return;
             Database?.RemoveProductRecordQ(ProductRecord);
@@ -190,20 +191,36 @@ namespace DAZ_Installer
 
         private void removeProductToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            DialogResult result = MessageBox.Show($"Are you sure you want to remove the record & product files for {ProductRecord.ProductName}? " +
+            DialogResult result = MessageBox.Show($"Are you sure you want to remove the record & product files for {ProductRecord.Name}? " +
                 "THIS WILL PERMANENTLY REMOVE ASSOCIATED FILES ON DISK!", "Remove product confirmation", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
             if (result == DialogResult.No) return;
-            Database?.GetExtractionRecordQ(ProductRecord.EID, callback: OnGetExtractionRecord);
+            Task.Run(RemoveProduct);
         }
 
-        private void OnGetExtractionRecord(DPProductRecordLite record)
+        private void ShowMessageIfVisible(string msg, string title, MessageBoxButtons buttons, MessageBoxIcon icon)
         {
-            if (record.PID != ProductRecord.ID) return;
+            if (!Visible || !IsHandleCreated) return;
+            if (InvokeRequired)
+                BeginInvoke(() => MessageBox.Show(msg, title, buttons, icon));
+            else
+                MessageBox.Show(msg, title, buttons, icon);
+        }
+
+        private async Task RemoveProduct()
+        {
+            // First, we need to query the database for the full record.
+            var liteRecord = ProductRecord;
+            var record = await Database?.GetFullProductRecord(liteRecord.ID);
+            if (record is null)
+            {
+                ShowMessageIfVisible("Failed to remove product due to database issue.", "Removal failed", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
             var deleteCount = 0;
             // Now delete.
             foreach (var file in record.Files)
             {
-                var deletePath = Path.Combine(record.DestinationPath, file);
+                var deletePath = Path.Combine(record.Destination, file);
                 var info = new FileInfo(deletePath);
                 try
                 {
@@ -212,15 +229,15 @@ namespace DAZ_Installer
                 }
                 catch (Exception ex)
                 {
-                    // DPCommon.WriteToLog($"Failed to remove product file for {ProductRecord.ProductName}, file: {file}. REASON: {ex}");
+                    // DPCommon.WriteToLog($"Failed to remove product file for {ProductRecord.Name}, file: {file}. REASON: {ex}");
                 }
             }
-            var delta = record.Files.Length - deleteCount;
-            if (delta == record.Files.Length)
-                MessageBox.Show($"Removal of product files completely failed for {ProductRecord.ProductName}.",
+            var delta = record.Files.Count - deleteCount;
+            if (delta == record.Files.Count)
+                MessageBox.Show($"Removal of product files completely failed for {ProductRecord.Name}.",
                     "Removal failed", MessageBoxButtons.OK, MessageBoxIcon.Error);
             else if (delta > 0)
-                MessageBox.Show($"Some product files failed to be removed for {ProductRecord.ProductName}.",
+                MessageBox.Show($"Some product files failed to be removed for {ProductRecord.Name}.",
                     "Some files failed to be removed", MessageBoxButtons.OK, MessageBoxIcon.Information);
             else Database?.RemoveProductRecordQ(ProductRecord);
         }
