@@ -139,6 +139,21 @@ namespace DAZ_Installer.Database
             });
         }
 
+        public Task RemoveProductRecordQ(DPProductRecordLite record, Action<long>? callback = null)
+        {
+            return _mainTaskManager.AddToQueue((t) =>
+            {
+                var arg = new Tuple<string, object>[1] { new("ROWID", Convert.ToInt32(record.ID)) };
+                var opts = new SqliteConnectionOpts() { CancellationToken = t };
+                var success = RemoveValuesWithCondition(ProductTable, arg, false, opts);
+                if (success)
+                {
+                    callback?.Invoke(record.ID);
+                    ProductRecordRemoved?.Invoke(record.ID);
+                }
+            });
+        }
+
         public Task ClearTableQ(string tableName)
         {
             return _mainTaskManager.AddToQueue((t) =>

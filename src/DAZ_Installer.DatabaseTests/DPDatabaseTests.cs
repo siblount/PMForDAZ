@@ -419,6 +419,19 @@ namespace DAZ_Installer.Database.Tests
         }
 
         [TestMethod]
+        public void RemoveProductRecordQTest_Lite()
+        {
+            var record = new DPProductRecord("Test Product", new[] { "TheRealSolly" }, DateTime.UtcNow, "a.png", "arc.zip", "J:/",
+                new[] { "tag1", "tag2" }, new[] { "file1", "file2" }, 1);
+            var recordLite = new DPProductRecordLite(record.Name, record.ThumbnailPath, record.Tags, record.ID);
+
+            Database.AddNewRecordEntry(record).Wait();
+            Database.RemoveProductRecordQ(recordLite).Wait();
+
+            Assert.AreEqual(0, DPDatabaseTestHelpers.GetAllProductRecords(DatabasePath).Count);
+        }
+
+        [TestMethod]
         public void UpdateDatabaseTest()
         {
             Database.StopMainDatabaseOperations();

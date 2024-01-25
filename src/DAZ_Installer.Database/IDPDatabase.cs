@@ -97,6 +97,8 @@ namespace DAZ_Installer.Database
         /// <param name="callback">The function to callback when the product record was removed.</param>
         /// <returns></returns>
         Task RemoveProductRecordQ(DPProductRecord record, Action<long>? callback = null);
+        /// <inheritdoc cref="RemoveProductRecordQ(DPProductRecord, Action{long}?)"/>
+        Task RemoveProductRecordQ(DPProductRecordLite record, Action<long>? callback = null);
         /// <summary>
         /// Removes all the values from the table. Triggers in the database are temporarly disabled for deleting.
         /// </summary>
