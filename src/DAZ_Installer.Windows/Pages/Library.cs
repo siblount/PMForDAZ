@@ -9,6 +9,7 @@ using System.IO;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using DAZ_Installer.Windows.DP;
+using Serilog;
 
 namespace DAZ_Installer.Windows.Pages
 {
@@ -173,6 +174,7 @@ namespace DAZ_Installer.Windows.Pages
             var lb = new LibraryItem();
             lb.TitleText = title;
             lb.Tags = tags;
+            lb.ProductRecordFormType = typeof(ProductRecordForm);
             //lb.Folders = folders;
             lb.Dock = DockStyle.Top;
             lb.Anchor = AnchorStyles.Left | AnchorStyles.Right | AnchorStyles.Top;
@@ -232,6 +234,7 @@ namespace DAZ_Installer.Windows.Pages
                 Invoke(TryPageUpdate);
                 return;
             }
+            Log.ForContext<Library>().Information("Trying to update page.");
             try
             {
                 ClearPageContents();
@@ -250,6 +253,8 @@ namespace DAZ_Installer.Windows.Pages
         public void ForcePageUpdate()
         {
             if (InvokeRequired) { Invoke(ForcePageUpdate); return; }
+            Log.ForContext<Library>().Information("Forcing page update");
+
             // DPCommon.WriteToLog("force page update called.");
             ClearPageContents();
             ClearSearchItems();
@@ -477,6 +482,9 @@ namespace DAZ_Installer.Windows.Pages
 
         private void sortByCombo_SelectedIndexChanged(object sender, EventArgs e)
         {
+            // Prevent the database call on initialization for the Library.
+            if (!IsHandleCreated) return;
+
             SortMethod = (DPSortMethod)Enum.Parse(typeof(DPSortMethod), sortByCombo.Text);
             if (searchMode) Program.Database.SearchQ(lastSearchQuery, SortMethod, callback: OnSearchUpdate);
             else Program.Database.GetProductRecordsQ(SortMethod, libraryPanel1.CurrentPage, 25, callback: OnLibraryQueryUpdate);
