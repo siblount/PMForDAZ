@@ -19,5 +19,6 @@ namespace DAZ_Installer.Database
         public string TagsString => string.Join(", ", Tags);
         public string AuthorsString => string.Join(", ", Authors);
         public long TimeStamp => Date.ToFileTimeUtc();
+        public DPProductRecordLite ToLite() => new(Name, ThumbnailPath, Tags, ID);
     }
 }
