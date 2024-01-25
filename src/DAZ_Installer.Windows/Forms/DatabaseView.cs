@@ -35,9 +35,9 @@ namespace DAZ_Installer.Windows.Forms
         private void DatabaseView_Load(object sender, EventArgs e)
         {
             Program.Database.TableUpdated += OnTableChanged;
-            if (Program.Database.tableNames != null)
+            if (Program.Database.TableNames != null)
             {
-                tableNames.Items.AddRange(Program.Database.tableNames);
+                tableNames.Items.AddRange(Program.Database.TableNames);
                 tableNames.SelectedIndex = 0;
             }
         }
