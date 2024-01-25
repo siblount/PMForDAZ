@@ -2,26 +2,49 @@
 // You may find a full copy of this license at root project directory\LICENSE
 
 using HtmlAgilityPack;
+using Serilog;
 using System;
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Drawing.Imaging;
 using System.IO;
+using System.Linq;
 using System.Net;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace DAZ_Installer.Windows.DP
 {
-    internal static class DPNetwork
+    internal class DPNetwork
     {
-        private static ImageCodecInfo jpgCodec;
+        private static ImageCodecInfo? jpgCodec;
+        public ILogger Logger { get; set; } = Log.Logger.ForContext(typeof(DPNetwork));
         // IM[ID]-1_ProductName.zip, where ID = ProductID
         // http://docs.daz3d.com/doku.php/public/read_me/index/[ID]/start
         // Must be filename only.
-        internal static string? DownloadImage(string fileName)
+        /// <summary>
+        /// Downloads a thumbnail image for a DAZ product withing the <paramref name="timeout"/> period and 
+        /// saves it to the <see cref="DPSettings.ThumbnailsDir"/> directory with 
+        /// the <paramref name="fileName"/> + the extension of the image.
+        /// </summary>
+        /// <param name="fileName">The archive name to download thumbnails from</param>
+        /// <param name="timeout"></param>
+        /// <returns></returns>
+        internal string? DownloadImage(string fileName, TimeSpan timeout)
+        {
+            var task = Task.Run(() => downloadImage(fileName));
+            return task.Wait(timeout) ? task.Result : null;
+        }
+
+        private string? downloadImage(string fileName)
         {
             try
             {
+                if (jpgCodec is null)
+                {
+                    Logger.Information("JPEG codec not found, skipping image download.");
+                    return null;
+                }
                 if (fileName.StartsWith("IM"))
                 {
                     var ID = int.Parse(fileName[2..fileName.IndexOf('-')]);
@@ -31,7 +54,7 @@ namespace DAZ_Installer.Windows.DP
                     HtmlNode imgNode = htmlDoc.DocumentNode.SelectSingleNode("/html/body/div[1]/div/div[2]/div[2]/div/div/div/p[1]/a/img");
                     if (imgNode == null) return null;
                     var imgLink = imgNode.GetAttributeValue("src", ""); // imgNode is null WHEN PAGE IS NOT FOUND.
-                    var equalSignIndex = imgLink.IndexOf("media") + 6; // +6 = media (5) + equal sign (1)
+                    var equalSignIndex = imgLink.IndexOf("media") + "media=".Length; // +6 = media (5) + equal sign (1)
                     var gcdnLink = WebUtility.UrlDecode(imgLink.Substring(equalSignIndex));
                     if (imgLink != "")
                     {
@@ -41,14 +64,14 @@ namespace DAZ_Installer.Windows.DP
                         var downloadLocation = Path.Combine(DPSettings.CurrentSettingsObject.ThumbnailsDir, imgFileName);
                         Directory.CreateDirectory(Path.GetDirectoryName(downloadLocation));
                         client.DownloadFile(new Uri(gcdnLink), downloadLocation);
-                        Task.Run(() => downscaleImage(downloadLocation));
+                        downscaleImage(downloadLocation);
                         return downloadLocation;
                     }
                 }
             }
             catch (Exception e)
             {
-                // DPCommon.WriteToLog($"Unable to download image. REASON: {e}");
+                Logger.Error(e, "Unable to download image");
             }
             return null;
         }
@@ -57,8 +80,10 @@ namespace DAZ_Installer.Windows.DP
         /// Downscales the image on disk provided by <paramref name="downloadLocation"/> to a 256x256 thumbnail, if possible.
         /// </summary>
         /// <param name="downloadLocation">The location of the image, cannot be null. Does accept invalid paths or paths without access.</param>
-        private static void downscaleImage(string downloadLocation)
+        private void downscaleImage(string downloadLocation)
         {
+            Directory.CreateDirectory(Path.GetDirectoryName(downloadLocation));
+
             if (!Directory.Exists(Path.GetDirectoryName(downloadLocation)) || !File.Exists(downloadLocation)) return;
 
             try
@@ -90,20 +115,27 @@ namespace DAZ_Installer.Windows.DP
             }
             catch (Exception ex)
             {
-                // DPCommon.WriteToLog($"DPNetwork was unable to downscale image. REASON: {ex}");
+                Logger.Error(ex, "Failed to downscale image");
             }
         }
 
         static DPNetwork()
         {
-            foreach (ImageCodecInfo codec in ImageCodecInfo.GetImageEncoders())
+            try
             {
-                if (codec.FormatID == ImageFormat.Jpeg.Guid)
-                {
-                    jpgCodec = codec;
-                    return;
-                }
+                var codecs = ImageCodecInfo.GetImageEncoders();
+                Log.ForContext<DPNetwork>().Information("Listing all image encoders: {@codecs}", 
+                    codecs.Select(x => x.CodecName).ToArray());
+                jpgCodec = codecs.FirstOrDefault(x => x.FormatID == ImageFormat.Jpeg.Guid);
+                if (jpgCodec is null)
+                    Log.ForContext<DPNetwork>().Warning("JPEG codec not found!");
+
             }
+            catch (Exception ex)
+            {
+                Log.ForContext<DPNetwork>().Error(ex, "Failed to get JPEG codec");
+            }
+
         }
     }
 }
