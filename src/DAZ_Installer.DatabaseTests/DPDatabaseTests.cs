@@ -1,19 +1,7 @@
 ﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
 using MSTestLogger = Microsoft.VisualStudio.TestTools.UnitTesting.Logging.Logger;
-using DAZ_Installer.Database;
-using System;
-using System.Collections.Generic;
 using System.Collections.Concurrent;
-using System.Linq;
-using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
 using Serilog;
-using System.Data.SQLite;
-using System.ComponentModel;
-using System.Configuration;
-using Microsoft.VisualBasic;
-using System.Runtime.InteropServices;
 using System.Data;
 using Microsoft.Data.Sqlite;
 
@@ -80,11 +68,17 @@ namespace DAZ_Installer.Database.Tests
             var expected = new DPProductRecord("Test Product", new[] { "TheRealSolly" }, DateTime.UtcNow, "J:/a.png",
                 "ArcName.zip", "J:/Destination", new[] { "Test1", "Test2" }, new[] { "a.file", "b.file" }, 0);
 
-            Database.ProductRecordAdded += (actual) => Assert.That.ProductRecordEqual(expected, actual);
+            bool eventCalled = true;
+            Database.ProductRecordAdded += (actual) =>
+            {
+                eventCalled = true;
+                Assert.That.ProductRecordEqual(expected, actual);
+            };
             Database.AddNewRecordEntry(expected).Wait();
 
             var results = DPDatabaseTestHelpers.GetAllProductRecords(DatabasePath);
             Assert.AreEqual(1, results.Count);
+            Assert.IsTrue(eventCalled);
             Assert.That.ProductRecordEqual(expected, results[0]);
         }
 
@@ -130,6 +124,7 @@ namespace DAZ_Installer.Database.Tests
             const int count = 50;
             ConcurrentBag<DPProductRecord> inputs = new();
             object lockObj = new();
+            int eventCounter = 0;
 
             var tasks = DPDatabaseTestHelpers.ExecuteInParallel(count, 5, (i) =>
             {
@@ -292,6 +287,12 @@ namespace DAZ_Installer.Database.Tests
             cmd.ExecuteNonQuery();
             c.Dispose();
 
+            var eventCalled = false;
+            Database.TableUpdated += t =>
+            {
+                eventCalled = true;
+                Assert.AreEqual("TestTable", t);
+            };
             Database.RemoveRowQ("TestTable", 1).Wait();
 
             using var c2 = DPDatabaseTestHelpers.CreateConnection(DatabasePath, true);
@@ -299,6 +300,7 @@ namespace DAZ_Installer.Database.Tests
             cmd2.CommandText = "SELECT * FROM TestTable";
             using var reader = cmd2.ExecuteReader();
             Assert.IsFalse(reader.Read());
+            Assert.IsTrue(eventCalled);
         }
 
         [TestMethod]
@@ -312,6 +314,12 @@ namespace DAZ_Installer.Database.Tests
             cmd.ExecuteNonQuery();
             c.Dispose();
 
+            var eventCalled = true;
+            Database.TableUpdated += t =>
+            {
+                eventCalled = true;
+                Assert.AreEqual("TestTable", t);
+            };
             Database.ClearTableQ("TestTable").Wait();
 
             using var c2 = DPDatabaseTestHelpers.CreateConnection(DatabasePath, true);
@@ -327,11 +335,26 @@ namespace DAZ_Installer.Database.Tests
             var record = new DPProductRecord("Test Product", new[] { "TheRealSolly" }, DateTime.UtcNow, "a.png", "arc.zip", "J:/",
                 new[] { "tag1", "tag2" }, new[] { "file1", "file2" }, 1);
 
+            var callback = (long i) => Assert.AreEqual(1, i);
+
             Database.AddNewRecordEntry(record).Wait();
             record = record with { Authors = Array.Empty<string>() };
 
-            Database.UpdateRecordQ(1, record).Wait();
+            bool eventCalled = false, event2Called = false;
+            bool productsFound = false;
+            Database.TableUpdated += (t) =>
+            {
+                if (t == "Products")
+                    productsFound = eventCalled = true;
+            };
+            Database.ProductRecordModified += (r, i) => {
+                event2Called = true;
+                Assert.That.ProductRecordEqual(record, r);
+                Assert.AreEqual(1, i);
+            };
+            Database.UpdateRecordQ(1, record, callback).Wait();
 
+            Assert.IsTrue(new[] { eventCalled, event2Called, productsFound }.All(x => x));
             var a = DPDatabaseTestHelpers.GetAllProductRecords(DatabasePath);
             var b = DPDatabaseTestHelpers.GetAllProductRecordLites(DatabasePath);
             Assert.That.ProductRecordEqual(record, a[0], true);
@@ -365,9 +388,22 @@ namespace DAZ_Installer.Database.Tests
             record = record with { Authors = Array.Empty<string>() };
             Database.AddNewRecordEntry(record with { ArcName = "arc2.zip" });
 
+            bool tableUpdatedEventThrown = false;
+            bool recordsClearedEventThrown = false;
+            bool databaseUpdatedEventThrown = false;
+            Database.TableUpdated += (t) =>
+            {
+                Assert.AreEqual("Products", t);
+                tableUpdatedEventThrown = true;
+            };
+            Database.RecordsCleared += () => recordsClearedEventThrown = true;
+            Database.DatabaseUpdated += () => databaseUpdatedEventThrown = true;
             Database.RemoveAllRecordsQ().Wait();
+            
 
             Assert.AreEqual(0, DPDatabaseTestHelpers.GetAllProductRecords(DatabasePath).Count);
+            Assert.IsTrue(tableUpdatedEventThrown);
+            Assert.IsTrue(recordsClearedEventThrown);
         }
 
         [TestMethod]
@@ -425,7 +461,7 @@ namespace DAZ_Installer.Database.Tests
         }
 
         [TestMethod]
-        public void UpdateDatabaseTest_Fails()
+        public void DatabaseFailsOnCorruptedTest()
         {
             Database.StopMainDatabaseOperations();
             SqliteConnection.ClearAllPools();
@@ -434,36 +470,42 @@ namespace DAZ_Installer.Database.Tests
             using var connection = DPDatabaseTestHelpers.CreateConnection(DatabasePath);
             DPDatabaseTestHelpers.CreateV2Database(connection);
             using var cmd = connection.CreateCommand();
-            var txt = @"
-                INSERT INTO ProductRecords (""Product Name"", ""Tags"", ""Author"", ""SKU"", ""Date Created"", ""Extraction Record ID"", ""Thumbnail Full Path"")
-                VALUES ('Test Product', 'tag1, tag2', 'TheRealSolly', 'SKU', 0, 1, 'a.png'),
-                       ('Test Product 2', 'tag1, tag2', 'TheRealSolly', 'SKU', 0, 2, 'a.png');
-                INSERT INTO ExtractionRecords (""Files"", ""Folders"", ""Destination Path"", ""Errored Files"", ""Error Messages"", ""Archive Name"", ""Product Record ID"")
-                VALUES ('file1, file2', 'folder1, folder2', 'J:/', '', '', 'arc.zip', 1),
-                       ('file1, file2', 'folder1, folder2', 'J:/', '', '', 'arc2.zip', 2);
-                INSERT INTO DatabaseInfo (""Version"", ""Product Record Count"", ""Extraction Record Count"")
-                VALUES (2, 2, 2);
-";
-            cmd.CommandText = txt;
-            cmd.ExecuteNonQuery();
             DPDatabaseTestHelpers.FinishV2Database(connection);
             connection.Dispose();
             Database = new DPDatabase(DatabasePath);
-            var cts = new CancellationTokenSource();
-            //cts.CancelAfter(5000);
-            Database.UpdateDatabase(cts.Token).Wait();
+            var dummyRecord = new DPProductRecord("Test Product", new[] { "TheRealSolly" }, DateTime.FromFileTimeUtc(0), "a.png", "arc.zip", "J:/",
+                                                             new[] { "tag1", "tag2" }, new[] { "file1", "file2" }, 1);
 
-            using var connection1 = DPDatabaseTestHelpers.CreateConnection(DatabasePath, true);
-            DPDatabaseTestHelpers.AssertOldSchemaRemoved(connection1);
+            Database.AddNewRecordEntry(dummyRecord).Wait();
+            Database.StopMainDatabaseOperations();
+            SqliteConnection.ClearAllPools();
 
-            // Assert that the old records exist in the new database.
-            var records = DPDatabaseTestHelpers.GetAllProductRecords(DatabasePath);
-            Assert.AreEqual(2, records.Count);
-            var expectedRecord = new DPProductRecord("Test Product", new[] { "TheRealSolly" }, DateTime.FromFileTimeUtc(0), "a.png", "arc.zip", "J:/",
-                                              new[] { "tag1", "tag2" }, new[] { "file1", "file2" }, 1);
-            var expectedRecord1 = expectedRecord with { Name = "Test Product 2", ArcName = "arc2.zip" };
-            Assert.That.ProductRecordEqual(expectedRecord, records[0]);
-            Assert.That.ProductRecordEqual(expectedRecord1, records[1]);
+            Assert.IsTrue(Database.Corrupted);
+        }
+
+        [TestMethod]
+        public void DatabaseFailsOnUpdateRequiredTest()
+        {
+            using var connection = DPDatabaseTestHelpers.CreateConnection(DatabasePath);
+            using var t = connection.BeginTransaction();
+            using var cmd = connection.CreateCommand();
+            cmd.CommandText = $"pragma user_version=0;";
+            cmd.ExecuteNonQuery();
+            t.Commit();
+            connection.Dispose();
+            var dummyRecord = new DPProductRecord("Test Product", new[] { "TheRealSolly" }, DateTime.FromFileTimeUtc(0), "a.png", "arc.zip", "J:/",
+                                                             new[] { "tag1", "tag2" }, new[] { "file1", "file2" }, 1);
+
+            Database = new DPDatabase(DatabasePath);
+            Database.AddNewRecordEntry(dummyRecord).Wait();
+
+            Assert.IsTrue(Database.UpdateRequired);
+            using var connection2 = DPDatabaseTestHelpers.CreateConnection(DatabasePath, true);
+            using var cmd2 = connection2.CreateCommand();
+            cmd2.CommandText = "SELECT COUNT(*) FROM Products";
+            int result = Convert.ToInt32(cmd2.ExecuteScalar());
+            Assert.AreEqual(0, result);
+
         }
     }
 }
