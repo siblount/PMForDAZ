@@ -194,6 +194,32 @@ namespace DAZ_Installer.IO
             if (attemptWithRecovery(() => Delete(recursive), this, out exception)) return true;
             return false;
         }
+
+        public override bool TryAndFixSendToRecycleBin(out Exception? ex)
+        {
+            ex = null;
+            try
+            {
+                if (!Whitelisted || !directoryInfo.Exists) return false;
+                if (directoryInfo.Attributes.HasFlag(FileAttributes.ReadOnly) || directoryInfo.Attributes.HasFlag(FileAttributes.Hidden))
+                {
+                    try
+                    {
+                        directoryInfo.Attributes = FileAttributes.Normal;
+                    }
+                    catch (Exception e)
+                    {
+                        ex = e;
+                        return false;
+                    }
+                }
+                return DPRecycleBin.SendToRecycleBin(this);
+            } catch (Exception e)
+            {
+                ex = e;
+            }
+            return false;
+        }
         #endregion
         #region Private methods
         private static IDPDirectoryInfo? tryCreateDirectoryInfoParent(DirectoryInfo info, AbstractFileSystem fs) => info.Parent == null ? null : new DPDirectoryInfo(info.Parent, fs, null);

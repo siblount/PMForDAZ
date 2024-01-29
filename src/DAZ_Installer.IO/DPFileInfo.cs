@@ -29,7 +29,6 @@ namespace DAZ_Installer.IO
         protected IDPDirectoryInfo? directory;
         protected bool whitelisted;
 
-
         internal DPFileInfo(FileInfo fileInfo, AbstractFileSystem fs) : this(fileInfo, fs, tryCreateDirectoryInfo(fileInfo, fs)) { }
         internal DPFileInfo(IFileInfo fileInfo, AbstractFileSystem fs) : this(fileInfo, fs, tryCreateDirectoryInfo(fileInfo, fs)) { }
 
@@ -262,6 +261,19 @@ namespace DAZ_Installer.IO
             exception = null;
             if (!Whitelisted || !fileInfo.Exists) return false;
             if (attemptWithRecovery(Delete, this, out exception)) return true;
+            return false;
+        }
+
+        public override bool TryAndFixSendToRecycleBin(out Exception? ex)
+        {
+            ex = null;
+            try
+            {
+                if (!Whitelisted || !fileInfo.Exists) return false;
+                if (fileInfo.Attributes.HasFlag(FileAttributes.ReadOnly) || fileInfo.Attributes.HasFlag(FileAttributes.Hidden))
+                    fileInfo.Attributes &= ~(FileAttributes.ReadOnly | FileAttributes.Hidden);
+                return DPRecycleBin.SendToRecycleBin(this);
+            } catch (Exception e) { ex = e; } 
             return false;
         }
         #endregion

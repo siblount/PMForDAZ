@@ -1,4 +1,5 @@
-﻿namespace DAZ_Installer.IO.Fakes
+﻿
+namespace DAZ_Installer.IO.Fakes
 {
     public class FakeDPDirectoryInfo : IDPDirectoryInfo
     {
@@ -23,10 +24,14 @@
 
         public virtual void Create() => ((IDPDirectoryInfo)info).Create();
         public virtual void Delete(bool recursive) => ((IDPDirectoryInfo)info).Delete(recursive);
+        public virtual bool SendToRecycleBin() => info.SendToRecycleBin();
         public virtual void MoveTo(string path) => ((IDPDirectoryInfo)info).MoveTo(path);
         public virtual bool PreviewCreate() => ((IDPDirectoryInfo)info).PreviewCreate();
         public virtual bool PreviewDelete(bool recursive) => ((IDPDirectoryInfo)info).PreviewDelete(recursive);
         public virtual bool PreviewMoveTo(string path) => ((IDPDirectoryInfo)info).PreviewMoveTo(path);
-        public bool TryCreate() => ((IDPDirectoryInfo)info).TryCreate();
+        public virtual bool PreviewSendToRecycleBin() => info.PreviewSendToRecycleBin();
+        public virtual bool TryCreate() => ((IDPDirectoryInfo)info).TryCreate();
+        public virtual bool TrySendToRecycleBin(out Exception? ex) => info.TrySendToRecycleBin(out ex);
+        public virtual bool TryAndFixSendToRecycleBin(out Exception? ex) => info.TryAndFixSendToRecycleBin(out ex);
     }
 }

@@ -27,6 +27,7 @@
         public virtual IDPFileInfo CopyTo(string path, bool overwrite) => ((IDPFileInfo)fileInfo).CopyTo(path, overwrite);
         public virtual Stream Create() => ((IDPFileInfo)fileInfo).Create();
         public virtual void Delete() => ((IDPFileInfo)fileInfo).Delete();
+        public bool SendToRecycleBin() => throw new NotImplementedException();
         public virtual void MoveTo(string path, bool overwrite) => ((IDPFileInfo)fileInfo).MoveTo(path, overwrite);
         public virtual Stream Open(FileMode mode, FileAccess access) => ((IDPFileInfo)fileInfo).Open(mode, access);
         public virtual Stream OpenRead() => ((IDPFileInfo)fileInfo).OpenRead();
@@ -36,6 +37,7 @@
         public virtual bool PreviewDelete() => ((IDPFileInfo)fileInfo).PreviewDelete();
         public virtual bool PreviewMoveTo(string path, bool overwrite) => ((IDPFileInfo)fileInfo).PreviewMoveTo(path, overwrite);
         public virtual bool PreviewOpen(FileMode mode, FileAccess access) => ((IDPFileInfo)fileInfo).PreviewOpen(mode, access);
+        public bool PreviewSendToRecycleBin() => fileInfo.PreviewSendToRecycleBin();
         public virtual bool TryAndFixCopyTo(string path, bool overwrite, out IDPFileInfo? info, out Exception? ex) => ((IDPFileInfo)fileInfo).TryAndFixCopyTo(path, overwrite, out info, out ex);
         public virtual bool TryAndFixDelete(out Exception? ex) => ((IDPFileInfo)fileInfo).TryAndFixDelete(out ex);
         public virtual bool TryAndFixMoveTo(string path, bool overwrite, out Exception? ex) => ((IDPFileInfo)fileInfo).TryAndFixMoveTo(path, overwrite, out ex);
@@ -48,5 +50,7 @@
         public virtual bool TryOpen(FileMode mode, FileAccess access, out Stream? stream) => ((IDPFileInfo)fileInfo).TryOpen(mode, access, out stream);
         public virtual bool TryOpenRead(out Stream? stream) => ((IDPFileInfo)fileInfo).TryOpenRead(out stream);
         public virtual bool TryOpenWrite(out Stream? stream) => ((IDPFileInfo)fileInfo).TryOpenWrite(out stream);
+        public bool TrySendToRecycleBin(out Exception? ex) => fileInfo.TrySendToRecycleBin(out ex);
+        public bool TryAndFixSendToRecycleBin(out Exception? ex) => fileInfo.TryAndFixSendToRecycleBin(out ex);
     }
 }

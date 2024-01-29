@@ -28,7 +28,5 @@
 
         bool TryAndFixMoveTo(string path, bool overwrite, out Exception? ex);
         bool TryAndFixCopyTo(string path, bool overwrite, out IDPFileInfo? info, out Exception? ex);
-
-
     }
 }
