@@ -51,7 +51,7 @@ namespace DAZ_Installer.Database
                     reader.GetString("Name"),
                     reader.GetString("Thumbnail"),
                     reader.GetString("Tags").Split(", "),
-                    reader.GetInt64("ID")
+                    reader.GetInt64("ROWID")
                 );
                 searchResults.Add(record);
             }
@@ -257,7 +257,7 @@ namespace DAZ_Installer.Database
             {
                 using var connection = CreateAndOpenConnection(ref opts, true);
                 if (connection == null) return null;
-                var getCmd = $"SELECT * FROM {ProductFullView} WHERE ID = {pid};";
+                var getCmd = $"SELECT * FROM {ProductFullView} WHERE ROWID = {pid};";
                 using var command = opts.CreateCommand(getCmd);
                 using var reader = command.ExecuteReader();
                 if (!reader.HasRows) return null;
@@ -270,7 +270,7 @@ namespace DAZ_Installer.Database
                 var destination = reader.GetString("Destination");
                 var tags = reader.GetString("Tags").Split(", ");
                 var files = reader.GetString("Files").Split(", ");
-                var id = reader.GetInt64("ID");
+                var id = reader.GetInt64("ROWID");
                 return new DPProductRecord(name, authors, time, thumbnail, arcName, destination, tags, files, id);
             }
             catch (Exception ex)
