@@ -51,7 +51,7 @@ namespace DAZ_Installer.Database
                     reader.GetString("Name"),
                     reader.GetString("Thumbnail"),
                     reader.GetString("Tags").Split(", "),
-                    reader.GetInt64("ROWID")
+                    reader.GetInt64("PID")
                 );
                 searchResults.Add(record);
             }
@@ -257,21 +257,26 @@ namespace DAZ_Installer.Database
             {
                 using var connection = CreateAndOpenConnection(ref opts, true);
                 if (connection == null) return null;
-                var getCmd = $"SELECT * FROM {ProductFullView} WHERE ROWID = {pid};";
+                var getCmd = $"SELECT * FROM {ProductFullView} WHERE PID = {pid};";
                 using var command = opts.CreateCommand(getCmd);
                 using var reader = command.ExecuteReader();
                 if (!reader.HasRows) return null;
                 reader.Read();
-                var name = reader.GetString("Name");
-                var authors = reader.GetString("Authors").Split(", ");
-                var time = DateTime.FromFileTimeUtc(reader.GetInt64("Time"));
-                var thumbnail = reader.GetString("Thumbnail");
-                var arcName = reader.GetString("ArcName");
-                var destination = reader.GetString("Destination");
-                var tags = reader.GetString("Tags").Split(", ");
-                var files = reader.GetString("Files").Split(", ");
-                var id = reader.GetInt64("ROWID");
-                return new DPProductRecord(name, authors, time, thumbnail, arcName, destination, tags, files, id);
+                var record = new DPProductRecord(
+                    Name: reader.GetString("Name"),
+                    Authors: reader.IsDBNull("Authors") ? Array.Empty<string>()
+                                                     : reader.GetString("Authors").Split(", "),
+                    Date: DateTime.FromFileTimeUtc(reader.GetInt64("Date")),
+                    ThumbnailPath: reader.IsDBNull("Thumbnail") ? null : reader.GetString("Thumbnail"),
+                    ArcName: reader.GetString("ArcName"),
+                    Destination: reader.GetString("Destination"),
+                    Tags: reader.IsDBNull("Tags") ? Array.Empty<string>()
+                                                  : reader.GetString("Tags").Split(", "),
+                    Files: reader.IsDBNull("Files") ? Array.Empty<string>()
+                                                    : reader.GetString("Files").Split(", "),
+                    ID: reader.GetInt64("PID")
+                );
+                return record;
             }
             catch (Exception ex)
             {

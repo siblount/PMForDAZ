@@ -49,7 +49,7 @@ namespace DAZ_Installer.Database.Tests
                                                   : reader.GetString("Tags").Split(", "),
                     Files: reader.IsDBNull("Files") ? Array.Empty<string>() 
                                                     : reader.GetString("Files").Split(", "),
-                    ID: reader.GetInt64("ROWID")
+                    ID: reader.GetInt64("PID")
                 );
                 searchResults.Add(record);
             }
@@ -70,7 +70,7 @@ namespace DAZ_Installer.Database.Tests
                     Thumbnail: reader.IsDBNull("Thumbnail") ? null : reader.GetString("Thumbnail"),
                     Tags: reader.IsDBNull("Tags") ? Array.Empty<string>()
                                                   : reader.GetString("Tags").Split(", "),
-                    ID: reader.GetInt64("ROWID")
+                    ID: reader.GetInt64("PID")
                 );
                 searchResults.Add(record);
             }

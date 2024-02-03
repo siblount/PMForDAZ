@@ -10,7 +10,7 @@ namespace DAZ_Installer.Database.Tests
     [TestClass]
     public class DPDatabaseTests
     {
-        public static DPDatabase Database { get; set; }
+        public static DPDatabase Database { get; set; } = null!;
         public static string DatabasePath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName() + ".db");
         [ClassInitialize]
         public static void ClassInitialize(TestContext _)
@@ -471,6 +471,8 @@ namespace DAZ_Installer.Database.Tests
             var expectedRecord1 = expectedRecord with { Name = "Test Product 2", ArcName = "arc2.zip" };
             Assert.That.ProductRecordEqual(expectedRecord, records[0]);
             Assert.That.ProductRecordEqual(expectedRecord1, records[1]);
+
+            
         }
 
         [TestMethod]

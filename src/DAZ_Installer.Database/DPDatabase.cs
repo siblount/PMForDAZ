@@ -461,11 +461,14 @@ namespace DAZ_Installer.Database
         private bool CreateViews(SqliteConnectionOpts opts)
         {
             const string viewSQL = @$"
-                        CREATE VIEW {ProductLiteView} AS SELECT Name, Thumbnail, Tags, ROWID FROM {ProductTable};
-                        CREATE VIEW {ProductLiteAlphabeticalView} AS SELECT Name, Thumbnail, Tags, ROWID FROM {ProductTable} ORDER BY Name;
-                        CREATE VIEW {ProductLiteDateView} AS SELECT Name, Thumbnail, Tags, ROWID FROM {ProductTable} ORDER BY Date;
+                        CREATE VIEW {ProductLiteView} (Name, Thumbnail, Tags, PID) 
+                            AS SELECT Name, Thumbnail, Tags, ROWID FROM {ProductTable};
+                        CREATE VIEW {ProductLiteAlphabeticalView} (Name, Thumbnail, Tags, PID) 
+                            AS SELECT Name, Thumbnail, Tags, ROWID FROM {ProductTable} ORDER BY Name;
+                        CREATE VIEW {ProductLiteDateView} (Name, Thumbnail, Tags, PID) 
+                            AS SELECT Name, Thumbnail, Tags, ROWID FROM {ProductTable} ORDER BY Date;
                         CREATE VIEW {ArchivesView} AS SELECT ArcName FROM {ProductTable};
-                        CREATE VIEW {ProductFullView} AS 
+                        CREATE VIEW {ProductFullView} (PID, Name, Authors, Date, Thumbnail, ArcName, Tags, Files, Destination) AS 
                         SELECT P.ROWID, P.Name, P.Authors, P.Date, P.Thumbnail, P.ArcName, P.Tags, 
                                F.File AS Files, D.Destination
                         FROM {ProductTable} P
