@@ -29,7 +29,7 @@ namespace DAZ_Installer.Windows.DP
         {
             var returnResult = false;
             var callback = new Action<long>((id) => returnResult = record.ID == id);
-            await database.RemoveProductRecordQ(record);
+            await database.RemoveProductRecordQ(record, callback);
             return returnResult;
         }
 
@@ -44,7 +44,7 @@ namespace DAZ_Installer.Windows.DP
         {
             var returnResult = false;
             var callback = new Action<long>((id) => returnResult = record.ID == id);
-            await database.RemoveProductRecordQ(record);
+            await database.RemoveProductRecordQ(record, callback);
             return returnResult;
         }
 
@@ -64,7 +64,7 @@ namespace DAZ_Installer.Windows.DP
         /// </summary>
         /// <param name="record">The record to delete from the database.</param>
         /// <param name="database">The database to remove the product record from.</param>
-        /// <param name="settings">The settings to use to find </param>
+        /// <param name="settings">The settings to use to find the files and respect the delete action.</param>
         /// <param name="system">The file system to use for deletion.</param>
         /// <returns>A removal result that enholds information such as whether the operation completely succeeded and files that failed to be deleted.</returns>
         internal static async Task<RemovalResult> RemoveProductAsync(DPProductRecord record, IDPDatabase database, DPSettings settings, DPFileSystem system)
