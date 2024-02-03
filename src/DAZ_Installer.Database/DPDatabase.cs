@@ -469,8 +469,8 @@ namespace DAZ_Installer.Database
                         SELECT P.ROWID, P.Name, P.Authors, P.Date, P.Thumbnail, P.ArcName, P.Tags, 
                                F.File AS Files, D.Destination
                         FROM {ProductTable} P
-                        JOIN {FilesTable} F ON P.ROWID = F.PID
-                        JOIN {DestinationTable} D ON P.DestID = D.ID;";
+                        LEFT JOIN {FilesTable} F ON P.ROWID = F.PID
+                        LEFT JOIN {DestinationTable} D ON P.DestID = D.ID;";
 
             try
             {
