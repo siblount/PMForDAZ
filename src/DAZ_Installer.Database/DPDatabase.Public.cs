@@ -77,8 +77,17 @@ namespace DAZ_Installer.Database
             if (!forceRefresh) return _mainTaskManager.AddToQueue((t) =>
                 RefreshDatabase(new SqliteConnectionOpts(null, null, t))
             );
-            _mainTaskManager.StopAndWait();
-            _mainTaskManager.AddToQueue((t) => RefreshDatabase(new SqliteConnectionOpts(null, null, t)));
+            try
+            {
+                Flags |= DPArchiveFlags.Locked;
+                _mainTaskManager.StopAndWait();
+                _priorityTaskManager.StopAndWait();
+                _mainTaskManager.AddToQueue((t) => RefreshDatabase(new SqliteConnectionOpts(null, null, t)));
+            } finally
+            {
+                Flags &= ~DPArchiveFlags.Locked;
+            }
+
             return Task.CompletedTask;
         }
 

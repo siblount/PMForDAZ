@@ -601,14 +601,15 @@ namespace DAZ_Installer.Database
             return true;
         }
 
+        /// <summary>
+        /// Sets the <see cref="Flags"/> to <see cref="DPArchiveFlags.None"/> and calls <see cref="Initialize"/>.
+        /// </summary>
+        /// <param name="opts"></param>
         private void RefreshDatabase(SqliteConnectionOpts opts)
         {
             if (opts.IsCancellationRequested) return;
-
             try
             {
-                _mainTaskManager.StopAndWait();
-                _priorityTaskManager.StopAndWait();
                 Flags = DPArchiveFlags.None;
                 Initialize();
             }
@@ -616,7 +617,6 @@ namespace DAZ_Installer.Database
             {
                 Logger.Error(e, "Failed to refresh database");
             }
-
         }
 
         /// <summary>
