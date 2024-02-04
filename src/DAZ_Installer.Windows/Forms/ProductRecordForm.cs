@@ -14,6 +14,9 @@ using System.Linq;
 using System.Windows.Forms;
 using DAZ_Installer.IO;
 using Serilog;
+using System.Runtime.InteropServices;
+using System.Text;
+using System.Threading.Tasks;
 
 namespace DAZ_Installer.Windows.Forms
 {
@@ -21,7 +24,7 @@ namespace DAZ_Installer.Windows.Forms
     {
         private ILogger logger = Log.Logger.ForContext<ProductRecordForm>();
         private DPProductRecord record;
-        private DPProductRecordLite extractionRecord;
+        private DPProductRecordLite liteRecord;
         private uint[] maxFontWidthPerListView = new uint[5];
         private HashSet<string> tagsSet = new();
         public ProductRecordForm()
@@ -32,68 +35,72 @@ namespace DAZ_Installer.Windows.Forms
                 applyChangesBtn.Size = new Size(applyChangesBtn.Size.Width, applyChangesBtn.Size.Height + 2);
         }
 
-        public ProductRecordForm(DPProductRecord productRecord) : this()
+        public ProductRecordForm(DPProductRecordLite productRecord) : this()
         {
             InitializeProductRecordInfo(productRecord);
-            if (productRecord.EID != 0)
-                Program.Database.GetExtractionRecordQ(productRecord.EID, 0, InitializeExtractionRecordInfo);
+            Program.Database.GetFullProductRecord(productRecord.ID, InitializeRecord).ConfigureAwait(false);
         }
 
-        public void InitializeProductRecordInfo(DPProductRecord record)
+        public void InitializeProductRecordInfo(DPProductRecordLite record)
         {
-            this.record = record;
-            productNameTxtBox.Text = record.ProductName;
-            authorLbl.Text += string.IsNullOrEmpty(record.Author) ? "Not detected" : record.Author;
+            liteRecord = record;
+            productNameTxtBox.Text = record.Name;
             tagsView.BeginUpdate();
-            Array.ForEach(record.Tags, tag => tagsView.Items.Add(tag));
+            ListForEach(record.Tags, tag => tagsView.Items.Add(tag));
             tagsSet = new HashSet<string>(record.Tags);
             tagsView.EndUpdate();
-            if (record.ThumbnailPath != null && File.Exists(record.ThumbnailPath))
-            {
-                thumbnailBox.Image = Library.self.AddReferenceImage(record.ThumbnailPath);
-                thumbnailBox.ImageLocation = record.ThumbnailPath;
-            }
-            dateExtractedLbl.Text += record.Time.ToLocalTime().ToString();
             CalculateMaxWidthPerListView();
             UpdateColumnWidths();
             Program.Database.ProductRecordModified += OnProductRecordModified;
 
         }
 
-        private void OnProductRecordModified(DPProductRecord newProductRecord, uint id)
+        private void OnProductRecordModified(DPProductRecord newProductRecord, long id)
         {
             if (id == record.ID)
-            {
                 MessageBox.Show("Product record successfully updated!", "Product record updated successfully.");
-            }
             record = newProductRecord;
         }
 
-        public void InitializeExtractionRecordInfo(DPProductRecordLite record)
+        public void InitializeRecord(DPProductRecord? fullRecord)
         {
+            if (fullRecord is null)
+            {
+                MessageBox.Show("Failed to retrieve full product record.", "Failed to retrieve product record", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
+            if (fullRecord.ID != liteRecord.ID) return;
+            if (InvokeRequired)
+            {
+                BeginInvoke(() => InitializeRecord(fullRecord));
+                return;
+            }
+            record = fullRecord;
+            SuspendLayout();
+            normalizeRecord();
 
-            if (record.PID != this.record.ID) return;
-            extractionRecord = record;
-            NormalizeExtractionRecord();
-            contentFoldersList.BeginUpdate();
-            filesExtractedList.BeginUpdate();
-            erroredFilesList.BeginUpdate();
-            errorMessagesList.BeginUpdate();
-            fileTreeView.BeginUpdate();
-            Array.ForEach(extractionRecord.Files, file => filesExtractedList.Items.Add(file));
-            Array.ForEach(extractionRecord.Folders, folder => contentFoldersList.Items.Add(folder));
-            Array.ForEach(extractionRecord.ErroredFiles, erroredFile => erroredFilesList.Items.Add(erroredFile));
-            Array.ForEach(extractionRecord.ErrorMessages, errorMsg => errorMessagesList.Items.Add(errorMsg));
+            authorLbl.Text += string.IsNullOrEmpty(record.AuthorsString) ? "Not detected" : record.AuthorsString;
+            if (record.ThumbnailPath != null && File.Exists(record.ThumbnailPath))
+            {
+                thumbnailBox.Image = Library.self.AddReferenceImage(record.ThumbnailPath);
+                thumbnailBox.ImageLocation = record.ThumbnailPath;
+            }
+            dateExtractedLbl.Text += record.Date.ToLocalTime().ToString();
 
+            ListForEach(record.Files, file => filesExtractedList.Items.Add(file));
             BuildFileHierachy();
-            contentFoldersList.EndUpdate();
-            filesExtractedList.EndUpdate();
-            erroredFilesList.EndUpdate();
-            errorMessagesList.EndUpdate();
-            fileTreeView.EndUpdate();
-            destinationPathLbl.Text += record.DestinationPath;
+            ResumeLayout();
+            destinationPathLbl.Text += fullRecord.Destination;
             CalculateMaxWidthPerListView();
             UpdateColumnWidths();
+        }
+
+        private void ListForEach<T>(IReadOnlyList<T> list, Action<T> action)
+        {
+            foreach (var item in list)
+            {
+                action(item);
+            }
         }
 
         private void browseImageBtn_Click(object sender, EventArgs e)
@@ -101,50 +108,39 @@ namespace DAZ_Installer.Windows.Forms
             var dlg = new OpenFileDialog();
             dlg.Filter = "Supported Images (png, jpeg, bmp)|*.png;*.jpg;*.jpeg;*.bmp";
             dlg.Title = "Select thumbnail image";
-            if (dlg.ShowDialog() == DialogResult.OK)
+            if (dlg.ShowDialog() != DialogResult.OK) return;
+            var location = dlg.FileName;
+
+            if (File.Exists(location))
             {
-                var location = dlg.FileName;
-
-                if (File.Exists(location))
+                try
                 {
-                    try
-                    {
-                        var img = Image.FromFile(location);
-                        thumbnailBox.Hide();
-                        thumbnailBox.ImageLocation = location;
-                        thumbnailBox.Image = img;
-                        thumbnailBox.Show();
-                    }
-                    catch (Exception ex)
-                    {
-                        // DPCommon.WriteToLog($"An error occurred attempting to update thumbnail iamge. REASON: {ex}");
-                        MessageBox.Show($"Unable to update thumbnail image. REASON: \n{ex}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                    }
-
+                    var img = Image.FromFile(location);
+                    thumbnailBox.Hide();
+                    thumbnailBox.ImageLocation = location;
+                    thumbnailBox.Image = img;
+                    thumbnailBox.Show();
                 }
-                else
+                catch (Exception ex)
                 {
-                    MessageBox.Show($"Unable to update image due to it not being found (or able to be accessed).", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    logger.Error(ex, "Failed to load image from file to update thumbnail image");
+                    MessageBox.Show($"Unable to update thumbnail image. REASON: \n{ex}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 }
             }
+            else
+                MessageBox.Show($"Unable to update image due to it not being found (or able to be accessed).", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
         }
 
         private void UpdateColumnWidths()
         {
             tagsView.Columns[0].Width = (int)maxFontWidthPerListView[0];
-            contentFoldersList.Columns[0].Width = (int)maxFontWidthPerListView[1];
             filesExtractedList.Columns[0].Width = (int)maxFontWidthPerListView[2];
-            erroredFilesList.Columns[0].Width = (int)maxFontWidthPerListView[3];
-            errorMessagesList.Columns[0].Width = (int)maxFontWidthPerListView[4];
         }
 
         private void CalculateMaxWidthPerListView()
         {
             maxFontWidthPerListView[0] = GetMaxWidth(tagsView.Items);
-            maxFontWidthPerListView[1] = GetMaxWidth(contentFoldersList.Items);
             maxFontWidthPerListView[2] = GetMaxWidth(filesExtractedList.Items);
-            maxFontWidthPerListView[3] = GetMaxWidth(erroredFilesList.Items);
-            maxFontWidthPerListView[4] = GetMaxWidth(errorMessagesList.Items);
         }
 
         private uint GetMaxWidth(ListView.ListViewItemCollection collection)
@@ -164,38 +160,20 @@ namespace DAZ_Installer.Windows.Forms
 
         private void BuildFileHierachy()
         {
-            var folderMap = new Dictionary<string, TreeNode>(extractionRecord.Folders.Length);
-            var treeNodes = new HashSet<TreeNode>(extractionRecord.Files.Length + extractionRecord.Folders.Length);
+            var folderMap = SetupFolderRoots(out var rootNodes);
+
+            foreach (var folder in folderMap.Values)
+            {
+                folder.StateImageIndex = 0;
+            }
+
+            var treeNodes = new HashSet<TreeNode>(rootNodes.Count * 2);
+            treeNodes.UnionWith(rootNodes);
             // Initalize the map by just connecting a folder path to a tree node.
-            foreach (var file in extractionRecord.Files)
+            foreach (var file in record.Files)
             {
                 var dirName = Path.GetDirectoryName(file + ".e")!;
-                // If it does not exist, we need to create tree nodes for this and add the root tree node to treeNodes.
-                if (!folderMap.ContainsKey(dirName) && dirName.Length != 0)
-                {
-                    // This is to ensure that the file doesn't get treated as a directory (EX: file doesn't have an ext)
-                    ReadOnlySpan<char> folderSpan = dirName;
-                    var seperator = PathHelper.GetSeperator(folderSpan);
-                    var lastIndexOf = folderSpan.Length;
-                    TreeNode? lastNode = null;
-                    while (lastIndexOf != -1)
-                    {
-                        var slice = folderSpan.Slice(0, lastIndexOf).ToString();
-                        var added = folderMap.TryAdd(slice, new TreeNode(Path.GetFileName(slice)));
-                        if (!added)
-                        {
-                            if (lastNode == null) break;
-                            folderMap[slice].Nodes.Add(lastNode);
-                            break;
-                        }
-                        if (PathHelper.GetSubfoldersCount(slice) == 0) treeNodes.Add(folderMap[slice]);
-                        if (lastNode != null) folderMap[slice].Nodes.Add(lastNode);
-                        folderMap[slice].StateImageIndex = 0;
-                        lastNode = folderMap[slice];
-                        folderSpan = folderSpan.Slice(0, lastIndexOf);
-                        lastIndexOf = folderSpan.LastIndexOf(seperator);
-                    }
-                }
+
                 var fileNode = new TreeNode(Path.GetFileName(file));
                 var ext = Path.GetExtension(file);
                 // If the file has a folder node, then add it to that node.
@@ -211,111 +189,136 @@ namespace DAZ_Installer.Windows.Forms
                 else if (ext.EndsWith("rar"))
                     fileNode.StateImageIndex = 1;
             }
-            // Color red files that errored.
-            foreach (var file in extractionRecord.ErroredFiles)
-            {
-                var parent = PathHelper.GetParent(file);
-                if (!folderMap.ContainsKey(parent)) continue;
-                foreach (TreeNode node in folderMap[parent].Nodes)
-                {
-                    if (node.Text != parent) continue;
-                    node.ForeColor = Color.DarkRed;
-                    break;
-                }
-            }
+
             var treeNodesArr = new TreeNode[treeNodes.Count];
             treeNodes.CopyTo(treeNodesArr);
             fileTreeView.Nodes.AddRange(treeNodesArr);
         }
 
-        private void NormalizeExtractionRecord()
+        private Dictionary<string, TreeNode> SetupFolderRoots(out HashSet<TreeNode> rootNodes)
         {
-            var normalizedFolders = new List<string>(extractionRecord.Folders.Length);
-            foreach (var folder in extractionRecord.Folders)
-                normalizedFolders.Add(PathHelper.NormalizePath(folder));
+            Dictionary<string, TreeNode> nodes = new();
+            rootNodes = new(5);
+            foreach (var file in record.Files)
+            {
+                var dirName = Path.GetDirectoryName(file + ".e")!;
+                if (string.IsNullOrEmpty(dirName) || nodes.ContainsKey(dirName)) continue;
+                CreateTreeNodeForFolder(dirName, nodes, out var rootNode);
+                if (rootNode is not null)
+                    rootNodes.Add(rootNode);
+            }
+            return nodes;
+        }
 
-            var normalizedFiles = new List<string>(extractionRecord.Files.Length);
-            foreach (var file in extractionRecord.Files)
+        /// <summary>
+        /// Creates a tree node and the appropriate parent tree nodes for the folder.
+        /// </summary>
+        /// <param name="name">The name for the immediate TreeNode.</param>
+        /// <param name="folderMap">The map of folder name to folder treeNode, will be used to add tree nodes, if needed.</param>
+        /// <param name="rootTreeNode">The root treenode for the folder.</param>
+        /// <returns>The TreeNode of the folder</returns>
+        private TreeNode CreateTreeNodeForFolder(string name, Dictionary<string, TreeNode> folderMap, out TreeNode? rootTreeNode)
+        {
+            var seperator = PathHelper.GetSeperator(name);
+            var folders = name.Split(seperator);
+            StringBuilder sb = new(name.Length);
+            TreeNode? lastNode = null;
+            rootTreeNode = null;
+            for (int i = 0; i < folders.Length; i++)
+            {
+                if (i == 0) sb.Append(folders[i]);
+                else sb.Append(seperator).Append(folders[i]);
+                var path = sb.ToString();
+                if (folderMap.ContainsKey(path)) continue;
+                var node = new TreeNode(Path.GetFileName(path));
+                folderMap.Add(path, node);
+                lastNode?.Nodes.Add(node);
+                if (i == 0) rootTreeNode = node;
+                lastNode = node;
+            }
+            return lastNode!;
+        }
+
+        private void normalizeRecord()
+        {
+            var normalizedFiles = new List<string>(record.Files.Count);
+            foreach (var file in record.Files)
                 normalizedFiles.Add(PathHelper.NormalizePath(file));
 
-            var normalizedErroredFiles = new List<string>(extractionRecord.ErroredFiles.Length);
-            foreach (var file in extractionRecord.ErroredFiles)
-                normalizedErroredFiles.Add(PathHelper.NormalizePath(file));
-
-            extractionRecord = new DPProductRecordLite(extractionRecord.ArchiveFileName,
-                        extractionRecord.DestinationPath,
-                        normalizedFiles.ToArray(), normalizedErroredFiles.ToArray(),
-                        extractionRecord.ErrorMessages, normalizedFolders.ToArray(),
-                        extractionRecord.PID);
+            record = record with { Files = normalizedFiles };
         }
 
         private void deleteRecordToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            DialogResult result = MessageBox.Show($"Are you sure you want to remove the record for {record.ProductName}? " +
+            DialogResult result = MessageBox.Show($"Are you sure you want to remove the record for {record.Name}? " +
                 "This wont remove the files on disk. Additionally, the record cannot be restored.", "Remove product record confirmation", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
             if (result == DialogResult.No) return;
-            Program.Database.RemoveProductRecordQ(record, OnProductRecordRemoval);
+            Task.Run(() => handleDeletion());
         }
 
-        private void OnProductRecordRemoval(uint id)
+        private void DisableRecordForm(long id)
         {
-            if (record.ID == id)
+            if (!Visible) return;
+            if (InvokeRequired)
             {
-                MessageBox.Show("This product record has been removed in the database and can no longer be updated.");
-                applyChangesBtn.Enabled = false;
-                toolStrip1.Enabled = false;
+                BeginInvoke(() => DisableRecordForm(id));
+                return;
             }
+            applyChangesBtn.Enabled = false;
+            toolStrip1.Enabled = false;
         }
 
         private void deleteProductToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            DialogResult result = MessageBox.Show($"Are you sure you want to remove the record & product files for {record.ProductName}? " +
+            var result = MessageBox.Show($"Are you sure you want to remove the record & product files for {record.Name}? " +
                 "THIS WILL PERMANENTLY REMOVE ASSOCIATED FILES ON DISK!", "Remove product confirmation", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
             if (result == DialogResult.No) return;
-            uint deletedFiles = 0;
-            // Try deleting at the destination path.
-            if (!Directory.Exists(extractionRecord.DestinationPath))
+            if (Directory.Exists(record.Destination))
             {
-                DialogResult r = MessageBox.Show("The path at which the files were extracted to no longer exists. Do you want to check on through your current content folders?",
-                    "Root content folder doesn't exist", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
-                if (r == DialogResult.No) return;
+                Task.Run(() => handleDeletion(true));
+                return;
             }
-            deletedFiles = DeleteFiles();
-            if (deletedFiles == 0)
+            var r = MessageBox.Show("The expected paths where the files are supposed to be do no exist or do not have access to it. " +
+                "Do you wish to continue? If so, select the destination path for this product in the following prompt.", 
+                "Destination does not exist", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+            if (r == DialogResult.No) return;
+            var dlg = new FolderBrowserDialog();
+            dlg.Description = "Select the destination path for this product.";
+            dlg.UseDescriptionForTitle = true;
+            if (dlg.ShowDialog() == DialogResult.OK)
             {
-                // Quick test.
-                if (File.Exists(Path.Combine(extractionRecord.DestinationPath, extractionRecord.Files[0])))
-                    MessageBox.Show("None of the product files were removed due to some error.", "Failed to remove product files",
-                        MessageBoxButtons.OK, MessageBoxIcon.Error);
-                else
-                {
-                    DialogResult r = MessageBox.Show("The path at which the files were extracted to no longer exists. Do you want to check on through your current content folders?",
-                    "Root content folder doesn't exist", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
-                    if (r == DialogResult.No) return;
-                }
+                record = record with { Destination = dlg.SelectedPath };
+                MessageBox.Show("The destination path has been updated. You can also update this by clicking on \"Apply changes\" button afterwards.", 
+                    "Destination path updated", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                Task.Run(() => handleDeletion(true));
             }
-
-            var delta = extractionRecord.Files.Length - deletedFiles;
-            if (delta == extractionRecord.Files.Length)
-                MessageBox.Show($"Failed to remove any product files.", "Removal failed", MessageBoxButtons.OK, MessageBoxIcon.Error);
-            else if (delta > 0)
-                MessageBox.Show($"Some product files failed to be removed.",
-                    "Some files failed to be removed", MessageBoxButtons.OK, MessageBoxIcon.Information);
-            else Program.Database.RemoveProductRecordQ(record);
-            Program.Database.RemoveProductRecordQ(record, OnProductRecordRemoval);
         }
 
-        private uint DeleteFiles()
+        private async Task handleDeletion(bool productRemoval = false)
         {
-            var fs = new DPFileSystem(new DPFileScopeSettings(Array.Empty<string>(), new[] { extractionRecord.DestinationPath }, false));
-            uint deleteCount = 0;
-            foreach (var file in extractionRecord.Files)
+            if (productRemoval)
             {
-                fs.CreateFileInfo(Path.Combine(extractionRecord.DestinationPath, file)).TryAndFixDelete(out var ex);
-                if (ex != null) logger.Error(ex, "Failed to remove product file {file} for {record}", file, record.ProductName);
-                else deleteCount++;
+                var result = await DPProductRemover.RemoveProductAsync(record, Program.Database, DPSettings.CurrentSettingsObject, new DPFileSystem()).ConfigureAwait(false);
+                if (result.Success)
+                {
+                    MessageBox.Show(record.Name + " was removed successfully.", "Product removed", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    DisableRecordForm(record.ID);
+                }
+                else if (result.FailedFiles.Count == record.Files.Count)
+                    MessageBox.Show("Failed to remove product files.", "Failed to remove product files", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                else
+                    MessageBox.Show($"Some product files for {record.Name} failed to be removed.", "Some files failed to be removed", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            } else
+            {
+                var result = await DPProductRemover.RemoveRecordAsync(record, Program.Database).ConfigureAwait(false);
+                if (result)
+                {
+                    MessageBox.Show(record.Name + " was removed from the database successfully. Files were not deleted.", "Record removed", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    DisableRecordForm(record.ID);
+                    return;
+                }
+                MessageBox.Show($"Failed to remove record: {record.Name}", "Failed to remove record", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
-            return deleteCount;
         }
 
         private string[] CreateTagsArray()
@@ -333,8 +336,8 @@ namespace DAZ_Installer.Windows.Forms
             var tags = new HashSet<string>(tagsView.Items.Count);
             for (var i = 0; i < tagsView.Items.Count; i++)
                 tags.Add(tagsView.Items[i].Text);
-            tags.Remove(record.ProductName);
-            System.Text.RegularExpressions.MatchCollection oldProductNameRegexMatches = DPArchive.ProductNameRegex.Matches(record.ProductName);
+            tags.Remove(record.Name);
+            System.Text.RegularExpressions.MatchCollection oldProductNameRegexMatches = DPArchive.ProductNameRegex.Matches(record.Name);
             System.Text.RegularExpressions.MatchCollection newProductNameRegexMatches = DPArchive.ProductNameRegex.Matches(productNameTxtBox.Text);
             for (var i = 0; i < oldProductNameRegexMatches.Count; i++)
                 tags.Remove(oldProductNameRegexMatches[i].Value);
@@ -351,10 +354,10 @@ namespace DAZ_Installer.Windows.Forms
 
         private void applyChangesBtn_Click(object sender, EventArgs e)
         {
-            DialogResult r = MessageBox.Show("Are you sure you wish up apply changes? You cannot revert changes.", "Confirmation", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+            var r = MessageBox.Show("Are you sure you wish to apply changes? You cannot revert changes.", "Confirmation", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
             if (r == DialogResult.No) return;
-            var p = new DPProductRecord(productNameTxtBox.Text, CreateFinalTagsArray(), record.Author, record.SKU, record.Time, GetThumbnailPath(), record.EID, record.ID);
-            Program.Database.UpdateRecordQ(record.ID, p, extractionRecord);
+            var p = record with { Name = productNameTxtBox.Text, Tags = CreateFinalTagsArray(), ThumbnailPath = GetThumbnailPath() };
+            Program.Database.UpdateRecordQ(record.ID, p);
         }
 
         private void editTagsToolStripMenuItem_Click(object sender, EventArgs e)
@@ -483,31 +486,14 @@ namespace DAZ_Installer.Windows.Forms
             if (selectedTab == fileHierachyPage)
             {
                 if (fileTreeView.SelectedNode == null) return;
-                combinedPath = Path.Combine(extractionRecord.DestinationPath, fileTreeView.SelectedNode.FullPath);
-                copyToolStripMenuItem1.Enabled = copyPathToolStripMenuItem.Enabled = true;
-            }
-            else if (selectedTab == contentFoldersPage)
-            {
-                if (contentFoldersList.SelectedItems.Count == 0) return;
-                combinedPath = Path.Combine(extractionRecord.DestinationPath, contentFoldersList.SelectedItems[0].Text);
+                combinedPath = Path.Combine(record.Destination, fileTreeView.SelectedNode.FullPath);
                 copyToolStripMenuItem1.Enabled = copyPathToolStripMenuItem.Enabled = true;
             }
             else if (selectedTab == fileListPage)
             {
                 if (filesExtractedList.SelectedItems.Count == 0) return;
-                combinedPath = Path.Combine(extractionRecord.DestinationPath, filesExtractedList.SelectedItems[0].Text);
+                combinedPath = Path.Combine(record.Destination, filesExtractedList.SelectedItems[0].Text);
                 copyToolStripMenuItem1.Enabled = copyPathToolStripMenuItem.Enabled = true;
-            }
-            else if (selectedTab == erroredFilesPage)
-            {
-                if (erroredFilesList.SelectedItems.Count == 0) return;
-                combinedPath = Path.Combine(extractionRecord.DestinationPath, erroredFilesList.SelectedItems[0].Text);
-                copyToolStripMenuItem.Enabled = copyPathToolStripMenuItem.Enabled = true;
-            }
-            else if (selectedTab == errorMessagesPage)
-            {
-                if (errorMessagesList.SelectedItems.Count == 0) return;
-                copyToolStripMenuItem.Enabled = true;
             }
             else return;
 
@@ -519,32 +505,11 @@ namespace DAZ_Installer.Windows.Forms
             TabPage selectedTab = tabControl1.SelectedTab;
             if (selectedTab == fileHierachyPage)
                 Clipboard.SetText(fileTreeView.SelectedNode.Text);
-            else if (selectedTab == contentFoldersPage)
-            {
-                var list = new List<string>(contentFoldersList.SelectedItems.Count);
-                for (var i = 0; i < contentFoldersList.SelectedItems.Count; i++)
-                    list.Add(contentFoldersList.SelectedItems[i].Text);
-                Clipboard.SetText(string.Join('\n', list));
-            }
             else if (selectedTab == fileListPage)
             {
                 var list = new List<string>(filesExtractedList.SelectedItems.Count);
                 for (var i = 0; i < filesExtractedList.SelectedItems.Count; i++)
                     list.Add(filesExtractedList.SelectedItems[i].Text);
-                Clipboard.SetText(string.Join('\n', list));
-            }
-            else if (selectedTab == erroredFilesPage)
-            {
-                var list = new List<string>(erroredFilesList.SelectedItems.Count);
-                for (var i = 0; i < erroredFilesList.SelectedItems.Count; i++)
-                    list.Add(erroredFilesList.SelectedItems[i].Text);
-                Clipboard.SetText(string.Join('\n', list));
-            }
-            else if (selectedTab == errorMessagesPage)
-            {
-                var list = new List<string>(errorMessagesList.SelectedItems.Count);
-                for (var i = 0; i < errorMessagesList.SelectedItems.Count; i++)
-                    list.Add(errorMessagesList.SelectedItems[i].Text);
                 Clipboard.SetText(string.Join('\n', list));
             }
         }
@@ -553,26 +518,12 @@ namespace DAZ_Installer.Windows.Forms
         {
             TabPage selectedTab = tabControl1.SelectedTab;
             if (selectedTab == fileHierachyPage)
-                Clipboard.SetText(Path.Combine(extractionRecord.DestinationPath, fileTreeView.SelectedNode.FullPath));
-            else if (selectedTab == contentFoldersPage)
-            {
-                var list = new List<string>(contentFoldersList.SelectedItems.Count);
-                for (var i = 0; i < contentFoldersList.SelectedItems.Count; i++)
-                    list.Add(Path.Combine(extractionRecord.DestinationPath, contentFoldersList.SelectedItems[i].Text));
-                Clipboard.SetText(string.Join('\n', list));
-            }
+                Clipboard.SetText(Path.Combine(record.Destination, fileTreeView.SelectedNode.FullPath));
             else if (selectedTab == fileListPage)
             {
                 var list = new List<string>(filesExtractedList.SelectedItems.Count);
                 for (var i = 0; i < filesExtractedList.SelectedItems.Count; i++)
-                    list.Add(Path.Combine(extractionRecord.DestinationPath, filesExtractedList.SelectedItems[i].Text));
-                Clipboard.SetText(string.Join('\n', list));
-            }
-            else if (selectedTab == erroredFilesPage)
-            {
-                var list = new List<string>(erroredFilesList.SelectedItems.Count);
-                for (var i = 0; i < erroredFilesList.SelectedItems.Count; i++)
-                    list.Add(Path.Combine(extractionRecord.DestinationPath, erroredFilesList.SelectedItems[i].Text));
+                    list.Add(Path.Combine(record.Destination, filesExtractedList.SelectedItems[i].Text));
                 Clipboard.SetText(string.Join('\n', list));
             }
         }
@@ -581,13 +532,9 @@ namespace DAZ_Installer.Windows.Forms
         {
             TabPage selectedTab = tabControl1.SelectedTab;
             if (selectedTab == fileHierachyPage)
-                Process.Start(@"explorer.exe", $"/select, \"{Path.Combine(extractionRecord.DestinationPath, fileTreeView.SelectedNode.FullPath).Replace('/', '\\')}\"");
-            else if (selectedTab == contentFoldersPage)
-                Process.Start(@"explorer.exe", $"/select, \"{Path.Combine(extractionRecord.DestinationPath, contentFoldersList.SelectedItems[0].Text).Replace('/', '\\')}\"");
+                Process.Start(@"explorer.exe", $"/select, \"{Path.Combine(record.Destination, fileTreeView.SelectedNode.FullPath).Replace('/', '\\')}\"");
             else if (selectedTab == fileListPage)
-                Process.Start(@"explorer.exe", $"/select, \"{Path.Combine(extractionRecord.DestinationPath, filesExtractedList.SelectedItems[0].Text).Replace('/', '\\')}\"");
-            else if (selectedTab == erroredFilesPage)
-                Process.Start(@"explorer.exe", $"/select, \"{Path.Combine(extractionRecord.DestinationPath, erroredFilesList.SelectedItems[0].Text).Replace('/', '\\')}\"");
+                Process.Start(@"explorer.exe", $"/select, \"{Path.Combine(record.Destination, filesExtractedList.SelectedItems[0].Text).Replace('/', '\\')}\"");
         }
 
         private void copyImageToolStripMenuItem_Click(object sender, EventArgs e)
@@ -599,8 +546,8 @@ namespace DAZ_Installer.Windows.Forms
             }
             catch (Exception ex)
             {
+                logger.Error(ex, "Failed to copy image to clipboard.");
                 MessageBox.Show($"Failed to copy image to clipboard. REASON: {ex}", "Copy image failed", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                // DPCommon.WriteToLog($"Failed to copy image to clipboard. REASON: {ex}");
             }
         }
 
