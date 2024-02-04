@@ -49,7 +49,7 @@ namespace DAZ_Installer.Database
                 if (opts.IsCancellationRequested) return new List<DPProductRecordLite>(0);
                 var record = new DPProductRecordLite(
                     reader.GetString("Name"),
-                    reader.GetString("Thumbnail"),
+                    reader.IsDBNull("Thumbnail") ? null : reader.GetString("Thumbnail"),
                     reader.GetString("Tags").Split(", "),
                     reader.GetInt64("PID")
                 );
