@@ -10,6 +10,8 @@ using System.Windows.Forms;
 using Serilog;
 using Serilog.Templates;
 using System.Reflection;
+using System.Threading.Tasks;
+using System.Data.Entity;
 
 namespace DAZ_Installer.Windows
 {
@@ -46,6 +48,7 @@ namespace DAZ_Installer.Windows
                 .CreateLogger();
             Log.ForContext(typeof(Program)).Information("Starting application");
             if (CheckInstances()) return;
+            if (DatabaseUpdateRequired().Result == false) return;
             Thread.CurrentThread.Name = "Main";
             using var mutex = new Mutex(false, "DAZ_Installer Instance");
             mutex.WaitOne(0);
@@ -66,6 +69,29 @@ namespace DAZ_Installer.Windows
             finally {
                 mutex.ReleaseMutex();
             }
+        }
+
+        static async Task<bool> DatabaseUpdateRequired()
+        {
+            if (Database.UpdateRequired)
+            {
+                Log.Information("The database requires an update");
+                var result = MessageBox.Show("A database update is required before starting this application. Do you wish to start the update now? This may take a few minutes.", 
+                    "Database Update Required", MessageBoxButtons.YesNo, MessageBoxIcon.Information);
+                if (result == DialogResult.No) return false;
+                CancellationTokenSource cts = new CancellationTokenSource();
+                cts.CancelAfter(TimeSpan.FromMinutes(20));
+                await Database.UpdateDatabase(cts.Token).ConfigureAwait(false);
+                await Database.RefreshDatabaseQ(true);
+                if (Database.UpdateRequired)
+                {
+                    Log.Warning("The database update was not successful.");
+                    MessageBox.Show("The database update was not successful. The changes to the database have not been applied. The application will now close.", "Database Update Failed", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    return false;
+                }
+                return true;
+            }
+            return true;
         }
 
         /// <summary>
