@@ -10,6 +10,7 @@ using System.Threading.Tasks;
 using System.Windows.Forms;
 using DAZ_Installer.Windows.DP;
 using Serilog;
+using DAZ_Installer.IO;
 
 namespace DAZ_Installer.Windows.Pages
 {
@@ -159,9 +160,71 @@ namespace DAZ_Installer.Windows.Pages
             lb.Dock = DockStyle.Top;
             lb.Anchor = AnchorStyles.Left | AnchorStyles.Right | AnchorStyles.Top;
             lb.Image = noImageFound;
+            lb.Tag = record;
+            lb.ProductRecordRemovalRequested += () => OnProductRecordRemovalRequested(lb.Tag);
+            lb.ProductRemovalRequested += () => OnProductRemovalRequested(lb.Tag);
 
             if (libraryItems.Count != libraryItems.Capacity) libraryItems.Add(lb);
             return lb;
+        }
+
+        private async void OnProductRemovalRequested(object tag)
+        {
+            try
+            {
+                if (tag is DPProductRecordLite record)
+                {
+                    var fullRecord = await Program.Database.GetFullProductRecord(record.ID).ConfigureAwait(false);
+                    if (fullRecord is null) throw new NullReferenceException();
+                    var fs = new DPFileSystem(new DPFileScopeSettings(Array.Empty<string>(), new[] { fullRecord.Destination }, false));
+                    var result = await DPProductRemover.RemoveProductAsync(record, Program.Database, DPSettings.CurrentSettingsObject,
+                        fs).ConfigureAwait(false);
+                    if (!result.Success) throw new NullReferenceException();
+                }
+                else if (tag is DPProductRecord record1)
+                {
+                    var fs = new DPFileSystem(new DPFileScopeSettings(Array.Empty<string>(), new[] { record1.Destination }, false));
+                    var result = await DPProductRemover.RemoveProductAsync(record1, Program.Database, DPSettings.CurrentSettingsObject,
+                        fs).ConfigureAwait(false);
+                    if (!result.Success) throw new NullReferenceException();
+                }
+                else
+                {
+                    Log.Error("OnProductRecordRemovalRequested: Tag is not a DPProductRecordLite or DPProductRecord");
+                    throw new ArgumentNullException(nameof(tag));
+                }
+            } catch (Exception ex)
+            {
+                Log.Error(ex, "An unexpected error occurred while attempting to remove a product record");
+                MessageBox.Show($"Failed to remove product record.", "Failed to remove product record", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        private async void OnProductRecordRemovalRequested(object tag)
+        {
+            try
+            {
+                if (tag is DPProductRecordLite record)
+                {
+                    var result = await DPProductRemover.RemoveRecordAsync(record, Program.Database).ConfigureAwait(false);
+                    if (!result) throw new NullReferenceException();
+                }
+                else if (tag is DPProductRecord record1)
+                {
+                    var result = await DPProductRemover.RemoveRecordAsync(record1, Program.Database).ConfigureAwait(false);
+                    if (!result) throw new NullReferenceException();
+                }
+                else
+                {
+                    Log.Error("OnProductRecordRemovalRequested: Tag is not a DPProductRecordLite or DPProductRecord");
+                    throw new ArgumentNullException(nameof(tag));
+                }
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex, "An unexpected error occurred while attempting to remove a product record");
+                MessageBox.Show($"Failed to remove product record.", "Failed to remove product record", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
         }
 
         public LibraryItem AddNewLibraryItem(string title, string[] tags, string[] folders)
@@ -174,7 +237,6 @@ namespace DAZ_Installer.Windows.Pages
             lb.TitleText = title;
             lb.Tags = tags;
             lb.ProductRecordFormType = typeof(ProductRecordForm);
-            //lb.Folders = folders;
             lb.Dock = DockStyle.Top;
             lb.Anchor = AnchorStyles.Left | AnchorStyles.Right | AnchorStyles.Top;
             lb.Image = noImageFound;

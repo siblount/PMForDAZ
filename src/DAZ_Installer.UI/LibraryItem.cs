@@ -13,6 +13,8 @@ namespace DAZ_Installer
     {
         public static Color initialColor;
         public static Color darkerColor = Color.FromArgb(60, Color.FromKnownColor(KnownColor.ForestGreen));
+        public event Action ProductRemovalRequested;
+        public event Action ProductRecordRemovalRequested;
         protected bool initalized = false;
         [Description("Title text"), Category("Data"), Browsable(true), EditorBrowsable(EditorBrowsableState.Always), DesignerSerializationVisibility(DesignerSerializationVisibility.Visible)]
         public string TitleText
@@ -186,7 +188,7 @@ namespace DAZ_Installer
             DialogResult result = MessageBox.Show($"Are you sure you want to remove the record for {ProductRecord.Name}? " +
                 "This wont remove the files on disk. Additionally, the record cannot be restored.", "Remove product record confirmation", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
             if (result == DialogResult.No) return;
-            Database?.RemoveProductRecordQ(ProductRecord);
+            ProductRecordRemovalRequested?.Invoke();
         }
 
         private void removeProductToolStripMenuItem_Click(object sender, EventArgs e)
@@ -194,7 +196,7 @@ namespace DAZ_Installer
             DialogResult result = MessageBox.Show($"Are you sure you want to remove the record & product files for {ProductRecord.Name}? " +
                 "THIS WILL PERMANENTLY REMOVE ASSOCIATED FILES ON DISK!", "Remove product confirmation", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
             if (result == DialogResult.No) return;
-            Task.Run(RemoveProduct);
+            ProductRemovalRequested?.Invoke();
         }
 
         private void ShowMessageIfVisible(string msg, string title, MessageBoxButtons buttons, MessageBoxIcon icon)
@@ -204,42 +206,6 @@ namespace DAZ_Installer
                 BeginInvoke(() => MessageBox.Show(msg, title, buttons, icon));
             else
                 MessageBox.Show(msg, title, buttons, icon);
-        }
-
-        private async Task RemoveProduct()
-        {
-            // First, we need to query the database for the full record.
-            var liteRecord = ProductRecord;
-            var record = await Database?.GetFullProductRecord(liteRecord.ID);
-            if (record is null)
-            {
-                ShowMessageIfVisible("Failed to remove product due to database issue.", "Removal failed", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                return;
-            }
-            var deleteCount = 0;
-            // Now delete.
-            foreach (var file in record.Files)
-            {
-                var deletePath = Path.Combine(record.Destination, file);
-                var info = new FileInfo(deletePath);
-                try
-                {
-                    info.Delete();
-                    deleteCount++;
-                }
-                catch (Exception ex)
-                {
-                    // DPCommon.WriteToLog($"Failed to remove product file for {ProductRecord.Name}, file: {file}. REASON: {ex}");
-                }
-            }
-            var delta = record.Files.Count - deleteCount;
-            if (delta == record.Files.Count)
-                MessageBox.Show($"Removal of product files completely failed for {ProductRecord.Name}.",
-                    "Removal failed", MessageBoxButtons.OK, MessageBoxIcon.Error);
-            else if (delta > 0)
-                MessageBox.Show($"Some product files failed to be removed for {ProductRecord.Name}.",
-                    "Some files failed to be removed", MessageBoxButtons.OK, MessageBoxIcon.Information);
-            else Database?.RemoveProductRecordQ(ProductRecord);
         }
     }
 }
