@@ -93,28 +93,26 @@ namespace DAZ_Installer.Database
         /// <param name="command">The command to set up the query for. Cannot be null.</param>
         private void SetupSearch(string userQuery, DPSortMethod method, DbCommand command)
         {
-            // SELECT * FROM ProductsLite p WHERE p.ROWID IN (SELECT ROWID FROM ProductsFTS5 WHERE Tags MATCH "Genesis" ORDER BY rank LIMIT 25);
-            StringBuilder sb = new(userQuery + 50);
-            if (method == DPSortMethod.Relevance)
-                sb.AppendFormat($"SELECT * FROM {ProductLiteView} WHERE PID  IN (SELECT ROWID FROM {ProductFTS5Table} WHERE Tags MATCH \"{0}\" ORDER BY rank);", userQuery);
+            StringBuilder sb = new();
 
             switch (method)
             {
                 case DPSortMethod.Alphabetical:
-                    sb.AppendFormat($"SELECT * FROM {ProductLiteAlphabeticalView} WHERE PID IN (SELECT ROWID FROM {ProductFTS5Table} WHERE Tags MATCH \"{0}\");", userQuery);
+                    sb.Append($"SELECT * FROM {ProductLiteAlphabeticalView} WHERE PID IN (SELECT ROWID FROM {ProductFTS5Table} WHERE {ProductFTS5Table} MATCH @A);");
                     break;
                 case DPSortMethod.Date:
-                    sb.AppendFormat($"SELECT * FROM {ProductLiteDateView} WHERE PID IN (SELECT ROWID FROM {ProductFTS5Table} WHERE Tags MATCH \"{0}\");", userQuery);
+                    sb.Append($"SELECT * FROM {ProductLiteDateView} WHERE PID IN (SELECT ROWID FROM {ProductFTS5Table} WHERE {ProductFTS5Table} MATCH @A);");
                     break;
                 case DPSortMethod.Relevance:
-                    sb.AppendFormat($"SELECT * FROM {ProductLiteView} WHERE PID IN (SELECT ROWID FROM {ProductFTS5Table} WHERE Tags MATCH \"{0}\" ORDER BY rank);", userQuery);
+                    sb.Append($"SELECT * FROM {ProductLiteView} WHERE PID IN (SELECT ROWID FROM {ProductFTS5Table} WHERE {ProductFTS5Table} MATCH @A ORDER BY rank);");
                     break;
                 default:
-                    sb.AppendFormat($"SELECT * FROM {ProductLiteView} WHERE PID IN (SELECT ROWID FROM {ProductFTS5Table} WHERE Tags MATCH \"{0}\");", userQuery);
+                    sb.Append($"SELECT * FROM {ProductLiteView} WHERE PID IN (SELECT ROWID FROM {ProductFTS5Table} WHERE {ProductFTS5Table} MATCH @A);");
                     break;
             }
 
             command.CommandText = sb.ToString();
+            command.Parameters.Add(new SqliteParameter("@A", userQuery));
 
         }
     }

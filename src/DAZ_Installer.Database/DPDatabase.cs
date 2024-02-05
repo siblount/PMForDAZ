@@ -379,7 +379,7 @@ namespace DAZ_Installer.Database
         {
             const string createProductNameToPIDCommand = @$"
             CREATE INDEX {IDX_Name_Products} ON {ProductTable} (
-                ""Name"" ASC
+                ""Name"" COLLATE NOCASE ASC
             );
 
             CREATE INDEX {IDX_Date_Products} ON {ProductTable} (
@@ -464,7 +464,7 @@ namespace DAZ_Installer.Database
                         CREATE VIEW {ProductLiteView} (Name, Thumbnail, Tags, PID) 
                             AS SELECT Name, Thumbnail, Tags, ROWID FROM {ProductTable};
                         CREATE VIEW {ProductLiteAlphabeticalView} (Name, Thumbnail, Tags, PID) 
-                            AS SELECT Name, Thumbnail, Tags, ROWID FROM {ProductTable} ORDER BY Name;
+                            AS SELECT Name, Thumbnail, Tags, ROWID FROM {ProductTable} ORDER BY Name COLLATE NOCASE;
                         CREATE VIEW {ProductLiteDateView} (Name, Thumbnail, Tags, PID) 
                             AS SELECT Name, Thumbnail, Tags, ROWID FROM {ProductTable} ORDER BY Date;
                         CREATE VIEW {ArchivesView} AS SELECT ArcName FROM {ProductTable};
