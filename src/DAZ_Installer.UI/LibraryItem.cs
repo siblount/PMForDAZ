@@ -198,14 +198,5 @@ namespace DAZ_Installer
             if (result == DialogResult.No) return;
             ProductRemovalRequested?.Invoke();
         }
-
-        private void ShowMessageIfVisible(string msg, string title, MessageBoxButtons buttons, MessageBoxIcon icon)
-        {
-            if (!Visible || !IsHandleCreated) return;
-            if (InvokeRequired)
-                BeginInvoke(() => MessageBox.Show(msg, title, buttons, icon));
-            else
-                MessageBox.Show(msg, title, buttons, icon);
-        }
     }
 }
