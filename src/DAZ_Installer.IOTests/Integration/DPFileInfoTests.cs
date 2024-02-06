@@ -7,12 +7,7 @@ namespace DAZ_Installer.IO.Integration.Tests
 #pragma warning disable CS0618 // This is for testing, as intended.
     public class DPFileInfoTests
     {
-        private static DPFileSystem unlimitedCtx = new DPFileSystem(DPFileScopeSettings.All);
-        private static DPFileSystem noCtx = new DPFileSystem(DPFileScopeSettings.None);
         private static DPFileInfo existingFile = null!;
-        private static DPFileInfo nonexistantFile = null!;
-        private static DPFileInfo outOfScope = null!;
-        private static DPFileInfo destOutOfScope = null!;
         private static string initExistingFilePath = null!;
         private static string tempDir = Path.Combine(Path.GetTempPath(), "DAZ_Installer.IO.Integration.Tests.DPFileInfoTests");
         private static DPFileSystem defaultFS = new DPFileSystem(new DPFileScopeSettings(Array.Empty<string>(), new[] { tempDir }, false));
@@ -36,9 +31,6 @@ namespace DAZ_Installer.IO.Integration.Tests
         public void TestCleanup()
         {
             existingFile.TryDelete();
-            nonexistantFile.TryDelete();
-            outOfScope.TryDelete();
-            destOutOfScope.TryDelete();
         }
 
         [TestMethod]
