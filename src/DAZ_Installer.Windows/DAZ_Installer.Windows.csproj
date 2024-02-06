@@ -21,6 +21,7 @@
 	<InformationalVersion>$(AssemblyVersion)$(VersionSuffix)</InformationalVersion>
     <AssemblyVersion>0.9.*</AssemblyVersion>
     <ApplicationIcon>favicon.ico</ApplicationIcon>
+    <Platforms>AnyCPU;x64</Platforms>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
@@ -30,10 +31,22 @@
 	<IsPreRelease>True</IsPreRelease>
   </PropertyGroup>
 
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <Deterministic>False</Deterministic>
+    <FileAlignment>512</FileAlignment>
+    <VersionSuffix>Pre-alpha</VersionSuffix>
+    <IsPreRelease>True</IsPreRelease>
+  </PropertyGroup>
+
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
     <Deterministic>False</Deterministic>
     <FileAlignment>512</FileAlignment>
 	  
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <Deterministic>False</Deterministic>
+    <FileAlignment>512</FileAlignment>
   </PropertyGroup>
 
   <ItemGroup>
