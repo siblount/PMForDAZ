@@ -43,6 +43,11 @@ namespace DAZ_Installer.Windows.Forms
 
         public void InitializeProductRecordInfo(DPProductRecordLite record)
         {
+            if (InvokeRequired)
+            {
+                BeginInvoke(() => InitializeProductRecordInfo(record));
+                return;
+            }
             liteRecord = record;
             productNameTxtBox.Text = record.Name;
             tagsView.BeginUpdate();
