@@ -186,7 +186,7 @@ namespace DAZ_Installer
         private void removeRecordToolStripMenuItem_Click(object sender, EventArgs e)
         {
             DialogResult result = MessageBox.Show($"Are you sure you want to remove the record for {ProductRecord.Name}? " +
-                "This wont remove the files on disk. Additionally, the record cannot be restored.", "Remove product record confirmation", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+                "This won't remove the files on disk and the record cannot be restored.", "Remove product record confirmation", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
             if (result == DialogResult.No) return;
             ProductRecordRemovalRequested?.Invoke();
         }
@@ -194,7 +194,7 @@ namespace DAZ_Installer
         private void removeProductToolStripMenuItem_Click(object sender, EventArgs e)
         {
             DialogResult result = MessageBox.Show($"Are you sure you want to remove the record & product files for {ProductRecord.Name}? " +
-                "THIS WILL PERMANENTLY REMOVE ASSOCIATED FILES ON DISK!", "Remove product confirmation", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+                "THIS CAN PERMANENTLY REMOVE ASSOCIATED FILES ON DISK (depending on Delete Action setting)!", "Remove product confirmation", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
             if (result == DialogResult.No) return;
             ProductRemovalRequested?.Invoke();
         }
