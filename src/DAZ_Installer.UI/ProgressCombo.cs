@@ -22,6 +22,9 @@ namespace DAZ_Installer.UI
             progressBarLbl.Visible = progressBar.Visible = cancelBtn.Visible = false;
         }
 
+        /// <summary>
+        /// Ends the progress bar. Automatically checks if Invoke is required. 
+        /// </summary>
         public void EndProgress()
         {
             if (InvokeRequired)
@@ -32,6 +35,10 @@ namespace DAZ_Installer.UI
             cancelBtn.Visible = false;
         }
 
+        /// <summary>
+        /// Starts the progress bar. Automatically checks if Invoke is required. 
+        /// CancellationTokenSource is reset here.
+        /// </summary>
         public void StartProgress()
         {
             if (InvokeRequired)
@@ -39,9 +46,14 @@ namespace DAZ_Installer.UI
                 BeginInvoke(StartProgress);
                 return;
             }
+            CancellationTokenSource = new();
             progressBarLbl.Visible = progressBar.Visible = cancelBtn.Visible = true;
         }
 
+        /// <summary>
+        /// Sets the progress of the progress bar. Automatically checks if Invoke is required.
+        /// </summary>
+        /// <param name="value">The value to set</param>
         public void SetProgress(int value)
         {
             if (InvokeRequired)
@@ -76,7 +88,6 @@ namespace DAZ_Installer.UI
                 progressBar.Style = ProgressBarStyle.Blocks;
             }
             progressBar.ResumeLayout();
-
         }
 
         /// <summary>
@@ -95,6 +106,9 @@ namespace DAZ_Installer.UI
             ResumeLayout();
         }
 
+        /// <summary>
+        /// Requests for cancellation.
+        /// </summary>
         private void cancelBtn_Click(object sender, EventArgs e)
         {
             CancellationTokenSource.Cancel();
