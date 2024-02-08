@@ -60,12 +60,9 @@ namespace DAZ_Installer.Windows.DP
             Processor.ArchiveExit += Processor_ArchiveExit;
             Processor.ProcessError += Processor_ProcessError;
             Processor.StateChanged += Processor_StateChanged;
-            Processor.FileError += Processor_FileError;
             Processor.ExtractProgress += Processor_ExtractProgress;
             Processor.MoveProgress += Processor_MoveProgress;
         }
-
-
 
         private void Processor_StateChanged()
         {
@@ -110,10 +107,6 @@ namespace DAZ_Installer.Windows.DP
             progressCombo.ChangeProgressBarStyle(true);
             progressCombo.SetText($"Moving files from {e.Archive.FileName} to destination...%");
         }
-
-        private void Processor_FileError(object sender, DPErrorArgs e) =>
-            // TODO: Log error?
-            throw new NotImplementedException();
 
         private void Processor_ProcessError(object sender, DPProcessorErrorArgs e)
         {
