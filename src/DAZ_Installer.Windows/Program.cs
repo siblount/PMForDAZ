@@ -4,6 +4,7 @@
 using DAZ_Installer.Database;
 using DAZ_Installer.Windows.Forms;
 using System;
+using System.IO;
 using System.Diagnostics;
 using System.Threading;
 using System.Windows.Forms;
@@ -12,6 +13,7 @@ using Serilog.Templates;
 using System.Reflection;
 using System.Threading.Tasks;
 using System.Data.Entity;
+using DAZ_Installer.Windows.DP;
 
 namespace DAZ_Installer.Windows
 {
@@ -52,6 +54,7 @@ namespace DAZ_Installer.Windows
             Thread.CurrentThread.Name = "Main";
             using var mutex = new Mutex(false, "DAZ_Installer Instance");
             mutex.WaitOne(0);
+            InitSettings();
             // Set the main thread ID to this one.
             MainThreadID = Environment.CurrentManagedThreadId;
             Application.SetHighDpiMode(HighDpiMode.SystemAware);
@@ -64,7 +67,9 @@ namespace DAZ_Installer.Windows
             catch (Exception ex)
             {
                 // TODO: Show error handler here.
-                Log.ForContext(typeof(Program)).Fatal(ex, "Application shutdown due to fatal error.");
+                MessageBox.Show($"Oops! A fatal error occurred that requires the application to shut down. Error:\n{ex.Message}", 
+                    "Fatal Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                Log.ForContext(typeof(Program)).Fatal(ex, "Application shutdown due to fatal error");
             }
             finally {
                 mutex.ReleaseMutex();
@@ -94,6 +99,22 @@ namespace DAZ_Installer.Windows
             return true;
         }
 
+        static void InitSettings() {
+            try {
+                var fileInfo = new FileInfo(DPSettings.SETTINGS_PATH);
+                if (!fileInfo.Exists) DPSettings.CurrentSettingsObject = new DPSettings();
+                using var txt = fileInfo.OpenText();
+                DPSettings.CurrentSettingsObject = DPSettings.FromJson(txt.ReadToEnd());
+                if (DPSettings.CurrentSettingsObject == null)
+                {
+                    Log.Warning("Failed to load settings from disk. Using default settings.");
+                    MessageBox.Show("Failed to load settings from disk. Using default settings.", "Settings Load Failed", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    DPSettings.CurrentSettingsObject = new DPSettings();
+                }
+            } catch (Exception ex) {
+                Log.Error(ex, "Failed to load settings from disk. Using default settings.");  
+            }
+        }
         /// <summary>
         /// Checks if there is a instance of the application running. 
         /// </summary>

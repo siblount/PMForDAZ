@@ -26,12 +26,13 @@ namespace DAZ_Installer.Windows.DP
         // Note: The JSONSerializer will not use the setter for HashSet, therefore the 
         [JsonIgnore]
         public static DPSettings CurrentSettingsObject;
+        [JsonIgnore]
         public static ILogger Logger { get; set; } = Log.Logger.ForContext<DPSettings>();
         /// <summary>
         /// Represents the DAZ content library (or destination) to install the products to.
         /// </summary>
-        public string DestinationPath { get; set; } // todo : Ask for daz content directory if no detected daz content paths found.
-        // TO DO: Use HashSet instead of list.
+        public string DestinationPath { get; set; }
+        [JsonIgnore]
         public string[] detectedDazContentPaths;
         /// <summary>
         /// Determines whether to download thumbnail images of the product.
@@ -84,16 +85,17 @@ namespace DAZ_Installer.Windows.DP
         /// The directory for the database to use. This is not the database file itself.
         /// </summary>
         public string DatabaseDir { get; set; } = "Database";
+        [JsonIgnore]
         /// <summary>
         /// Determines whether the current settings are valid. It checks whtehr the directories exist and have access to them.
         /// </summary>
         public bool Valid => Verify();
-        private const string SETTINGS_PATH = "settings.json";
+        [JsonIgnore]
+        public const string SETTINGS_PATH = "settings.json";
 
         static DPSettings()
         {
-            var fileInfo = new FileInfo(SETTINGS_PATH);
-            CurrentSettingsObject = fileInfo.Exists ? FromJson(File.ReadAllText(SETTINGS_PATH)) ?? new DPSettings() : new DPSettings();
+            CurrentSettingsObject ??= new DPSettings();
         }
         public DPSettings() => detectedDazContentPaths = DPRegistry.ContentDirectories;
         /// <summary>
