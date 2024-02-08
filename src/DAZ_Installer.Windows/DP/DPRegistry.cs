@@ -45,7 +45,7 @@ namespace DAZ_Installer.Windows.DP
         /// </summary>
         internal static void Refresh()
         {
-            RegistryKey DazStudioKey = Registry.CurrentUser.OpenSubKey(@"SOFTWARE\DAZ\Studio4");
+            RegistryKey? DazStudioKey = Registry.CurrentUser.OpenSubKey(@"SOFTWARE\DAZ\Studio4");
             if (DazStudioKey == null) return;
             ContentDirectories = GetContentDirectories(DazStudioKey);
 
@@ -56,7 +56,7 @@ namespace DAZ_Installer.Windows.DP
             {
                 if (name.Contains("InstallPath")) installPathName = name;
             }
-            DazAppPath = DazStudioKey.GetValue(installPathName, "") as string;
+            DazAppPath = DazStudioKey.GetValue(installPathName, "") as string ?? string.Empty;
         }
 
     }
