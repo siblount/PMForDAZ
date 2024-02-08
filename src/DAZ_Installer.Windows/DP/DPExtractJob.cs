@@ -126,15 +126,18 @@ namespace DAZ_Installer.Windows.DP
             progressCombo.SetText($"Creating records for {e.Archive.FileName}...");
             CreateRecords(e.Archive, e.Report!);
 
+            if (e.Archive.IsInnerArchive) return;
             switch (UserSettings.PermDeleteSource)
             {
                 case SettingOptions.Yes:
-                    RemoveSourceFiles();
+                    RemoveSourceFile(e.Archive.Path);
                     break;
                 case SettingOptions.Prompt:
-                    DialogResult result = MessageBox.Show("Do you wish to PERMENATELY delete all of the source files regardless if it was extracted or not? This cannot be undone.",
-                        "Delete soruce files", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
-                    if (result == DialogResult.Yes) RemoveSourceFiles();
+                    DialogResult result;
+                    result = MessageBox.Show("Do you wish to " + (UserSettings.PermDeleteSource == SettingOptions.Prompt ? "PERMENATELY DELETE" : "recycle") + " the source file? " +
+                                            (UserSettings.PermDeleteSource == SettingOptions.Prompt ? "This cannot be undone." : "You can undo this by restoring the file from your recycle bin."),
+                                            "Delete source files", MessageBoxButtons.YesNoCancel, MessageBoxIcon.Question);
+                    if (result == DialogResult.Yes) RemoveSourceFile(e.Archive.Path);
                     break;
             }
         }
@@ -215,27 +218,22 @@ namespace DAZ_Installer.Windows.DP
             
         }
 
-        public void RemoveSourceFiles()
+        /// <summary>
+        /// Removes the source file from the file system depending on the user settings.
+        /// </summary>
+        /// <param name="file">The source file to delete.</param>
+        public void RemoveSourceFile(string file)
         {
-            var scopeSettings = new DPFileScopeSettings(FilesToProcess, Array.Empty<string>(), false, true);
+            var scopeSettings = new DPFileScopeSettings(new[] { file }, Array.Empty<string>(), false, true);
             var fs = new DPFileSystem(scopeSettings);
-
-            foreach (var file in FilesToProcess)
-            {
-                Exception? ex = null;
-                if (UserSettings.DeleteAction == RecycleOption.DeletePermanently)
-                    fs.CreateFileInfo(file).TryAndFixDelete(out ex);
-                else
-                {
-                    try
-                    {
-                        if (fs.Scope.IsFilePathWhitelisted(file)) 
-                            FileSystem.DeleteFile(file, UIOption.OnlyErrorDialogs, RecycleOption.SendToRecycleBin);
-                    } catch (Exception e) { ex = e; }
-                }
-                if (ex != null)
-                    Logger.Error(ex, "Failed to delete source file: {file}", file);
-            }
+            var fi = fs.CreateFileInfo(file);
+            Exception? ex = null;
+            if (UserSettings.DeleteAction == RecycleOption.DeletePermanently)
+                fi.TryAndFixDelete(out ex);
+            else
+                fi.TryAndFixSendToRecycleBin(out ex);
+            if (ex != null)
+                Logger.Error(ex, "An error occurred while attempting to delete source file {file}", file);
         }
 
         private DPProductRecord? CreateRecords(DPArchive arc, DPExtractionReport report)
