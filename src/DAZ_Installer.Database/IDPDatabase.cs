@@ -116,11 +116,11 @@ namespace DAZ_Installer.Database
         /// </summary>
         Task RemoveAllRecordsQ();
         /// <summary>
-        /// Updates the <c>ArchiveFileNames</c> variable and returns it via callback function.
-        /// It returns a unique set of installed archive names.
+        /// Queries the database for whether the archive name exists in the database.
         /// </summary>
+        /// <param name="arcName">The archive file name to search for.</param>
         /// <param name="callback">The function to return values to.</param>
-        /// <returns> The archive file names. </returns>
-        Task<HashSet<string>> GetInstalledArchiveNamesQ(Action<HashSet<string>>? callback = null);
+        /// <returns>Whether the database contains the archive name. Can be null if query failed.</returns>
+        Task<bool?> ContainsArchive(string arcName, Action<bool?>? callback = null);
     }
 }

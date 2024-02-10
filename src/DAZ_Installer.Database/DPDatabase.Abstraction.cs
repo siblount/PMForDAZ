@@ -136,30 +136,22 @@ namespace DAZ_Installer.Database
         /// <returns>A hashset containing successfully extracted archive file names.</returns>
         // TODO: Deprecate this. As more products are installed, the hashset will grow and grow. This is not good.
         // Just query the database to check if the archive exists.
-        private HashSet<string>? GetArchiveFileNameList(SqliteConnectionOpts opts)
+        private bool ArchiveNameExists(string arcName, SqliteConnectionOpts opts)
         {
-            HashSet<string>? names = null!;
-            var getCmd = $@"SELECT ""ArcName"" FROM {ProductTable}";
+            var getCmd = $@"SELECT EXISTS(SELECT 1 FROM {ProductTable} WHERE ""ArcName"" = @A LIMIT 1);";
             try
             {
                 using var _connection = CreateAndOpenConnection(ref opts, true);
                 using var cmd = opts.CreateCommand(getCmd);
-                if (_connection == null) return names;
-
-                using var reader = cmd.ExecuteReader();
-                names = new HashSet<string>(reader.FieldCount);
-                while (reader.Read())
-                {
-                    names.Add(reader.GetString(0));
-                }
-                // MainQueryCompleted?.Invoke();
-                ArchiveFileNames = names;
+                if (_connection == null) return false;
+                cmd.Parameters.Add(new SqliteParameter("@A", arcName));
+                return Convert.ToByte(cmd.ExecuteScalar()) == 1;
             }
             catch (Exception ex)
             {
                 Logger.Error(ex, "Failed to get archive file name list");
             }
-            return names;
+            return false;
         }
 
         /// <summary>

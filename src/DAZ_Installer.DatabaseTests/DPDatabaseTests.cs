@@ -363,7 +363,7 @@ namespace DAZ_Installer.Database.Tests
         }
 
         [TestMethod]
-        public void GetInstalledArchiveNamesQTest()
+        public void ContainsArchiveTest()
         {
             var record = new DPProductRecord("Test Product", new[] { "TheRealSolly" }, DateTime.UtcNow, "a.png", "arc.zip", "J:/",
                 new[] { "tag1", "tag2" }, new[] { "file1", "file2" }, 1);
@@ -372,10 +372,8 @@ namespace DAZ_Installer.Database.Tests
             record = record with { Authors = Array.Empty<string>() };
             Database.AddNewRecordEntry(record with { ArcName = "arc2.zip" }).Wait();
 
-            var a = Database.GetInstalledArchiveNamesQ();
-            var result = a.Result.ToArray();
-            CollectionAssert.Contains(result, "arc.zip");
-            CollectionAssert.Contains(result, "arc2.zip");
+            Assert.IsTrue(Database.ContainsArchive("arc.zip").Result);
+            Assert.IsTrue(Database.ContainsArchive("arc2.zip").Result);
         }
 
         [TestMethod]

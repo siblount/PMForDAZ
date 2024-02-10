@@ -190,13 +190,13 @@ namespace DAZ_Installer.Database
             RemoveAllRecords(opts);
         });
         
-        public async Task<HashSet<string>?> GetInstalledArchiveNamesQ(Action<HashSet<string>>? callback = null)
+        public async Task<bool?> ContainsArchive(string arcName, Action<bool?>? callback = null)
         {
-            HashSet<string>? result = null;
+            bool? result = null;
             await _priorityTaskManager.AddToQueue((t) =>
             {
                 var opts = new SqliteConnectionOpts() { CancellationToken = t };
-                result = GetArchiveFileNameList(opts);
+                result = ArchiveNameExists(arcName, opts);
                 callback?.Invoke(result);
             });
             return result;

@@ -144,20 +144,22 @@ namespace DAZ_Installer.Windows.DP
 
         private void Processor_ArchiveEnter(object sender, DPArchiveEnterArgs e)
         {
-            if (Program.Database.ArchiveFileNames.Contains(e.Archive.FileName))
+            switch (UserSettings.InstallPrevProducts)
             {
-                switch (UserSettings.InstallPrevProducts)
-                {
-                    case SettingOptions.No:
-                        Processor.CancelCurrentArchive();
-                        break;
-                    case SettingOptions.Prompt:
-                        DialogResult result = MessageBox.Show($"It seems that \"{e.Archive.FileName}\" was already processed. " +
-                            $"Do you wish to continue processing this file?", "Archive already processed",
-                            MessageBoxButtons.YesNo, MessageBoxIcon.Information);
-                        if (result == DialogResult.No) Processor.CancelCurrentArchive();
-                        break;
-                }
+                case SettingOptions.No:
+                    Processor.CancelCurrentArchive();
+                    break;
+                case SettingOptions.Prompt:
+                    CancellationTokenSource cts = new();
+                    cts.CancelAfter(TimeSpan.FromSeconds(15));
+                    var t = Task.Run(() => Program.Database.ContainsArchive(e.Archive.FileName), cts.Token);
+                    progressCombo.SetText($"Checking if {e.Archive.FileName} was previously processed...");
+                    if (t.Result != true) return;
+                    DialogResult result = MessageBox.Show($"It seems that \"{e.Archive.FileName}\" was already processed. " +
+                        $"Do you wish to continue processing this file?", "Archive already processed",
+                        MessageBoxButtons.YesNo, MessageBoxIcon.Information);
+                    if (result == DialogResult.No) Processor.CancelCurrentArchive();
+                    break;
             }
         }
 
@@ -198,9 +200,6 @@ namespace DAZ_Installer.Windows.DP
                         $"{Path.GetFileName(x)}...({percentage}%)");
                     Processor.ProcessArchive(x, processSettings);
                 }
-
-                // Update the database after this run.
-                Program.Database.GetInstalledArchiveNamesQ();
             } catch (Exception ex)
             {
                 Logger.Error(ex, "An error occurred while attempting to process archive list");
@@ -227,7 +226,7 @@ namespace DAZ_Installer.Windows.DP
             var scopeSettings = new DPFileScopeSettings(new[] { file }, Array.Empty<string>(), false, true);
             var fs = new DPFileSystem(scopeSettings);
             var fi = fs.CreateFileInfo(file);
-            Exception? ex = null;
+            Exception? ex;
             if (UserSettings.DeleteAction == RecycleOption.DeletePermanently)
                 fi.TryAndFixDelete(out ex);
             else
