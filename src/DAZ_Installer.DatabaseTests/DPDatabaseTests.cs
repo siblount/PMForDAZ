@@ -1,9 +1,11 @@
-﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
+﻿using DAZ_Installer.Database;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 using MSTestLogger = Microsoft.VisualStudio.TestTools.UnitTesting.Logging.Logger;
 using System.Collections.Concurrent;
 using Serilog;
 using System.Data;
 using Microsoft.Data.Sqlite;
+using System.CodeDom.Compiler;
 
 namespace DAZ_Installer.Database.Tests
 {
@@ -347,7 +349,8 @@ namespace DAZ_Installer.Database.Tests
                 if (t == "Products")
                     productsFound = eventCalled = true;
             };
-            Database.ProductRecordModified += (r, i) => {
+            Database.ProductRecordModified += (r, i) =>
+            {
                 event2Called = true;
                 Assert.That.ProductRecordEqual(record, r);
                 Assert.AreEqual(1, i);
@@ -397,7 +400,7 @@ namespace DAZ_Installer.Database.Tests
             Database.RecordsCleared += () => recordsClearedEventThrown = true;
             Database.DatabaseUpdated += () => databaseUpdatedEventThrown = true;
             Database.RemoveAllRecordsQ().Wait();
-            
+
 
             Assert.AreEqual(0, DPDatabaseTestHelpers.GetAllProductRecords(DatabasePath).Count);
             Assert.IsTrue(tableUpdatedEventThrown);
@@ -470,7 +473,7 @@ namespace DAZ_Installer.Database.Tests
             Assert.That.ProductRecordEqual(expectedRecord, records[0]);
             Assert.That.ProductRecordEqual(expectedRecord1, records[1]);
 
-            
+
         }
 
         [TestMethod]
@@ -519,6 +522,356 @@ namespace DAZ_Installer.Database.Tests
             int result = Convert.ToInt32(cmd2.ExecuteScalar());
             Assert.AreEqual(0, result);
 
+        }
+
+        [TestMethod]
+        public void RefreshDatabaseQTest()
+        {
+            Database.GetType().GetProperty("Flags").SetValue(Database, DPArchiveFlags.UpdateRequired | DPArchiveFlags.Corrupted);
+            Database.RefreshDatabaseQ().Wait();
+            Assert.AreEqual(Database.Flags, DPArchiveFlags.Initialized);
+        }
+
+        [TestMethod]
+        public void GetFullProductRecordTest()
+        {
+            var expected = new DPProductRecord("Test Product", new[] { "TheRealSolly" }, DateTime.FromFileTimeUtc(0), "a.png", "arc.zip", "J:/",
+                               new[] { "tag1", "tag2" }, new[] { "file1", "file2" }, 1);
+            Database.AddNewRecordEntry(expected).Wait();
+
+            DPProductRecord? callbackRecord = null;
+            var result = Database.GetFullProductRecord(1, r => callbackRecord = r).Result;
+
+            Assert.That.ProductRecordEqual(expected, result, true);
+            Assert.That.ProductRecordEqual(expected, callbackRecord, true);
+        }
+
+        [TestMethod]
+        public void SearchQTest()
+        {
+            // Create some dummy, but distingiushable records
+            const int n = 25;
+            Task? lastTask = null;
+            List<DPProductRecordLite> expected = new(n);
+            for (var i = 0; i < n; i++)
+            {
+                var record = new DPProductRecord($"Test Product {i}", new[] { "TheRealSolly" }, DateTime.FromFileTimeUtc(0), "a.png", "arc.zip", "J:/",
+                               new[] { "tag1", "tag2" }, new[] { "file1", "file2" }, (uint)i);
+                expected.Add(record.ToLite());
+                lastTask = Database.AddNewRecordEntry(record);
+            }
+            lastTask!.Wait();
+
+            List<DPProductRecordLite>? callbackResults = null;
+            var result = Database.SearchQ("Test Product", DPSortMethod.None, 0, r => callbackResults = r).Result;
+
+            Assert.IsNotNull(callbackResults);
+            Assert.AreEqual(n, callbackResults.Count);
+            Assert.AreEqual(n, result.Count);
+
+            for (var i = 0; i < n; i++)
+            {
+                Assert.That.ProductRecordLiteEqual(expected[i], callbackResults[i]);
+                Assert.That.ProductRecordLiteEqual(expected[i], result[i]);
+            }
+        }
+
+        [TestMethod]
+        public void SearchQTest_AlphabeticalSort()
+        {
+            // Create some dummy, but distingiushable records
+            const int n = 25;
+            Task? lastTask = null;
+            List<DPProductRecordLite> expected = new(n);
+            for (var i = 0; i < n; i++)
+            {
+                var record = new DPProductRecord($"{'A' + i}", new[] { "TheRealSolly" }, DateTime.FromFileTimeUtc(0), "a.png", "arc.zip", "J:/",
+                               new[] { "tag1", "tag2" }, new[] { "file1", "file2" }, (uint)i);
+                expected.Add(record.ToLite());
+                lastTask = Database.AddNewRecordEntry(record);
+            }
+            lastTask!.Wait();
+
+            List<DPProductRecordLite>? callbackResults = null;
+            var result = Database.SearchQ("tag1", DPSortMethod.Alphabetical, 0, r => callbackResults = r).Result;
+
+            Assert.IsNotNull(callbackResults);
+            Assert.AreEqual(n, callbackResults.Count);
+            Assert.AreEqual(n, result.Count);
+
+            for (var i = 0; i < n; i++)
+            {
+                Assert.That.ProductRecordLiteEqual(expected[i], callbackResults[i]);
+                Assert.That.ProductRecordLiteEqual(expected[i], result[i]);
+            }
+        }
+
+        [TestMethod]
+        public void SearchQTest_DateSort()
+        {
+            // Create some dummy, but distingiushable records
+            const int n = 25;
+            Task? lastTask = null;
+            List<DPProductRecordLite> expected = new(n);
+            for (var i = 0; i < n; i++)
+            {
+                var record = new DPProductRecord($"{'A' + i}", new[] { "TheRealSolly" }, DateTime.FromFileTimeUtc(i), "a.png", "arc.zip", "J:/",
+                               new[] { "tag1", "tag2" }, new[] { "file1", "file2" }, (uint)i);
+                expected.Add(record.ToLite());
+                lastTask = Database.AddNewRecordEntry(record);
+            }
+            lastTask!.Wait();
+
+            List<DPProductRecordLite>? callbackResults = null;
+            var result = Database.SearchQ("tag1", DPSortMethod.Date, 0, r => callbackResults = r).Result;
+
+            Assert.IsNotNull(callbackResults);
+            Assert.AreEqual(n, callbackResults.Count);
+            Assert.AreEqual(n, result.Count);
+
+            for (var i = 0; i < n; i++)
+            {
+                Assert.That.ProductRecordLiteEqual(expected[i], callbackResults[i]);
+                Assert.That.ProductRecordLiteEqual(expected[i], result[i]);
+            }
+        }
+
+        [TestMethod]
+        public void SearchQTest_RelevanceSort()
+        {
+            var perfectMatchRecord = new DPProductRecord("Perfect Match", new[] { "TheRealSolly" }, DateTime.FromFileTimeUtc(0), "a.png", "arc.zip", "J:/",
+                                              new[] { "Perfect", "Match", "with", "other", "tags" }, new[] { "file1", "file2" }, 1);
+            var goodMatchRecord = perfectMatchRecord with { Name = "Good Match Perfect", Tags = new[] { "Good", "Match", "Perfect" }, ID = 2 };
+            var badMatchRecord = perfectMatchRecord with { Name = "Bad Match", Tags = new[] { "Bad", "Match" }, ID = 3 };
+
+            DPProductRecord[] expected = new[] { perfectMatchRecord, goodMatchRecord };
+            Array.ForEach(expected, r => Database.AddNewRecordEntry(r));
+            Database.AddNewRecordEntry(badMatchRecord).Wait();
+
+            List<DPProductRecordLite>? callbackResults = null;
+            var result = Database.SearchQ("Perfect Match", DPSortMethod.Relevance, 0, r => callbackResults = r).Result;
+
+            Assert.IsNotNull(callbackResults);
+            Assert.AreEqual(expected.Length, callbackResults.Count);
+            Assert.AreEqual(expected.Length, result.Count);
+
+            for (var i = 0; i < expected.Length; i++)
+            {
+                Assert.That.ProductRecordLiteEqual(expected[i].ToLite(), callbackResults[i]);
+                Assert.That.ProductRecordLiteEqual(expected[i].ToLite(), result[i]);
+            }
+        }
+
+        [TestMethod]
+        public void GetProductRecordsQTest()
+        {
+            // Create some dummy, but distingiushable records
+            const int n = 25;
+            Task? lastTask = null;
+            List<DPProductRecordLite> expected = new(n);
+            for (var i = 0; i < n; i++)
+            {
+                var record = new DPProductRecord($"Test Product {i}", new[] { "TheRealSolly" }, DateTime.FromFileTimeUtc(0), "a.png", "arc.zip", "J:/",
+                               new[] { "tag1", "tag2" }, new[] { "file1", "file2" }, (uint)i);
+                expected.Add(record.ToLite());
+                lastTask = Database.AddNewRecordEntry(record);
+            }
+            lastTask!.Wait();
+
+            List<DPProductRecordLite>? callbackResults = null;
+            var result = Database.GetProductRecordsQ(DPSortMethod.None, 1, n, 0, r => callbackResults = r).Result;
+
+            Assert.IsNotNull(callbackResults);
+            Assert.AreEqual(n, callbackResults.Count);
+            Assert.AreEqual(n, result.Count);
+
+            for (var i = 0; i < n; i++)
+            {
+                Assert.That.ProductRecordLiteEqual(expected[i], callbackResults[i]);
+                Assert.That.ProductRecordLiteEqual(expected[i], result[i]);
+            }
+        }
+
+        [TestMethod]
+        public void GetProductRecordsQTest_AlphabeticalSort()
+        {
+            // Create some dummy, but distingiushable records
+            const int n = 25;
+            Task? lastTask = null;
+            List<DPProductRecordLite> expected = new(n);
+            for (var i = 0; i < n; i++)
+            {
+                var record = new DPProductRecord($"{'A' + i}", new[] { "TheRealSolly" }, DateTime.FromFileTimeUtc(0), "a.png", "arc.zip", "J:/",
+                               new[] { "tag1", "tag2" }, new[] { "file1", "file2" }, (uint)i);
+                expected.Add(record.ToLite());
+                lastTask = Database.AddNewRecordEntry(record);
+            }
+            lastTask!.Wait();
+
+            List<DPProductRecordLite>? callbackResults = null;
+            var result = Database.GetProductRecordsQ(DPSortMethod.Alphabetical, 1, n, 0, r => callbackResults = r).Result;
+
+            Assert.IsNotNull(callbackResults);
+            Assert.AreEqual(n, callbackResults.Count);
+            Assert.AreEqual(n, result.Count);
+
+            for (var i = 0; i < n; i++)
+            {
+                Assert.That.ProductRecordLiteEqual(expected[i], callbackResults[i]);
+                Assert.That.ProductRecordLiteEqual(expected[i], result[i]);
+            }
+        }
+
+        [TestMethod]
+        public void GetProductRecordsQTest_DateSort()
+        {
+            // Create some dummy, but distingiushable records
+            const int n = 25;
+            Task? lastTask = null;
+            List<DPProductRecordLite> expected = new(n);
+            for (var i = 0; i < n; i++)
+            {
+                var record = new DPProductRecord($"{'A' + i}", new[] { "TheRealSolly" }, DateTime.FromFileTimeUtc(i), "a.png", "arc.zip", "J:/",
+                               new[] { "tag1", "tag2" }, new[] { "file1", "file2" }, (uint)i);
+                expected.Add(record.ToLite());
+                lastTask = Database.AddNewRecordEntry(record);
+            }
+            lastTask!.Wait();
+
+            List<DPProductRecordLite>? callbackResults = null;
+            var result = Database.GetProductRecordsQ(DPSortMethod.Date, 1, n, 0, r => callbackResults = r).Result;
+
+            Assert.IsNotNull(callbackResults);
+            Assert.AreEqual(n, callbackResults.Count);
+            Assert.AreEqual(n, result.Count);
+
+            for (var i = 0; i < n; i++)
+            {
+                Assert.That.ProductRecordLiteEqual(expected[i], callbackResults[i]);
+                Assert.That.ProductRecordLiteEqual(expected[i], result[i]);
+            }
+        }
+
+        [TestMethod]
+        public void GetProductRecordsQTest_FirstPage()
+        {
+            // Create some dummy, but distingiushable records
+            const int n = 25;
+            Task? lastTask = null;
+            List<DPProductRecordLite> expected = new(n);
+            for (var i = 0; i < n; i++)
+            {
+                var record = new DPProductRecord($"Test Product {i}", new[] { "TheRealSolly" }, DateTime.FromFileTimeUtc(0), "a.png", "arc.zip", "J:/",
+                               new[] { "tag1", "tag2" }, new[] { "file1", "file2" }, (uint)i);
+                expected.Add(record.ToLite());
+                lastTask = Database.AddNewRecordEntry(record);
+            }
+            expected = expected.Take(10).ToList();
+            lastTask!.Wait();
+
+            List<DPProductRecordLite>? callbackResults = null;
+            var result = Database.GetProductRecordsQ(DPSortMethod.None, 1, 10, 0, r => callbackResults = r).Result;
+
+            Assert.IsNotNull(callbackResults);
+            Assert.AreEqual(expected.Count, callbackResults.Count);
+            Assert.AreEqual(expected.Count, result.Count);
+
+            for (var i = 0; i < expected.Count; i++)
+            {
+                Assert.That.ProductRecordLiteEqual(expected[i], callbackResults[i]);
+                Assert.That.ProductRecordLiteEqual(expected[i], result[i]);
+            }
+        }
+
+        [TestMethod]
+        public void GetProductRecordsQTest_MiddlePage()
+        {
+            // Create some dummy, but distingiushable records
+            const int n = 25;
+            Task? lastTask = null;
+            List<DPProductRecordLite> expected = new(n);
+            for (var i = 0; i < n; i++)
+            {
+                var record = new DPProductRecord($"Test Product {i}", new[] { "TheRealSolly" }, DateTime.FromFileTimeUtc(0), "a.png", "arc.zip", "J:/",
+                               new[] { "tag1", "tag2" }, new[] { "file1", "file2" }, (uint)i);
+                expected.Add(record.ToLite());
+                lastTask = Database.AddNewRecordEntry(record);
+            }
+            expected = expected.Take(new Range(5, 10)).ToList();
+            lastTask!.Wait();
+
+            List<DPProductRecordLite>? callbackResults = null;
+            var result = Database.GetProductRecordsQ(DPSortMethod.None, 2, 5, 0, r => callbackResults = r).Result;
+
+            Assert.IsNotNull(callbackResults);
+            Assert.AreEqual(expected.Count, callbackResults.Count);
+            Assert.AreEqual(expected.Count, result.Count);
+
+            for (var i = 0; i < expected.Count; i++)
+            {
+                Assert.That.ProductRecordLiteEqual(expected[i], callbackResults[i]);
+                Assert.That.ProductRecordLiteEqual(expected[i], result[i]);
+            }
+        }
+        [TestMethod]
+        public void GetProductRecordsQTest_LastPage()
+        {
+            // Create some dummy, but distingiushable records
+            const int n = 25;
+            Task? lastTask = null;
+            List<DPProductRecordLite> expected = new(n);
+            for (var i = 0; i < n; i++)
+            {
+                var record = new DPProductRecord($"Test Product {i}", new[] { "TheRealSolly" }, DateTime.FromFileTimeUtc(0), "a.png", "arc.zip", "J:/",
+                               new[] { "tag1", "tag2" }, new[] { "file1", "file2" }, (uint)i);
+                expected.Add(record.ToLite());
+                lastTask = Database.AddNewRecordEntry(record);
+            }
+            expected = expected.Skip(20).ToList();
+            lastTask!.Wait();
+
+            List<DPProductRecordLite>? callbackResults = null;
+            var result = Database.GetProductRecordsQ(DPSortMethod.None, 3, 10, 0, r => callbackResults = r).Result;
+
+            Assert.IsNotNull(callbackResults);
+            Assert.AreEqual(expected.Count, callbackResults.Count);
+            Assert.AreEqual(expected.Count, result.Count);
+
+            for (var i = 0; i < expected.Count; i++)
+            {
+                Assert.That.ProductRecordLiteEqual(expected[i], callbackResults[i]);
+                Assert.That.ProductRecordLiteEqual(expected[i], result[i]);
+            }
+        }
+
+        [TestMethod]
+        public void GetProductRecordsQTest_DateSortMiddlePage()
+        {
+            // Create some dummy, but distingiushable records
+            const int n = 25;
+            Task? lastTask = null;
+            List<DPProductRecordLite> expected = new(n);
+            for (var i = 0; i < n; i++)
+            {
+                var record = new DPProductRecord($"{'A' + i}", new[] { "TheRealSolly" }, DateTime.FromFileTimeUtc(i), "a.png", "arc.zip", "J:/",
+                               new[] { "tag1", "tag2" }, new[] { "file1", "file2" }, (uint)i);
+                expected.Add(record.ToLite());
+                lastTask = Database.AddNewRecordEntry(record);
+            }
+            lastTask!.Wait();
+            expected = expected.Take(new Range(5, 10)).ToList();
+            List<DPProductRecordLite>? callbackResults = null;
+            var result = Database.GetProductRecordsQ(DPSortMethod.Date, 2, 5, 0, r => callbackResults = r).Result;
+
+            Assert.IsNotNull(callbackResults);
+            Assert.AreEqual(expected.Count, callbackResults.Count);
+            Assert.AreEqual(expected.Count, result.Count);
+
+            for (var i = 0; i < expected.Count; i++)
+            {
+                Assert.That.ProductRecordLiteEqual(expected[i], callbackResults[i]);
+                Assert.That.ProductRecordLiteEqual(expected[i], result[i]);
+            }
         }
     }
 }
