@@ -49,7 +49,7 @@ namespace DAZ_Installer.Database.Tests
         [TestCleanup]
         public void TestCleanup()
         {
-            Database.StopAllDatabaseOperations();
+            Database.StopAllDatabaseOperations(true);
             SqliteConnection.ClearAllPools();
             GC.Collect();
             GC.WaitForPendingFinalizers();
@@ -872,6 +872,32 @@ namespace DAZ_Installer.Database.Tests
                 Assert.That.ProductRecordLiteEqual(expected[i], callbackResults[i]);
                 Assert.That.ProductRecordLiteEqual(expected[i], result[i]);
             }
+        }
+
+        [TestMethod]
+        public void RestoreDatabaseQTest()
+        {
+            // Database file is created and SQLiteConnection pool is available at this point.
+            var expectedRecord = new DPProductRecord("Test Product", new[] { "TheRealSolly" }, DateTime.FromFileTimeUtc(0), "a.png", "arc.zip", "J:/",
+                                                             new[] { "tag1", "tag2" }, new[] { "file1", "file2" }, 1);
+            Database.AddNewRecordEntry(expectedRecord).Wait();
+            Database.StopAllDatabaseOperations(true);
+            SqliteConnection.ClearAllPools();
+            GC.WaitForPendingFinalizers();
+            GC.Collect();
+            // At this point, all pools should be removed. This means there should not be any handle on the database file.
+            var newPath = Path.Combine(Path.GetDirectoryName(DatabasePath), Path.GetFileNameWithoutExtension(DatabasePath) + "_backup.db");
+            File.Move(DatabasePath, newPath);
+            // Database file is created again since the file does not exist.
+            Database = new DPDatabase(DatabasePath);
+            var callbackResult = false;
+
+            var result = Database.RestoreDatabaseQ(newPath, r => callbackResult = r).Result;
+            Assert.IsTrue(callbackResult);
+            Assert.IsTrue(result);
+            Assert.AreEqual(DPArchiveFlags.Initialized, Database.Flags);
+            var record = Database.GetFullProductRecord(1).Result;
+            Assert.That.ProductRecordEqual(expectedRecord, record, true);
         }
     }
 }
