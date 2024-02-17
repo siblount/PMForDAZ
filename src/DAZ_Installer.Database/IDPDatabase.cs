@@ -122,5 +122,20 @@ namespace DAZ_Installer.Database
         /// <param name="callback">The function to return values to.</param>
         /// <returns>Whether the database contains the archive name. Can be null if query failed.</returns>
         Task<bool?> ContainsArchive(string arcName, Action<bool?>? callback = null);
+        /// <summary>
+        /// Restores the database from a backup file. This procedure will rename the file name at <paramref name="backupPath"/>
+        /// to the current database file name. This means that the current database file WILL be overwritten!
+        /// </summary>
+        /// <param name="backupPath">The path to the backup database.</param>
+        /// <param name="callback">The function to call when the action has finished.</param>
+        /// <returns>Whether the operation was successful or not.</returns>
+        Task<bool> RestoreDatabaseQ(string backupPath, Action<bool>? callback = null);
+        /// <summary>
+        /// Vacuums the database. This is used to optimize the database file size. This can be a VERY slow operation and
+        /// should be used sparingly.
+        /// </summary>
+        /// <param name="callback">The function to call when the action has finished.</param>
+        /// <returns>Whether the vaccum was successful or not.</returns>
+        Task<bool> VacuumDatabaseQ(Action<bool>? callback = null);
     }
 }

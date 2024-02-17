@@ -91,6 +91,39 @@ namespace DAZ_Installer.Database
             return Task.CompletedTask;
         }
 
+        public async Task<bool> RestoreDatabaseQ(string backupPath, Action<bool>? callback = null)
+        {
+            var result = false;
+            await _mainTaskManager.AddToQueue((t) =>
+            {
+                try
+                {
+                    Flags |= DPArchiveFlags.Locked;
+                    _priorityTaskManager.StopAndWait();
+                    var opts = new SqliteConnectionOpts() { CancellationToken = t };
+                    result = RestoreDatabase(backupPath, opts);
+                    callback?.Invoke(result);
+                } finally
+                {
+                    Flags &= ~DPArchiveFlags.Locked;
+                }
+
+            });
+            return result;
+        }
+
+        public async Task<bool> VacuumDatabaseQ(Action<bool>? callback = null)
+        {
+            var result = false;
+            await _mainTaskManager.AddToQueue((t) =>
+            {
+                var opts = new SqliteConnectionOpts() { CancellationToken = t };
+                result = VacuumDatabase(opts);
+                callback?.Invoke(result);
+            });
+            return result;
+        }
+
         public async Task<DataSet?> ViewTableQ(string tableName, uint callerID = 0, Action<DataSet?>? callback = null)
         {
             DataSet? result = null;

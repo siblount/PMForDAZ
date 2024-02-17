@@ -7,6 +7,7 @@ using System.Data;
 using Microsoft.Data.Sqlite;
 using System.Diagnostics.CodeAnalysis;
 using System.Collections.Immutable;
+using DAZ_Installer.IO;
 
 namespace DAZ_Installer.Database
 {
@@ -65,7 +66,6 @@ namespace DAZ_Installer.Database
             ProductTable, DestinationTable, FilesTable, ProductFTS5Table, DatabaseInfoTable, ProductFullView,
             ProductLiteView, ProductLiteAlphabeticalView, ProductLiteDateView, ArchivesView, IDX_Name_Products, IDX_Date_Products, 
             IDX_Arc_Products, DeleteOnProductTrigger, UpdateProductCountTrigger, AddToFTSTrigger }.ToImmutableHashSet();
-        public HashSet<string> ArchiveFileNames { get; private set; } = new HashSet<string>();
 
         // Events
         /// <summary>
@@ -117,7 +117,7 @@ namespace DAZ_Installer.Database
         /// <summary>
         /// The path of the database to use. Default is: <c>%TEMP%\db.db</c>.
         /// </summary>
-        public string Path { get; init; } = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "db.db");
+        public string Path { get; protected set; } = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "db.db");
 
         //private string _expectedDatabasePath => Path.Join(DPSettings.databasePath, "db.db");
 
@@ -700,11 +700,13 @@ namespace DAZ_Installer.Database
             using var c = CreateAndOpenConnection(ref opts, true);
             using var d = new SqliteConnection();
 
+            
             SqliteConnectionStringBuilder builder = new();
 
             var newFileName = System.IO.Path.GetFileNameWithoutExtension(Path) + "_backup.db";
             builder.DataSource = System.IO.Path.GetFullPath(System.IO.Path.Combine(System.IO.Path.GetDirectoryName(Path)!, newFileName));
             d.ConnectionString = builder.ConnectionString;
+            if (File.Exists(d.DataSource)) File.Delete(d.DataSource);
             if (c is null || !OpenConnection(d) || opts.IsCancellationRequested) return false;
             try
             {
@@ -717,10 +719,57 @@ namespace DAZ_Installer.Database
             return true;
         }
 
-        [Obsolete("Not implemented yet")]
-        private void RestoreDatabase(CancellationToken t)
+        private bool RestoreDatabase(string? location, SqliteConnectionOpts opts)
         {
-            return;
+            location ??= System.IO.Path.GetFileNameWithoutExtension(Path) + "_backup.db";
+            if (!File.Exists(location)) return false;
+;
+            try
+            {
+                DPFileSystem system = new(new DPFileScopeSettings(new[] { location, Path }, Array.Empty<string>(), false, true));
+
+                //using var connection = CreateInitialConnection(ref opts);
+                //if (!OpenConnection(connection) || opts.IsCancellationRequested) return false;
+                //connection.Dispose();
+
+                //SqliteConnection.ClearPool((SqliteConnection) connection.Connection);
+                SqliteConnection.ClearAllPools();
+                GC.WaitForPendingFinalizers();
+                GC.Collect();
+
+                var file = system.CreateFileInfo(location);
+                if (!file.TryAndFixMoveTo(Path, true, out var ex))
+                {
+                    Logger.Error(ex, "Failed to restore database");
+                    return false;
+                }
+                RefreshDatabase(opts);
+                return true;
+            } catch (Exception ex)
+            {
+                Logger.Error(ex, "Failed to restore database");
+            } finally
+            {
+                Flags &= ~DPArchiveFlags.Locked;
+            }
+            return false;
+        }
+
+        private bool VacuumDatabase(SqliteConnectionOpts opts)
+        {
+            using var c = CreateAndOpenConnection(ref opts, true);
+            if (!OpenConnection(c) || opts.IsCancellationRequested) return false;
+            try
+            {
+                using var cmd = opts.CreateCommand("pragma VACUUM");
+                cmd.ExecuteNonQuery();
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Logger.Error(ex, "Failed to vacuum database");
+            }
+            return false;
         }
 
         // Prep for app closure.
