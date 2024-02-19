@@ -740,12 +740,12 @@ namespace DAZ_Installer.Database
             {
                 DPFileSystem system = new(new DPFileScopeSettings(new[] { location, Path }, Array.Empty<string>(), false, true));
 
-                //using var connection = CreateInitialConnection(ref opts);
-                //if (!OpenConnection(connection) || opts.IsCancellationRequested) return false;
-                //connection.Dispose();
+                using (var connection = CreateInitialConnection(ref opts))
+                {
+                    if (!OpenConnection(connection) || opts.IsCancellationRequested) return false;
+                    SqliteConnection.ClearPool((SqliteConnection)connection.Connection);
+                }
 
-                //SqliteConnection.ClearPool((SqliteConnection) connection.Connection);
-                SqliteConnection.ClearAllPools();
                 GC.WaitForPendingFinalizers();
                 GC.Collect();
 
