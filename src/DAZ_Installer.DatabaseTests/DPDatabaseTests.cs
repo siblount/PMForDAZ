@@ -13,7 +13,8 @@ namespace DAZ_Installer.Database.Tests
     public class DPDatabaseTests
     {
         public static DPDatabase Database { get; set; } = null!;
-        public static string DatabasePath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName() + ".db");
+        public static readonly string DatabaseDir = Path.Combine(Path.GetTempPath(), "DAZ_installer.DatabaseTests");
+        public static string DatabasePath = Path.Combine(DatabaseDir, "database.db");
         [ClassInitialize]
         public static void ClassInitialize(TestContext _)
         {
@@ -22,6 +23,7 @@ namespace DAZ_Installer.Database.Tests
                         .WriteTo.Sink(new MSTestLoggerSink(SerilogLoggerConstants.LoggerTemplate, MSTestLogger.LogMessage))
                         .MinimumLevel.Information()
                         .CreateLogger();
+            Directory.CreateDirectory(DatabaseDir);
         }
         [ClassCleanup]
         public static void ClassCleanup()
@@ -30,7 +32,7 @@ namespace DAZ_Installer.Database.Tests
             {
                 GC.Collect();
                 GC.WaitForPendingFinalizers();
-                File.Delete(DatabasePath);
+                Directory.Delete(DatabaseDir, true);
             }
             catch (Exception ex)
             {
@@ -887,7 +889,7 @@ namespace DAZ_Installer.Database.Tests
             GC.Collect();
             // At this point, all pools should be removed. This means there should not be any handle on the database file.
             var newPath = Path.Combine(Path.GetDirectoryName(DatabasePath), Path.GetFileNameWithoutExtension(DatabasePath) + "_backup.db");
-            File.Move(DatabasePath, newPath);
+            File.Move(DatabasePath, newPath, true);
             // Database file is created again since the file does not exist.
             Database = new DPDatabase(DatabasePath);
             var callbackResult = false;
