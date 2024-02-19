@@ -901,5 +901,21 @@ namespace DAZ_Installer.Database.Tests
             var record = Database.GetFullProductRecord(1).Result;
             Assert.That.ProductRecordEqual(expectedRecord, record, true);
         }
+
+        [TestMethod]
+        public void VacuumDatabaseQTest()
+        {
+            const int n = 25;
+            for (var i = 0; i < n; i++)
+            {
+                var record = new DPProductRecord($"Test Product {i}", new[] { "TheRealSolly" }, DateTime.FromFileTimeUtc(0), "a.png", "arc.zip", "J:/",
+                               new[] { "tag1", "tag2" }, new[] { "file1", "file2" }, (uint)i);
+            }
+            Database.RemoveAllRecordsQ().Wait();
+            var callbackResult = false;
+            var result = Database.VacuumDatabaseQ(r => callbackResult = r).Result;
+            Assert.IsTrue(result);
+            Assert.IsTrue(callbackResult);
+        }
     }
 }
