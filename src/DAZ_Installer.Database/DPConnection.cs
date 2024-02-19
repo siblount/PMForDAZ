@@ -97,11 +97,13 @@ namespace DAZ_Installer.Database
         {
             if (Disposed) return;
             GC.SuppressFinalize(this);
-            if (dispose)
-            {
-                Connection.Dispose();
-                return;
-            }
+            if (dispose) Connection.Dispose();
+            Disposed = true;
+        }
+
+        ~DPConnection()
+        {
+            Dispose();
         }
         public void Open() => Connection.Open();
         IDbTransaction IDbConnection.BeginTransaction()

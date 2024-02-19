@@ -170,13 +170,13 @@ namespace DAZ_Installer.Database
                 else Flags |= DPArchiveFlags.Missing;
                 // TODO: Check if const database version is higher than the one in the database.
                 var opts = new SqliteConnectionOpts();
+                using var connection = CreateInitialConnection(ref opts);
+                if (!OpenConnection(connection)) return false;
                 if (Flags.HasFlag(DPArchiveFlags.Missing))
                 {
                     // Create the database.
                     CreateDatabase(opts);
                     // Update database info.
-                    using var connection = CreateInitialConnection(ref opts);
-                    if (connection == null) return false;
                     InsertDefaultValuesToTable(DatabaseInfoTable, opts);
                 }
                 // Set the corrupted flag if applicable.
@@ -201,16 +201,22 @@ namespace DAZ_Installer.Database
         /// </summary>
         /// <param name="readOnly">Determines if the connection should be a read-only
         /// connection or not.</param>
-        /// <returns>An SqliteConnection if successfully created otherwise null.</returns>
-        private DPConnection? CreateConnection(ref SqliteConnectionOpts opts, bool readOnly = false)
+        private void CreateConnection(ref SqliteConnectionOpts opts, bool readOnly = false)
         {
             // If opts.Connection is not null, that connection will still work
             // since it was fine before. Commands will stop working if the database is locked.
-            if (DatabaseNotReady || opts.Connection is not null) return null;
+            if (DatabaseNotReady) return;
+            if (opts.Connection is not null)
+            {
+                // SqliteCOnnectionOpts side effect will wrap the current connection with a new DPConnection
+                // so that on Dispose, it will not dispose the underlying connection.
+                opts.Connection = null;
+                return;
+            }
             if (!Initialized)
             {
                 var success = Initialize();
-                if (!success) return null;
+                if (!success) return;
             }
             try
             {
@@ -220,16 +226,21 @@ namespace DAZ_Installer.Database
                 builder.Pooling = true;
                 builder.Mode = readOnly ? SqliteOpenMode.ReadOnly : SqliteOpenMode.ReadWrite;
                 connection.ConnectionString = builder.ConnectionString;
-                return new DPConnection(connection, true);
+
+                // SqliteConnectionOpts has a side effect with the Connection property.
+                // It will set the connection as expected ONLY when connection is null.
+                // Otherwise, any set operation will be ignore the value and set it to new DPConnection(connection).
+                // Hence, why we use null.
+                opts.Connection = new DPConnection(connection, true);
             }
             catch (Exception e)
             {
                 Logger.Error(e, "Failed to create connection");
             }
-            return null;
         }
         /// <summary>
         /// Creates and returns a connection with the connection string setup. Should only be used for the Initialization function.
+        /// This will also create the database file if it does not exist.
         /// </summary>
         /// <returns>An SqliteConnection if successfully created, otherwise null.</returns>
         private DPConnection? CreateInitialConnection(ref SqliteConnectionOpts opts)
@@ -241,7 +252,10 @@ namespace DAZ_Installer.Database
                 builder.DataSource = System.IO.Path.GetFullPath(Path);
                 builder.Pooling = true;
                 connection.ConnectionString = builder.ConnectionString;
-                opts.Connection = new DPConnection(connection, true);
+                // This will only be set if it's null. Otherwise, it will be new DPConnection(connection).
+                if (opts.Connection is null)
+                    opts.Connection = new DPConnection(connection, true);
+                else opts.Connection = null;
             }
             catch (Exception e)
             {
@@ -253,7 +267,7 @@ namespace DAZ_Installer.Database
         /// <summary>
         /// Creates, opens, and returns a SQLite Connection. If connection is null, a
         /// connection will be created for you. If the connection fails to open or be
-        /// created, it will return null.
+        /// created, it will return null. This will create the database file if it does not exist.
         /// </summary>
         /// <param name="connection">An existing connection to open.</param>
         /// <param name="readOnly">Determine if the new connection should be read only.</param>
@@ -262,7 +276,7 @@ namespace DAZ_Installer.Database
         /// null is returned.</returns>
         private DPConnection? CreateAndOpenConnection(ref SqliteConnectionOpts opts, bool readOnly = false)
         {
-            opts.Connection = CreateConnection(ref opts, readOnly);
+            CreateConnection(ref opts, readOnly);
             var success = OpenConnection(opts.Connection);
             return success ? opts.Connection : null;
         }
@@ -297,12 +311,10 @@ namespace DAZ_Installer.Database
             if (!Directory.Exists(Path))
                 Directory.CreateDirectory(System.IO.Path.GetDirectoryName(Path)!);
 
-            File.Create(Path).Close();
+            using var connection = CreateInitialConnection(ref opts);
+            if (!OpenConnection(connection)) return;
             Flags &= ~DPArchiveFlags.Missing;
 
-            using var connection = CreateInitialConnection(ref opts);
-
-            if (!OpenConnection(connection)) return;
             using var transaction = connection.BeginTransaction(ref opts);
 
             // Create tables, views, indexes, and triggers.
