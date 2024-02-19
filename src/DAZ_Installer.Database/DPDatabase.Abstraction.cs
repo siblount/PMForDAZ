@@ -107,7 +107,6 @@ namespace DAZ_Installer.Database
                 using var connection = CreateAndOpenConnection(ref opts, true);
                 if (connection == null) return Array.Empty<string>();
                 var randomCommand = $"SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%'";
-                opts.CreateCommand(randomCommand);
                 using var sqlCommand = opts.CreateCommand(randomCommand);
 
                 using var reader = sqlCommand.ExecuteReader();
