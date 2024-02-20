@@ -8,6 +8,7 @@ using Microsoft.Data.Sqlite;
 using System.Diagnostics.CodeAnalysis;
 using System.Collections.Immutable;
 using DAZ_Installer.IO;
+using System.IO.Compression;
 
 namespace DAZ_Installer.Database
 {
@@ -709,23 +710,37 @@ namespace DAZ_Installer.Database
 
         private bool BackupDatabase(SqliteConnectionOpts opts)
         {
-            using var c = CreateAndOpenConnection(ref opts, true);
+            using var c = CreateInitialConnection(ref opts);
             using var d = new SqliteConnection();
-
-            
-            SqliteConnectionStringBuilder builder = new();
-
+            var generation = GC.GetGeneration(d);
             var newFileName = System.IO.Path.GetFileNameWithoutExtension(Path) + "_backup.db";
-            builder.DataSource = System.IO.Path.GetFullPath(System.IO.Path.Combine(System.IO.Path.GetDirectoryName(Path)!, newFileName));
+            var fullBackupPath = System.IO.Path.GetFullPath(System.IO.Path.Combine(System.IO.Path.GetDirectoryName(Path)!, newFileName));
+            SqliteConnectionStringBuilder builder = new() { DataSource = fullBackupPath, Pooling = false };
             d.ConnectionString = builder.ConnectionString;
             if (File.Exists(d.DataSource)) File.Delete(d.DataSource);
-            if (c is null || !OpenConnection(d) || opts.IsCancellationRequested) return false;
+            if (!OpenConnection(c) || !OpenConnection(d) || opts.IsCancellationRequested) return false;
             try
             {
                 c.BackupDatabase(d, "main", "main");
             }
             catch (Exception ex) { 
                 Logger.Error(ex, "Failed to backup database");
+                return false;
+            }
+            try
+            {
+                d.Dispose();
+                GC.WaitForPendingFinalizers();
+                GC.Collect(generation, GCCollectionMode.Forced, true);
+                var zipPath = System.IO.Path.ChangeExtension(fullBackupPath, ".zip");
+                var fi = new FileInfo(zipPath);
+                using var stream = fi.Open(FileMode.OpenOrCreate, FileAccess.ReadWrite);
+                using var zip = new ZipArchive(stream, ZipArchiveMode.Create);
+                var entry = zip.CreateEntryFromFile(fullBackupPath, newFileName); 
+                
+            } catch (Exception ex)
+            {
+                Logger.Error(ex, "Failed to zip database");
                 return false;
             }
             return true;

@@ -6,6 +6,7 @@ using Serilog;
 using System.Data;
 using Microsoft.Data.Sqlite;
 using System.CodeDom.Compiler;
+using System.IO.Compression;
 
 namespace DAZ_Installer.Database.Tests
 {
@@ -916,6 +917,29 @@ namespace DAZ_Installer.Database.Tests
             var result = Database.VacuumDatabaseQ(r => callbackResult = r).Result;
             Assert.IsTrue(result);
             Assert.IsTrue(callbackResult);
+        }
+
+        [TestMethod]
+        public void BackupDatabaseQTest()
+        {
+            var expected = new DPProductRecord("Test Product", new[] { "TheRealSolly" }, DateTime.FromFileTimeUtc(0), "a.png", "arc.zip", "J:/",
+                                                                            new[] { "tag1", "tag2" }, new[] { "file1", "file2" }, 1);
+            Database.AddNewRecordEntry(expected);
+            var callbackResult = false;
+            var result = Database.BackupDatabaseQ(r => callbackResult = r).Result;
+
+            var expectedZipPath = Path.Combine(DatabaseDir, Path.GetFileNameWithoutExtension(DatabasePath) + "_backup.zip");
+            var expectedDbPath = Path.Combine(DatabaseDir, Path.GetFileNameWithoutExtension(DatabasePath) + "_backup.db");
+            Assert.IsTrue(File.Exists(expectedZipPath));
+
+            using var zip = ZipFile.OpenRead(expectedZipPath);
+            zip.Entries[0].ExtractToFile(expectedDbPath, true);
+
+            Database = new DPDatabase(expectedDbPath);
+            
+            Assert.IsTrue(result);
+            Assert.IsTrue(callbackResult);
+            Assert.That.ProductRecordEqual(expected, Database.GetFullProductRecord(1).Result);
         }
     }
 }

@@ -137,5 +137,12 @@ namespace DAZ_Installer.Database
         /// <param name="callback">The function to call when the action has finished.</param>
         /// <returns>Whether the vaccum was successful or not.</returns>
         Task<bool> VacuumDatabaseQ(Action<bool>? callback = null);
+        /// <summary>
+        /// Creates a backup of the this current database file in the same directory. The backup file will also be zipped.
+        /// The backup file will be named "[current_db_filename]_backup.db" and the zip file will be named "[current_db_filename]_backup.zip".
+        /// </summary>
+        /// <param name="callback">The function to call when the action has finished.</param>
+        /// <returns>Whether the backup operation was successful or not.</returns>
+        Task<bool> BackupDatabaseQ(Action<bool>? callback = null);
     }
 }
