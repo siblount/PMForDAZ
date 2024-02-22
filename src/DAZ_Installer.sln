@@ -35,6 +35,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DAZ_Installer.DatabaseTests
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DAZ_Installer.TestingSuiteWindows", "DAZ_Installer.TestingSuiteWindows\DAZ_Installer.TestingSuiteWindows.csproj", "{EE91DB42-30F0-4DB3-A513-AFE8B4DE75F3}"
 EndProject
+Project("{54435603-DBB4-11D2-8724-00A0C9A8B90C}") = "DAZ_Installer.WindowsInstaller", "DAZ_Installer.WindowsInstaller\DAZ_Installer.WindowsInstaller.vdproj", "{82147FD8-B1FA-466F-B5D5-9B30ADFF361B}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -77,6 +79,10 @@ Global
 		{EE91DB42-30F0-4DB3-A513-AFE8B4DE75F3}.Debug|x64.Build.0 = Debug|x64
 		{EE91DB42-30F0-4DB3-A513-AFE8B4DE75F3}.Release|x64.ActiveCfg = Release|x64
 		{EE91DB42-30F0-4DB3-A513-AFE8B4DE75F3}.Release|x64.Build.0 = Release|x64
+		{82147FD8-B1FA-466F-B5D5-9B30ADFF361B}.Debug|x64.ActiveCfg = Debug
+		{82147FD8-B1FA-466F-B5D5-9B30ADFF361B}.Debug|x64.Build.0 = Debug
+		{82147FD8-B1FA-466F-B5D5-9B30ADFF361B}.Release|x64.ActiveCfg = Release
+		{82147FD8-B1FA-466F-B5D5-9B30ADFF361B}.Release|x64.Build.0 = Release
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
