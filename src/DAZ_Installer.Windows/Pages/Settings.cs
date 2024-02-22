@@ -581,7 +581,7 @@ namespace DAZ_Installer.Windows.Pages
             }
         }
 
-        private void openDatabaseBtn_Click(object _, EventArgs __) => new DatabaseView().ShowDialog();
+        private void openDatabaseBtn_Click(object _, EventArgs __) => new DatabaseToolsForm().ShowDialog();
         #endregion
     }
 }

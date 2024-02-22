@@ -210,7 +210,7 @@ namespace DAZ_Installer.Windows.Pages
             openDatabaseBtn.Name = "openDatabaseBtn";
             openDatabaseBtn.Size = new System.Drawing.Size(244, 23);
             openDatabaseBtn.TabIndex = 25;
-            openDatabaseBtn.Text = "Open Database";
+            openDatabaseBtn.Text = "Open Database Tools";
             openDatabaseBtn.UseVisualStyleBackColor = true;
             openDatabaseBtn.Click += openDatabaseBtn_Click;
             // 

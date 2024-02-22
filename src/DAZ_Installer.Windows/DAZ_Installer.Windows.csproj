@@ -155,7 +155,7 @@
       <Generator></Generator>
       <CustomToolNamespace></CustomToolNamespace>
     </EmbeddedResource>
-    <EmbeddedResource Update="Forms\DatabaseView.resx">
+    <EmbeddedResource Update="Forms\DatabaseToolForm.resx">
       <CustomToolNamespace></CustomToolNamespace>
       <Generator></Generator>
     </EmbeddedResource>
