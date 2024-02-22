@@ -312,6 +312,15 @@ namespace DAZ_Installer.Database
             if (!Directory.Exists(Path))
                 Directory.CreateDirectory(System.IO.Path.GetDirectoryName(Path)!);
 
+            try
+            {
+                File.Create(Path).Dispose();
+            } catch (Exception ex)
+            {
+                Logger.Warning(ex, "Failed to create empty database file");
+                return;
+            }
+
             using var connection = CreateInitialConnection(ref opts);
             if (!OpenConnection(connection)) return;
             Flags &= ~DPArchiveFlags.Missing;
