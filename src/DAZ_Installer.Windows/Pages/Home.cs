@@ -46,7 +46,7 @@ namespace DAZ_Installer.Windows.Pages
                 MessageBox.Show("The current settings are not valid for processing. This could be due a directory not existing, the application does not have authorized access to access the directory, or due to" +
                     "an unknown IO issue. Please check your settings.", "Settings invalid",
                                        MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                MainForm.SwitchPage(Settings.settingsPage);
+                Settings.settingsPage.SwitchToSettings(true);
                 return;
             }
 

@@ -40,6 +40,13 @@ namespace DAZ_Installer.Windows.Pages
             loadingPanel.BringToFront();
         }
 
+        public void SwitchToSettings(bool settingsInvalid = false)
+        {
+            Logger.Debug("Switching to settings page");
+            applySettingsBtn.Enabled = settingsInvalid;
+            MainForm.SwitchPage(settingsPage);
+        }
+
         // ._.
         private void LoadSettings()
         {
@@ -280,7 +287,7 @@ namespace DAZ_Installer.Windows.Pages
                 MessageBox.Show("An error occurred while saving settings. You're settings have NOT been saved. Please try saving again.",
                     "Error saving settings", MessageBoxButtons.OK, MessageBoxIcon.Error);
 
-            applySettingsBtn.Enabled = false;
+            applySettingsBtn.Enabled = !saveResult;
         }
 
         private bool UpdateSettings()
