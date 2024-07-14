@@ -5,21 +5,21 @@
     <TargetFramework>net6.0-windows</TargetFramework>
     <Nullable>enable</Nullable>
     <UseWindowsForms>true</UseWindowsForms>
-	<ForceDesignerDpiUnaware>true</ForceDesignerDpiUnaware>
+	  <ForceDesignerDpiUnaware>true</ForceDesignerDpiUnaware>
     <ImplicitUsings>disable</ImplicitUsings>
     <PlatformTarget>AnyCPU</PlatformTarget>
-    <Title>Product Manager for Daz Studio</Title>
+    <Title>Product Manager for DAZ Studio</Title>
     <Version>$(AssemblyVersion)$(VersionSuffix)</Version>
-    <Product>Product Manager for Daz Studio</Product>
+    <Product>Product Manager for DAZ Studio</Product>
     <Authors>Solomon Blount and the community</Authors>
-    <Description>Product Manager for Daz Studio</Description>
+    <Description>Product Manager for DAZ Studio</Description>
     <Copyright>Solomon Blount</Copyright>
-    <FileVersion>0.9.*</FileVersion>
+    <FileVersion>0.9.8</FileVersion>
     <SignAssembly>True</SignAssembly>
     <GenerateDocumentationFile>True</GenerateDocumentationFile>
     <AssemblyOriginatorKeyFile></AssemblyOriginatorKeyFile>
-	<InformationalVersion>$(AssemblyVersion)$(VersionSuffix)</InformationalVersion>
-    <AssemblyVersion>0.9.*</AssemblyVersion>
+	  <InformationalVersion>$(AssemblyVersion)$(VersionSuffix)</InformationalVersion>
+    <AssemblyVersion>0.9.8</AssemblyVersion>
     <ApplicationIcon>favicon.ico</ApplicationIcon>
     <Platforms>AnyCPU;x64</Platforms>
   </PropertyGroup>
@@ -27,7 +27,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
     <Deterministic>False</Deterministic>
     <FileAlignment>512</FileAlignment>
-	<VersionSuffix>Pre-alpha</VersionSuffix>
+	  <VersionSuffix>Pre-alpha</VersionSuffix>
 	<IsPreRelease>True</IsPreRelease>
   </PropertyGroup>
 
