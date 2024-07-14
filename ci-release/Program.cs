@@ -55,7 +55,9 @@ public class BuildContext : FrostingContext
 
         if (context.Arguments.HasArgument("suffix"))
             VersionSuffix = context.Arguments.GetArgument("suffix");
-        
+
+        context.Environment.WorkingDirectory = context.Environment.WorkingDirectory.GetParent();
+        context.Log.Information("Current Working Directory: {0}", context.Environment.WorkingDirectory.FullPath);
         BaseSearchPath = context.Environment.WorkingDirectory.FullPath;
         GithubActions = new CustomGithubActionsProvider(this);
         PathFinder = new PathFinder(BaseSearchPath);
