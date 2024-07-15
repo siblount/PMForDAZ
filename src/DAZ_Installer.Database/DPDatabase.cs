@@ -214,11 +214,7 @@ namespace DAZ_Installer.Database
                 opts.Connection = null;
                 return;
             }
-            if (!Initialized)
-            {
-                var success = Initialize();
-                if (!success) return;
-            }
+            if (!Initialized && !Initialize()) return;
             try
             {
                 SqliteConnection connection = new();
