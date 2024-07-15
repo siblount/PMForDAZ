@@ -119,9 +119,9 @@ public sealed class UpdateVersionTask : AsyncFrostingTask<BuildContext>
         context.Log.Information("Version updated.");
     }
 
-    private static void GetVersion(BuildContext context, string versionContext)
+    private static void GetVersion(BuildContext context, string versionContent)
     {
-        var lines = versionContext.Split('\n');
+        var lines = versionContent.Split('\n');
         if (context.VersionOverriden) return;
         if (lines.Length < 2)
             throw new IO.InvalidDataException("Version file is invalid");
@@ -158,6 +158,7 @@ public sealed class HelloTask : FrostingTask<BuildContext>
     public override void Run(BuildContext context)
     {
         context.Log.Information("Hello");
+        context.GitHubActions().Commands.UploadArtifact("", "");
     }
 }
 
