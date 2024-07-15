@@ -1,0 +1,44 @@
+End-User License Agreement (EULA) for Product Manager for DAZ Studio
+
+Please read this End-User License Agreement ("EULA") carefully before installing or using Product Manager for DAZ Studio ("the Software"). By installing or using the Software, you agree to be bound by the terms of this EULA and the full Solomon Blount Keep It Free License.
+
+1. License Grant: 
+   You are granted a non-exclusive, worldwide license to use, copy, distribute, and modify the Software for both private and commercial use, subject to the conditions outlined in this EULA and the full license.
+
+2. Open Source Requirement:
+   You must make the source code of any modifications or derived works publicly available without charge or authentication requirements. The Software and its derivatives must remain free and open-source.
+
+3. License Preservation:
+   This license must be included with all copies, modifications, or derived works. You may not sublicense or remove this license.
+
+4. Commercial Restrictions:
+   You may not sell a competing product that shows similarities to the original project without explicit written permission from the copyright holder.
+
+5. Patent and Trademark:
+   You may not patent or trademark anything related to this Software without meeting all terms and obtaining explicit permission from the copyright holder.
+
+6. No Warranty:
+   The Software is provided "AS IS" without warranty of any kind, neither expressed or implied warranties. You agree that you are making use of this software at your own risk.
+
+7. Limitation of Liability:
+   In no event shall the copyright holder or contributors be liable for any damages arising from the use of this Software.
+
+8. Termination:
+   Your rights under this license will terminate automatically if you fail to comply with its terms and conditions. You may terminate these terms at any time, for any reason. Once your rights have been terminated you MUST remove all copies of this software and discontinue the use of this software and the services it provides IMMEDIATELY. Failure to do so may result in a breach of contract violation.
+
+9. Breach of Contract
+   a) Material Breach: A material breach of this EULA occurs if you fail to comply with any of the key terms, including but not limited to the open source requirement, license preservation, and commercial restrictions.
+   
+   b) Notice of Breach: In the event of a material breach, the copyright holder will provide written notice specifying the nature of the breach. You will have 30 days from receipt of such notice to cure the breach.
+   
+   c) Termination for Breach: If you fail to cure the breach within the specified period, or if the breach is not capable of cure, the copyright holder may terminate this EULA immediately upon written notice to you.
+   
+   d) Consequences of Termination: Upon termination for breach, you must cease all use of the Software and destroy all copies in your possession. You may also be liable for damages resulting from the breach.
+   
+   e) Dispute Resolution: Any disputes regarding an alleged breach shall be resolved in accordance with the dispute resolution provisions in the full Solomon Blount Keep It Free License.
+
+By installing or using the Software, you acknowledge that you have read and understood this EULA and agree to be bound by its terms and conditions, as well as those of the full Solomon Blount Keep It Free License.
+
+For the full license text, please refer to the LICENSE file included with this Software.
+
+Copyright (C) 2022-2024 Solomon Blount. All rights reserved.
