@@ -25,6 +25,8 @@ namespace DAZ_Installer.Database.Tests
                         .MinimumLevel.Information()
                         .CreateLogger();
             Directory.CreateDirectory(DatabaseDir);
+            if (File.Exists(DatabasePath))
+                File.Delete(DatabasePath);
         }
         [ClassCleanup]
         public static void ClassCleanup()
