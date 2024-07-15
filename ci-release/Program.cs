@@ -65,6 +65,7 @@ public class BuildContext : FrostingContext
 }
 
 [TaskName("UpdateVersion")]
+[IsDependentOn(typeof(TestTask))]
 public sealed class UpdateVersionTask : AsyncFrostingTask<BuildContext>
 {
     public const string WINDOWS_PROJECT_PATH = "src/DAZ_Installer.Windows/DAZ_Installer.Windows.csproj";
@@ -152,13 +153,42 @@ public sealed class UpdateVersionTask : AsyncFrostingTask<BuildContext>
     }
 }
 
+public sealed class BuildTask : FrostingTask<BuildContext>
+{
+    public override void Run(BuildContext context)
+    {
+        context.Log.Information("Building project...");
+        context.DotNetBuild(context.PathFinder.FindPath("src/"), new DotNetBuildSettings
+        {
+            Configuration = context.BuildConfiguration,
+            NoIncremental = true,
+        });
+    }
+}
+
+[TaskName("Test")]
+[IsDependentOn(typeof(BuildTask))]
+public sealed class TestTask : FrostingTask<BuildContext>
+{
+    public override void Run(BuildContext context)
+    {
+        context.Log.Information("Running tests...");
+        context.DotNetTest(context.PathFinder.FindPath("src/"), new DotNetTestSettings
+        {
+            Configuration = context.BuildConfiguration,
+            NoBuild = true,
+            NoRestore = true,
+            ArgumentCustomization = args => args.Append("--collect:\"Code Coverage\"")
+        });
+    }
+}
+
 [TaskName("Hello")]
 public sealed class HelloTask : FrostingTask<BuildContext>
 {
     public override void Run(BuildContext context)
     {
         context.Log.Information("Hello");
-        context.GitHubActions().Commands.UploadArtifact("", "");
     }
 }
 
@@ -179,8 +209,8 @@ public sealed class HelloTask : FrostingTask<BuildContext>
 //    }
 //}
 
-//[TaskName("Default")]
-//[IsDependentOn(typeof(WorldTask))]
-//public class DefaultTask : FrostingTask
-//{
-//}
+[TaskName("Default")]
+[IsDependentOn(typeof(UpdateVersionTask))]
+public class DefaultTask : FrostingTask
+{
+}
