@@ -314,7 +314,8 @@ namespace DAZ_Installer.Database
 
             try
             {
-                File.Create(Path).Dispose();
+                if (!File.Exists(Path))
+                    File.Create(Path).Dispose();
             } catch (Exception ex)
             {
                 Logger.Warning(ex, "Failed to create empty database file");
