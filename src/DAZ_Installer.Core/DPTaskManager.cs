@@ -16,25 +16,17 @@ namespace DAZ_Installer.Core
         public delegate void QueueAction<in T1, in T2, in T3, in T4>(T1 arg1, T2 arg2, T3 arg3, T4 arg4, CancellationToken token);
         public delegate void QueueAction<in T1, in T2, in T3, in T4, in T5>(T1 arg1, T2 arg2, T3 arg3, T4 arg4, T5 arg5, CancellationToken token);
 
-
-
         private CancellationTokenSource _source;
-        private TaskFactory _taskFactory;
         private CancellationToken _token;
         private volatile Task? lastTask;
-        private object lockObj = new();
+        private readonly object lockObj = new();
         // (3) Tasks will continue with continueWith() chain unless this is passed in.
         private const TaskContinuationOptions _continuationOptions = TaskContinuationOptions.NotOnCanceled;
-
-        // According to documentation, Scheduler may (and usually is) null, if null use Current property.
-        // Check each time by using property instead of raw field.
-        private TaskScheduler _scheduler => _taskFactory.Scheduler ?? TaskScheduler.Current;
 
         public DPTaskManager()
         {
             _source = new CancellationTokenSource();
             _token = _source.Token;
-            _taskFactory = new TaskFactory(_token);
             lastTask = null;
         }
 
@@ -45,7 +37,6 @@ namespace DAZ_Installer.Core
                 _source.Dispose();
                 _source = new CancellationTokenSource();
                 _token = _source.Token;
-                _taskFactory = new TaskFactory(_token);
                 lastTask = null;
             }
         }
@@ -82,7 +73,7 @@ namespace DAZ_Installer.Core
                 }
                 else
                 {
-                    task = lastTask = lastTask.ContinueWith((_) => action(), t, _continuationOptions, _scheduler);
+                    task = lastTask = lastTask.ContinueWith((_) => action(), t, _continuationOptions, TaskScheduler.Current);
                 }
             }
             return task;
@@ -99,7 +90,7 @@ namespace DAZ_Installer.Core
                 }
                 else
                 {
-                    task = lastTask = lastTask.ContinueWith((_) => action(t), t, _continuationOptions, _scheduler);
+                    task = lastTask = lastTask.ContinueWith((_) => action(t), t, _continuationOptions, TaskScheduler.Current);
                 }
             }
             return task;
@@ -117,7 +108,7 @@ namespace DAZ_Installer.Core
                 }
                 else
                 {
-                    task = lastTask = lastTask.ContinueWith((_) => action(arg, t), t, _continuationOptions, _scheduler);
+                    task = lastTask = lastTask.ContinueWith((_) => action(arg, t), t, _continuationOptions, TaskScheduler.Current);
                 }
             }
             return task;
@@ -136,7 +127,7 @@ namespace DAZ_Installer.Core
                 }
                 else
                 {
-                    task = lastTask = lastTask.ContinueWith((_) => action(arg1, arg2, t), t, _continuationOptions, _scheduler);
+                    task = lastTask = lastTask.ContinueWith((_) => action(arg1, arg2, t), t, _continuationOptions, TaskScheduler.Current);
                 }
             }
             return task;
@@ -155,7 +146,7 @@ namespace DAZ_Installer.Core
                 else
                 {
                     task = lastTask = lastTask.ContinueWith((_) => action(arg1, arg2, arg3, t),
-                                                    t, _continuationOptions, _scheduler);
+                                                    t, _continuationOptions, TaskScheduler.Current);
                 }
             }
             return task;
@@ -174,7 +165,7 @@ namespace DAZ_Installer.Core
                 else
                 {
                     task = lastTask = lastTask.ContinueWith((_) => action(arg1, arg2, arg3, arg4, t),
-                                                        t, _continuationOptions, _scheduler);
+                                                        t, _continuationOptions, TaskScheduler.Current);
                 }
             }
             return task;
@@ -194,7 +185,7 @@ namespace DAZ_Installer.Core
                 else
                 {
                     task = lastTask = lastTask.ContinueWith((_) => action(arg1, arg2, arg3, arg4, arg5, t),
-                                                        t, _continuationOptions, _scheduler);
+                                                        t, _continuationOptions, TaskScheduler.Current);
                 } 
             }
             return task;
@@ -214,7 +205,7 @@ namespace DAZ_Installer.Core
                 else
                 {
                     task = lastTask = lastTask.ContinueWith((_) => func(t),
-                                                        t, _continuationOptions, _scheduler);
+                                                        t, _continuationOptions, TaskScheduler.Current);
                 } 
             }
             return task;
@@ -232,7 +223,7 @@ namespace DAZ_Installer.Core
                 else
                 {
                     task = lastTask = lastTask.ContinueWith((_) => func(arg1, t),
-                                                        t, _continuationOptions, _scheduler);
+                                                        t, _continuationOptions, TaskScheduler.Current);
                 } 
             }
             return task;
@@ -250,7 +241,7 @@ namespace DAZ_Installer.Core
                 else
                 {
                     task = lastTask = lastTask.ContinueWith((_) => func(arg1, arg2, t),
-                                                        t, _continuationOptions, _scheduler);
+                                                        t, _continuationOptions, TaskScheduler.Current);
                 } 
             }
             return task;
@@ -269,7 +260,7 @@ namespace DAZ_Installer.Core
                 else
                 {
                     task = lastTask = lastTask.ContinueWith((_) => func(arg1, arg2, arg3, t),
-                                                        t, _continuationOptions, _scheduler);
+                                                        t, _continuationOptions, TaskScheduler.Current);
                 } 
             }
             return task;
@@ -288,7 +279,7 @@ namespace DAZ_Installer.Core
                 else
                 {
                     task = lastTask = lastTask.ContinueWith((_) => func(arg1, arg2, arg3, arg4, t),
-                                                        t, _continuationOptions, _scheduler);
+                                                        t, _continuationOptions, TaskScheduler.Current);
                 } 
             }
             return task;
@@ -307,7 +298,7 @@ namespace DAZ_Installer.Core
                 else
                 {
                     task = lastTask = lastTask.ContinueWith((_) => func(arg1, arg2, arg3, arg4, arg5, t),
-                                                        t, _continuationOptions, _scheduler);
+                                                        t, _continuationOptions, TaskScheduler.Current);
                 } 
             }
             return task;
