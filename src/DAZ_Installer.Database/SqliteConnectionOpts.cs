@@ -4,8 +4,17 @@ using System.Data.Common;
 
 namespace DAZ_Installer.Database
 {
+    /// <summary>
+    /// A struct that contains the connection object, transaction object, and cancellation token for a connection.
+    /// </summary>
     public struct SqliteConnectionOpts
     {
+        /// <summary>
+        /// The connection object to use for this connection.
+        /// <para/>
+        /// WARNING: This object has side effects. If you attempt to set this property when it is null, it will be set to the <see langword="value"/> provided. <para/>
+        /// If you set this property when it is not null, <see cref="Connection"/> will be a new <see cref="DPConnection"/> wrapping over the current <see cref="Connection"/>.
+        /// </summary>
         public DPConnection? Connection
         {
             get => connection;
@@ -15,21 +24,40 @@ namespace DAZ_Installer.Database
                 else connection = new DPConnection(connection);
             }
         }
+        /// <summary>
+        /// The transaction object to use for this connection. By default, this is null.
+        /// </summary>
         public DPTransaction? Transaction { get; set; } = null;
         public CancellationToken CancellationToken { get; set; } = CancellationToken.None;
         public bool IsCancellationRequested => CancellationToken.IsCancellationRequested;
         private DPConnection? connection = null;
 
-
+        /// <summary>
+        /// A new instance of <see cref="SqliteConnectionOpts"/> with <see cref="Connection"/> set to null.
+        /// </summary>
         public SqliteConnectionOpts() { }
+        /// <summary>
+        /// A new instance of <see cref="SqliteConnectionOpts"/> with <see cref="Connection"/> set to the <see langword="value"/> provided.
+        /// </summary>
+        /// <param name="connection">The connection to use, if any.</param>
         public SqliteConnectionOpts(DPConnection? connection) => this.connection = connection;
+        /// <summary>
+        /// A new instance of <see cref="SqliteConnectionOpts"/> with <see cref="Connection"/> set to the <see langword="value"/> provided and <see cref="Transaction"/> set to the <see langword="value"/> provided.
+        /// </summary>
+        /// <param name="connection">The connection to use, if any.</param>
+        /// <param name="transaction">The transaction to use, if any.</param>
 
         public SqliteConnectionOpts(DPConnection? connection, DPTransaction? transaction = null)
         {
             this.connection = connection;
             Transaction = transaction;
         }
-
+        /// <summary>
+        /// A new instance of <see cref="SqliteConnectionOpts"/> with <see cref="Connection"/> set to the <see langword="value"/> provided and <see cref="Transaction"/> set to the <see langword="value"/> provided.
+        /// </summary>
+        /// <param name="connection">The connection to use, if any.</param>
+        /// <param name="transaction">The transaction to use, if any.</param>
+        /// <param name="t">The cancellation to use.</param>
         public SqliteConnectionOpts(DPConnection? connection, DPTransaction? transaction, CancellationToken t)
         {
             this.connection = connection;
@@ -41,6 +69,7 @@ namespace DAZ_Installer.Database
         /// Begins the transaction assuming <see cref="Connection"/> is not null. 
         /// </summary>
         /// <returns>The transaction already established on the <see cref="Connection"/> or an entirely new one.</returns>
+        /// <exception cref="ArgumentNullException">When <see cref="Connection"/> is null.</exception>
         public DPTransaction BeginTransaction()
         {
             ArgumentNullException.ThrowIfNull(Connection, nameof(Connection));

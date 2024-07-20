@@ -200,6 +200,8 @@ namespace DAZ_Installer.Database
         /// <summary>
         /// Creates and returns a connection with the connection string setup.
         /// </summary>
+        /// <seealso cref="CreateInitialConnection(ref SqliteConnectionOpts)"/>
+        /// <param name="opts">The options to (potentially) setup. This may update the Connection property. </param>
         /// <param name="readOnly">Determines if the connection should be a read-only
         /// connection or not.</param>
         private void CreateConnection(ref SqliteConnectionOpts opts, bool readOnly = false)
@@ -209,7 +211,7 @@ namespace DAZ_Installer.Database
             if (DatabaseNotReady) return;
             if (opts.Connection is not null)
             {
-                // SqliteCOnnectionOpts side effect will wrap the current connection with a new DPConnection
+                // SqliteConnectionOpts side effect will wrap the current connection with a new DPConnection
                 // so that on Dispose, it will not dispose the underlying connection.
                 opts.Connection = null;
                 return;
@@ -236,8 +238,10 @@ namespace DAZ_Installer.Database
             }
         }
         /// <summary>
-        /// Creates and returns a connection with the connection string setup. Should only be used for the Initialization function.
-        /// This will also create the database file if it does not exist.
+        /// Creates and returns a connection with the connection string setup. 
+        /// This will always be a read-write connection. This should only be used during Initialization and for database updates.
+        /// Compared to <see cref="CreateConnection(ref SqliteConnectionOpts, bool)"/>, this does not check if the database is ready or if
+        /// the database is Initialized. This will also create the database file if it does not exist.
         /// </summary>
         /// <returns>An SqliteConnection if successfully created, otherwise null.</returns>
         private DPConnection? CreateInitialConnection(ref SqliteConnectionOpts opts)
@@ -266,7 +270,7 @@ namespace DAZ_Installer.Database
         /// connection will be created for you. If the connection fails to open or be
         /// created, it will return null. This will create the database file if it does not exist.
         /// </summary>
-        /// <param name="connection">An existing connection to open.</param>
+        /// <param name="opts">The SqliteConnectionOpts to create and/or open the connection.</param>
         /// <param name="readOnly">Determine if the new connection should be read only.</param>
         /// <returns>The connection passed if it isn't null and was successfully opened. 
         /// Otherwise, a new connection is passed if it was successfully opened. Otherwise,
@@ -391,8 +395,7 @@ namespace DAZ_Installer.Database
         /// Adds indexes to the database to improve searching and sorting performance.
         /// Does not check if they exist.
         /// </summary>
-        /// <param name="c">The SqliteConnection to use, if any.</param>
-        /// <param name="t">The cancellation token to use, if any. Use <see cref="CancellationToken.None"/> if it should never cancel.</param>
+        /// <param name="opts">The SqliteConnection to use, if any.</param>
         /// <returns>Whether creating indexes was a success.</returns>
         private bool CreateIndexes(SqliteConnectionOpts opts)
         {

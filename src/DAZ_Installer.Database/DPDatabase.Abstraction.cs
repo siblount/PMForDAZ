@@ -13,7 +13,7 @@ namespace DAZ_Installer.Database
     {
         #region Reads
         /// <summary>
-        /// Updates the <c>ProductRecordCount</c> property.
+        /// Updates the <see cref="ProductRecordCount"/> property.
         /// </summary>
         /// <param name="opts">The SqliteConnectionOpts to use.</param>
         private void UpdateProductRecordCount(SqliteConnectionOpts opts)
@@ -36,10 +36,8 @@ namespace DAZ_Installer.Database
         /// Executes the reader to search for product records via tags. This only executes the reader and returns an array
         /// of product records.
         /// </summary>
-        /// <param name="command">The command that is ready to execute. Cannot be null.</param>
-        /// <param name="t">Cancel token. Required, cannot be null. Use CancellationToken.None instead (though not recommended).</param>
+        /// <param name="opts">The option parameters to use.</param>
         /// <returns>A list of <see cref="DPProductRecordLite"/>s or an empty list if cancelled.</returns>
-        /// <exception cref="Exception"/>
         private List<DPProductRecordLite> SearchProductRecords(DbDataReader reader, SqliteConnectionOpts opts)
         {
             List<DPProductRecordLite> searchResults = new(25);
@@ -62,8 +60,7 @@ namespace DAZ_Installer.Database
         /// Returns an array of columns for the table name specified.
         /// </summary>
         /// <param name="tableName">The table to get columns from.</param>
-        /// <param name="c">The SqliteConnection to use, if any.</param>
-        /// <param name="t">Cancel token. Required, cannot be null. Use CancellationToken.None instead (though not recommended).</param>
+        /// <param name="opts">The option parameters to use.</param>
         /// <returns>The columns of the table, or an empty array if cancelled or an error occurred.</returns>
         private string[] GetColumns(string tableName, SqliteConnectionOpts opts)
         {
@@ -95,8 +92,7 @@ namespace DAZ_Installer.Database
         /// <summary>
         /// Returns all an array of all of the tables in the database.
         /// </summary>
-        /// <param name="c">The SqliteConnection to use, if any.</param>
-        /// <param name="cancellationToken">Cancel token. Required, cannot be null. Use CancellationToken.None instead (though not recommended).</param>
+        /// <param name="opts">The option parameters to use.</param>
         private string[] GetTables(SqliteConnectionOpts opts)
         {
             if (opts.IsCancellationRequested) return Array.Empty<string>();
@@ -130,8 +126,7 @@ namespace DAZ_Installer.Database
         /// which may be null if it fails to create & open a connection, and execute the reader. Otherwise, it may
         /// return an empty hashset indicating there was nothing there.
         /// </summary>
-        /// <param name="c">The SqliteConnection to use, if any.</param>
-        /// <param name="t">Cancel token. Required, cannot be null. Use CancellationToken.None instead (though not recommended).</param>
+        /// <param name="opts">The option parameters to use.</param>
         /// <returns>A hashset containing successfully extracted archive file names.</returns>
         // TODO: Deprecate this. As more products are installed, the hashset will grow and grow. This is not good.
         // Just query the database to check if the archive exists.
@@ -157,8 +152,7 @@ namespace DAZ_Installer.Database
         /// Returns the last product ID which indicates the latest product record added to the database.
         /// It may return 0 if an error occurred (or if there are no product records in the database).
         /// </summary>
-        /// <param name="conn">The SqliteConnection to use, if any.</param>
-        /// <param name="t">Cancel token. Required, cannot be null. Use CancellationToken.None instead (though not recommended).</param>
+        /// <param name="opts">The option parameters to use.</param>
         /// <returns>The last product record ID in the database.</returns>
         private long GetLastProductID(SqliteConnectionOpts opts)
         {
@@ -182,8 +176,7 @@ namespace DAZ_Installer.Database
         /// empty indicating there was an issue internally or that there was nothing in the table.
         /// </summary>
         /// <param name="tableName">The table to get all rows from.</param>
-        /// <param name="c">The SqliteConnection to use, if any.</param>
-        /// <param name="token">Cancel token. Required, cannot be null. Use CancellationToken.None instead (though not recommended).</param>
+        /// <param name="opts">The option parameters to use.</param>
         /// <returns>A dataset containing all of the values from the table specified. May return null.</returns>
         private DataSet? GetAllValuesFromTable(string tableName, SqliteConnectionOpts opts)
         {
@@ -212,8 +205,7 @@ namespace DAZ_Installer.Database
         /// If the destination does not exist or an error occurred, -1 is returned.
         /// </summary>
         /// <param name="destination">The associated destination string.</param>
-        /// <param name="c">The connection to use, if any. Otherwise, one will be created.</param>
-        /// <param name="t">The cancellation token to use for cancellation. If none, use <see cref="CancellationToken.None"/>.</param>
+        /// <param name="opts">The option parameters to use.</param>
         /// <returns>The associated destination ID of <paramref name="destination"/>, otherwise -1 on errors.</returns>
         private int GetDestinationID(string destination, SqliteConnectionOpts opts)
         {
@@ -238,8 +230,7 @@ namespace DAZ_Installer.Database
         /// Gets the full product record from the database.
         /// </summary>
         /// <param name="pid">The product record ID to fetch.</param>
-        /// <param name="c">The connection to use, if any. Otherwise, one will be created.</param>
-        /// <param name="t">The cancellation token to use for cancellation. If none, use <see cref="CancellationToken.None"/>.</param>
+        /// <param name="opts">The option parameters to use.</param>
         /// <returns></returns>
         private DPProductRecord? GetProductRecord(long pid, SqliteConnectionOpts opts)
         {
@@ -281,10 +272,9 @@ namespace DAZ_Installer.Database
         /// <summary>
         /// Removes product records from the database. It temporary disables the triggers to
         /// remove all records safely. In the event of an internal failure, you should make sure the triggers are
-        /// re-enabled by calling <c>CreateTriggers()</c>.
+        /// re-enabled by calling <see cref="CreateTriggers(SqliteConnectionOpts)"/>
         /// </summary>
-        /// <param name="c">The SqliteConnection to use, if any.</param>
-        /// <param name="t">Cancel token. Required, cannot be null. Use CancellationToken.None instead (though not recommended).</param>
+        /// <param name="opts">The option parameters to use.</param>
         /// <returns>Whether the removal was a success (true) or not (false).</returns>
         private bool RemoveAllRecords(SqliteConnectionOpts opts) => ResetDatabase(opts);
 
@@ -294,8 +284,7 @@ namespace DAZ_Installer.Database
         /// <param name="tableName">The table you wish to remove values from.</param>
         /// <param name="conditions">An array of conditions to consider when removing rows.</param>
         /// <param name="or">Combine conditions with an OR statement (true) or an AND statement (false).</param>
-        /// <param name="c">The SqliteConnection to use, if any.</param>
-        /// <param name="t">Cancel token. Required, cannot be null. Use CancellationToken.None instead (though not recommended).</param>
+        /// <param name="opts">The option parameters to use.</param>
         /// <returns>Whether the removal was a success (true) or not (false).</returns>
         private bool RemoveValuesWithCondition(string tableName, Tuple<string, object>[] conditions,
             bool or, SqliteConnectionOpts opts)
@@ -355,8 +344,7 @@ namespace DAZ_Installer.Database
         /// Removes all of the rows from the table specified. 
         /// </summary>
         /// <param name="tableName">The table to remove everything from.</param>
-        /// <param name="c">The SqliteConnection to use, if any.</param>
-        /// <param name="t">Cancel token. Required, cannot be null. Use CancellationToken.None instead (though not recommended).</param>
+        /// <param name="opts">The option parameters to use.</param>
         /// <returns>Whether the removal was a success (true) or not (false).</returns>
         private bool RemoveAllFromTable(string tableName, SqliteConnectionOpts opts)
         {
@@ -396,8 +384,7 @@ namespace DAZ_Installer.Database
         /// Insert or replace files into the database for the associated PID. If the PID is 0, it will get the last PID.
         /// </summary>
         /// <param name="files">A list of files to insert into the database. Make sure there are no duplicates, otherwise this will fail. </param>
-        /// <param name="c">The SqliteConnection to use, if any.</param>
-        /// <param name="t">Cancel token. Required, cannot be null. Use CancellationToken.None instead (though not recommended).</param>
+        /// <param name="opts">The option parameters to use.</param>
         /// <param name="pid">The product ID to insert the files to. If 0, it will get the last product ID in the database.</param>
         /// <returns>Whether the insertion was successful (true) or not (false).</returns>
         private bool UpdateFiles(IReadOnlyList<string> files, SqliteConnectionOpts opts, long pid = 0)
@@ -436,8 +423,7 @@ namespace DAZ_Installer.Database
         /// Inserts default values to the table specified.
         /// </summary>
         /// <param name="tableName">The table name to insert multiple values to.</param>
-        /// <param name="c">The SqliteConnection to use, if any.</param>
-        /// <param name="t">Cancel token. Required, cannot be null. Use CancellationToken.None instead (though not recommended).</param>
+        /// <param name="opts">The option parameters to use.</param>
         /// <returns>Whether the insertion was successful (true) or not (false).</returns>
         private bool InsertDefaultValuesToTable(string tableName, SqliteConnectionOpts opts)
         {
@@ -481,8 +467,7 @@ namespace DAZ_Installer.Database
         /// <param name="tableName">The table name to insert multiple values to.</param>
         /// <param name="columns">The columns to insert values into. Cannot be null.</param>
         /// <param name="values">The values to insert into the table. Cannot be null.</param>
-        /// <param name="c">The SqliteConnection to use, if any.</param>
-        /// <param name="t">Cancel token. Required, cannot be null. Use CancellationToken.None instead (though not recommended).</param>
+        /// <param name="opts">The option parameters to use.</param>
         /// <returns>Whether the insertion was successful (true) or not (false).</returns>
         private bool InsertValuesToTable(string tableName, string[] columns, object?[] values,
             SqliteConnectionOpts opts)
@@ -537,8 +522,7 @@ namespace DAZ_Installer.Database
         /// Inserts a product record into the database. 
         /// </summary>
         /// <param name="pRecord">The product record to insert. Cannot be null.</param>
-        /// <param name="c">The SqliteConnection to use, if any.</param>
-        /// <param name="t">Cancel token. Required, cannot be null. Use CancellationToken.None instead (though not recommended).</param>
+        /// <param name="opts">The option parameters to use.</param>
         private bool InsertRecords(DPProductRecord pRecord, SqliteConnectionOpts opts)
         {
             // Trigger will update the product record's extraction record ID to the newly created record.
@@ -583,8 +567,7 @@ namespace DAZ_Installer.Database
         /// </summary>
         /// <param name="pid">The product record ID to update.</param>
         /// <param name="newRecord">The newly constructed DPProductRecord with new values to insert/update.</param>
-        /// <param name="c">The SqliteConnection to use, if any.</param>
-        /// <param name="t">Cancel token. Required, cannot be null. Use CancellationToken.None instead (though not recommended).</param>
+        /// <param name="opts">The option parameters to use.</param>
         /// <returns>Whether the insertion was successful (true) or not (false).</returns>
         private bool UpdateProductRecord(long pid, DPProductRecord newRecord, SqliteConnectionOpts opts)
         {
@@ -672,9 +655,6 @@ namespace DAZ_Installer.Database
         #region Update
         private bool UpdateToVersion3(SqliteConnectionOpts opts)
         {
-            /// <summary>
-            /// We will create a new database file and copy all of the data from the old database file to the new one.
-            /// </summary>
             if (opts.IsCancellationRequested) return false;
             try
             {
@@ -743,7 +723,7 @@ namespace DAZ_Installer.Database
         #endregion
         #region etc
         /// <summary>
-        /// If you notice, the database file (db.db) also has a .db-shm file and a .db-wal file include it.
+        /// The database file (db.db) also has a .db-shm file and a .db-wal file included with it.
         /// Those are used to allow multiple read connections and a single write connection to the database.
         /// Those files are considered to be the journal. This function asks the database to truncate/shrink the 
         /// journal and merge it into the database file. Additionally, it attempts to delete the journal files
@@ -887,7 +867,7 @@ namespace DAZ_Installer.Database
             return args;
         }
         /// <summary>
-        /// Associates parameter placeholds with a value to the SqliteCommand. You should call <c>CreateParams()</c> before
+        /// Associates parameter placeholds with a value to the SqliteCommand. You should call <see cref="CreateParams(ref string, int)"/> before
         /// to generate the parameter list to include into <paramref name="cArgs"/> and update the command string.
         /// For example, if the args is {"@A1", "@A2", "@A3"} and the values are {"hello", "solomon", "blount"}, then 
         /// the args will be replaced with its values when the query is executed.

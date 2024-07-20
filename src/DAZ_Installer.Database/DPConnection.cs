@@ -15,22 +15,74 @@ namespace DAZ_Installer.Database
     /// </summary>
     public class DPConnection : IDbConnection
     {
+        /// <summary>
+        /// The underlying <see cref="DbConnection"/> object.
+        /// </summary>
         public readonly DbConnection Connection;
+
+        /// <summary>
+        /// The parent connection, if any. 
+        /// </summary>
         protected readonly DPConnection? parentConnection;
+
+        /// <summary>
+        /// The transaction object, if any.
+        /// </summary>
         protected DPTransaction? transaction;
+
+        /// <summary>
+        /// Determines whether this connection should be disposed or not.
+        /// </summary>
         private bool dispose;
+
+        /// <summary>
+        /// Determines whether this connection has been disposed or not.
+        /// </summary>
         private bool Disposed = false;
+
+        /// <summary>
+        /// The connection string for this connection.
+        /// </summary>
         public string ConnectionString { get => Connection.ConnectionString; set => Connection.ConnectionString = value; }
+
+        /// <summary>
+        /// The connection timeout for this connection.
+        /// </summary>
         public int ConnectionTimeout => Connection.ConnectionTimeout;
+
+        /// <summary>
+        /// The database for this connection.
+        /// </summary>
         public string Database => Connection.Database;
+
+        /// <summary>
+        /// The state for this connection.
+        /// </summary>
         public ConnectionState State => Connection.State;
 
+        /// <summary>
+        /// A <see cref="DPConnection"/> object that wraps a <see cref="DbConnection"/> object that will dispose this object when it is disposed.
+        /// </summary>
+        /// <param name="connection">The connection to use</param>
+
         internal DPConnection(DbConnection connection) : this(connection, true) { }
+
+        /// <summary>
+        /// A constructor that wraps a <see cref="DbConnection"/> object and allows you to determine whether this object should be disposed or not.
+        /// </summary>
+        /// <param name="connection">The connection to use</param>
+        /// <param name="dispose">Determines whether this object should be disposed when <see cref="Dispose"/> is called.</param>
         internal DPConnection(DbConnection connection, bool dispose = true)
         {
             this.Connection = connection;
             this.dispose = dispose;
         }
+
+        /// <summary>
+        /// A special constructor that makes a new nested connection, making <paramref name="c"/> the parent connection.
+        /// This object will not be disposed when <see cref="Dispose"/> is called.
+        /// </summary>
+        /// <param name="c"></param>
         internal DPConnection(DPConnection c) : this(c.Connection, false)
         {
             transaction = c.transaction;
@@ -50,6 +102,7 @@ namespace DAZ_Installer.Database
             else transaction = new DPTransaction(parentConnection.transaction);
             return transaction = opts.Transaction = transaction;
         }
+
         /// <summary>
         /// <inheritdoc/>
         /// </summary>
@@ -69,6 +122,9 @@ namespace DAZ_Installer.Database
         [Obsolete("Do not use")]
         public void ChangeDatabase(string databaseName) => Connection.ChangeDatabase(databaseName);
 
+        /// <summary>
+        /// Closes the connection. It is highly not recommended to use this method unless this is the parent connection.
+        /// </summary>
         public void Close() => Connection.Close();
 
         // DbCommand.Transaction is automatically set under the hood.
@@ -93,6 +149,10 @@ namespace DAZ_Installer.Database
         {
             ((SqliteConnection)Connection).BackupDatabase(destination, destinationName, sourceName);
         }
+
+        /// <summary>
+        /// This method will dispose this object ONLY when it is the parent connection.
+        /// </summary>
         public void Dispose()
         {
             if (Disposed) return;
@@ -100,22 +160,40 @@ namespace DAZ_Installer.Database
             if (dispose) Connection.Dispose();
             Disposed = true;
         }
-
+        /// <summary>
+        /// Calls Dispose.
+        /// </summary>
         ~DPConnection()
         {
             Dispose();
         }
+
+        /// <summary>
+        /// Opens the connection. It is highly not recommended to use this method unless this is the parent connection.
+        /// </summary>
         public void Open() => Connection.Open();
+        /// <summary>
+        /// Implements the required BeginTransaction, although it is not recommended to use this method.
+        /// </summary>
+        /// <returns>A transaction.</returns>
         IDbTransaction IDbConnection.BeginTransaction()
         {
             var t = new SqliteConnectionOpts();
             return BeginTransaction(ref t);
         }
+        /// <summary>
+        /// Implements the required BeginTransaction, although it is not recommended to use this method.
+        /// </summary>
+        /// <returns>A transaction.</returns>
         IDbTransaction IDbConnection.BeginTransaction(IsolationLevel il)
         {
             var t = new SqliteConnectionOpts();
             return BeginTransaction(il, ref t);
         }
+        /// <summary>
+        /// Implements the required CreateCommand, although it is not recommended to use this method.
+        /// </summary>
+        /// <returns>A command</returns>
         IDbCommand IDbConnection.CreateCommand() => CreateCommand();
     }
 }
