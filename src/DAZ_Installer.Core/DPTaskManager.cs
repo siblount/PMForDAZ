@@ -55,7 +55,10 @@ namespace DAZ_Installer.Core
             lock (lockObj)
             {
                 _source.Cancel();
-                lastTask?.Wait();
+                try
+                {
+                    lastTask?.Wait();
+                } catch { }
                 Reset();
             }
         }
@@ -185,119 +188,6 @@ namespace DAZ_Installer.Core
                 else
                 {
                     task = lastTask = lastTask.ContinueWith((_) => action(arg1, arg2, arg3, arg4, arg5, t),
-                                                        t, _continuationOptions, TaskScheduler.Current);
-                } 
-            }
-            return task;
-        }
-
-        public Task AddToQueue<ReturnType>(Func<CancellationToken, ReturnType> func)
-        {
-            CancellationToken t = _token;
-            Task task = lastTask;
-
-            lock (lockObj)
-            {
-                if (lastTask == null)
-                {
-                    task = lastTask = Task.Factory.StartNew(() => func(t));
-                }
-                else
-                {
-                    task = lastTask = lastTask.ContinueWith((_) => func(t),
-                                                        t, _continuationOptions, TaskScheduler.Current);
-                } 
-            }
-            return task;
-        }
-        public Task AddToQueue<ReturnType, T1>(Func<T1, CancellationToken, ReturnType> func, T1 arg1)
-        {
-            CancellationToken t = _token;
-            Task task = lastTask;
-            lock (lockObj)
-            {
-                if (lastTask == null)
-                {
-                    task = lastTask = Task.Factory.StartNew(() => func(arg1, t));
-                }
-                else
-                {
-                    task = lastTask = lastTask.ContinueWith((_) => func(arg1, t),
-                                                        t, _continuationOptions, TaskScheduler.Current);
-                } 
-            }
-            return task;
-        }
-        public Task AddToQueue<ReturnType, T1, T2>(Func<T1, T2, CancellationToken, ReturnType> func, T1 arg1, T2 arg2)
-        {
-            CancellationToken t = _token;
-            Task task = lastTask;
-            lock (lockObj)
-            {
-                if (lastTask == null)
-                {
-                    task = lastTask = Task.Factory.StartNew(() => func(arg1, arg2, t));
-                }
-                else
-                {
-                    task = lastTask = lastTask.ContinueWith((_) => func(arg1, arg2, t),
-                                                        t, _continuationOptions, TaskScheduler.Current);
-                } 
-            }
-            return task;
-        }
-        public Task AddToQueue<ReturnType, T1, T2, T3>(Func<T1, T2, T3, CancellationToken, ReturnType> func,
-                                                        T1 arg1, T2 arg2, T3 arg3)
-        {
-            CancellationToken t = _token;
-            Task task = lastTask;
-            lock (lockObj)
-            {
-                if (lastTask == null)
-                {
-                    task = lastTask = Task.Factory.StartNew(() => func(arg1, arg2, arg3, t));
-                }
-                else
-                {
-                    task = lastTask = lastTask.ContinueWith((_) => func(arg1, arg2, arg3, t),
-                                                        t, _continuationOptions, TaskScheduler.Current);
-                } 
-            }
-            return task;
-        }
-        public Task AddToQueue<ReturnType, T1, T2, T3, T4>(Func<T1, T2, T3, T4, CancellationToken, ReturnType> func,
-                                                       T1 arg1, T2 arg2, T3 arg3, T4 arg4)
-        {
-            CancellationToken t = _token;
-            Task task = lastTask;
-            lock (lockObj)
-            {
-                if (lastTask == null)
-                {
-                    task = lastTask = Task.Factory.StartNew(() => func(arg1, arg2, arg3, arg4, t));
-                }
-                else
-                {
-                    task = lastTask = lastTask.ContinueWith((_) => func(arg1, arg2, arg3, arg4, t),
-                                                        t, _continuationOptions, TaskScheduler.Current);
-                } 
-            }
-            return task;
-        }
-        public Task AddToQueue<ReturnType, T1, T2, T3, T4, T5>(Func<T1, T2, T3, T4, T5, CancellationToken, ReturnType> func,
-                                                       T1 arg1, T2 arg2, T3 arg3, T4 arg4, T5 arg5)
-        {
-            CancellationToken t = _token;
-            Task task = lastTask;
-            lock (lockObj)
-            {
-                if (lastTask == null)
-                {
-                    task = lastTask = Task.Factory.StartNew(() => func(arg1, arg2, arg3, arg4, arg5, t));
-                }
-                else
-                {
-                    task = lastTask = lastTask.ContinueWith((_) => func(arg1, arg2, arg3, arg4, arg5, t),
                                                         t, _continuationOptions, TaskScheduler.Current);
                 } 
             }
