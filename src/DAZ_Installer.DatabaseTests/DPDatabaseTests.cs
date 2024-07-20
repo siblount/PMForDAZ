@@ -7,7 +7,9 @@ using System.Data;
 using Microsoft.Data.Sqlite;
 using System.CodeDom.Compiler;
 using System.IO.Compression;
+using DAZ_Installer.Common;
 
+// NOTE: This is an Integration Test! This does not use mocked file system, mocked database, etc.
 namespace DAZ_Installer.Database.Tests
 {
     [TestClass]
@@ -98,7 +100,7 @@ namespace DAZ_Installer.Database.Tests
 
             int counter = -1;
             var counterFunc = new Func<int>(() => Interlocked.Increment(ref counter));
-            var tasks = DPDatabaseTestHelpers.ExecuteTasksSequentially(count, () =>
+            var tasks = TaskUtils.ExecuteTasksSequentially(count, () =>
             {
                 var i = counterFunc();
                 var record = new DPProductRecord(i.ToString(), Enumerable.Repeat("TheRealSolly", i).ToArray(),
@@ -133,7 +135,7 @@ namespace DAZ_Installer.Database.Tests
             object lockObj = new();
             int eventCounter = 0;
 
-            var tasks = DPDatabaseTestHelpers.ExecuteInParallel(count, 5, (i) =>
+            var tasks = TaskUtils.ExecuteInParallel(count, 5, (i) =>
             {
                 var record = new DPProductRecord(i.ToString(), Enumerable.Repeat("TheRealSolly", i).ToArray(),
                     DateTime.UtcNow, "abc.png", "TestProduct.rar", "J:/Destination",
@@ -231,7 +233,7 @@ namespace DAZ_Installer.Database.Tests
             // Create a counter function that yields an integer and always increases by 1 (use interlocked or any sync method).
             int counter = -1;
             var counterFunc = new Func<int>(() => Interlocked.Increment(ref counter));
-            var tasks = DPDatabaseTestHelpers.ExecuteTasksSequentially(25,
+            var tasks = TaskUtils.ExecuteTasksSequentially(25,
                 () => Database.InsertNewRowQ("TestTable", new object[] { counterFunc() }, new string[] { "Name" }).Wait());
 
             Task.WaitAll(tasks.ToArray());
@@ -258,7 +260,7 @@ namespace DAZ_Installer.Database.Tests
             cmd.ExecuteNonQuery();
             c.Dispose();
 
-            var task = DPDatabaseTestHelpers.ExecuteInParallel(COUNT, 5,
+            var task = TaskUtils.ExecuteInParallel(COUNT, 5,
                 (i) => Database.InsertNewRowQ("TestTable", new[] { i.ToString(), i.ToString() }, new string[] { "Name", "Placeholder" }).Wait());
 
             task.Wait();
