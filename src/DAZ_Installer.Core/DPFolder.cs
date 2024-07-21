@@ -155,34 +155,6 @@ namespace DAZ_Installer.Core
             contents.Remove(child.Path);
         }
 
-        public DPFolder? FindFolder(string _path)
-        {
-            if (Path == _path) return this;
-            else
-            {
-                foreach (DPFolder folder in subfolders)
-                {
-                    DPFolder? result = folder.FindFolder(_path);
-                    if (result != null) return result;
-                }
-            }
-            return null;
-        }
-        public static DPFolder[] FindChildFolders(string _path, DPFolder self)
-        {
-            var folderArr = new List<DPFolder>();
-            foreach (DPFolder folder in self.AssociatedArchive!.Folders.Values)
-            {
-                if (folder == self) continue;
-                // And make sure it only is one level up.
-                if (folder.Path.Contains(_path) && IOPath.GetFileName(_path) == IOPath.GetFileName(folder.Path)
-                                                && PathHelper.GetNumOfLevelsAbove(folder.Path, _path) == 1)
-                {
-                    folderArr.Add(folder);
-                }
-            }
-            return folderArr.ToArray();
-        }
         /// <summary>
         /// <inheritdoc/>
         /// <p> This function removes and updates the root folders list instead of root contents list. </p>
