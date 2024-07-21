@@ -19,8 +19,9 @@ namespace DAZ_Installer.Core
         /// </summary>
         public virtual string FileName => IOPath.GetFileName(Path);
         /// <summary>
-        /// The full path of the file (or folder) in the archive space. Using this property is not recommended
-        /// for comparing or listing files as delimiters vary, use <see cref="NormalizedPath"/> instead. <para/>
+        /// The full path of the file (or folder) in the archive space.
+        /// Using this property is not recommended for comparing or listing files as delimiters vary, 
+        /// use <see cref="NormalizedPath"/> instead. <para/>
         /// However since this property holds the exact path given from the archive, you can use to compare
         /// to match a <see cref="DPAbstractNode"/> to the archive's native format. For example,
         /// <code>
