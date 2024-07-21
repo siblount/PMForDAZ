@@ -4,6 +4,7 @@ using Serilog;
 using MSTestLogger = Microsoft.VisualStudio.TestTools.UnitTesting.Logging.Logger;
 using Moq;
 using DAZ_Installer.Common;
+using System.Diagnostics;
 
 namespace DAZ_Installer.Core.Tests
 {
@@ -58,15 +59,22 @@ namespace DAZ_Installer.Core.Tests
         public async Task AddToQueueMaintainsOrderAcrossThreads()
         {
             var taskManager = new DPTaskManager();
-            var orderOfExecution = new List<int>();
             var numberOfTasks = 8 * Environment.ProcessorCount;
+            var orderOfExecution = new List<int>(numberOfTasks);
+            var innerTasks = new List<Task>(numberOfTasks);
+            var lockObj = new object();
 
             // Create multiple threads to add tasks to the queue
-            await TaskUtils.ExecuteInParallel(numberOfTasks, Convert.ToByte(numberOfTasks / 4), (i) => taskManager.AddToQueue(() =>
-            {
-                var index = orderOfExecution.Count;
-                orderOfExecution.Add(index);
-            }));
+            await TaskUtils.ExecuteInParallel(numberOfTasks, (byte)Environment.ProcessorCount, (_) => {
+                lock (lockObj)
+                    innerTasks.Add(taskManager.AddToQueue(() =>
+                    {
+                        var index = orderOfExecution.Count;
+                        orderOfExecution.Add(index);
+                    }));
+            });
+
+            await Task.WhenAll(innerTasks);
 
             // Verify the order of execution
             for (int i = 0; i < numberOfTasks; i++)
