@@ -51,7 +51,7 @@ namespace DAZ_Installer.Core
             // Potentially others may do the same.
             Path = PathHelper.CleanDirPath(path);
 
-            arc.Folders.TryAdd(Path, this);
+            arc.Folders.TryAdd(NormalizedPath, this);
             Parent = parent;
         }
 
@@ -64,21 +64,22 @@ namespace DAZ_Installer.Core
         /// <param name="associatedArchive">The associated archive to create folders to.</param>
         public static DPFolder CreateFoldersForFile(string dpFilePath, DPArchive associatedArchive)
         {
-            var pathParts = dpFilePath.Split(PathHelper.GetSeperator(dpFilePath));
+            var seperator = PathHelper.GetSeperator(dpFilePath);
+            var pathParts = dpFilePath.Split(seperator);
             DPFolder? currentFolder = null;
             var currentPath = "";
 
             for (var i = 0; i < pathParts.Length - 1; i++)
             {
-                currentPath = PathHelper.NormalizePath(System.IO.Path.Combine(currentPath, pathParts[i]));
+                currentPath = System.IO.Path.Combine(currentPath, pathParts[i]);
                 
-                if (associatedArchive.FindFolder(currentPath, out var existingFolder))
+                if (associatedArchive.FindFolder(PathHelper.NormalizePath(currentPath), out var existingFolder))
                 {
                     currentFolder = existingFolder;
                     continue;
                 }
 
-                var newFolder = new DPFolder(currentPath, associatedArchive, currentFolder);
+                var newFolder = new DPFolder(PathHelper.SwitchToSeperator(currentPath, seperator), associatedArchive, currentFolder);
 
                 currentFolder = newFolder;
             }
@@ -137,8 +138,8 @@ namespace DAZ_Installer.Core
             var newPath = PathHelper.NormalizePath(
                 i != -1 ? string.Concat(Path.AsSpan(0, i + 1), settings.ContentRedirectFolders[FileName]) : settings.ContentRedirectFolders[FileName]
             );
-            var childNewPath = PathHelper.NormalizePath(child.Path);
-            i = childNewPath.IndexOf(Path);
+            var childNewPath = child.NormalizedPath;
+            i = childNewPath.IndexOf(NormalizedPath);
             if (i != -1) childNewPath = childNewPath.Remove(i, Path.Length).Insert(i, newPath);
 
             return PathHelper.GetRelativePathOfRelativeParent(childNewPath, newPath);
@@ -260,7 +261,7 @@ namespace DAZ_Installer.Core
                 {
                     // Otherwise, create a folder for us.
                     // Fake a file so we can create folders for us.
-                    potParent = CreateFoldersForFile(NormalizedPath, AssociatedArchive);
+                    potParent = CreateFoldersForFile(Path, AssociatedArchive);
 
                     // If we have successfully created a folder for us, then update it. This function will be called again.
                     if (potParent != null) Parent = potParent;
