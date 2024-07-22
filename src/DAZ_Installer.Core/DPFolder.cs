@@ -51,13 +51,8 @@ namespace DAZ_Installer.Core
             // Potentially others may do the same.
             Path = PathHelper.CleanDirPath(path);
 
-            //if (relativePathBase != null)
-            //{
-            //    relativePath = Path.GetRelativePath(path, relativePathBase);
-            //}
-            Parent = parent;
             arc.Folders.TryAdd(Path, this);
-
+            Parent = parent;
         }
 
         /// <summary>
@@ -65,38 +60,30 @@ namespace DAZ_Installer.Core
         /// This can occur when certain extractors discover files first rather than folders.
         /// Make sure that the folder does not exist before calling this function!
         /// </summary>
-        /// <param name="dpFilePath"></param>
-        /// <param name="associatedArchive"></param>
-        /// <returns>The parent <see cref="DPFolder"/> for the file, or null if all the folders already exist. </returns>
-        public static DPFolder? CreateFoldersForFile(string dpFilePath, DPArchive associatedArchive)
+        /// <param name="dpFilePath">The path to create folders for.</param>
+        /// <param name="associatedArchive">The associated archive to create folders to.</param>
+        public static DPFolder CreateFoldersForFile(string dpFilePath, DPArchive associatedArchive)
         {
-            var workingStr = PathHelper.Up(dpFilePath);
-            DPFolder? firstFolder = null;
-            DPFolder? previousFolder = null;
+            var pathParts = dpFilePath.Split(PathHelper.GetSeperator(dpFilePath));
+            DPFolder? currentFolder = null;
+            var currentPath = "";
 
-            // Continously get relative path.
-            while (workingStr != "")
+            for (var i = 0; i < pathParts.Length - 1; i++)
             {
-                if (associatedArchive.FindFolder(workingStr, out _))
+                currentPath = PathHelper.NormalizePath(System.IO.Path.Combine(currentPath, pathParts[i]));
+                
+                if (associatedArchive.FindFolder(currentPath, out var existingFolder))
                 {
-                    workingStr = PathHelper.Up(workingStr);
+                    currentFolder = existingFolder;
                     continue;
                 }
-                if (firstFolder == null)
-                {
-                    // TODO: This recursively calls this function everytime we do this.
-                    // Fix this.
-                    firstFolder = new DPFolder(workingStr, associatedArchive, null);
-                    previousFolder = firstFolder;
-                }
-                else
-                {
-                    var workingParent = new DPFolder(workingStr, associatedArchive, previousFolder);
-                    previousFolder = workingParent;
-                }
-                workingStr = PathHelper.Up(workingStr);
+
+                var newFolder = new DPFolder(currentPath, associatedArchive, currentFolder);
+
+                currentFolder = newFolder;
             }
-            return firstFolder;
+
+            return currentFolder!;
         }
 
         /// <summary>
@@ -249,13 +236,15 @@ namespace DAZ_Installer.Core
                 // Remove ourselves from root folders list of the working archive.
                 try
                 {
-                    AssociatedArchive!.RootFolders.Remove(this);
+                    if (AssociatedArchive?.RootFolders.Contains(this) ?? false)
+                        AssociatedArchive.RootFolders.Remove(this);
                 }
                 catch { }
 
                 // Call the folder's addChild() to add ourselves to the children list.
                 newParent.AddChild(this);
                 parent = newParent;
+                AssociatedArchive?.Folders.TryAdd(NormalizedPath, this);
             }
             else if (parent == null && newParent == null)
             {
@@ -270,9 +259,8 @@ namespace DAZ_Installer.Core
                 else
                 {
                     // Otherwise, create a folder for us.
-                    // TODO: This recursively calls this function if we were made by this function call.
-                    // It does not result in an infinite loop but may result in reaching the stack limit.
-                    potParent = CreateFoldersForFile(Path, AssociatedArchive);
+                    // Fake a file so we can create folders for us.
+                    potParent = CreateFoldersForFile(NormalizedPath, AssociatedArchive);
 
                     // If we have successfully created a folder for us, then update it. This function will be called again.
                     if (potParent != null) Parent = potParent;
