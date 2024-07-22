@@ -470,16 +470,7 @@ namespace DAZ_Installer.Core
         public bool FindFolder(string relativePath, [NotNullWhen(true)] out DPFolder? folder)
         {
             var normalizedRelativePath = PathHelper.NormalizePath(relativePath);
-            foreach (DPFolder _folder in Folders.Values)
-            {
-                if (_folder.NormalizedPath == normalizedRelativePath)
-                {
-                    folder = _folder;
-                    return true;
-                }
-            }
-            folder = null;
-            return false;
+            return Folders.TryGetValue(normalizedRelativePath, out folder);
         }
 
         /// <summary>
