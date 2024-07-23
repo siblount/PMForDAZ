@@ -235,12 +235,8 @@ namespace DAZ_Installer.Core
             if (parent == null && newParent != null)
             {
                 // Remove ourselves from root folders list of the working archive.
-                try
-                {
-                    if (AssociatedArchive?.RootFolders.Contains(this) ?? false)
-                        AssociatedArchive.RootFolders.Remove(this);
-                }
-                catch { }
+                if (AssociatedArchive?.RootFolders.Contains(this) ?? false)
+                    AssociatedArchive.RootFolders.Remove(this);
 
                 // Call the folder's addChild() to add ourselves to the children list.
                 newParent.AddChild(this);
