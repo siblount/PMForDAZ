@@ -8,7 +8,6 @@ namespace DAZ_Installer.Core
     public class DPFolder : DPAbstractNode
     {
         public override ILogger Logger { get; set; } = Log.Logger.ForContext<DPFolder>();
-        public override string NormalizedPath => PathHelper.NormalizePath(Path);
         /// <summary>
         /// A list of subfolders in this folder.
         /// </summary>
