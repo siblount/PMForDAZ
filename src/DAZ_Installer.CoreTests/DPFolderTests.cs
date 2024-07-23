@@ -105,6 +105,10 @@ namespace DAZ_Installer.Core.Tests
             CollectionAssert.DoesNotContain(Archive.RootFolders, folder.Parent);
             CollectionAssert.Contains(Archive.Folders.Values, folder.Parent.Parent);
             CollectionAssert.Contains(Archive.RootFolders, folder.Parent.Parent);
+
+            Assert.AreEqual(Archive.Folders[PathHelper.NormalizePath("Content/data/TheRealSolly")], folder);
+            Assert.AreEqual(Archive.Folders[PathHelper.NormalizePath("Content/data")], folder.Parent);
+            Assert.AreEqual(Archive.Folders["Content"], folder.Parent.Parent);
         }
 
         [TestMethod]
@@ -130,8 +134,11 @@ namespace DAZ_Installer.Core.Tests
             CollectionAssert.DoesNotContain(Archive.RootFolders, folder.Parent);
             CollectionAssert.Contains(Archive.Folders.Values, folder.Parent.Parent);
             CollectionAssert.Contains(Archive.RootFolders, folder.Parent.Parent);
-
             Assert.AreEqual(1, Archive.RootFolders.Count);
+
+            Assert.AreEqual(Archive.Folders[PathHelper.NormalizePath("Content/data/TheRealSolly")], folder);
+            Assert.AreEqual(Archive.Folders[PathHelper.NormalizePath("Content/data")], folder.Parent);
+            Assert.AreEqual(Archive.Folders["Content"], folder.Parent.Parent);
         }
 
         [TestMethod]
@@ -145,11 +152,10 @@ namespace DAZ_Installer.Core.Tests
             // Assert that the folder returned is the directory of a.txt
             Assert.AreEqual(PathHelper.CleanDirPath("Content/data/TheRealSolly"), folder.Path);
             // Assert that all of the child directories are made.
-            Assert.IsNotNull(folder.Parent);
-            Assert.AreEqual(PathHelper.CleanDirPath("Content/data"), folder.Parent.Path);
+            Assert.AreEqual(midFolder, folder.Parent);
+            Assert.AreEqual(PathHelper.CleanDirPath("Content/data"), folder.Parent!.Path);
             Assert.IsNotNull(folder.Parent.Parent);
             Assert.AreEqual(PathHelper.CleanDirPath("Content"), folder.Parent.Parent.Path);
-
             // Assert that the mid folder refers to the same rootFolder object.
             Assert.AreEqual(midFolder, folder.Parent);
             // Assert that all of the child directories can be accessed are part of the Archive.
@@ -160,7 +166,9 @@ namespace DAZ_Installer.Core.Tests
             CollectionAssert.Contains(Archive.Folders.Values, folder.Parent.Parent);
             CollectionAssert.Contains(Archive.RootFolders, folder.Parent.Parent);
 
+            Assert.AreEqual(Archive.Folders[PathHelper.NormalizePath("Content/data/TheRealSolly")], folder);
             Assert.AreEqual(Archive.Folders[PathHelper.NormalizePath("Content/data")], folder.Parent);
+            Assert.AreEqual(Archive.Folders["Content"], folder.Parent.Parent);
         }
 
         [TestMethod]
@@ -170,12 +178,11 @@ namespace DAZ_Installer.Core.Tests
 
             var folder = DPFolder.CreateFoldersForFile("Content/data/TheRealSolly/a.txt", Archive);
 
-            Assert.IsNotNull(folder);
+            Assert.AreEqual(folder, parentFolder);
             // Assert that the folder returned is the directory of a.txt
             Assert.AreEqual(PathHelper.CleanDirPath("Content/data/TheRealSolly"), folder.Path);
             // Assert that all of the child directories are made.
-            Assert.IsNotNull(folder.Parent);
-            Assert.AreEqual(PathHelper.CleanDirPath("Content/data"), folder.Parent.Path);
+            Assert.AreEqual(PathHelper.CleanDirPath("Content/data"), folder.Parent!.Path);
             Assert.IsNotNull(folder.Parent.Parent);
             Assert.AreEqual(PathHelper.CleanDirPath("Content"), folder.Parent.Parent.Path);
 
@@ -187,8 +194,8 @@ namespace DAZ_Installer.Core.Tests
             CollectionAssert.AreEqual(new[] { folder }, folder.Parent.subfolders);
             CollectionAssert.AreEqual(new[] { folder.Parent }, folder.Parent.Parent.subfolders);
 
-
             Assert.AreEqual(Archive.Folders[PathHelper.NormalizePath("Content/data")], folder.Parent);
+            Assert.AreEqual(Archive.Folders["Content"], folder.Parent.Parent);
         }
 
         [TestMethod]
