@@ -191,8 +191,8 @@ namespace DAZ_Installer.Core.Tests
             CollectionAssert.DoesNotContain(Archive.RootFolders, folder);
 
             // Assert that the subfolders are all correct.
-            CollectionAssert.AreEqual(new[] { folder }, folder.Parent.subfolders);
-            CollectionAssert.AreEqual(new[] { folder.Parent }, folder.Parent.Parent.subfolders);
+            CollectionAssert.AreEqual(new[] { folder }, folder.Parent.Subfolders);
+            CollectionAssert.AreEqual(new[] { folder.Parent }, folder.Parent.Parent.Subfolders);
 
             Assert.AreEqual(Archive.Folders[PathHelper.NormalizePath("Content/data")], folder.Parent);
             Assert.AreEqual(Archive.Folders["Content"], folder.Parent.Parent);
@@ -405,7 +405,7 @@ namespace DAZ_Installer.Core.Tests
 
             folder.AddChild(folder1);
 
-            CollectionAssert.Contains(folder.subfolders, folder1);
+            CollectionAssert.Contains(folder.Subfolders, folder1);
         }
 
         [TestMethod]
@@ -437,7 +437,7 @@ namespace DAZ_Installer.Core.Tests
 
             parentFolder.RemoveChild(childFolder);
 
-            CollectionAssert.DoesNotContain(parentFolder.subfolders, childFolder);
+            CollectionAssert.DoesNotContain(parentFolder.Subfolders, childFolder);
         }
 
         [TestMethod]
@@ -469,7 +469,7 @@ namespace DAZ_Installer.Core.Tests
             folder.Parent = parentFolder; // This calls UpdateParent
 
             Assert.AreEqual(parentFolder, folder.Parent);
-            CollectionAssert.AreEqual(new[] { folder }, parentFolder.subfolders);
+            CollectionAssert.AreEqual(new[] { folder }, parentFolder.Subfolders);
             CollectionAssert.DoesNotContain(Archive.RootFolders, folder);
         }
 
@@ -485,7 +485,7 @@ namespace DAZ_Installer.Core.Tests
             folder.Parent = null; // This calls UpdateParent
 
             Assert.AreEqual(parentFolder, folder.Parent);
-            CollectionAssert.AreEqual(new[] { folder }, parentFolder.subfolders);
+            CollectionAssert.AreEqual(new[] { folder }, parentFolder.Subfolders);
             CollectionAssert.AreEqual(new[] { parentFolder }, Archive.RootFolders);
             CollectionAssert.AreEquivalent(new[] { folder, parentFolder }, Archive.Folders.Values.ToList());
         }
@@ -504,8 +504,8 @@ namespace DAZ_Installer.Core.Tests
             Assert.IsNotNull(folder.Parent.Parent);
             Assert.AreEqual(folder.Parent.FileName, "data");
             Assert.AreEqual(folder.Parent.Parent.FileName, "Content");
-            CollectionAssert.AreEqual(new[] { folder }, folder.Parent.subfolders);
-            CollectionAssert.AreEqual(new[] { folder.Parent }, folder.Parent.Parent.subfolders);
+            CollectionAssert.AreEqual(new[] { folder }, folder.Parent.Subfolders);
+            CollectionAssert.AreEqual(new[] { folder.Parent }, folder.Parent.Parent.Subfolders);
             CollectionAssert.DoesNotContain(Archive.RootFolders, folder);
             CollectionAssert.AreEquivalent(new[] { folder, folder.Parent, folder.Parent.Parent }, Archive.Folders.Values);
         }
@@ -519,7 +519,7 @@ namespace DAZ_Installer.Core.Tests
             folder.Parent = parentFolder; // This calls UpdateParent
 
             Assert.AreEqual(parentFolder, folder.Parent);
-            CollectionAssert.AreEqual(new[] { folder }, parentFolder.subfolders);
+            CollectionAssert.AreEqual(new[] { folder }, parentFolder.Subfolders);
             CollectionAssert.AreEqual(new[] { parentFolder }, Archive.RootFolders);
             CollectionAssert.AreEquivalent(new[] { folder, parentFolder }, Archive.Folders.Values);
         }
@@ -534,7 +534,7 @@ namespace DAZ_Installer.Core.Tests
             folder.Parent = null; // This calls UpdateParent
 
             Assert.IsNull(folder.Parent);
-            CollectionAssert.IsNotSubsetOf(new[] { folder }, parentFolder!.subfolders);
+            CollectionAssert.IsNotSubsetOf(new[] { folder }, parentFolder!.Subfolders);
             CollectionAssert.AreEquivalent(new[] { folder, parentFolder }, Archive.RootFolders);
             CollectionAssert.AreEquivalent(new[] { folder, parentFolder }, Archive.Folders.Values);
         }

@@ -11,7 +11,7 @@ namespace DAZ_Installer.Core
         /// <summary>
         /// A list of subfolders in this folder.
         /// </summary>
-        public List<DPFolder> subfolders = new();
+        public List<DPFolder> Subfolders = new();
         private readonly Dictionary<string, DPFile> contents = new();
         /// <summary>
         /// A readonly collection of files in this folder. This does not count for subfolders.
@@ -181,7 +181,7 @@ namespace DAZ_Installer.Core
                 throw new ArgumentException("Child must be a DPFolder or DPFile.", nameof(child));
             if (child is DPFolder folder)
             {
-                subfolders.Add(folder);
+                Subfolders.Add(folder);
                 return;
             }
             contents.TryAdd(child.Path, (DPFile)child);
@@ -200,7 +200,7 @@ namespace DAZ_Installer.Core
             if (child.GetType() == typeof(DPFolder))
             {
                 var dpFolder = (DPFolder)child;
-                subfolders.Remove(dpFolder);
+                Subfolders.Remove(dpFolder);
                 return;
             }
             contents.Remove(child.Path);

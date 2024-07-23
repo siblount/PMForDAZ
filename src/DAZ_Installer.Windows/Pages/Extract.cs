@@ -69,7 +69,7 @@ namespace DAZ_Installer.Windows.Pages
                 associatedTreeNodes[file] = node;
                 AddIcon(node, file.Ext);
             }
-            foreach (DPFolder subfolder in folder.subfolders)
+            foreach (DPFolder subfolder in folder.Subfolders)
                 ProcessChildNodes(subfolder, folder1);
         }
 

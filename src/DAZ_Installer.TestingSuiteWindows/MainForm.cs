@@ -306,7 +306,7 @@ namespace DAZ_Installer.TestingSuiteWindows
                     var childNode = new TreeNode(file.FileName) { Tag = file };
                     parentNode.Nodes.Add(childNode);
                 }
-                foreach (var subFolder in folder.subfolders)
+                foreach (var subFolder in folder.Subfolders)
                 {
                     var childNode = new TreeNode(subFolder.FileName) { Tag = subFolder };
                     parentNode.Nodes.Add(childNode);
