@@ -538,5 +538,41 @@ namespace DAZ_Installer.Core.Tests
             CollectionAssert.AreEquivalent(new[] { folder, parentFolder }, Archive.RootFolders);
             CollectionAssert.AreEquivalent(new[] { folder, parentFolder }, Archive.Folders.Values);
         }
+
+        [TestMethod]
+        public void IsPartOfContentFolder_NullParentTest()
+        {
+            var folder = new DPFolder("Content", Archive, null);
+
+            Assert.IsFalse(folder.IsPartOfContentFolder);
+        }
+
+        [TestMethod]
+        public void IsPartOfContentFolder_FolderIsContentFolderTest()
+        {
+            var folder = new DPFolder("Content/doesn't/matter", Archive, null);
+            folder.IsContentFolder = true;
+            folder.Parent!.Parent!.IsContentFolder = true;
+
+            Assert.IsFalse(folder.IsPartOfContentFolder);
+        }
+
+        [TestMethod]
+        public void IsPartOfContentFolder_ParentIsContentFolderTest()
+        {
+            var folder = new DPFolder("Content/doesn't/matter", Archive, null);
+            folder.Parent!.IsContentFolder = true;
+
+            Assert.IsTrue(folder.IsPartOfContentFolder);
+        }
+
+        [TestMethod]
+        public void IsPartOfContentFolder_ParentIsPartOfContentFolderTest()
+        {
+            var folder = new DPFolder("Content/doesn't/matter", Archive, null);
+            folder.Parent!.Parent!.IsContentFolder = true;
+
+            Assert.IsTrue(folder.IsPartOfContentFolder);
+        }
     }
 }

@@ -36,7 +36,7 @@ namespace DAZ_Installer.Core
         /// <returns>
         /// <c>true</c> if this folder is a content folder or has a parent that is part of a content folder structure; otherwise, <c>false</c>.
         /// </returns>
-        public bool IsPartOfContentFolder => (Parent?.IsPartOfContentFolder ?? false) || (Parent?.IsContentFolder ?? false);
+        public bool IsPartOfContentFolder => !IsContentFolder && ((Parent?.IsPartOfContentFolder ?? false) || (Parent?.IsContentFolder ?? false));
         /// <summary>
         /// A constructor for creating a folder object.
         /// </summary>
