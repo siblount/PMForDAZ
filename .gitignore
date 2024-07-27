@@ -352,3 +352,6 @@ MigrationBackup/
 # Testing for Daz Product Manager
 src/DAZ_Installer.CoreTests/RealData/Archives/*
 src/DAZ_Installer.CoreTests/RealData/Manifests/*
+
+# Coverage
+*coveragereport
