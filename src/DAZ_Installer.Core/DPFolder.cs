@@ -12,11 +12,10 @@ namespace DAZ_Installer.Core
         /// A list of subfolders in this folder.
         /// </summary>
         public List<DPFolder> Subfolders = new();
-        private readonly Dictionary<string, DPFile> contents = new();
         /// <summary>
-        /// A readonly collection of files in this folder. This does not count for subfolders.
+        /// A list of files in this folder.
         /// </summary>
-        public ICollection<DPFile> Contents => contents.Values;
+        public readonly HashSet<DPFile> Contents = new();
         /// <summary>
         /// Describes whether this folder is a content folder.
         /// </summary>
@@ -101,7 +100,7 @@ namespace DAZ_Installer.Core
                 Logger.Warning("Content folder was null, could not update relative paths for {Path}", Path);
                 return;
             }
-            foreach (DPFile child in contents.Values)
+            foreach (DPFile child in Contents)
             {
                 // This prevents the code for running twice on a child that was previously processed when ManifestAndAuto is on.
                 if (!string.IsNullOrEmpty(child.RelativePathToContentFolder) && !string.IsNullOrEmpty(child.RelativeTargetPath))
@@ -179,12 +178,11 @@ namespace DAZ_Installer.Core
         {
             if (child is not DPFolder && child is not DPFile)
                 throw new ArgumentException("Child must be a DPFolder or DPFile.", nameof(child));
+
             if (child is DPFolder folder)
-            {
                 Subfolders.Add(folder);
-                return;
-            }
-            contents.TryAdd(child.Path, (DPFile)child);
+            else if (child is DPFile file && !Contents.Contains(file))
+                Contents.Add(file);
         }
 
         /// <summary>
@@ -203,7 +201,7 @@ namespace DAZ_Installer.Core
                 Subfolders.Remove(dpFolder);
                 return;
             }
-            contents.Remove(child.Path);
+            Contents.Remove((DPFile)child);
         }
 
         /// <summary>
