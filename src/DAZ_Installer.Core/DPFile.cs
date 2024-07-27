@@ -13,13 +13,37 @@ namespace DAZ_Installer.Core
     public class DPFile : DPAbstractNode
     {
         // Public static members
+        /// <summary>
+        /// A dictionary that maps the string representation of the <see cref="ContentType"/> to the actual <see cref="ContentType"/> enum.
+        /// </summary>
         private static Dictionary<string, ContentType> enumPairs { get; } = new Dictionary<string, ContentType>(Enum.GetValues(typeof(ContentType)).Length);
-        public static readonly HashSet<string> DAZFormats = new() { "duf", "dsa", "dse", "daz", "dsf", "dsb", "dson", "ds", "dsb", "djl", "dsx", "dsi", "dcb", "dbm", "dbc", "dbl", "dso", "dsd", "dsv" };
+        /// <summary>
+        /// A set of DAZ file extensions that are recognized by the program.
+        /// </summary>
+        public static readonly HashSet<string> DAZFormats = new() { "duf", "dsa", "dse", "daz", "dsf", "dsb", "dson", "ds", "dsb", "djl", "dsx", "dsi", "dcb", "dbm", "dbc", "dbl", "dsd", "dsv" };
+        /// <summary>
+        /// A set of geometry file extensions that are recognized by the program.
+        /// </summary>
         public static readonly HashSet<string> GeometryFormats = new() { "dae", "bvh", "fbx", "obj", "dso", "abc", "mdd", "mi", "u3d" };
+        /// <summary>
+        /// A set of media file extensions that are recognized by the program.
+        /// </summary>
         public static readonly HashSet<string> MediaFormats = new() { "png", "jpg", "hdr", "hdri", "bmp", "gif", "webp", "eps", "raw", "tiff", "tif", "psd", "xcf", "jpeg", "cr2", "svg", "apng", "avif" };
+        /// <summary>
+        /// A set of document file extensions that are recognized by the program.
+        /// </summary>
         public static readonly HashSet<string> DocumentFormats = new() { "txt", "pdf", "doc", "docx", "odt", "html", "ppt", "pptx", "xlsx", "xlsm", "xlsb", "rtf" };
+        /// <summary>
+        /// A set of other file extensions that are recognized by the program.
+        /// </summary>
         public static readonly HashSet<string> OtherFormats = new() { "exe", "lib", "dll", "bat", "cmd" };
+        /// <summary>
+        /// A set of acceptable import formats that are recognized by the program.
+        /// </summary>
         public static readonly HashSet<string> AcceptableImportFormats = new() { "rar", "zip", "7z", "001" };
+        /// <summary>
+        /// A list of tags that are associated with the file. This is typically initialized with the file name.
+        /// </summary>
         public List<string> Tags { get; set; } = new List<string>(0);
         /// <summary>
         /// The FileInfo object to use for moving, copying, and deleting files. Typically this is a <see cref="DPFileInfo"/>. 
@@ -66,6 +90,14 @@ namespace DAZ_Installer.Core
         /// </summary>
         public DPFile() { }
 
+        /// <summary>
+        /// A public constructor required for setting up this file that is connected to a <see cref="DPArchive"/>.
+        /// </summary>
+        /// <param name="_path">The path to set for this file.</param>
+        /// <param name="arc">The archive to associate to, if any.</param>
+        /// <param name="__parent">The parent folder for this file, if any.</param>
+        /// <exception cref="InvalidOperationException">File already exists in <paramref name="arc"/>.</exception>
+        /// <exception cref="ArgumentNullException">If <paramref name="_path"/> is null</exception>"
         public DPFile(string _path, DPArchive? arc, DPFolder? __parent) : base(_path, arc)
         {
             ArgumentNullException.ThrowIfNull(_path, nameof(_path));
@@ -76,25 +108,49 @@ namespace DAZ_Installer.Core
             if (arc is null) return;
             AssociatedArchive = arc;
             if (!arc.Contents.TryAdd(NormalizedPath, this))
-                throw new Exception("File already exists in this archive.");
+                throw new InvalidOperationException("File already exists in this archive.");
         }
 
+        /// <summary>
+        /// A testing constructor intended for testing purposes only. This calls <see cref="DPFile(string, DPArchive?, DPFolder?)"/> 
+        /// constructor which means that the file will be added to the archive if <paramref name="arc"/> is not null, create missing folders,
+        /// initialize tags, set the parent, etc.
+        /// </summary>
+        /// <param name="_path">The path to set for this file.</param>
+        /// <param name="arc">The associated archive to set for this file, if any.</param>
+        /// <param name="__parent">The parent folder for this file, if any.</param>
+        /// <param name="fileInfo">The related system FileInfo object, if any.</param>
+        /// <param name="logger">The logger to use.</param>
         public DPFile(string _path, DPArchive? arc, DPFolder? __parent, IDPFileInfo? fileInfo, ILogger logger) : this(_path, arc, __parent)
         {
             FileInfo = fileInfo;
             Logger = logger;
         }
 
+        /// <summary>
+        /// A factory method that creates a new file based on the extension of the file. 
+        /// If the extension is not recognized, then a regular <see cref="DPFile"/> is created.
+        /// If the extension is recognized, then a specialized file is created. <br/>
+        /// If the extension is "dsf" or "duf", then a <see cref="DPDazFile"/> is created. <br/>
+        /// If the extension is "dsx", then a <see cref="DPDSXFile"/> is created. <br/>
+        /// If the extension is in <see cref="AcceptableImportFormats"/>, then a <see cref="DPArchive"/> is created. <br/>
+        /// </summary>
+        /// <param name="path">The path to set for this file.</param>
+        /// <param name="arc">The associated archive to set for this file, if any.</param>
+        /// <param name="parent">The parent folder for this file, if any.</param>
+        /// <returns>Either a <see cref="DPArchive"/>, <see cref="DPDazFile"/>, <see cref="DPDSXFile"/>, or a <see cref="DPFile"/>.</returns>
         public static DPFile CreateNewFile(string path, DPArchive? arc, DPFolder? parent)
         {
             var ext = GetExtension(path);
             if (ext == "dsf" || ext == "duf")
             {
-                return new DPDazFile(path, arc!, parent);
+                ArgumentNullException.ThrowIfNull(arc, nameof(arc));
+                return new DPDazFile(path, arc, parent);
             }
             else if (ext == "dsx")
             {
-                return new DPDSXFile(path, arc!, parent);
+                ArgumentNullException.ThrowIfNull(arc, nameof(arc));
+                return new DPDSXFile(path, arc, parent);
             }
             else if (AcceptableImportFormats.Contains(ext))
                 return new DPArchive(path, arc, parent);
@@ -108,7 +164,8 @@ namespace DAZ_Installer.Core
         /// <param name="path">The path to move to (must exist and have access to it).</param>
         public void MoveTo(string path) => FileInfo?.MoveTo(path, true);
         /// <summary>
-        /// Attempts to delete the file <b>in file system space</b> (not archive space). This simply calls <see cref="FileInfo.Delete"/> to delete the file. Throws exceptions.
+        /// Attempts to delete the file <b>in file system space</b> (not archive space). 
+        /// This simply calls <see cref="FileInfo.Delete"/> to delete the file. Throws exceptions.
         /// </summary>
         public void Delete() => FileInfo?.Delete();
 
@@ -123,7 +180,7 @@ namespace DAZ_Installer.Core
             {
                 // Remove ourselves from root content of the working archive.
                 // AssociatedArchive shouldn't be null at the point.
-                AssociatedArchive!.RootContents.Remove(this);
+                AssociatedArchive?.RootContents.Remove(this);
 
                 // Call the folder's addChild() to add ourselves to the children list.
                 newParent.AddChild(this);
@@ -209,33 +266,49 @@ namespace DAZ_Installer.Core
         /// Extracts the current file. If the file is not extracted, then it will be extracted. Otherwise, nothing will happen.
         /// </summary>
         /// <param name="settings">The extract settings to use; only <see cref="DPExtractSettings.TempPath"/> will be honored.</param>
-        /// <returns></returns>
+        /// <returns>Whether the operation was a succses or not</returns>
         public bool ExtractToTemp(DPExtractSettings settings)
         {
             if (AssociatedArchive is null) return false;
             return AssociatedArchive.ExtractContentsToTemp(new DPExtractSettings(settings.TempPath, new[] { this }, archive: AssociatedArchive)).SuccessPercentage == 1;
         }
 
-        public static ContentType GetContentType(string type, DPFile dP)
+        /// <summary>
+        /// Determines the content type of a file given the extension and the <paramref name="type"/> defined from the
+        /// content info in the DAZ file.
+        /// </summary>
+        /// <param name="type">The content type defined in the <see cref="DPDazFile"/> content info.</param>
+        /// <param name="file">The file to use.</param>
+        /// <returns>The content type based on the parameters.</returns>
+        public static ContentType GetContentType(string? type, DPFile file)
         {
             if (!string.IsNullOrEmpty(type) && enumPairs.TryGetValue(type, out ContentType contentType))
                 return contentType;
-            if (dP is null) return ContentType.DAZ_File;
-            if (GeometryFormats.Contains(dP.Ext))
+            if (file is null) return ContentType.DAZ_File;
+            if (GeometryFormats.Contains(file.Ext))
                 return ContentType.Geometry;
-            else if (MediaFormats.Contains(dP.Ext))
+            else if (MediaFormats.Contains(file.Ext))
                 return ContentType.Media;
-            else if (DocumentFormats.Contains(dP.Ext))
+            else if (DocumentFormats.Contains(file.Ext))
                 return ContentType.Document;
-            else if (OtherFormats.Contains(dP.Ext))
+            else if (OtherFormats.Contains(file.Ext))
                 return ContentType.Program;
-            else if (DAZFormats.Contains(dP.Ext))
+            else if (DAZFormats.Contains(file.Ext))
                 return ContentType.DAZ_File;
 
             // The most obvious comment ever - implied else :\
             return ContentType.Unknown;
         }
 
+        /// <summary>
+        /// Determines whether the extension is a valid import extension or not.
+        /// </summary>
+        /// <remarks>
+        /// For instance, if <paramref name="ext"/> is <c>zip</c>, then it will return true.
+        /// If <paramref name="ext"/> is <c>jpg</c>, then it will return false.
+        /// </remarks>
+        /// <param name="ext">The extension to check</param>
+        /// <returns>Whether the extension refers to a valid archive such as (zip, rar, 7z)</returns>
         public static bool ValidImportExtension(string ext) => AcceptableImportFormats.Contains(ext);
 
         /// <summary>
