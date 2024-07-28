@@ -75,9 +75,33 @@ namespace DAZ_Installer.Core
         protected DPFolder? parent;
 
         /// <summary>
-        /// Returns the extension of a given name without the dot and lowered to all lowercase.
+        /// Returns the lowercase extension of a given path without the leading dot.
         /// </summary>
-        public static string GetExtension(string path) => IOPath.GetExtension(path).Substring(path.Length > 0 ? 1 : 0).ToLower();
+        /// <param name="path">The file path or name from which to extract the extension.</param>
+        /// <returns>
+        /// The lowercase extension without the leading dot if the path contains an extension;
+        /// an empty string if the path is null, empty, or does not contain an extension.
+        /// </returns>
+        /// <remarks>
+        /// This method handles various edge cases:
+        /// - If the path is null or empty, it returns an empty string.
+        /// - If the path does not contain a dot or ends with a dot, it returns an empty string.
+        /// - The extension is converted to lowercase for consistency.
+        /// </remarks>
+        public static string GetExtension(string path)
+        {
+            if (string.IsNullOrEmpty(path)) return string.Empty;
+
+            string extension = IOPath.GetExtension(path);
+
+            if (string.IsNullOrEmpty(extension))
+            {
+                return string.Empty;
+            }
+
+            return extension.TrimStart('.').ToLower();
+        }
+
         /// <summary>
         /// A constructor that does nothing. Only recommended for creating init-archives.
         /// </summary>

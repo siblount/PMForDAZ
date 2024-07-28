@@ -26,6 +26,7 @@ namespace DAZ_Installer.Core.Tests
         [DataRow("Content/file.rar", "rar")]
         [DataRow("Content/multi.dot.ext", "ext")]
         [DataRow("Content/multi", "")]
+        [DataRow("", "")]
         public void GetExtensionTest(string path, string expected)
         {
             Assert.AreEqual(expected, DPAbstractNode.GetExtension(path));
