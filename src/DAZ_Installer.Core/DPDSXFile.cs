@@ -32,7 +32,7 @@ namespace DAZ_Installer.Core
         public void CheckContents(StreamReader stream)
         {
             if (AssociatedArchive is null) return;
-            var parser = new DPDSXParser(stream);
+            var parser = new DPDSXParser(stream, Logger);
             DPDSXElementCollection collection = parser.GetDSXFile();
             List<DPDSXElement> search = collection.FindElementViaTag("ProductName");
             if (search.Count != 0)
@@ -82,7 +82,7 @@ namespace DAZ_Installer.Core
                     return dict;
                 }
                 using var streamReader = new StreamReader(stream!);
-                var parser = new DPDSXParser(streamReader);
+                var parser = new DPDSXParser(streamReader, Logger);
                 DPDSXElementCollection collection = parser.GetDSXFile();
                 IEnumerable<DPDSXElement> elements = collection.GetAllElements();
                 dict.EnsureCapacity(collection.Count);

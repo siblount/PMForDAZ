@@ -2,12 +2,15 @@
 // You may find a full copy of this license at root project directory\LICENSE
 
 using Serilog;
+using System.Runtime.CompilerServices;
 using System.Text;
 
 namespace DAZ_Installer.Core
 {
     public class DPDSXParser
     {
+        public ILogger Logger { get; set; } = Log.Logger.ForContext<DPDSXParser>();
+        public int BufferSize { get; init; } = 16384;
         protected readonly StreamReader stream = null!;
         protected int lastIndex = 0;
         protected DPDSXElementCollection workingFileContents = new();
@@ -17,17 +20,19 @@ namespace DAZ_Installer.Core
         public string fileName = string.Empty;
         protected Task asyncTask { get; set; } = null!;
         protected bool Disposed = false;
-        public DPDSXParser(StreamReader stream)
+        public DPDSXParser(StreamReader stream, ILogger logger, int bufferSize = BUFFER_SIZE)
         {
             try
             {
+                Logger = logger;
+                BufferSize = bufferSize;
                 this.stream = stream;
                 asyncTask = new Task(ReadFile);
                 asyncTask.Start();
             }
             catch (Exception e)
             {
-                Log.Logger.ForContext<DPDSXParser>().Error(e, "Failed to open file {FileName}", fileName);
+                Logger.Error(e, "Failed to open file {FileName}", fileName);
                 stream?.Dispose();
                 Disposed = true;
                 hasErrored = true;
@@ -41,12 +46,11 @@ namespace DAZ_Installer.Core
 
         protected void ReadFile()
         {
-            var watch = new System.Diagnostics.Stopwatch();
             var offset = 0;
-            DPDSXElement lastElement = null;
-            Span<char> chars = new char[BUFFER_SIZE];
-            // DPCommon.WriteToLog($"Reading file {fileName}...");
-            watch.Start();
+            DPDSXElement? lastElement = null;
+            Span<char> chars = new char[BufferSize];
+            
+            // TODO: Support for chunking reads.
             try
             {
                 while (stream.Read(chars) != 0)
@@ -68,8 +72,13 @@ namespace DAZ_Installer.Core
                     {
                         var nextIndex = lastIndex;
                         DPDSXElement? element = GetNextElement(chars, nextIndex, out nextIndex);
+                        if (element is { IsEndingElement: true })
+                        {
+                            lastIndex = nextIndex;
+                            continue;
+                        }
                         lastElement.NextSibling = element;
-                        if (element != null)
+                        if (element is not null)
                         {
                             workingFileContents.AddElement(element);
                             element.PreviousSibling = lastElement;
@@ -80,20 +89,10 @@ namespace DAZ_Installer.Core
                     chunk++;
                     offset = chars.Length - 1 - lastIndex;
                 }
-                watch.Stop();
-                // DPCommon.WriteToLog($"Execution Time: {watch.ElapsedMilliseconds} ms");
-                foreach (DPDSXElement element in workingFileContents.GetAllElements())
-                {
-                    // DPCommon.WriteToLog($"Element Tag Name: {new string(element.TagName)}");
-                    foreach (KeyValuePair<string, string> attribute in element.attributes)
-                    {
-                        // DPCommon.WriteToLog($"Attribute Name: {attribute.Key} | Attribute Value: {attribute.Value}");
-                    }
-                }
             }
             catch (Exception e)
             {
-                // DPCommon.WriteToLog($"An error occurred while attempting to read DSX file. REASON: {e}");
+                Logger.Error(e, "Failed to read DSX file");
             }
             finally
             {
@@ -172,13 +171,19 @@ namespace DAZ_Installer.Core
                             else
                             {
                                 if (c == '/' && i - 1 == nextLessThanIndex) isInDiscoverMode = true;
-                                isInTagCaptureMode = false;
+                                else isInTagCaptureMode = false;
                             }
                         }
                     }
 
                     if (nextLessThanIndex == -1)
                     {
+                        lastIndex = -1;
+                        return null;
+                    }
+                    if (nextMoreThanIndex == -1)
+                    {
+                        Logger.Warning("Element is broken. No closing tag found.");
                         lastIndex = -1;
                         return null;
                     }
@@ -190,24 +195,25 @@ namespace DAZ_Installer.Core
                     if (arr[lastIndex - 1] == '/') workingElement.MessageIncludesEnding = true;
                     if (isInDiscoverMode)
                     {
-                        // var ourTagName = arr[(nextLessThanIndex + 2)..lastIndex];
-                        // TODO: Check if ourTagName == workingElement.TagName
-                        ReadOnlySpan<char> ourTagName = arr.Slice(nextLessThanIndex + 2, lastIndex - nextLessThanIndex + 1);
-                        List<DPDSXElement> ourElements = workingFileContents.FindElementViaTag(new string(ourTagName));
+                        workingElement.IsEndingElement = true;
+                        List<DPDSXElement> ourElements = workingFileContents.FindElementViaTag(workingElement.TagName);
                         if (ourElements.Count != 0)
                         {
+                            // TODO: Investigate why the hell did I do this.
+                            // This is errorneous, there shouldn't be multiple elements being updated: only one.
                             foreach (DPDSXElement element in ourElements)
                             {
                                 element.MessageIncludesEnding = true;
                                 element.TotalMessage = totalMessage;
                                 var closingTagBeginningIndex = GetClosingTagLessThan(element.TotalMessage.Span, element.TotalMessage.Length);
                                 var beginningTagEndIndex = GetNextMoreThan(element.TotalMessage.Span, 0);
-                                element.InnerText = element.TotalMessage.Slice((beginningTagEndIndex + 1), closingTagBeginningIndex - beginningTagEndIndex);
+                                element.InnerText = element.TotalMessage.Slice(beginningTagEndIndex + 1, closingTagBeginningIndex - beginningTagEndIndex);
                                 element.EndIndex = nextMoreThanIndex;
                                 element.ParentChildrenWithinIndexRange();
                             }
                         }
-                        return null;
+                        // Return the ending element.
+                        return workingElement;
                     }
                 }
                 if (nextLessThanIndex == -1) return null;
@@ -215,7 +221,7 @@ namespace DAZ_Installer.Core
             }
             catch (Exception e)
             {
-                // DPCommon.WriteToLog(e);
+                Logger.Error(e, "Failed to get next element");
             }
             lastIndex = -1;
             return null;
@@ -228,9 +234,9 @@ namespace DAZ_Installer.Core
         /// <param name="offset">The index at which the function should begin.</param>
         /// <param name="min">The index at which the function should end. </param>
         /// <returns>A string in the form of a char array or NULL if nothing is found.</returns>
-        protected static string GetAttributeName(ReadOnlySpan<char> arr, int offset, int min)
+        protected static string? GetAttributeName(ReadOnlySpan<char> arr, int offset, int min)
         {
-            var stringBuilder = new List<char>(5); // Average is VALUE (5). 
+            var stringBuilder = new StringBuilder(5); // Average is VALUE (5). 
             for (var i = offset - 1; i > min; i--)
             {
                 var c = arr[i];
@@ -238,11 +244,10 @@ namespace DAZ_Installer.Core
                 {
                     break;
                 }
-                stringBuilder.Add(c);
+                stringBuilder.Insert(0, c);
             }
-            if (stringBuilder.Count == 0) return null;
-            stringBuilder.Reverse();
-            return new string(stringBuilder.ToArray());
+            if (stringBuilder.Length == 0) return null;
+            return stringBuilder.ToString();
         }
         /// <summary>
         /// Returns the index of the next less than symbol (<) at starting at `offset`.
@@ -285,6 +290,7 @@ namespace DAZ_Installer.Core
             }
             return -1;
         }
+
         protected static int GetClosingTagLessThan(ReadOnlySpan<char> arr, int offset)
         {
             for (var i = offset - 1; i > 0; i--)
