@@ -124,13 +124,13 @@ namespace DAZ_Installer.Core
                     {
                         Name = arc.FileName,
                         NestedArchive = arc.IsInnerArchive,
-                        Path = arc.IsInnerArchive ? arc.Path : arc?.FileInfo?.Path,
+                        Path = arc.IsInnerArchive ? arc.Path : arc.FileInfo?.Path,
                         Extractor = arc.Extractor?.GetType().Name,
-                        ParentArchiveNestedArchive = arc?.AssociatedArchive?.IsInnerArchive,
-                        ParentArchiveName = arc?.AssociatedArchive?.FileName,
-                        ParentArchivePath = arc?.AssociatedArchive?.IsInnerArchive ?? false ? arc?.AssociatedArchive?.Path :
-                                                                                              arc?.AssociatedArchive?.FileInfo?.Path,
-                        ParentExtractor = arc?.AssociatedArchive?.Extractor?.GetType().Name,
+                        ParentArchiveNestedArchive = arc.AssociatedArchive?.IsInnerArchive,
+                        ParentArchiveName = arc.AssociatedArchive?.FileName,
+                        ParentArchivePath = arc.AssociatedArchive?.IsInnerArchive ?? false ? arc.AssociatedArchive?.Path :
+                                                                                              arc.AssociatedArchive?.FileInfo?.Path,
+                        ParentExtractor = arc.AssociatedArchive?.Extractor?.GetType().Name,
                     };
                     Logger.Debug("Archive that is about to be processed: {@Arc}", arcDebugInfo);
                     
