@@ -32,13 +32,27 @@
         /// The cancellation token to use for the extraction. This setting will update <see cref="DPAbstractExtractor.CancellationToken"/>.
         /// </summary>
         public CancellationToken CancelToken = CancellationToken.None;
-
+        /// <summary>
+        /// An extraction settings object for the extractor to use.
+        /// </summary>
+        /// <param name="temp">The temporary directory to store data, if needed.</param>
+        /// <param name="filesToExtract">The files to extract from the archive.</param>
+        /// <param name="overwriteFiles">Determines whether it is okay to overwrite files.</param>
+        /// <param name="archive">The archive to extract files from. 
+        /// If not provided, it will be detected from the first file in 
+        /// <paramref name="filesToExtract"/>.
+        /// </param>
+        /// <exception cref="ArgumentNullException">
+        /// If <paramref name="archive"/> is null and could not find the 
+        /// associated archive from the first file in <paramref name="filesToExtract"/>.
+        /// </exception>
         public DPExtractSettings(string? temp, IEnumerable<DPFile> filesToExtract, bool overwriteFiles = true, DPArchive? archive = null)
         {
             TempPath = temp ?? string.Empty;
             OverwriteFiles = overwriteFiles;
             FilesToExtract = new HashSet<DPFile>(filesToExtract);
-            Archive = archive ?? filesToExtract.FirstOrDefault()?.AssociatedArchive ?? throw new ArgumentException("No archive provided and no files to extract provided.");
+            Archive = archive ?? filesToExtract.FirstOrDefault()?.AssociatedArchive!;
+            ArgumentNullException.ThrowIfNull(Archive, "archive");
         }
     }
 }
