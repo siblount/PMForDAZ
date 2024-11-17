@@ -5,7 +5,7 @@ namespace DAZ_Installer.Core.Extraction
     /// <summary>
     /// Interface for the <see cref="Process"/> class.
     /// </summary>
-    internal interface IProcess : IDisposable
+    public interface IProcess : IDisposable
     {
         /// <inheritdoc cref="Process.StandardInput"/>
         StreamWriter StandardInput { get; }

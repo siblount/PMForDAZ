@@ -11,8 +11,13 @@ namespace DAZ_Installer.Core
     /// </summary>
     public class DPTagProvider : AbstractTagProvider
     {
+        public static readonly DPTagProvider Singleton = new();
+        /// <summary>
+        /// A constructor to prevent instantiation.
+        /// </summary>
+        private DPTagProvider() { }
         /// <inheritdoc/>
-        public override HashSet<string> GetTags(DPArchive arc, DPProcessSettings settings)
+        public override HashSet<string> GetTags(IDPArchive arc, DPProcessSettings settings)
         {
             // First is always author.
             // Next is folder names.
@@ -25,7 +30,7 @@ namespace DAZ_Installer.Core
             var tagsSet = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             tagsSet.EnsureCapacity(arc.GetEstimateTagCount() + 5 +
                 (arc.Folders.Count * 2) + ((arc.Contents.Count - arc.Subarchives.Count) * 2));
-            foreach (DPDazFile file in arc.DazFiles)
+            foreach (IDPDazFile file in arc.DazFiles)
             {
                 DPContentInfo contentInfo = file.ContentInfo;
                 if (contentInfo.Website.Length != 0) tagsSet.Add(contentInfo.Website);
@@ -34,12 +39,12 @@ namespace DAZ_Installer.Core
                 tagsSet.UnionWith(contentInfo.Authors); // <-- I think this can be omitted since arc.ProductInfo includes
                                                         //     the authors already.     
             }
-            foreach (DPFile content in arc.Contents.Values)
+            foreach (IDPFile content in arc.Contents.Values)
             {
-                if (content is DPArchive) continue;
+                if (content is IDPArchive) continue;
                 tagsSet.UnionWith(Path.GetFileNameWithoutExtension(content.FileName).Split(' '));
             }
-            foreach (KeyValuePair<string, DPFolder> folder in arc.Folders)
+            foreach (KeyValuePair<string, IDPFolder> folder in arc.Folders)
             {
                 tagsSet.UnionWith(PathHelper.GetFileName(folder.Key).Split(' '));
             }
@@ -47,13 +52,14 @@ namespace DAZ_Installer.Core
             tagsSet.UnionWith(DPArchive.RegexSplitName(Path.GetFileNameWithoutExtension(arc.FileName)));
             if (arc.ProductInfo.SKU.Length != 0) tagsSet.Add(arc.ProductInfo.SKU);
             if (!string.IsNullOrEmpty(arc.ProductName)) tagsSet.Add(arc.ProductName);
-            return arc.ProductInfo.Tags = tagsSet;
+            arc.ProductInfo = arc.ProductInfo with { Tags = tagsSet };
+            return tagsSet;
         }
 
         /// <summary>
         /// Reads files that have the extension .dsf and .duf after it has been extracted. 
         /// </summary>
-        private void ReadContentFiles(DPArchive arc, DPProcessSettings settings)
+        private void ReadContentFiles(IDPArchive arc, DPProcessSettings settings)
         {
             // Extract the DAZ Files that have not been extracted.
             var extractSettings = new DPExtractSettings(settings.TempPath,
@@ -62,7 +68,7 @@ namespace DAZ_Installer.Core
             if (extractSettings.FilesToExtract.Count > 0) arc.ExtractContentsToTemp(extractSettings);
             Stream? stream = null;
             // Read the contents of the files.
-            foreach (DPDazFile file in arc!.DazFiles.Where(f => f.FileInfo?.Exists ?? false))
+            foreach (IDPDazFile file in arc!.DazFiles.Where(f => f.FileInfo?.Exists ?? false))
             {
                 using (LogContext.PushProperty("File", file.Path))
                 // If it did not extract correctly we don't have acces, just skip it.
@@ -113,7 +119,7 @@ namespace DAZ_Installer.Core
         /// <summary>
         /// Reads the files listed in <see cref="DPArchive.DSXFiles"/>.
         /// </summary>
-        private void ReadMetaFiles(DPArchive arc, DPProcessSettings settings)
+        private void ReadMetaFiles(IDPArchive arc, DPProcessSettings settings)
         {
             // Extract the DAZ Files that have not been extracted.
             var extractSettings = new DPExtractSettings(settings.TempPath,

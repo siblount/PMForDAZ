@@ -10,16 +10,17 @@
         /// </summary>
         public Exception? Ex { get; init; }
         /// <summary>
-        /// The processor that threw the error.
-        /// </summary>
-        public DPProcessor Processor { get; internal set; } = null!;
-        /// <summary>
         /// Additional information for the error, if any.
         /// </summary>
         public string Explaination { get; internal set; } = string.Empty;
         /// <summary>
         /// Represents whether the operation can be continued or not. Default is false.
         /// </summary>
+        /// <remarks>
+        /// <b>WARNING:</b> If this is set to true, you may need to call <see cref="DPProcessor.CancelProcessing()"/>
+        /// or <see cref="DPProcessor.CancelCurrentArchive()"/> to stop the processing. Otherwise, this event may be called
+        /// indefinitely.
+        /// </remarks> 
         public bool Continuable { get; internal set; } = false;
         /// <summary>
         /// <inheritdoc cref="DPProcessorErrorArgs"/>

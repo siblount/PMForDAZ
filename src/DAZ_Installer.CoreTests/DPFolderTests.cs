@@ -22,6 +22,7 @@ namespace DAZ_Installer.Core.Tests
         public FakeFileSystem FileSystem = null!;
         public FakeDPFileInfo FakeDPFileInfo = null!;
         public DPArchive Archive = null!;
+        public DPFolderFactory FolderFactory = null!;
 
         [ClassInitialize]
         public static void ClassInitialize(TestContext _)
@@ -39,6 +40,7 @@ namespace DAZ_Installer.Core.Tests
             FileSystem = new FakeFileSystem(DPFileScopeSettings.None);
             FakeDPFileInfo = FileSystem.CreateFileInfo("test");
             Archive = new DPArchive("test.zip", Log.Logger, FileSystem.CreateFileInfo("test.zip"), Extractor, null, null);
+            FolderFactory = DPFolderFactory.Instance;
         }
 
         [TestMethod]
@@ -86,97 +88,14 @@ namespace DAZ_Installer.Core.Tests
             Assert.IsNotNull(childFolder.Parent.Parent);
         }
 
-        [TestMethod]
-        public void CreateFoldersForFileTest()
-        {
-            var folder = DPFolder.CreateFoldersForFile("Content/data/TheRealSolly/a.txt", Archive);
-
-            // Assert that the folder returned is the directory of a.txt
-            Assert.AreEqual(PathHelper.CleanDirPath("Content/data/TheRealSolly"), folder.Path);
-            // Assert that all of the child directories are made.
-            Assert.IsNotNull(folder.Parent);
-            Assert.AreEqual(PathHelper.CleanDirPath("Content/data"), folder.Parent.Path);
-            Assert.IsNotNull(folder.Parent.Parent);
-            Assert.AreEqual(PathHelper.CleanDirPath("Content"), folder.Parent.Parent.Path);
-            // Assert that all of the child directories can be accessed are part of the Archive.
-            CollectionAssert.Contains(Archive.Folders.Values, folder);
-            CollectionAssert.DoesNotContain(Archive.RootFolders, folder);
-            CollectionAssert.Contains(Archive.Folders.Values, folder.Parent);
-            CollectionAssert.DoesNotContain(Archive.RootFolders, folder.Parent);
-            CollectionAssert.Contains(Archive.Folders.Values, folder.Parent.Parent);
-            CollectionAssert.Contains(Archive.RootFolders, folder.Parent.Parent);
-
-            Assert.AreEqual(Archive.Folders[PathHelper.NormalizePath("Content/data/TheRealSolly")], folder);
-            Assert.AreEqual(Archive.Folders[PathHelper.NormalizePath("Content/data")], folder.Parent);
-            Assert.AreEqual(Archive.Folders["Content"], folder.Parent.Parent);
-        }
-
-        [TestMethod]
-        public void CreateFoldersForFile_RootExistsTest()
-        {
-            var rootFolder = new DPFolder("Content", Archive, null);
-            var folder = DPFolder.CreateFoldersForFile("Content/data/TheRealSolly/a.txt", Archive);
-
-            // Assert that the folder returned is the directory of a.txt
-            Assert.AreEqual(PathHelper.CleanDirPath("Content/data/TheRealSolly"), folder.Path);
-            // Assert that all of the child directories are made.
-            Assert.IsNotNull(folder.Parent);
-            Assert.AreEqual(PathHelper.CleanDirPath("Content/data"), folder.Parent.Path);
-            Assert.IsNotNull(folder.Parent.Parent);
-            Assert.AreEqual(PathHelper.CleanDirPath("Content"), folder.Parent.Parent.Path);
-
-            // Assert that the root folder refers to the same rootFolder object.
-            Assert.AreEqual(rootFolder, folder.Parent.Parent);
-            // Assert that all of the child directories can be accessed are part of the Archive.
-            CollectionAssert.Contains(Archive.Folders.Values, folder);
-            CollectionAssert.DoesNotContain(Archive.RootFolders, folder);
-            CollectionAssert.Contains(Archive.Folders.Values, folder.Parent);
-            CollectionAssert.DoesNotContain(Archive.RootFolders, folder.Parent);
-            CollectionAssert.Contains(Archive.Folders.Values, folder.Parent.Parent);
-            CollectionAssert.Contains(Archive.RootFolders, folder.Parent.Parent);
-            Assert.AreEqual(1, Archive.RootFolders.Count);
-
-            Assert.AreEqual(Archive.Folders[PathHelper.NormalizePath("Content/data/TheRealSolly")], folder);
-            Assert.AreEqual(Archive.Folders[PathHelper.NormalizePath("Content/data")], folder.Parent);
-            Assert.AreEqual(Archive.Folders["Content"], folder.Parent.Parent);
-        }
-
-        [TestMethod]
-        public void CreateFoldersForFile_MidFolderExistsTest()
-        {
-            var midFolder = new DPFolder("Content/data", Archive, null);
-
-            var folder = DPFolder.CreateFoldersForFile("Content/data/TheRealSolly/a.txt", Archive);
-
-            Assert.IsNotNull(folder);
-            // Assert that the folder returned is the directory of a.txt
-            Assert.AreEqual(PathHelper.CleanDirPath("Content/data/TheRealSolly"), folder.Path);
-            // Assert that all of the child directories are made.
-            Assert.AreEqual(midFolder, folder.Parent);
-            Assert.AreEqual(PathHelper.CleanDirPath("Content/data"), folder.Parent!.Path);
-            Assert.IsNotNull(folder.Parent.Parent);
-            Assert.AreEqual(PathHelper.CleanDirPath("Content"), folder.Parent.Parent.Path);
-            // Assert that the mid folder refers to the same rootFolder object.
-            Assert.AreEqual(midFolder, folder.Parent);
-            // Assert that all of the child directories can be accessed are part of the Archive.
-            CollectionAssert.Contains(Archive.Folders.Values, folder);
-            CollectionAssert.DoesNotContain(Archive.RootFolders, folder);
-            CollectionAssert.Contains(Archive.Folders.Values, folder.Parent);
-            CollectionAssert.DoesNotContain(Archive.RootFolders, folder.Parent);
-            CollectionAssert.Contains(Archive.Folders.Values, folder.Parent.Parent);
-            CollectionAssert.Contains(Archive.RootFolders, folder.Parent.Parent);
-
-            Assert.AreEqual(Archive.Folders[PathHelper.NormalizePath("Content/data/TheRealSolly")], folder);
-            Assert.AreEqual(Archive.Folders[PathHelper.NormalizePath("Content/data")], folder.Parent);
-            Assert.AreEqual(Archive.Folders["Content"], folder.Parent.Parent);
-        }
+        
 
         [TestMethod]
         public void CreateFoldersForFile_ParentFolderExistsTest()
         {
             var parentFolder = new DPFolder("Content/data/TheRealSolly", Archive, null);
 
-            var folder = DPFolder.CreateFoldersForFile("Content/data/TheRealSolly/a.txt", Archive);
+            var folder = FolderFactory.CreateFolders("Content/data/TheRealSolly/a.txt", Archive);
 
             Assert.AreEqual(folder, parentFolder);
             // Assert that the folder returned is the directory of a.txt
@@ -201,7 +120,7 @@ namespace DAZ_Installer.Core.Tests
         [TestMethod]
         public void UpdateChildrenRelativePathsTest()
         {
-            var folder = DPFolder.CreateFoldersForFile("Content/data/TheRealSolly/a.txt", Archive);
+            var folder = FolderFactory.CreateFolders("Content/data/TheRealSolly/a.txt", Archive);
             var file = new DPFile("Content/data/TheRealSolly/a.txt", Archive, folder);
             var settings = new DPProcessSettings("O:/", "O:/My Library", InstallOptions.ManifestOnly, new HashSet<string>() { "data" }, new Dictionary<string, string>(), false);
             folder.Parent!.IsContentFolder = true;
@@ -215,7 +134,7 @@ namespace DAZ_Installer.Core.Tests
         [TestMethod]
         public void UpdateChildrenRelativePaths_NoContentFolderTest()
         {
-            var folder = DPFolder.CreateFoldersForFile("Content/data/TheRealSolly/a.txt", Archive);
+            var folder = FolderFactory.CreateFolders("Content/data/TheRealSolly/a.txt", Archive);
             var file = new DPFile("Content/data/TheRealSolly/a.txt", Archive, folder);
             var settings = new DPProcessSettings("O:/",
                                                  "O:/My Library",
@@ -233,7 +152,7 @@ namespace DAZ_Installer.Core.Tests
         [TestMethod]
         public void UpdateChildrenRelativePaths_ContentFolderRedirect()
         {
-            var folder = DPFolder.CreateFoldersForFile("Content/data/TheRealSolly/a.txt", Archive);
+            var folder = FolderFactory.CreateFolders("Content/data/TheRealSolly/a.txt", Archive);
             var file = new DPFile("Content/data/TheRealSolly/a.txt", Archive, folder);
             var settings = new DPProcessSettings("O:/",
                                                  "O:/My Library",
@@ -252,7 +171,7 @@ namespace DAZ_Installer.Core.Tests
         [TestMethod]
         public void CalculateChildRelativePathTest()
         {
-            var folder = DPFolder.CreateFoldersForFile("Content/data/TheRealSolly/a.txt", Archive);
+            var folder = FolderFactory.CreateFolders("Content/data/TheRealSolly/a.txt", Archive);
             var file = new DPFile("Content/data/TheRealSolly/a.txt", Archive, folder);
 
             var result = folder.CalculateChildRelativePath(file);
@@ -263,7 +182,7 @@ namespace DAZ_Installer.Core.Tests
         [TestMethod]
         public void CalculateChildRelativeTargetPathTest()
         {
-            var folder = DPFolder.CreateFoldersForFile("Content/data/TheRealSolly/a.txt", Archive);
+            var folder = FolderFactory.CreateFolders("Content/data/TheRealSolly/a.txt", Archive);
             var file = new DPFile("Content/data/TheRealSolly/a.txt", Archive, folder);
             var settings = new DPProcessSettings("O:/",
                                                  "O:/My Library",
@@ -282,7 +201,7 @@ namespace DAZ_Installer.Core.Tests
         [TestMethod]
         public void CalculateChildRelativeTargetPath_ContentRedirectTest()
         {
-            var folder = DPFolder.CreateFoldersForFile("Content/data/TheRealSolly/a.txt", Archive);
+            var folder = FolderFactory.CreateFolders("Content/data/TheRealSolly/a.txt", Archive);
             var file = new DPFile("Content/data/TheRealSolly/a.txt", Archive, folder);
             var settings = new DPProcessSettings("O:/",
                                                  "O:/My Library",
@@ -300,7 +219,7 @@ namespace DAZ_Installer.Core.Tests
         [TestMethod]
         public void CalculateChildRelativeTargetPath_NotContentFolderTest()
         {
-            var folder = DPFolder.CreateFoldersForFile("Content/data/TheRealSolly/a.txt", Archive);
+            var folder = FolderFactory.CreateFolders("Content/data/TheRealSolly/a.txt", Archive);
             var file = new DPFile("Content/data/TheRealSolly/a.txt", Archive, folder);
             var settings = new DPProcessSettings("O:/",
                                                  "O:/My Library",
@@ -317,7 +236,7 @@ namespace DAZ_Installer.Core.Tests
         [TestMethod]
         public void CalculateChildRelativeTargetPath_AlreadyCalculatedNotContentFolderTest()
         {
-            var folder = DPFolder.CreateFoldersForFile("Content/data/TheRealSolly/a.txt", Archive);
+            var folder = FolderFactory.CreateFolders("Content/data/TheRealSolly/a.txt", Archive);
             var file = new DPFile("Content/data/TheRealSolly/a.txt", Archive, folder);
             var settings = new DPProcessSettings("O:/",
                                                  "O:/My Library",
@@ -335,7 +254,7 @@ namespace DAZ_Installer.Core.Tests
         [TestMethod]
         public void CalculateChildRelativeTargetPath_AlreadyCalculatedTest()
         {
-            var folder = DPFolder.CreateFoldersForFile("Content/data/TheRealSolly/a.txt", Archive);
+            var folder = FolderFactory.CreateFolders("Content/data/TheRealSolly/a.txt", Archive);
             var file = new DPFile("Content/data/TheRealSolly/a.txt", Archive, folder);
             var settings = new DPProcessSettings("O:/",
                                                  "O:/My Library",
@@ -353,11 +272,12 @@ namespace DAZ_Installer.Core.Tests
         [TestMethod]
         public void CalculateChildRelativeTargetPath_NullTest()
         {
-            var folder = DPFolder.CreateFoldersForFile("Content/data/TheRealSolly/a.txt", Archive);
+            var folder = FolderFactory.CreateFolders("Content/data/TheRealSolly/a.txt", Archive);
             var file = new DPFile("Content/data/TheRealSolly/a.txt", Archive, folder);
             var settings = new DPProcessSettings("O:/",
                                                  "O:/My Library",
                                                  InstallOptions.ManifestOnly);
+            settings.ContentRedirectFolders = null;
 
             Assert.ThrowsException<ArgumentNullException>(() => folder.CalculateChildRelativeTargetPath(file, settings));
         }
@@ -365,7 +285,7 @@ namespace DAZ_Installer.Core.Tests
         [TestMethod]
         public void GetContentFolderTest()
         {
-            var folder = DPFolder.CreateFoldersForFile("Content/data/TheRealSolly/a.txt", Archive);
+            var folder = FolderFactory.CreateFolders("Content/data/TheRealSolly/a.txt", Archive);
             folder.IsContentFolder = true;
 
             Assert.AreEqual(folder, folder.GetContentFolder());
@@ -374,7 +294,7 @@ namespace DAZ_Installer.Core.Tests
         [TestMethod]
         public void GetContentFolder_ParentFolderTest()
         {
-            var folder = DPFolder.CreateFoldersForFile("Content/data/TheRealSolly/a.txt", Archive);
+            var folder = FolderFactory.CreateFolders("Content/data/TheRealSolly/a.txt", Archive);
             folder.Parent.IsContentFolder = true;
 
             Assert.AreEqual(folder.Parent, folder.GetContentFolder());
@@ -383,7 +303,7 @@ namespace DAZ_Installer.Core.Tests
         [TestMethod]
         public void GetContentFolder_RootFolderTest()
         {
-            var folder = DPFolder.CreateFoldersForFile("Content/data/TheRealSolly/a.txt", Archive);
+            var folder = FolderFactory.CreateFolders("Content/data/TheRealSolly/a.txt", Archive);
             folder.Parent!.Parent!.IsContentFolder = true;
 
             Assert.AreEqual(folder.Parent.Parent, folder.GetContentFolder());
@@ -392,7 +312,7 @@ namespace DAZ_Installer.Core.Tests
         [TestMethod]
         public void GetContentFolder_NoContentFolderTest()
         {
-            var folder = DPFolder.CreateFoldersForFile("Content/data/TheRealSolly/a.txt", Archive);
+            var folder = FolderFactory.CreateFolders("Content/data/TheRealSolly/a.txt", Archive);
 
             Assert.IsNull(folder.GetContentFolder());
         }

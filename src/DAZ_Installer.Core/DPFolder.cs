@@ -5,23 +5,23 @@ using DAZ_Installer.IO;
 using Serilog;
 namespace DAZ_Installer.Core
 {
-    public class DPFolder : DPAbstractNode
+    /// <inheritdoc/>
+    public class DPFolder : DPAbstractNode, IDPFolder
     {
         public override ILogger Logger { get; set; } = Log.Logger.ForContext<DPFolder>();
+        /// <inheritdoc/>
+        public List<IDPFolder> Subfolders { get; protected set; } = new();
+        /// <inheritdoc/>
+        public HashSet<IDPFile> Contents { get; protected set; } = new();
         /// <summary>
-        /// A list of subfolders in this folder.
+        /// <inheritdoc cref="IDPFolderFactory"/>
         /// </summary>
-        public List<DPFolder> Subfolders = new();
-        /// <summary>
-        /// A list of files in this folder.
-        /// </summary>
-        public readonly HashSet<DPFile> Contents = new();
-        /// <summary>
-        /// Describes whether this folder is a content folder.
-        /// </summary>
+        /// <remarks>The folder factory will be inherited from <see cref="DPAbstractNode.AssociatedArchive"/>.</remarks>
+        public IDPFolderFactory FolderFactory { get; set; } = DPFolderFactory.Instance;
+        /// <inheritdoc/>
         public bool IsContentFolder { get; set; }
         /// <summary>
-        /// Gets a value indicating whether this folder is part of a content folder structure.
+        /// <inheritdoc/>
         /// </summary>
         /// <remarks>
         /// A folder is considered part of a content folder structure if:
@@ -36,71 +36,46 @@ namespace DAZ_Installer.Core
         /// <c>true</c> if this folder is a content folder or has a parent that is part of a content folder structure; otherwise, <c>false</c>.
         /// </returns>
         public bool IsPartOfContentFolder => !IsContentFolder && ((Parent?.IsPartOfContentFolder ?? false) || (Parent?.IsContentFolder ?? false));
+
         /// <summary>
         /// A constructor for creating a folder object.
         /// </summary>
         /// <param name="path">The path to set for this folder.</param>
         /// <param name="arc">The associated archive.</param>
         /// <param name="parent">The parent of this folder, if any. If null, it will search and create the parent if this is a subfolder. </param>
-        public DPFolder(string path, DPArchive arc, DPFolder? parent) : base(path, arc)
+        public DPFolder(string path, IDPArchive arc, IDPFolder? parent) : base(path, arc)
         {
             Logger.Debug("Creating folder for {Path}", path);
             // ZipArchive returns folders with a trailing slash, so we need to remove it.
             // Potentially others may do the same.
             Path = PathHelper.CleanDirPath(path);
+            FolderFactory = arc.FolderFactory;
 
             arc.Folders.TryAdd(NormalizedPath, this);
             Parent = parent;
         }
 
         /// <summary>
-        /// Create folder (and subfolders) for file. This is used when a file is added to the archive and the folder it is in does not exist.
-        /// This can occur when certain extractors discover files first rather than folders.
-        /// Make sure that the folder does not exist before calling this function!
+        /// <inheritdoc/>
         /// </summary>
-        /// <param name="dpFilePath">The path to create folders for.</param>
-        /// <param name="associatedArchive">The associated archive to create folders to.</param>
-        public static DPFolder CreateFoldersForFile(string dpFilePath, DPArchive associatedArchive)
-        {
-            var seperator = PathHelper.GetSeperator(dpFilePath);
-            var pathParts = dpFilePath.Split(seperator);
-            DPFolder? currentFolder = null;
-            var currentPath = "";
-
-            for (var i = 0; i < pathParts.Length - 1; i++)
-            {
-                currentPath = System.IO.Path.Combine(currentPath, pathParts[i]);
-                
-                if (associatedArchive.FindFolder(PathHelper.NormalizePath(currentPath), out var existingFolder))
-                {
-                    currentFolder = existingFolder;
-                    continue;
-                }
-
-                var newFolder = new DPFolder(PathHelper.SwitchToSeperator(currentPath, seperator), associatedArchive, currentFolder);
-
-                currentFolder = newFolder;
-            }
-
-            return currentFolder!;
-        }
-
-        /// <summary>
-        /// Updates the relative paths of all children files in this folder. This requires that the folder or a parent folder 
-        /// is declared as a content folder by setting <see cref="IsContentFolder"/> to true on the content folder.
+        /// <remarks>
+        /// This requires that the folder or a parent folder is declared as a content folder
+        /// by setting <see cref="IsContentFolder"/> to true on the content folder.
         /// It updates the <see cref="DPAbstractNode.RelativePathToContentFolder"/> and <see cref="DPAbstractNode.RelativeTargetPath"/> properties.
-        /// <paramref name="settings"/> is used to calculate the <see cref="DPAbstractNode.RelativeTargetPath"/>.
-        /// </summary>
-        /// <param name="settings">The process settings to calculate the <see cref="DPAbstractNode.RelativeTargetPath"/> property of child contents in <see cref="Contents"/></param>
+        /// </remarks>
+        /// <param name="settings">
+        /// The process settings to calculate the <see cref="DPAbstractNode.RelativeTargetPath"/> property 
+        /// of child contents in <see cref="Contents"/>
+        /// </param>
         public void UpdateChildrenRelativePaths(DPProcessSettings settings)
         {
-            DPFolder? contentFolder = IsContentFolder ? this : GetContentFolder();
+            IDPFolder? contentFolder = IsContentFolder ? this : GetContentFolder();
             if (contentFolder is null)
             {
                 Logger.Warning("Content folder was null, could not update relative paths for {Path}", Path);
                 return;
             }
-            foreach (DPFile child in Contents)
+            foreach (IDPFile child in Contents)
             {
                 // This prevents the code for running twice on a child that was previously processed when ManifestAndAuto is on.
                 if (!string.IsNullOrEmpty(child.RelativePathToContentFolder) && !string.IsNullOrEmpty(child.RelativeTargetPath))
@@ -111,11 +86,11 @@ namespace DAZ_Installer.Core
         }
 
         /// <summary>
-        /// Calculates the path of a child relative to this folder.
+        /// <inheritdoc/>
         /// </summary>
         /// <param name="child">The child of this folder.</param>
         /// <returns>A string representing the relative path of the child relative to this folder.</returns>
-        public string CalculateChildRelativePath(DPAbstractNode child) => PathHelper.GetRelativePathOfRelativeParent(child.Path, Path);
+        public string CalculateChildRelativePath(IDPAbstractNode child) => PathHelper.GetRelativePathOfRelativeParent(child.Path, Path);
 
         /// <summary>
         /// Calculates the target path of a child relative to this folder. Requires <paramref name="settings"/> to
@@ -124,7 +99,7 @@ namespace DAZ_Installer.Core
         /// <param name="child">The child of this folder.</param>
         /// <param name="settings">The settings object in use.</param>
         /// <returns>A string representing the target path of the child relative to this folder.</returns>
-        public string CalculateChildRelativeTargetPath(DPAbstractNode child, DPProcessSettings settings)
+        public string CalculateChildRelativeTargetPath(IDPAbstractNode child, DPProcessSettings settings)
         {
             // TODO: In Processor, make sure the ContentRedirectFolders is never null.
             ArgumentNullException.ThrowIfNull(settings.ContentRedirectFolders, nameof(settings.ContentRedirectFolders));
@@ -144,19 +119,20 @@ namespace DAZ_Installer.Core
         }
 
         /// <summary>
-        /// Attempts to find the folder that is declared as a content folder (via: <see cref="IsContentFolder"/>).
-        /// It will first check if the current folder is a content folder, if not, it will recursively check the parent folders if they are content folders.
-        /// It will return the first folder that is declared as a content folder.
+        /// Attempts to find the folder that is declared as a content folder via the <see cref="IsContentFolder"/> property.
         /// </summary>
+        /// <remarks>
+        /// It will first check if the current folder is a content folder, if not, it will recursively check the parent folders if they are content folders.
+        /// </remarks>
         /// <returns>
         /// The current folder if it is marked as <see cref="IsContentFolder"/>, 
         /// or a parent folder (or parent of parents) that is a content folder, 
         /// or null if one could not be found. 
         /// </returns>
-        public DPFolder? GetContentFolder()
+        public IDPFolder? GetContentFolder()
         {
             if (Parent == null) return null;
-            DPFolder? workingFolder = this;
+            IDPFolder? workingFolder = this;
             while (workingFolder != null && workingFolder.IsContentFolder == false)
             {
                 workingFolder = workingFolder.Parent;
@@ -165,43 +141,46 @@ namespace DAZ_Installer.Core
         }
 
         /// <summary>
-        /// Handles the addition of the file to children property and subfolders property (if child is a <see cref="DPFolder"/>).
+        /// Handles the addition of the file to children property and subfolders property (if child is a <see cref="IDPFolder"/>).
         /// Nothing more, nothing less.
         /// <para/>
         /// DO NOT use this for moving a child from one folder to another. 
-        /// This does not update the <see cref="DPAbstractNode.Parent"/> property of the child. 
+        /// This does not update the <see cref="IDPAbstractNode.Parent"/> property of the child. 
         /// Change the parent property of the child instead to handle everything.
         /// </summary>
-        /// <param name="child">Either a <see cref="DPFolder"/> or a <see cref="DPFile"/>.</param>
-        /// <exception cref="ArgumentNullException">When <paramref name="child"/> is not a <see cref="DPFolder"/> or a <see cref="DPFile"/>.</exception>
-        public void AddChild(DPAbstractNode child)
+        /// <param name="child">Either a <see cref="IDPFolder"/> or a <see cref="IDPFile"/>.</param>
+        /// <exception cref="ArgumentNullException">When <paramref name="child"/> is not a <see cref="IDPFolder"/> or a <see cref="IDPFile"/>.</exception>
+        /// <seealso cref="IDPAbstractNode.Parent"/>
+        public void AddChild(IDPAbstractNode child)
         {
-            if (child is not DPFolder && child is not DPFile)
-                throw new ArgumentException("Child must be a DPFolder or DPFile.", nameof(child));
+            if (child is not IDPFolder && child is not IDPFile)
+                throw new ArgumentException("Child must be a IDPFolder or IDPFile.", nameof(child));
 
-            if (child is DPFolder folder)
+            if (child is IDPFolder folder)
                 Subfolders.Add(folder);
-            else if (child is DPFile file && !Contents.Contains(file))
+            else if (child is IDPFile file && !Contents.Contains(file))
                 Contents.Add(file);
         }
 
         /// <summary>
-        /// Removes a child from the children property or subfolders property (if child is a <see cref="DPFolder"/>).
-        /// This does not update the <see cref="DPAbstractNode.Parent"/> property of the child. Use <see cref="DPAbstractNode.Parent"/> property to handle that.
+        /// Removes a child from the children property or subfolders property (if child is a <see cref="IDPFolder"/>).
         /// </summary>
-        /// <param name="child">Either a <see cref="DPFolder"/> or a <see cref="DPFile"/>.</param>
-        /// <exception cref="ArgumentNullException">When <paramref name="child"/> is not a <see cref="DPFolder"/> or a <see cref="DPFile"/>.</exception>
-        public void RemoveChild(DPAbstractNode child)
+        /// <remarks>
+        /// This does not update the <see cref="IDPAbstractNode.Parent"/> property of the child. 
+        /// Use <see cref="IDPAbstractNode.Parent"/> property to handle that.
+        /// </remarks> 
+        /// <param name="child">Either a <see cref="IDPFolder"/> or a <see cref="IDPFile"/>.</param>
+        /// <exception cref="ArgumentNullException">When <paramref name="child"/> is not a <see cref="IDPFolder"/> or a <see cref="IDPFile"/>.</exception>
+        /// <seealso cref="IDPAbstractNode.Parent"/>
+        public void RemoveChild(IDPAbstractNode child)
         {
-            if (child is not DPFolder && child is not DPFile)
-                throw new ArgumentException("Child must be a DPFolder or DPFile.", nameof(child));
-            if (child.GetType() == typeof(DPFolder))
-            {
-                var dpFolder = (DPFolder)child;
-                Subfolders.Remove(dpFolder);
-                return;
-            }
-            Contents.Remove((DPFile)child);
+            if (child is not IDPFolder && child is not IDPFile)
+                throw new ArgumentException("Child must be a IDPFolder or IDPFile.", nameof(child));
+
+            if (child is IDPFolder folder) 
+                Subfolders.Remove(folder);
+            else if (child is IDPFile file) 
+                Contents.Remove(file);
         }
 
         /// <summary>
@@ -226,7 +205,7 @@ namespace DAZ_Installer.Core
         /// </remarks>
         /// <exception cref="NullReferenceException">May be thrown if <see cref="AssociatedArchive"/> is null.</exception>
 
-        protected override void UpdateParent(DPFolder? newParent)
+        protected override void UpdateParent(IDPFolder? newParent)
         {
             // If we were null, but now we're not...
             if (parent == null && newParent != null)
@@ -243,7 +222,7 @@ namespace DAZ_Installer.Core
             else if (parent == null && newParent == null)
             {
                 // Try to find a parent.
-                DPFolder? potParent = AssociatedArchive!.FindParent(this);
+                IDPFolder? potParent = AssociatedArchive!.FindParent(this);
 
                 // If we found a parent, then update it. This function will be called again.
                 if (potParent != null)
@@ -254,7 +233,7 @@ namespace DAZ_Installer.Core
                 {
                     // Otherwise, create a folder for us.
                     // Fake a file so we can create folders for us.
-                    potParent = CreateFoldersForFile(Path, AssociatedArchive);
+                    potParent = FolderFactory.CreateFolders(Path, AssociatedArchive);
 
                     // If we have successfully created a folder for us, then update it. This function will be called again.
                     if (potParent != null) Parent = potParent;
@@ -288,7 +267,5 @@ namespace DAZ_Installer.Core
                 parent = newParent;
             }
         }
-
-
     }
 }

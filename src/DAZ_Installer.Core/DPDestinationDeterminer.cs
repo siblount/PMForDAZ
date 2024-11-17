@@ -10,16 +10,19 @@ namespace DAZ_Installer.Core
 {
     public class DPDestinationDeterminer : AbstractDestinationDeterminer
     {
-        protected override ILogger Logger { get; set; } = Log.Logger.ForContext<DPDestinationDeterminer>();
+        public override ILogger Logger { get; set; } = Log.Logger.ForContext<DPDestinationDeterminer>();
+        public static readonly DPDestinationDeterminer Singleton = new DPDestinationDeterminer();
+        
+        /// <summary>
+        /// A constructor to prevent instantiation.
+        /// </summary>
+        protected DPDestinationDeterminer() { }
 
-        public DPDestinationDeterminer() { }
-        public DPDestinationDeterminer(ILogger logger) : base(logger) { }
-
-        public override HashSet<DPFile> DetermineDestinations(DPArchive arc, DPProcessSettings settings)
+        public override HashSet<IDPFile> DetermineDestinations(IDPArchive arc, DPProcessSettings settings)
         {
             // Handle Manifest first if a combo of both.
-            var filesToExtract = new HashSet<DPFile>(arc.Contents.Count);
-            HashSet<DPFolder> contentFolders = new HashSet<DPFolder>(4);
+            var filesToExtract = new HashSet<IDPFile>(arc.Contents.Count);
+            var contentFolders = new HashSet<IDPFolder>(4);
             List<Dictionary<string, string>>? destinations = null;
             if (settings.InstallOption == InstallOptions.ManifestOnly || settings.InstallOption == InstallOptions.ManifestAndAuto)
                 contentFolders = SetContentFoldersFromManifest(arc, out destinations);
@@ -36,9 +39,9 @@ namespace DAZ_Installer.Core
             return filesToExtract;
         }
 
-        private HashSet<DPFolder> SetContentFoldersFromManifest(DPArchive arc, out List<Dictionary<string, string>> destinations)
+        private HashSet<IDPFolder> SetContentFoldersFromManifest(IDPArchive arc, out List<Dictionary<string, string>> destinations)
         {
-            HashSet<DPFolder> contentFolders = new HashSet<DPFolder>(4);
+            HashSet<IDPFolder> contentFolders = new HashSet<IDPFolder>(4);
             destinations = new List<Dictionary<string, string>>(arc.ManifestFiles.Count);
             foreach (var manifest in arc.ManifestFiles.Where(x => x.Extracted))
             {
@@ -57,8 +60,8 @@ namespace DAZ_Installer.Core
                             Logger.Warning("Could not find content folder {0} that was defined in manifest", rootDir, arc.FileName);
                             continue;
                         }
-                        contentFolders.Add(folder);
-                        folder.IsContentFolder = true;
+                        contentFolders.Add(folder!);
+                        folder!.IsContentFolder = true;
                     }
                 } catch (Exception ex)
                 {
@@ -70,14 +73,14 @@ namespace DAZ_Installer.Core
 
         // TODO: Update this function to determine content folders from the manifest.
         // Or make this exclusive to auto mode.
-        private void DetermineContentFolders(DPArchive arc, HashSet<DPFolder> ignoreSet, in DPProcessSettings settings)
+        private void DetermineContentFolders(IDPArchive arc, HashSet<IDPFolder> ignoreSet, in DPProcessSettings settings)
         {
             // A content folder is a folder whose name is contained in the user's common content folders list
             // or in their folder redirects map.
 
 
             // Prepare sort so that the first elements in folders are the ones at root.
-            DPFolder[] folders = arc.Folders.Values.ToArray();
+            IDPFolder[] folders = arc.Folders.Values.ToArray();
             var foldersKeys = new byte[folders.Length];
 
             for (var i = 0; i < foldersKeys.Length; i++)
@@ -88,7 +91,7 @@ namespace DAZ_Installer.Core
             // Elements at the beginning are folders at root levels.
             Array.Sort(foldersKeys, folders);
 
-            foreach (DPFolder? folder in folders)
+            foreach (IDPFolder? folder in folders)
             {
                 if (ignoreSet.Contains(folder)) continue;
                 var folderName = Path.GetFileName(folder.Path);
@@ -108,11 +111,11 @@ namespace DAZ_Installer.Core
         /// </summary>
         /// <param name="arc">The archive to check.</param>
         /// <param name="settings">The settings to use.</param>
-        private void UpdateRelativePaths(DPArchive arc, in DPProcessSettings settings)
+        private void UpdateRelativePaths(IDPArchive arc, in DPProcessSettings settings)
         {
-            foreach (DPFile content in arc.RootContents)
+            foreach (IDPFile content in arc.RootContents)
                 content.RelativePathToContentFolder = content.RelativeTargetPath = content.Path;
-            foreach (DPFolder folder in arc.Folders.Values)
+            foreach (IDPFolder folder in arc.Folders.Values)
                 folder.UpdateChildrenRelativePaths(settings);
         }
 
@@ -128,7 +131,7 @@ namespace DAZ_Installer.Core
         /// <param name="saveToTemp">Determines whether to get a target path saving to a temporary location.</param>
         /// <param name="overridePath">The path to combine with instead of usual combining. </param>
         /// <returns>The target path for the specified file. </returns>
-        private string GetTargetPath(DPFile file, in DPProcessSettings settings, bool saveToTemp = false, string? overridePath = null)
+        private string GetTargetPath(IDPFile file, in DPProcessSettings settings, bool saveToTemp = false, string? overridePath = null)
         {
             var tmpLocation = Path.Combine(settings.TempPath, "DazProductInstaller");
             // file.RelativeTargetPath already substituted the content folder name with the redirect folder name.
@@ -154,13 +157,13 @@ namespace DAZ_Installer.Core
                 filePathPart ?? file.Parent.CalculateChildRelativeTargetPath(file, settings));
         }
 
-        private void DetermineFromManifests(DPArchive arc, List<Dictionary<string, string>>? dests, in DPProcessSettings settings, HashSet<DPFile> filesToExtract)
+        private void DetermineFromManifests(IDPArchive arc, List<Dictionary<string, string>>? dests, in DPProcessSettings settings, HashSet<IDPFile> filesToExtract)
         {
             if (dests is null) dests = arc!.ManifestFiles.Select(f => f.GetManifestDestinations()).ToList();
             if (settings.InstallOption != InstallOptions.ManifestAndAuto && settings.InstallOption != InstallOptions.ManifestOnly) return;
             foreach (var manifestDestinations in dests)
             {
-                foreach (DPFile file in arc.Contents.Values)
+                foreach (IDPFile file in arc.Contents.Values)
                 {
                     try
                     {
@@ -177,20 +180,20 @@ namespace DAZ_Installer.Core
             }
         }
 
-        private void DetermineViaFileSense(DPArchive arc, in DPProcessSettings settings, HashSet<DPFile> filesToExtract)
+        private void DetermineViaFileSense(IDPArchive arc, in DPProcessSettings settings, HashSet<IDPFile> filesToExtract)
         {
 
             if (settings.InstallOption != InstallOptions.Automatic && settings.InstallOption != InstallOptions.ManifestAndAuto) return;
             // Get contents where file was not extracted.
-            Dictionary<string, DPFolder>.ValueCollection folders = arc.Folders.Values;
+            Dictionary<string, IDPFolder>.ValueCollection folders = arc.Folders.Values;
 
-            foreach (DPFolder folder in folders)
+            foreach (IDPFolder folder in folders)
             {
                 if (!folder.IsContentFolder && !folder.IsPartOfContentFolder) continue;
                 // Update children's relative path.
                 folder.UpdateChildrenRelativePaths(settings);
 
-                foreach (DPFile child in folder.Contents)
+                foreach (IDPFile child in folder.Contents)
                 {
                     //Get destination path and update child destination path.
                     child.TargetPath = GetTargetPath(child, settings);
@@ -199,13 +202,13 @@ namespace DAZ_Installer.Core
                 }
             }
             // Now hunt down all files in folders that aren't in content folders.
-            foreach (DPFolder folder in folders)
+            foreach (IDPFolder folder in folders)
             {
                 if (folder.IsContentFolder) continue;
                 // Add all archives to the inner archives to process for later processing.
-                foreach (DPFile file in folder.Contents)
+                foreach (IDPFile file in folder.Contents)
                 {
-                    if (file is not DPArchive nestedArc) continue;
+                    if (file is not IDPArchive nestedArc) continue;
                     nestedArc.TargetPath = GetTargetPath(nestedArc, settings, true);
                     // Add to queue.
                     filesToExtract.Add(nestedArc);
@@ -214,9 +217,9 @@ namespace DAZ_Installer.Core
 
             // Hunt down all files in root content.
 
-            foreach (DPFile content in arc.RootContents)
+            foreach (IDPFile content in arc.RootContents)
             {
-                if (content is not DPArchive nestedArc) continue;
+                if (content is not IDPArchive nestedArc) continue;
                 nestedArc.TargetPath = GetTargetPath(nestedArc, settings, true);
                 // Add to queue.
                 filesToExtract.Add(nestedArc);

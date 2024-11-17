@@ -34,8 +34,10 @@
     /// <summary>
     /// DPProcessSettings is used for extraction and processing operations. 
     /// </summary>
-    public struct DPProcessSettings
+    public record struct DPProcessSettings
     {
+        private static readonly HashSet<string> DefaultContentFolders = new(DPProcessor.DefaultContentFolders);
+        private static readonly Dictionary<string, string> DefaultContentRedirectFolders = new(DPProcessor.DefaultRedirects);
         /// <summary>
         /// The temporary path to use for operations. Null not allowed.
         /// </summary>
@@ -68,17 +70,26 @@
         /// Overrides the usual process of determining the destination of files and forces them to be moved to the specified destination in this dictionary. <para/>
         /// This means that no matter what the file is, it will be moved to the specified destination. <para/>
         /// </summary>
-        /// <typeparam name="DPFile">The file to force to a destination.</typeparam>
+        /// <typeparam name="IDPFile">The file to force to a destination.</typeparam>
         /// <typeparam name="string">The destination to force the file to.</typeparam>
-        public Dictionary<DPFile, string> ForceFileToDest = new(0);
+        public Dictionary<IDPFile, string> ForceFileToDest = new(0);
+        /// <summary>
+        /// Creates a new instance of settings for <see cref="DPProcessor"/>.
+        /// </summary>
+        /// <param name="temp">The temporary directory to use for operations.</param>
+        /// <param name="dest">The final destination/target path to use for operations.</param>
+        /// <param name="options">The method the processor should use for determining which files should be considered for extraction.</param>
+        /// <param name="folders">User-defined folder names to use as content folders. By default, <see cref="DPProcessor.DefaultContentFolders"/>.</param>
+        /// <param name="redirects">User-defined content redirects to redirect certain folder names to a content folder. By default, <see cref="DPProcessor.DefaultRedirects"/></param>
+        /// <param name="overwriteFiles">Determines whether the processor should overwrite files if it exists in the user library. Temp files are always overwritten.</param>
         public DPProcessSettings(string temp, string dest, InstallOptions options,
             HashSet<string>? folders = null, Dictionary<string, string>? redirects = null, bool overwriteFiles = true)
         {
             TempPath = temp;
             DestinationPath = dest;
             InstallOption = options;
-            ContentFolders = folders;
-            ContentRedirectFolders = redirects;
+            ContentFolders = folders ?? DefaultContentFolders;
+            ContentRedirectFolders = redirects ?? DefaultContentRedirectFolders;
             OverwriteFiles = overwriteFiles;
         }
     }

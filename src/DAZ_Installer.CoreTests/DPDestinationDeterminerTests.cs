@@ -17,7 +17,9 @@ using static DAZ_Installer.Core.Tests.Helpers.DPDestinationDeterminerTestHelpers
 using System.Reflection;
 using System.IO;
 using System.Xml.Linq;
+using DAZ_Installer.Core.Tests.Fakes;
 
+#pragma warning disable CS0618 // Type or member is obsolete
 namespace DAZ_Installer.Core.Tests
 {
     [TestClass]
@@ -35,6 +37,7 @@ namespace DAZ_Installer.Core.Tests
                                                                                 new Dictionary<string, string>(DPProcessor.DefaultRedirects));
         private static readonly DPProcessSettings AutoProcessSettings = ManifestProcessSettings with { InstallOption = InstallOptions.Automatic };
         private static readonly DPProcessSettings BothProcessSettings = ManifestProcessSettings with { InstallOption = InstallOptions.ManifestAndAuto };
+        public static DPDestinationDeterminer Determiner => DPDestinationDeterminer.Singleton;
 
         // TODO: Test DPDestinationDeterminer when a folder is not included in the content redirect folders map.
         [ClassInitialize]
@@ -46,6 +49,7 @@ namespace DAZ_Installer.Core.Tests
                         .MinimumLevel.Information()
                         .CreateLogger();
         }
+
         public struct MockOptions
         {
             public bool partialFileInfo = true;
@@ -62,12 +66,13 @@ namespace DAZ_Installer.Core.Tests
             var fs = new Mock<FakeFileSystem>(DPFileScopeSettings.All) { CallBase = options.partialFileSystem };
             fs.Object.PartialMock = options.partialFileSystem;
             fakeFileSystem = fs;
+
             fakeFileInfo = new Mock<FakeFileInfo>("Z:/test.zip") { CallBase = options.partialFileInfo };
             fakeDPFileInfo = new Mock<FakeDPFileInfo>(fakeFileInfo.Object, fs.Object, null) { CallBase = options.partialFileInfo };
             var arc = new DPArchive(string.Empty, Log.Logger.ForContext<DPArchive>(), fakeDPFileInfo.Object, Mock.Of<DPAbstractExtractor>());
             foreach (var file in options.paths)
             {
-                var dpFile = DPFile.CreateNewFile(file, arc, null);
+                var dpFile = DPFileFactory.Instance.CreateNewFile(file, arc, null);
                 var fi = fakeFileSystem.Object.CreateFileInfo(file);
                 dpFile.FileInfo = fi;
                 Exception? ex = null;
@@ -95,13 +100,13 @@ namespace DAZ_Installer.Core.Tests
                 ExpectedContentFoldersMarked = new[] { "Content/data", "Content/docs" },
             };
             var arc = NewMockedArchive(tc.Options, out var _, out _, out _);
-            var determiner = new DPDestinationDeterminer();
+            var Determiner = DPDestinationDeterminer.Singleton;
             DPArchiveTestHelpers.SetupTargetPaths(arc, "Z:/");
 
-            var actual = determiner.DetermineDestinations(arc, tc.Settings);
+            var actual = Determiner.DetermineDestinations(arc, tc.Settings);
 
             // Everything under the "Contents" folder should be extracted.
-            var expected = new HashSet<DPFile>(arc.Contents.Values.Where(x => x.Parent is not null));
+            var expected = new HashSet<IDPFile>(arc.Contents.Values.Where(x => x.Parent is not null));
             AssertDestinations(expected, actual, "Z:/");
             AssertTargetPaths(actual, tc.ExpectedTargetPaths);
 
@@ -123,12 +128,11 @@ namespace DAZ_Installer.Core.Tests
                 ExpectedRelativePathToContentFolders = new string[] { },
             };
             var arc = NewMockedArchive(tc.Options, out var _, out _, out _);
-            var determiner = new DPDestinationDeterminer();
             DPArchiveTestHelpers.SetupTargetPaths(arc, "Z:/");
 
-            var actual = determiner.DetermineDestinations(arc, tc.Settings);
+            var actual = Determiner.DetermineDestinations(arc, tc.Settings);
 
-            var expected = new HashSet<DPFile>(0);
+            var expected = new HashSet<IDPFile>(0);
             AssertDestinations(expected, actual, "Z:/");
             AssertTargetPaths(actual, tc.ExpectedTargetPaths);
 
@@ -150,13 +154,12 @@ namespace DAZ_Installer.Core.Tests
                 ExpectedContentFoldersMarked = new[] { "Content/data", "Content/docs" },
             };
             var arc = NewMockedArchive(tc.Options, out var _, out _, out _);
-            var determiner = new DPDestinationDeterminer();
             DPArchiveTestHelpers.SetupTargetPaths(arc, "Z:/");
 
-            var actual = determiner.DetermineDestinations(arc, tc.Settings);
+            var actual = Determiner.DetermineDestinations(arc, tc.Settings);
 
             // Everything under the "Contents" folder should be extracted.
-            var expected = new HashSet<DPFile>(arc.Contents.Values.Where(x => x.Parent is not null));
+            var expected = new HashSet<IDPFile>(arc.Contents.Values.Where(x => x.Parent is not null));
             AssertDestinations(expected, actual, "Z:/");
             AssertTargetPaths(actual, tc.ExpectedTargetPaths);
 
@@ -180,13 +183,12 @@ namespace DAZ_Installer.Core.Tests
             };
 
             var arc = NewMockedArchive(tc.Options, out var _, out _, out _);
-            var determiner = new DPDestinationDeterminer();
             DPArchiveTestHelpers.SetupTargetPaths(arc, "Z:/");
 
-            var actual = determiner.DetermineDestinations(arc, tc.Settings);
+            var actual = Determiner.DetermineDestinations(arc, tc.Settings);
 
             // Everything under the "Contents" folder should be extracted.
-            var expected = new HashSet<DPFile>(arc.Contents.Values.Where(x => x.Parent is not null));
+            var expected = new HashSet<IDPFile>(arc.Contents.Values.Where(x => x.Parent is not null));
             AssertDestinations(expected, actual, "Z:/");
             AssertTargetPaths(actual, tc.ExpectedTargetPaths);
 
@@ -209,13 +211,13 @@ namespace DAZ_Installer.Core.Tests
                 ExpectedContentFoldersMarked = new[] { "Content/data", "Content/docs" },
             };
             var arc = NewMockedArchive(tc.Options, out var _, out _, out _);
-            var determiner = new DPDestinationDeterminer();
+            
             DPArchiveTestHelpers.SetupTargetPaths(arc, "Z:/");
 
-            var actual = determiner.DetermineDestinations(arc, tc.Settings);
+            var actual = Determiner.DetermineDestinations(arc, tc.Settings);
 
             // Everything under the "Contents" folder should be extracted.
-            var expected = new HashSet<DPFile>(arc.Contents.Values.Where(x => x.Parent is not null));
+            var expected = new HashSet<IDPFile>(arc.Contents.Values.Where(x => x.Parent is not null));
             AssertDestinations(expected, actual, "Z:/");
             AssertTargetPaths(actual, tc.ExpectedTargetPaths);
 
@@ -239,13 +241,13 @@ namespace DAZ_Installer.Core.Tests
             };
 
             var arc = NewMockedArchive(tc.Options, out var _, out _, out _);
-            var determiner = new DPDestinationDeterminer();
+            
             DPArchiveTestHelpers.SetupTargetPaths(arc, "Z:/");
 
-            var actual = determiner.DetermineDestinations(arc, tc.Settings);
+            var actual = Determiner.DetermineDestinations(arc, tc.Settings);
 
             // Everything under the "Contents" folder should be extracted.
-            var expected = new HashSet<DPFile>(arc.Contents.Values.Where(x => x.Parent is not null));
+            var expected = new HashSet<IDPFile>(arc.Contents.Values.Where(x => x.Parent is not null));
             AssertDestinations(expected, actual, "Z:/");
             AssertTargetPaths(actual, tc.ExpectedTargetPaths);
 
@@ -268,13 +270,13 @@ namespace DAZ_Installer.Core.Tests
                 ExpectedContentFoldersMarked = new[] { "Content/data", "Content/docs" },
             };
             var arc = NewMockedArchive(tc.Options, out var _, out _, out _);
-            var determiner = new DPDestinationDeterminer();
+            
             DPArchiveTestHelpers.SetupTargetPaths(arc, "Z:/");
 
-            var actual = determiner.DetermineDestinations(arc, tc.Settings);
+            var actual = Determiner.DetermineDestinations(arc, tc.Settings);
 
             // Everything under the "Contents" folder should be extracted.
-            var expected = new HashSet<DPFile>(arc.Contents.Values.Where(x => x.Parent is not null));
+            var expected = new HashSet<IDPFile>(arc.Contents.Values.Where(x => x.Parent is not null));
             AssertDestinations(expected, actual, "Z:/");
             AssertTargetPaths(actual, tc.ExpectedTargetPaths);
 
@@ -297,13 +299,13 @@ namespace DAZ_Installer.Core.Tests
                 ExpectedContentFoldersMarked = new[] { "Content/data" },
             };
             var arc = NewMockedArchive(tc.Options, out var _, out _, out _);
-            var determiner = new DPDestinationDeterminer();
+            
             DPArchiveTestHelpers.SetupTargetPaths(arc, "Z:/");
 
-            var actual = determiner.DetermineDestinations(arc, tc.Settings);
+            var actual = Determiner.DetermineDestinations(arc, tc.Settings);
 
             // Everything under the "Contents" folder should be extracted.
-            var expected = new HashSet<DPFile>( new[] { arc.Contents[PathHelper.NormalizePath("Content/data/TheReaolSolly/a.txt")] });
+            var expected = new HashSet<IDPFile>( new[] { arc.Contents[PathHelper.NormalizePath("Content/data/TheReaolSolly/a.txt")] });
             AssertDestinations(expected, actual, "Z:/");
             AssertTargetPaths(actual, tc.ExpectedTargetPaths);
 
@@ -326,13 +328,13 @@ namespace DAZ_Installer.Core.Tests
                 ExpectedContentFoldersMarked = new[] { "Content/data", "Content/docs" },
             };
             var arc = NewMockedArchive(tc.Options, out var _, out _, out _);
-            var determiner = new DPDestinationDeterminer();
+            
             DPArchiveTestHelpers.SetupTargetPaths(arc, "Z:/");
 
-            var actual = determiner.DetermineDestinations(arc, tc.Settings);
+            var actual = Determiner.DetermineDestinations(arc, tc.Settings);
 
             // Everything under the "Contents" folder should be extracted.
-            var expected = new HashSet<DPFile>(arc.Contents.Values.Where(x => x.Parent is not null));
+            var expected = new HashSet<IDPFile>(arc.Contents.Values.Where(x => x.Parent is not null));
             AssertDestinations(expected, actual, "Z:/");
             AssertTargetPaths(actual, tc.ExpectedTargetPaths);
 
@@ -356,13 +358,13 @@ namespace DAZ_Installer.Core.Tests
                 ExpectedContentFoldersMarked = new[] { "data", "docs" },
             };
             var arc = NewMockedArchive(tc.Options, out var _, out _, out _);
-            var determiner = new DPDestinationDeterminer();
+            
             DPArchiveTestHelpers.SetupTargetPaths(arc, "Z:/");
 
-            var actual = determiner.DetermineDestinations(arc, tc.Settings);
+            var actual = Determiner.DetermineDestinations(arc, tc.Settings);
 
             // Everything under the "Contents" folder should be extracted.
-            var expected = new HashSet<DPFile>(arc.Contents.Values.Where(x => x.Parent is not null));
+            var expected = new HashSet<IDPFile>(arc.Contents.Values.Where(x => x.Parent is not null));
             AssertDestinations(expected, actual, "Z:/");
             AssertTargetPaths(actual, tc.ExpectedTargetPaths);
 
@@ -386,13 +388,13 @@ namespace DAZ_Installer.Core.Tests
                 ExpectedContentFoldersMarked = new string[] { },
             };
             var arc = NewMockedArchive(tc.Options, out var _, out _, out _);
-            var determiner = new DPDestinationDeterminer();
+            
             DPArchiveTestHelpers.SetupTargetPaths(arc, "Z:/");
 
-            var actual = determiner.DetermineDestinations(arc, tc.Settings);
+            var actual = Determiner.DetermineDestinations(arc, tc.Settings);
 
             // Everything under the "Contents" folder should be extracted.
-            var expected = new HashSet<DPFile>(0);
+            var expected = new HashSet<IDPFile>(0);
             AssertDestinations(expected, actual, "Z:/");
             AssertTargetPaths(actual, tc.ExpectedTargetPaths);
 
@@ -416,13 +418,13 @@ namespace DAZ_Installer.Core.Tests
                 ExpectedContentFoldersMarked = new string[] { },
             };
             var arc = NewMockedArchive(tc.Options, out var _, out _, out _);
-            var determiner = new DPDestinationDeterminer();
+            
             DPArchiveTestHelpers.SetupTargetPaths(arc, "Z:/");
 
-            var actual = determiner.DetermineDestinations(arc, tc.Settings);
+            var actual = Determiner.DetermineDestinations(arc, tc.Settings);
 
             // Everything under the "Contents" folder should be extracted.
-            var expected = new HashSet<DPFile>(0);
+            var expected = new HashSet<IDPFile>(0);
             AssertDestinations(expected, actual, "Z:/");
             AssertTargetPaths(actual, tc.ExpectedTargetPaths);
 

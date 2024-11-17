@@ -18,8 +18,8 @@ namespace DAZ_Installer.Windows.Pages
     public partial class Extract : UserControl
     {
         public static Extract ExtractPage = null!;
-        internal static Dictionary<DPAbstractNode, ListViewItem> associatedListItems = new(2048);
-        internal static Dictionary<DPAbstractNode, TreeNode> associatedTreeNodes = new(2048);
+        internal static Dictionary<IDPAbstractNode, ListViewItem> associatedListItems = new(2048);
+        internal static Dictionary<IDPAbstractNode, TreeNode> associatedTreeNodes = new(2048);
 
         public Extract()
         {
@@ -33,10 +33,10 @@ namespace DAZ_Installer.Windows.Pages
         /// Adds all the contents found in <paramref name="archive"/> to the list view.
         /// Assure that this function is called from the UI thread with either <see cref="Control.Invoke(Delegate)"/> or <see cref="Control.BeginInvoke(Delegate)"/>.
         /// </summary>
-        internal void AddToList(DPArchive archive)
+        internal void AddToList(IDPArchive archive)
         {
             fileListView.BeginUpdate();
-            foreach (DPFile content in archive.Contents.Values)
+            foreach (IDPFile content in archive.Contents.Values)
             {
                 ListViewItem item = fileListView.Items.Add($"{archive.FileName}\\{content.Path}");
                 item.Tag = content;
@@ -52,7 +52,7 @@ namespace DAZ_Installer.Windows.Pages
         /// </summary>
         /// <param name="folder"></param>
         /// <param name="parentNode"></param>
-        private void ProcessChildNodes(DPFolder folder, TreeNode parentNode)
+        private void ProcessChildNodes(IDPFolder folder, TreeNode parentNode)
         {
             var fileName = Path.GetFileName(folder.Path);
             // We don't need associations for folders.
@@ -60,7 +60,7 @@ namespace DAZ_Installer.Windows.Pages
             AddIcon(folder1, null);
 
             // Add the DPFiles.
-            foreach (DPFile file in folder.Contents)
+            foreach (IDPFile file in folder.Contents)
             {
                 fileName = Path.GetFileName(file.Path);
                 // TO DO: Add condition if file is a DPArchive & extract == true
@@ -69,7 +69,7 @@ namespace DAZ_Installer.Windows.Pages
                 associatedTreeNodes[file] = node;
                 AddIcon(node, file.Ext);
             }
-            foreach (DPFolder subfolder in folder.Subfolders)
+            foreach (IDPFolder subfolder in folder.Subfolders)
                 ProcessChildNodes(subfolder, folder1);
         }
 
@@ -78,7 +78,7 @@ namespace DAZ_Installer.Windows.Pages
         /// Assure that this function is called from the UI thread with either <see cref="Control.Invoke(Delegate)"/> or <see cref="Control.BeginInvoke(Delegate)"/>.
         /// </summary>
         /// <param name="workingArchive">The archive to add to the hierachy</param>
-        internal void AddToHierachy(DPArchive workingArchive)
+        internal void AddToHierachy(IDPArchive workingArchive)
         {
             fileHierachyTree.BeginUpdate();
 
@@ -90,7 +90,7 @@ namespace DAZ_Installer.Windows.Pages
             AddIcon(rootNode, workingArchive.Ext);
 
             // Add any files that aren't in any folder.
-            foreach (DPFile file in workingArchive.RootContents)
+            foreach (IDPFile file in workingArchive.RootContents)
             {
                 fileName = Path.GetFileName(file.Path);
                 TreeNode node = rootNode.Nodes.Add(fileName);
@@ -100,7 +100,7 @@ namespace DAZ_Installer.Windows.Pages
             }
 
             // Recursively add files & folder within each folder.
-            foreach (DPFolder folder in workingArchive.RootFolders)
+            foreach (IDPFolder folder in workingArchive.RootFolders)
                 ProcessChildNodes(folder, rootNode);
 
             fileHierachyTree.EndUpdate();
@@ -162,7 +162,7 @@ namespace DAZ_Installer.Windows.Pages
         private void selectInHierachyToolStripMenuItem_Click(object sender, EventArgs e)
         {
             // Get the associated file with listviewitem.
-            var file = fileListView.SelectedItems[0].Tag as DPAbstractNode;
+            var file = fileListView.SelectedItems[0].Tag as IDPAbstractNode;
 
             if (file != null && associatedTreeNodes.TryGetValue(file, out TreeNode node))
                 fileHierachyTree.SelectedNode = node;
@@ -176,7 +176,7 @@ namespace DAZ_Installer.Windows.Pages
             inspectFileListMenuItem.Visible = false && filesSelected;
             openInExplorerToolStripMenuItem.Visible = filesSelected;
             selectInHierachyToolStripMenuItem.Visible = filesSelected &&
-                associatedTreeNodes.TryGetValue(fileListView.SelectedItems[0].Tag as DPAbstractNode, out TreeNode _);
+                associatedTreeNodes.TryGetValue(fileListView.SelectedItems[0].Tag as IDPAbstractNode, out TreeNode _);
             noFilesSelectedToolStripMenuItem.Visible = !filesSelected;
         }
 
@@ -186,7 +186,7 @@ namespace DAZ_Installer.Windows.Pages
         private void selectInFileListToolStripMenuItem_Click(object sender, EventArgs e)
         {
             // Get the associated file with listviewitem.
-            var file = fileHierachyTree.SelectedNode.Tag as DPAbstractNode;
+            var file = fileHierachyTree.SelectedNode.Tag as IDPAbstractNode;
 
             if (file != null && associatedListItems.TryGetValue(file, out ListViewItem node))
                 node.Selected = true;

@@ -296,10 +296,7 @@ namespace DAZ_Installer.Core.Tests
             var taskManager = new DPTaskManager();
 
             // Add a delay to mockAction1 to ensure we have time to call Stop
-            mockAction1.Setup(a => a()).Callback(() => 
-            {
-                Thread.Sleep(9999999); // Small delay
-            });
+            mockAction1.Setup(a => a()).Callback(() => Thread.Sleep(9999999));
 
             taskManager.AddToQueue(mockAction1.Object);
             taskManager.AddToQueue(mockAction2.Object);

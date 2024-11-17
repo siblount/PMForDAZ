@@ -58,8 +58,11 @@ namespace DAZ_Installer.Core.RealData.Tests
             foreach (var manifest in Manifests)
             {
                 var arcPath = Path.Combine(ArchivesPath, manifest.ArchiveName);
-                var a = new DPArchive(FileSystem.CreateFileInfo(arcPath));
-                var p = new DPProcessor() { CancellationToken = TestContext.CancellationTokenSource.Token };
+                var p = new DPProcessor() { 
+                    CancellationTokenSource = TestContext.CancellationTokenSource,
+                    FileSystem = FileSystem
+                };
+                p.ArchiveEnter += (_, __) => p.CancellationTokenSource = TestContext.CancellationTokenSource;
                 var exitArgs = new List<DPArchiveExitArgs>();
                 p.ArchiveExit += (_, a) => exitArgs.Add(a);
                 p.ArchiveExit += (_, a) =>
@@ -69,7 +72,7 @@ namespace DAZ_Installer.Core.RealData.Tests
                 };
 
                 var processSettings = manifest.Settings with { TempPath = TempPath, DestinationPath = ExtractPath };
-                p.ProcessArchive(a, processSettings);
+                p.ProcessArchive(arcPath, processSettings);
 
                 RealDataHelper.AssertProcess(exitArgs, manifest);
                 Log.Information("{Archive} passed.", manifest.ArchiveName);

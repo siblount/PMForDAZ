@@ -64,7 +64,7 @@ namespace DAZ_Installer.Core.Tests
         public void ReadContents_EmptyStringTest()
         {
             // Arrange
-            var f = new DPDazFile("doesnt matter", new DPArchive(), null);
+            var f = new DPDazFile("a file.dsf", new DPArchive(), null);
             const string DSFContents =
             @"{
                 ""file_version"" : ""0.6.0.0"",
@@ -115,7 +115,7 @@ namespace DAZ_Installer.Core.Tests
                     ""modified"" : ""2020-12-06T00:04:11Z""
                 }
             }";
-            f.ContentInfo.Authors = null;
+            f.ContentInfo = f.ContentInfo with { Authors = null! };
 
             // Act
             using var sr = SetupStreamReader(DSFContents);

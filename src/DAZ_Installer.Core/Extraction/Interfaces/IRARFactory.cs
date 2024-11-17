@@ -1,7 +1,15 @@
 ﻿namespace DAZ_Installer.Core.Extraction
 {
-    internal interface IRARFactory
+    /// <summary>
+    /// An interface for creating instances of the <see cref="IRAR"/> class.
+    /// </summary>
+    public interface IRARFactory
     {
+        /// <summary>
+        /// Creates a new instance of the <see cref="IRAR"/> class.
+        /// </summary>
+        /// <param name="arcPath">The path to the RAR archive.</param>
+        /// <returns>An IRAR object</returns>
         IRAR Create(string arcPath);
     }
 }

@@ -14,7 +14,7 @@ namespace DAZ_Installer.TestingSuiteWindows
     internal class RecursiveDestinationDeterminer : AbstractDestinationDeterminer
     {
         /// <inheritdoc/>
-        public override HashSet<DPFile> DetermineDestinations(DPArchive arc, DPProcessSettings settings)
+        public override HashSet<IDPFile> DetermineDestinations(IDPArchive arc, DPProcessSettings settings)
         {
             var hash = new DPDestinationDeterminerEx().DetermineDestinations(arc, settings);
             foreach (var subarc in arc.Subarchives.Where(x => x.Extracted))

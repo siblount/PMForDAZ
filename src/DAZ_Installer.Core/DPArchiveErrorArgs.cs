@@ -8,7 +8,7 @@
         /// <summary>
         /// The archive the <see cref="DPProcessor"/> was processing when the error occurred.
         /// </summary>
-        public DPArchive Archive { get; init; }
+        public IDPArchive Archive { get; init; }
         /// <summary>
         /// Determine whether the archive should cancel the operation or not.
         /// <para/>
@@ -23,7 +23,7 @@
         /// <param name="ex">The exception thrown by the error, if any.</param>
         /// <param name="explaination">The additional explaination for the error/situation.</param>
         /// <param name="archive">The archive that errored.</param>
-        internal DPArchiveErrorArgs(DPArchive archive, Exception? ex = null,
+        internal DPArchiveErrorArgs(IDPArchive archive, Exception? ex = null,
             string? explaination = null) : base(ex, explaination)
         {
             Ex = ex;

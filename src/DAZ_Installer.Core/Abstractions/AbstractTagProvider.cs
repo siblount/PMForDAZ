@@ -11,10 +11,11 @@ namespace DAZ_Installer.Core
         /// <summary>
         /// Provides the tags based on <paramref name="arc"/> and it's contents.
         /// </summary>
+        /// <remarks>Also updates <see cref="DPArchive.ProductInfo"/>.</remarks>
         /// <param name="arc">The archive to get tags from.</param>
         /// <param name="settings">The settings provided if needed.</param>
         /// <returns>A collection of tags determined for <paramref name="arc"/>.</returns>
-        public abstract HashSet<string> GetTags(DPArchive arc, DPProcessSettings settings);
+        public abstract HashSet<string> GetTags(IDPArchive arc, DPProcessSettings settings);
 
         public AbstractTagProvider() { }
         public AbstractTagProvider(ILogger logger) => Logger = logger;

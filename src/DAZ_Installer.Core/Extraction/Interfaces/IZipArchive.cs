@@ -3,7 +3,7 @@
 namespace DAZ_Installer.Core.Extraction
 {
     /// <inheritdoc cref="ZipArchive"/>
-    internal interface IZipArchive : IDisposable
+    public interface IZipArchive : IDisposable
     {
         /// <inheritdoc cref="ZipArchive.Entries"/>
         IReadOnlyCollection<IZipArchiveEntry> Entries { get; }

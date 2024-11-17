@@ -23,6 +23,11 @@ namespace DAZ_Installer.Core.Extraction
         /// </summary>
         public CancellationToken CancellationToken { get; set; } = CancellationToken.None;
         /// <summary>
+        /// The parent archive factory to use for creating parent archives.
+        /// </summary>
+        /// <value>By default, a <see cref="DPParentArchiveFactory"/>. Otherwise, an <see cref="IDPParentArchiveFactory"/>.</value>
+        public IDPParentArchiveFactory ParentArchiveFactory { get; set; } = DPParentArchiveFactory.Instance;
+        /// <summary>
         /// The current mode of the archive file; describes whether the archive is peeking, extracting, or moving files.
         /// </summary>
         protected enum Mode
@@ -44,15 +49,15 @@ namespace DAZ_Installer.Core.Extraction
         /// <summary>
         /// An event that is fired when an error occurs during extraction.
         /// </summary>
-        public event DPArchiveEventHandler<DPArchiveErrorArgs>? ArchiveErrored;
+        public virtual event DPArchiveEventHandler<DPArchiveErrorArgs>? ArchiveErrored;
         /// <summary>
         /// An event that is fired when the progress of extraction changes.
         /// </summary>
-        public event DPArchiveEventHandler<DPExtractProgressArgs>? ExtractProgress;
+        public virtual event DPArchiveEventHandler<DPExtractProgressArgs>? ExtractProgress;
         /// <summary>
         /// An event that is fired when the progress of moving the files (from temp to dest) changes.
         /// </summary>
-        public event DPArchiveEventHandler<DPExtractProgressArgs>? MoveProgress;
+        public virtual event DPArchiveEventHandler<DPExtractProgressArgs>? MoveProgress;
         /// <summary>
         /// An event that is fired when the extractor is beginning to extract files, for some extractors, it may
         /// need to extract files to a temporary location first. Check the <see cref="Moving"/> event to know
@@ -114,7 +119,7 @@ namespace DAZ_Installer.Core.Extraction
         public DPExtractionReport Extract(DPExtractSettings settings, IDPFileInfo archive)
         {
             ValidateArchive(archive);
-            var arc = DPArchive.CreateNewParentArchive(archive);
+            var arc = ParentArchiveFactory.CreateNewParentArchive(archive);
             settings.Archive = arc;
             return Extract(settings);
         }
@@ -123,7 +128,7 @@ namespace DAZ_Installer.Core.Extraction
         /// You can check the contents found through <see cref="DPArchive.Contents"/>. <br/>
         /// </summary>
         /// <param name="archive">The archive you wish to seek files for.</param>
-        public abstract void Peek(DPArchive archive);
+        public abstract void Peek(IDPArchive archive);
         /// <summary>
         /// Checks to see if archive exists (and accessible) and if it is a valid archive. It will create a new
         /// instance of <see cref="DPArchive"/> for you, peeks the archive through <see cref="Peek(DPArchive)"/>,
@@ -131,10 +136,10 @@ namespace DAZ_Installer.Core.Extraction
         /// </summary>
         /// <param name="archive">The archive that you wish to peek.</param>
         /// <returns>An archive object that is ready for extraction.</returns>
-        public DPArchive Peek(IDPFileInfo archive)
+        public IDPArchive Peek(IDPFileInfo archive)
         {
             ValidateArchive(archive);
-            var arc = DPArchive.CreateNewParentArchive(archive);
+            var arc = ParentArchiveFactory.CreateNewParentArchive(archive);
             Peek(arc);
             return arc;
         }
@@ -167,19 +172,19 @@ namespace DAZ_Installer.Core.Extraction
         /// </summary>
         /// <param name="arc">The archive whose progress has changed.</param>
         /// <param name="args">The extraction args.</param>
-        protected virtual void EmitOnExtractionProgress(DPArchive arc, DPExtractProgressArgs args) => ExtractProgress?.Invoke(arc, args);
+        protected virtual void EmitOnExtractionProgress(IDPArchive arc, DPExtractProgressArgs args) => ExtractProgress?.Invoke(arc, args);
         /// <summary>
         /// Invoke the <see cref="ExtractProgress"/> event.
         /// </summary>
         /// <param name="arc">The archive whose progress has changed.</param>
         /// <param name="args">The extraction args.</param>
-        protected virtual void EmitOnMoveProgress(DPArchive arc, DPExtractProgressArgs args) => MoveProgress?.Invoke(arc, args);
+        protected virtual void EmitOnMoveProgress(IDPArchive arc, DPExtractProgressArgs args) => MoveProgress?.Invoke(arc, args);
         /// <summary>
         /// Invoke the <see cref="ArchiveErrored"/> event.
         /// </summary>
         /// <param name="arc">The archive whose progress has changed.</param>
         /// <param name="args">The error args.</param>
-        protected virtual void EmitOnArchiveError(DPArchive arc, DPArchiveErrorArgs args) => ArchiveErrored?.Invoke(arc, args);
+        protected virtual void EmitOnArchiveError(IDPArchive arc, DPArchiveErrorArgs args) => ArchiveErrored?.Invoke(arc, args);
         /// <summary>
         /// Invoke the <see cref="PeekFinished"/> event.
         /// </summary>

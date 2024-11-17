@@ -12,7 +12,7 @@ namespace DAZ_Installer.TestingSuiteWindows
 {
     internal static class ResultCompiler
     {
-        public static string CompileResults(IEnumerable<DPExtractionReport> extractionReports, DPProcessSettings settings, DPArchive arc)
+        public static string CompileResults(IEnumerable<DPExtractionReport> extractionReports, DPProcessSettings settings, IDPArchive arc)
         {
             var l = new List<DPArchiveMap>();
             foreach (var report in extractionReports)
@@ -27,7 +27,7 @@ namespace DAZ_Installer.TestingSuiteWindows
             return new DPProcessorTestManifest(settings, arc.FileName, l).ToJson();
         }
 
-        public static string CompileResults(TreeNodeCollection rootNodes, DPProcessSettings settings, DPArchive arc)
+        public static string CompileResults(TreeNodeCollection rootNodes, DPProcessSettings settings, IDPArchive arc)
         {
             var l = new List<DPArchiveMap>();
             foreach (TreeNode rootNode in rootNodes)
@@ -45,7 +45,7 @@ namespace DAZ_Installer.TestingSuiteWindows
         private static Dictionary<string, string> makeMappings(TreeNode node)
         {
             if (node.Nodes.Count == 0) return new Dictionary<string, string>();
-            var d = new Dictionary<string, string>(((DPAbstractNode) node.Nodes[0].Tag).AssociatedArchive!.Contents.Count);
+            var d = new Dictionary<string, string>(((IDPAbstractNode) node.Nodes[0].Tag).AssociatedArchive!.Contents.Count);
 
             // Create an iterative approach to this.
             var stack = new Stack<TreeNode>();
@@ -54,7 +54,7 @@ namespace DAZ_Installer.TestingSuiteWindows
             while (stack.Count > 0)
             {
                 var currentNode = stack.Pop();
-                if (currentNode.ForeColor != Color.Green || currentNode.Tag is not DPFile file) continue;
+                if (currentNode.ForeColor != Color.Green || currentNode.Tag is not IDPFile file) continue;
                 d[file.Path] = file.RelativePathToContentFolder;
                 foreach (TreeNode childNode in currentNode.Nodes)
                 {

@@ -20,14 +20,14 @@
         /// A collection of files to extract. Files in this collection <b>MUST BE IN <see cref="Archive"/></b>.
         /// </summary>
         /// <paramtype name="DPFile">The file from the archive to extract.</paramtype>
-        public HashSet<DPFile> FilesToExtract = new(0);
+        public HashSet<IDPFile> FilesToExtract = new(0);
         /// <summary>
         /// An archive to extract from. This can be implicitly set by <see cref="FilesToExtract"/>. <para/>
         /// All files in <see cref="FilesToExtract"/> must be in this archive.
         /// Or in other words, the <br/> <see cref="DPAbstractNode.AssociatedArchive"/> of all 
         /// files in <see cref="FilesToExtract"/> must be this archive.
         /// </summary>
-        public DPArchive Archive = null!;
+        public IDPArchive Archive = null!;
         /// <summary>
         /// The cancellation token to use for the extraction. This setting will update <see cref="DPAbstractExtractor.CancellationToken"/>.
         /// </summary>
@@ -46,13 +46,13 @@
         /// If <paramref name="archive"/> is null and could not find the 
         /// associated archive from the first file in <paramref name="filesToExtract"/>.
         /// </exception>
-        public DPExtractSettings(string? temp, IEnumerable<DPFile> filesToExtract, bool overwriteFiles = true, DPArchive? archive = null)
+        public DPExtractSettings(string? temp, IEnumerable<IDPFile> filesToExtract, bool overwriteFiles = true, IDPArchive? archive = null)
         {
             TempPath = temp ?? string.Empty;
             OverwriteFiles = overwriteFiles;
-            FilesToExtract = new HashSet<DPFile>(filesToExtract);
+            FilesToExtract = new HashSet<IDPFile>(filesToExtract);
             Archive = archive ?? filesToExtract.FirstOrDefault()?.AssociatedArchive!;
-            ArgumentNullException.ThrowIfNull(Archive, "archive");
+            ArgumentNullException.ThrowIfNull(Archive, nameof(archive));
         }
     }
 }

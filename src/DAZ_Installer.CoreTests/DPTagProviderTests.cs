@@ -69,8 +69,8 @@ namespace DAZ_Installer.Core.Tests
         {
             foreach (var path in paths)
             {
-                if (string.IsNullOrEmpty(Path.GetFileName(path))) new DPFolder(path, arc, null);
-                else DPFile.CreateNewFile(path, arc, null);
+                if (string.IsNullOrEmpty(Path.GetFileName(path))) arc.FolderFactory.CreateFolder(path, arc, null);
+                else arc.FileFactory.CreateNewFile(path, arc, null);
             }
         }
 
@@ -126,9 +126,8 @@ namespace DAZ_Installer.Core.Tests
         public void GetTagsTest()
         {
             var arc = NewMockedArchive(DefaultMockOptions, out var e, out var dpfi, out var fi, out var fs);
-            var tp = new DPTagProvider();
-
-            var result = tp.GetTags(arc, new DPProcessSettings("Z:/", "Z:/", InstallOptions.Automatic));
+            
+            var result = DPTagProvider.Singleton.GetTags(arc, new DPProcessSettings("Z:/", "Z:/", InstallOptions.Automatic));
 
             AssertTagsEqual(arc, result);
         }
@@ -138,9 +137,9 @@ namespace DAZ_Installer.Core.Tests
         {
             var arc = NewMockedArchive(DefaultMockOptions, out var e, out var dpfi, out var fi, out var fs);
             fi.Object.FullName = "Z:/i_am_leg.rar";
-            var tp = new DPTagProvider();
+            
 
-            var result = tp.GetTags(arc, new DPProcessSettings("Z:/", "Z:/", InstallOptions.Automatic));
+            var result = DPTagProvider.Singleton.GetTags(arc, new DPProcessSettings("Z:/", "Z:/", InstallOptions.Automatic));
 
             AssertTagsEqual(arc, result);
             Assert.IsTrue(result.Contains("i") && result.Contains("am") && result.Contains("leg"), "Underlined name not found in Tags.");
@@ -151,9 +150,9 @@ namespace DAZ_Installer.Core.Tests
         {
             var arc = NewMockedArchive(DefaultMockOptions, out var e, out var dpfi, out var fi, out var fs);
             fi.Object.FullName = "Z:/i-am-leg.rar";
-            var tp = new DPTagProvider();
+            
 
-            var result = tp.GetTags(arc, new DPProcessSettings("Z:/", "Z:/", InstallOptions.Automatic));
+            var result = DPTagProvider.Singleton.GetTags(arc, new DPProcessSettings("Z:/", "Z:/", InstallOptions.Automatic));
 
             AssertTagsEqual(arc, result);
             Assert.IsTrue(result.Contains("i") && result.Contains("am") && result.Contains("leg"), "Underlined name not found in Tags.");
@@ -164,9 +163,9 @@ namespace DAZ_Installer.Core.Tests
         {
             var arc = NewMockedArchive(DefaultMockOptions, out var e, out var dpfi, out var fi, out var fs);
             fi.Object.FullName = "Z:/i+am+leg.rar";
-            var tp = new DPTagProvider();
+            
 
-            var result = tp.GetTags(arc, new DPProcessSettings("Z:/", "Z:/", InstallOptions.Automatic));
+            var result = DPTagProvider.Singleton.GetTags(arc, new DPProcessSettings("Z:/", "Z:/", InstallOptions.Automatic));
 
             AssertTagsEqual(arc, result);
             Assert.IsTrue(result.Contains("i") && result.Contains("am") && result.Contains("leg"), "Underlined name not found in Tags.");
@@ -177,9 +176,9 @@ namespace DAZ_Installer.Core.Tests
         {
             var arc = NewMockedArchive(DefaultMockOptions, out var e, out var dpfi, out var fi, out var fs);
             fi.Object.FullName = "Z:/a+b-c_d.rar";
-            var tp = new DPTagProvider();
+            
 
-            var result = tp.GetTags(arc, new DPProcessSettings("Z:/", "Z:/", InstallOptions.Automatic));
+            var result = DPTagProvider.Singleton.GetTags(arc, new DPProcessSettings("Z:/", "Z:/", InstallOptions.Automatic));
 
             AssertTagsEqual(arc, result);
             Assert.IsTrue(result.Contains("a") && result.Contains("b") && result.Contains("c") && result.Contains("d"), "Underlined name not found in Tags.");

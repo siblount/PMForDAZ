@@ -11,13 +11,13 @@ namespace DAZ_Installer.TestingSuiteWindows
 {
     public partial class MainForm : Form
     {
-        private record class ProcessSession(DPProcessor Processor, DPArchive Archive, DPProcessSettings Settings, List<DPExtractionReport> Reports);
+        private record class ProcessSession(DPProcessor Processor, IDPArchive Archive, DPProcessSettings Settings, List<DPExtractionReport> Reports);
 
         public static MainForm Instance = null!;
         DPFileScopeSettings Scope = new DPFileScopeSettings();
         DPProcessSettings settings = new();
         private Task? lastTask;
-        private DPArchive? lastRootArchive;
+        private IDPArchive? lastRootArchive;
         ProcessSession? lastSession = null;
         DPProcessor? currentProcessor = null;
         CancellationTokenSource tokenSource = new();
@@ -120,7 +120,7 @@ namespace DAZ_Installer.TestingSuiteWindows
 
         private void copyFullPathToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            var node = treeView1.SelectedNode.Tag as DPAbstractNode;
+            var node = treeView1.SelectedNode.Tag as IDPAbstractNode;
             Clipboard.SetText(node!.NormalizedPath);
         }
 
@@ -217,7 +217,7 @@ namespace DAZ_Installer.TestingSuiteWindows
             return true;
         }
 
-        private DPArchive setupArchive()
+        private IDPArchive setupArchive()
         {
             var archiveLocation = archiveTxtBox.Text;
             Scope = new(new[] { archiveLocation }, new[] { settings.TempPath, settings.DestinationPath }, false, false, true);
@@ -277,7 +277,7 @@ namespace DAZ_Installer.TestingSuiteWindows
             }
         }
 
-        private void buildTree(DPArchive arc)
+        private void buildTree(IDPArchive arc)
         {
             var rootNode = new TreeNode(arc.FileName);
             Queue<TreeNode> queue = new();
@@ -300,7 +300,7 @@ namespace DAZ_Installer.TestingSuiteWindows
             while (queue.Count != 0)
             {
                 var parentNode = queue.Dequeue();
-                var folder = (DPFolder)parentNode.Tag;
+                var folder = (IDPFolder)parentNode.Tag;
                 foreach (var file in folder.Contents)
                 {
                     var childNode = new TreeNode(file.FileName) { Tag = file };
@@ -364,7 +364,7 @@ namespace DAZ_Installer.TestingSuiteWindows
                 File.WriteAllTextAsync(path, ResultCompiler.CompileResults(lastSession.Reports, lastSession.Settings, lastSession.Archive));
         }
 
-        private void colorDetermined(HashSet<DPFile> determinedFiles)
+        private void colorDetermined(HashSet<IDPFile> determinedFiles)
         {
             List<TreeNode> nodes = new(determinedFiles.Count);
             // initialize the queue with root-level nodes first; the root-level nodes
@@ -379,8 +379,8 @@ namespace DAZ_Installer.TestingSuiteWindows
                 // Each node could represent a file or a folder.
                 foreach (TreeNode node in treeNode.Nodes)
                 {
-                    var folder = node.Tag as DPFolder;
-                    var file = node.Tag as DPFile;
+                    var folder = node.Tag as IDPFolder;
+                    var file = node.Tag as IDPFile;
                     if (folder is not null) queue.Enqueue(node);
                     else
                     {
@@ -405,7 +405,7 @@ namespace DAZ_Installer.TestingSuiteWindows
             });
         }
 
-        private void colorExtractedToTarget(DPArchive arc)
+        private void colorExtractedToTarget(IDPArchive arc)
         {
             List<TreeNode> nodes = new(arc.Contents.Count);
             // initialize the queue with root-level nodes first; the root-level nodes
@@ -420,8 +420,8 @@ namespace DAZ_Installer.TestingSuiteWindows
                 // Each node could represent a file or a folder.
                 foreach (TreeNode node in treeNode.Nodes)
                 {
-                    var folder = node.Tag as DPFolder;
-                    var file = node.Tag as DPFile;
+                    var folder = node.Tag as IDPFolder;
+                    var file = node.Tag as IDPFile;
                     if (folder is not null) queue.Enqueue(node);
                     else
                     {
@@ -511,7 +511,7 @@ namespace DAZ_Installer.TestingSuiteWindows
             Log.Information("Beginning to determine destinations.");
             Log.Information("Archive File: {lastRootArchive}", lastRootArchive.FileName);
             Log.Information("Settings to use: \n{@Settings}", JsonSerializer.Serialize(settings, new JsonSerializerOptions { WriteIndented = true }));
-            HashSet<DPFile> determinedFiles = new();
+            HashSet<IDPFile> determinedFiles = new();
             try
             {
                 if (lastRootArchive.Contents.Count == 0) peekRecursivelyTask();
@@ -570,7 +570,7 @@ namespace DAZ_Installer.TestingSuiteWindows
         private void processTask()
         {
             var autoSave = autoSaveBtn.Checked;
-            var arcs = new List<DPArchive>();
+            var arcs = new List<IDPArchive>();
             var records = new List<DPExtractionReport>();
             var settings = new
             {
@@ -627,8 +627,8 @@ namespace DAZ_Installer.TestingSuiteWindows
             Log.Information("Beginning to peek recursively.");
             Log.Information("Archive File: {lastRootArchive}", lastRootArchive.FileName);
             Log.Information("Settings to use: \n{@Settings}", JsonSerializer.Serialize(settings, new JsonSerializerOptions { WriteIndented = true }));
-            var queue = new Queue<DPArchive>();
-            var arcTrees = new List<DPArchive>();
+            var queue = new Queue<IDPArchive>();
+            var arcTrees = new List<IDPArchive>();
             queue.Enqueue(lastRootArchive);
             try
             {

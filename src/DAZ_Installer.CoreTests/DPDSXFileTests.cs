@@ -6,6 +6,8 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using DAZ_Installer.IO.Fakes;
+using Moq;
+using DAZ_Installer.Core.Tests.Fakes;
 
 namespace DAZ_Installer.Core.Tests
 {
@@ -48,7 +50,7 @@ namespace DAZ_Installer.Core.Tests
         [TestMethod]
         public void CheckContentsTest_Supplement()
         {
-            var f = new DPDSXFile("doesnt matter", new(), null);
+            var f = new DPDSXFile("doesnt matter", new FakeDPArchive(), null);
             var a = f.AssociatedArchive;
             using var sr = SetupStreamReader(SupplementContent);
 
@@ -61,7 +63,7 @@ namespace DAZ_Installer.Core.Tests
         [TestMethod]
         public void CheckContentsTest_Support()
         {
-            var f = new DPDSXFile("doesnt matter", new(), null);
+            var f = new DPDSXFile("doesnt matter", new FakeDPArchive(), null);
             var a = f.AssociatedArchive;
             using var sr = SetupStreamReader(SupportContent);
 

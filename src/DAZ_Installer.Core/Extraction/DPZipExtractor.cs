@@ -12,6 +12,8 @@ namespace DAZ_Installer.Core.Extraction
     {
         public override ILogger Logger { get; set; } = Log.Logger.ForContext<DPZipExtractor>();
         internal virtual IZipArchiveFactory Factory { get; init; } = new ZipArchiveWrapperFactory();
+        public IDPFolderFactory FolderFactory { get; set; } = DPFolderFactory.Instance;
+        public IDPFileFactory FileFactory { get; set; } = DPFileFactory.Instance;
         private bool tempOnly = false;
 
         public DPZipExtractor() { }
@@ -39,7 +41,7 @@ namespace DAZ_Installer.Core.Extraction
                 // Reset any variables if needed.
                 FileSystem = settings.Archive.FileSystem;
                 // Peek into the archive if needed.
-                DPArchive arc = settings.Archive;
+                IDPArchive arc = settings.Archive;
                 if (arc.Contents.Count == 0) Peek(arc);
 
                 var max = settings.FilesToExtract.Count;
@@ -61,7 +63,7 @@ namespace DAZ_Installer.Core.Extraction
 
                     // Loop through all the files to extract and attempt to extract them.
                     var i = 0;
-                    foreach (DPFile file in settings.FilesToExtract)
+                    foreach (IDPFile file in settings.FilesToExtract)
                     {
                         CancellationToken.ThrowIfCancellationRequested();
                         // Check if the file is part of this archive, if not, emit an error and continue.
@@ -106,7 +108,7 @@ namespace DAZ_Installer.Core.Extraction
             }
         }
 
-        public override void Peek(DPArchive arc)
+        public override void Peek(IDPArchive arc)
         {
             using var _ = LogContext.PushProperty("Archive", arc.FileName);
             Logger.Information("Preparing to peek");
@@ -133,8 +135,8 @@ namespace DAZ_Installer.Core.Extraction
                     CancellationToken.ThrowIfCancellationRequested();
                     if (string.IsNullOrEmpty(entry.Name) && !arc.FolderExists(entry.FullName))
                         // Set folder to null to let it automatically generate subfolders.
-                        new DPFolder(entry.FullName, arc, null);
-                    else DPFile.CreateNewFile(entry.FullName, arc, null);
+                        FolderFactory.CreateFolder(entry.FullName, arc, null);
+                    else FileFactory.CreateNewFile(entry.FullName, arc, null);
                     arc.TrueArchiveSize += (ulong)Math.Max(0, entry.Length);
                 }
             } catch (Exception ex)
@@ -147,10 +149,10 @@ namespace DAZ_Installer.Core.Extraction
             }
         }
 
-        private void ExtractFile(IZipArchiveEntry? entry, DPFile file, DPExtractSettings settings, DPExtractionReport report)
+        private void ExtractFile(IZipArchiveEntry? entry, IDPFile file, DPExtractSettings settings, DPExtractionReport report)
         {
             var tryAgain = false;
-            DPArchive arc = settings.Archive;
+            IDPArchive arc = settings.Archive;
             if (entry is null)
             {
                 HandleError(arc, file, report, null, string.Format(DPArchiveErrorArgs.FileNotPartOfArchiveErrorFormat, file.FileName));
@@ -206,16 +208,16 @@ namespace DAZ_Installer.Core.Extraction
             }
         }
 
-        private void HandleProgressionZIP(DPFile file, int i, int max)
+        private void HandleProgressionZIP(IDPFile file, int i, int max)
         {
             i = Math.Min(i, max);
             var percentComplete = (float)i / max;
             var progress = (byte)Math.Floor(percentComplete * 100);
-            DPArchive arc = file.AssociatedArchive!;
+            IDPArchive arc = file.AssociatedArchive!;
             EmitOnExtractionProgress(arc, new DPExtractProgressArgs(progress, arc, file));
         }
 
-        private void HandleError(DPArchive arc, DPFile? file, DPExtractionReport? report, Exception? e, string msg)
+        private void HandleError(IDPArchive arc, IDPFile? file, DPExtractionReport? report, Exception? e, string msg)
         {
             Logger.Error(e, msg);
             EmitOnArchiveError(arc, new DPArchiveErrorArgs(arc, e, msg));

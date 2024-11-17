@@ -9,8 +9,8 @@
         /// <summary>
         /// The archive that is about to be processed.
         /// </summary>
-        public readonly DPArchive Archive;
+        public readonly IDPArchive Archive;
 
-        internal DPArchiveEnterArgs(DPArchive archive) => Archive = archive;
+        internal DPArchiveEnterArgs(IDPArchive archive) => Archive = archive;
     }
 }

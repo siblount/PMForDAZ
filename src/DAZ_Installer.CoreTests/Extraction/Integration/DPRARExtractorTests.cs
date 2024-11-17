@@ -37,7 +37,7 @@ namespace DAZ_Installer.Core.Extraction.Integration.Tests
         public void DPRARExtractorTest()
         {
             var l = Mock.Of<ILogger>();
-            var f = new RARFactory();
+            var f = RARFactory.Instance;
             var e = new DPRARExtractor(l, f);
             Assert.AreEqual(l, e.Logger);
             Assert.AreEqual(f, e.Factory);

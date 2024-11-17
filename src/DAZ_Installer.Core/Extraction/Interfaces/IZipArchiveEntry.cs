@@ -3,7 +3,7 @@
 namespace DAZ_Installer.Core.Extraction
 {
     /// <inheritdoc cref="ZipArchiveEntry"/>
-    internal interface IZipArchiveEntry
+    public interface IZipArchiveEntry
     {
         /// <inheritdoc cref="ZipArchiveEntry.Archive"/>
         IZipArchive Archive { get; }

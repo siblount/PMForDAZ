@@ -167,7 +167,7 @@ namespace DAZ_Installer.Core.Extraction.Integration.Tests
         public void DP7zExtractorTest()
         {
             var l = Mock.Of<ILogger>();
-            var f = new ProcessFactory();
+            var f = ProcessFactory.Instance;
             var e = new DP7zExtractor(l, f);
             Assert.AreEqual(l, e.Logger);
             Assert.AreEqual(f, e.Factory);
@@ -178,7 +178,7 @@ namespace DAZ_Installer.Core.Extraction.Integration.Tests
         public void ExtractTest(string path)
         {
             var fi = FileSystem.CreateFileInfo(path);
-            var e = new DP7zExtractor(Log.Logger, new ProcessFactory());
+            var e = new DP7zExtractor(Log.Logger, ProcessFactory.Instance);
             var arc = new DPArchive(fi) { Extractor = e };
             arc.PeekContents();
             var settings = new DPExtractSettings(ExtractPath, arc.Contents.Values);
@@ -202,7 +202,7 @@ namespace DAZ_Installer.Core.Extraction.Integration.Tests
             var cts = new CancellationTokenSource();
             cts.CancelAfter(TimeSpan.FromSeconds(5));
             var fi = FileSystem.CreateFileInfo(path);
-            var e = new DP7zExtractor(Log.Logger, new ProcessFactory());
+            var e = new DP7zExtractor(Log.Logger, ProcessFactory.Instance);
             var arc = new DPArchive(fi) { Extractor = e };
             var settings = new DPExtractSettings(ExtractPath, arc.Contents.Values, archive: arc);
             DPArchiveTestHelpers.SetupTargetPaths(arc, ExtractPath);
@@ -225,7 +225,7 @@ namespace DAZ_Installer.Core.Extraction.Integration.Tests
         {
             var scope = new DPFileScopeSettings(Array.Empty<string>(), new[] { Path.Combine(ExtractPath, "regular") }, true);
             var fi = new DPFileSystem(scope).CreateFileInfo(RegularArchivePath);
-            var e = new DP7zExtractor(Log.Logger, new ProcessFactory());
+            var e = new DP7zExtractor(Log.Logger, ProcessFactory.Instance);
             var arc = new DPArchive(fi) { Extractor = e };
             arc.PeekContents();
             var settings = new DPExtractSettings(ExtractPath, arc.Contents.Values);
@@ -244,7 +244,7 @@ namespace DAZ_Installer.Core.Extraction.Integration.Tests
         public void ExtractTest_AfterExtract()
         {
             var fi = FileSystem.CreateFileInfo(RegularArchivePath);
-            var e = new DP7zExtractor(Log.Logger, new ProcessFactory());
+            var e = new DP7zExtractor(Log.Logger, ProcessFactory.Instance);
             var arc = new DPArchive(fi) { Extractor = e };
             arc.PeekContents();
             var settings = new DPExtractSettings(ExtractPath, arc.Contents.Values);
@@ -265,7 +265,7 @@ namespace DAZ_Installer.Core.Extraction.Integration.Tests
         public void ExtractTest_AfterExtractTemp()
         {
             var fi = FileSystem.CreateFileInfo(RegularArchivePath);
-            var e = new DP7zExtractor(Log.Logger, new ProcessFactory());
+            var e = new DP7zExtractor(Log.Logger, ProcessFactory.Instance);
             var arc = new DPArchive(fi) { Extractor = e };
             arc.PeekContents();
             var settings = new DPExtractSettings(ExtractPath, arc.Contents.Values);
@@ -288,7 +288,7 @@ namespace DAZ_Installer.Core.Extraction.Integration.Tests
         public void ExtractToTempTest(string path)
         {
             var fi = FileSystem.CreateFileInfo(path);
-            var e = new DP7zExtractor(Log.Logger, new ProcessFactory());
+            var e = new DP7zExtractor(Log.Logger, ProcessFactory.Instance);
             var arc = new DPArchive(fi) { Extractor = e };
             arc.PeekContents();
             var settings = new DPExtractSettings(ExtractPath, arc.Contents.Values);
@@ -308,7 +308,7 @@ namespace DAZ_Installer.Core.Extraction.Integration.Tests
         public void ExtractToTempTest_AfterExtract()
         {
             var fi = FileSystem.CreateFileInfo(RegularArchivePath);
-            var e = new DP7zExtractor(Log.Logger, new ProcessFactory());
+            var e = new DP7zExtractor(Log.Logger, ProcessFactory.Instance);
             var arc = new DPArchive(fi) { Extractor = e };
             arc.PeekContents();
             var settings = new DPExtractSettings(ExtractPath, arc.Contents.Values);
@@ -329,7 +329,7 @@ namespace DAZ_Installer.Core.Extraction.Integration.Tests
         [DynamicData(nameof(ArchiveEnumerable), DynamicDataSourceType.Property)]
         public void PeekTest(string path)
         {
-            var e = new DP7zExtractor(Log.Logger, new ProcessFactory());
+            var e = new DP7zExtractor(Log.Logger, ProcessFactory.Instance);
             var fi = FileSystem.CreateFileInfo(path);
             var arc = new DPArchive(fi);
 
@@ -359,7 +359,7 @@ namespace DAZ_Installer.Core.Extraction.Integration.Tests
         public void ExtractTest_CancelledBeforeOp()
         {
             var fi = FileSystem.CreateFileInfo(RegularArchivePath);
-            var e = new DP7zExtractor(Log.Logger, new ProcessFactory());
+            var e = new DP7zExtractor(Log.Logger, ProcessFactory.Instance);
             var arc = new DPArchive(fi) { Extractor = e };
             arc.PeekContents();
             e.CancellationToken = new CancellationToken(true);
@@ -387,7 +387,7 @@ namespace DAZ_Installer.Core.Extraction.Integration.Tests
 
             var fi = FileSystem.CreateFileInfo(RegularArchivePath);
             var cts = new CancellationTokenSource();
-            var e = new DP7zExtractor(Log.Logger, new ProcessFactory()) { CancellationToken = cts.Token };
+            var e = new DP7zExtractor(Log.Logger, ProcessFactory.Instance) { CancellationToken = cts.Token };
             var arc = new DPArchive(fi) { Extractor = e };
             arc.PeekContents();
             var settings = new DPExtractSettings(ExtractPath, arc.Contents.Values);
@@ -414,7 +414,7 @@ namespace DAZ_Installer.Core.Extraction.Integration.Tests
 
             var fi = FileSystem.CreateFileInfo(RegularArchivePath);
             var cts = new CancellationTokenSource();
-            var e = new DP7zExtractor(Log.Logger, new ProcessFactory()) { CancellationToken = cts.Token };
+            var e = new DP7zExtractor(Log.Logger, ProcessFactory.Instance) { CancellationToken = cts.Token };
             var arc = new DPArchive(fi) { Extractor = e };
             arc.PeekContents();
             var settings = new DPExtractSettings(ExtractPath, arc.Contents.Values);

@@ -6,18 +6,20 @@ using Serilog;
 
 namespace DAZ_Installer.Core
 {
-    /// <summary>
-    /// A special class that marks the DPFile as .dsx file which typically is a Supplement file or a Manifest file.
-    /// </summary>
-    public class DPDSXFile : DPFile
+    /// <inheritdoc/>
+    public class DPDSXFile : DPFile, IDPDSXFile
     {
         public override ILogger Logger { get; set; } = Log.Logger.ForContext<DPDSXFile>();
-        public bool isSupplementFile, isManifestFile = false;
-        public bool isSupportingFile = false;
-        public bool contentChecked = false;
-        public DPContentInfo ContentInfo = new();
+        /// <summary>
+        /// Returns whether <see cref="CheckContents(StreamReader)"/> executed successfully atleast once.
+        /// </summary>
+        public bool ContentChecked = false;
+        /// <inheritdoc/>
+        /// <remarks>Updated after <see cref="CheckContents(StreamReader) call"/></remarks>
+        public DPContentInfo ContentInfo { get; set; } = new DPContentInfo();
 
-        public DPDSXFile(string _path, DPArchive arc, DPFolder? __parent) :
+        /// <inheritdoc/>
+        public DPDSXFile(string _path, IDPArchive arc, IDPFolder? __parent) :
             base(_path, arc, __parent)
         {
             arc.DSXFiles.Add(this);
@@ -26,9 +28,11 @@ namespace DAZ_Installer.Core
         }
 
         /// <summary>
-        /// Reads the contents of this file and updates the <c>ContentInfo</c> variables. 
-        /// This is usually called for the Support dsx file in the Runtime/Support folder.
+        /// Reads the contents of this file and updates the <see cref="ContentInfo"/> struct. 
         /// </summary>
+        /// <remarks>
+        /// This is usually called for the Support dsx file in the Runtime/Support folder.
+        /// </remarks>
         public void CheckContents(StreamReader stream)
         {
             if (AssociatedArchive is null) return;
@@ -37,7 +41,7 @@ namespace DAZ_Installer.Core
             List<DPDSXElement> search = collection.FindElementViaTag("ProductName");
             if (search.Count != 0)
             {
-                AssociatedArchive.ProductInfo.ProductName = search[0].attributes["VALUE"];
+                AssociatedArchive.ProductInfo = AssociatedArchive.ProductInfo with { ProductName = search[0].attributes["VALUE"] };
             }
             search = collection.FindElementViaTag("Artist");
             foreach (DPDSXElement artist in search)
@@ -48,10 +52,10 @@ namespace DAZ_Installer.Core
             search = collection.FindElementViaTag("ProductToken");
             if (search.Count != 0)
             {
-                ContentInfo.ID = search[0].attributes["VALUE"];
-                AssociatedArchive.ProductInfo.SKU = ContentInfo.ID;
+                ContentInfo = ContentInfo with { ID = search[0].attributes["VALUE"] };
+                AssociatedArchive.ProductInfo = AssociatedArchive.ProductInfo with { SKU = ContentInfo.ID };
             }
-            contentChecked = true;
+            ContentChecked = true;
         }
 
         /// <summary>

@@ -17,7 +17,7 @@ namespace DAZ_Installer.Core.Tests
         {
             public override ILogger Logger { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
 
-            protected override void UpdateParent(DPFolder? parent) => throw new NotImplementedException();
+            protected override void UpdateParent(IDPFolder? parent) => throw new NotImplementedException();
 
             internal AbstractNodeTestClass(string path, DPArchive? arc) : base(path, arc) { }
         }

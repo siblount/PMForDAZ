@@ -8,7 +8,9 @@ namespace DAZ_Installer.Core.Extraction
     public class DPRARExtractor : DPAbstractExtractor
     {
         public override ILogger Logger { get; set; } = Log.Logger.ForContext<DPRARExtractor>();
-        internal IRARFactory Factory { get; init; } = new RARFactory();
+        internal IRARFactory Factory { get; init; } = RARFactory.Instance;
+        public IDPFileFactory FileFactory = DPFileFactory.Instance;
+        public IDPFolderFactory FolderFactory = DPFolderFactory.Instance;
         private Session? session = null;
         private class Session
         {
@@ -41,12 +43,12 @@ namespace DAZ_Installer.Core.Extraction
                 if (e.fileInfo.IsDirectory)
                 {
                     if (session.settings.Archive.FolderExists(e.fileInfo.FileName)) return;
-                    var f = new DPFolder(e.fileInfo.FileName, session.settings.Archive, null);
+                    var f = FolderFactory.CreateFolder(e.fileInfo.FileName, session.settings.Archive, null);
                     Logger.Debug("Discovered new directory: {0}", f.FileName);
                 }
                 else
                 {
-                    var f = DPFile.CreateNewFile(e.fileInfo.FileName, session.settings.Archive, null);
+                    var f = FileFactory.CreateNewFile(e.fileInfo.FileName, session.settings.Archive, null);
                     Logger.Debug("Discovered new file: {0}", f.FileName);
                 }
             } catch (Exception ex)
@@ -75,7 +77,7 @@ namespace DAZ_Installer.Core.Extraction
             mode = Mode.Extract;
             EmitOnExtracting();
             FileSystem = settings.Archive.FileSystem;
-            DPArchive arc = settings.Archive;
+            IDPArchive arc = settings.Archive;
             session ??= new Session() { report = new DPExtractionReport(), settings = settings };
             CancellationToken = settings.CancelToken;
 
@@ -147,7 +149,7 @@ namespace DAZ_Installer.Core.Extraction
             
             return report;
         }
-        public override void Peek(DPArchive arc)
+        public override void Peek(IDPArchive arc)
         {
             using var _ = LogContext.PushProperty("Archive", arc.FileName);
             Logger.Information("Preparing to peek");
@@ -208,7 +210,7 @@ namespace DAZ_Installer.Core.Extraction
         private bool ExtractFile(IRAR handler, DPExtractSettings settings, DPExtractionReport report)
         {
             var fileName = handler.CurrentFile.FileName;
-            DPArchive arc = settings.Archive;
+            IDPArchive arc = settings.Archive;
             
             // Means that archive was modified while we were extracting.
             if (!arc.Contents.TryGetValue(PathHelper.NormalizePath(fileName), out var file))
@@ -282,7 +284,7 @@ namespace DAZ_Installer.Core.Extraction
             return true;
         }
 
-        private bool TestFile(IRAR handler, DPArchive arc)
+        private bool TestFile(IRAR handler, IDPArchive arc)
         {
             try
             {
@@ -306,7 +308,7 @@ namespace DAZ_Installer.Core.Extraction
             }
             return true;
         }
-        private void handleError(DPArchive arc, string msg, DPExtractionReport? report, DPFile? file, Exception? e)
+        private void handleError(IDPArchive arc, string msg, DPExtractionReport? report, IDPFile? file, Exception? e)
         {
             using var _ = LogContext.PushProperty("Archive", arc.FileName);
             Logger.Error(e, msg);

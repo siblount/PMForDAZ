@@ -19,7 +19,7 @@ namespace DAZ_Installer.TestingSuiteWindows
     {
         private new ILogger Logger { get; } = Log.ForContext<DPDestinationDeterminerEx>();
         public DPDestinationDeterminerEx() : base() { }
-        public override HashSet<DPFile> DetermineDestinations(DPArchive arc, DPProcessSettings settings)
+        public override HashSet<IDPFile> DetermineDestinations(IDPArchive arc, DPProcessSettings settings)
         {
             // First, we need to extract the meta files to temp.
             // In DPDestinationDeterminer, it does NOT extract any files. If the file is not on disk, it will not read Manifest.dsx files.
@@ -33,7 +33,7 @@ namespace DAZ_Installer.TestingSuiteWindows
         /// <summary>
         /// Reads the files listed in <see cref="DPArchive.DSXFiles"/>.
         /// </summary>
-        private void ReadMetaFiles(DPArchive arc, ref DPProcessSettings settings)
+        private void ReadMetaFiles(IDPArchive arc, ref DPProcessSettings settings)
         {
             // Extract the DAZ Files that have not been extracted.
             var extractSettings = new DPExtractSettings(settings.TempPath,

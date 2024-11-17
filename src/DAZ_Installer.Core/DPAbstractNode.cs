@@ -11,25 +11,25 @@ namespace DAZ_Installer.Core
     /// This means that all files, and archives (which are files) should extend
     /// this class.
     /// </summary>
-    public abstract class DPAbstractNode
+    public abstract class DPAbstractNode : IDPAbstractNode
     {
         public abstract ILogger Logger { get; set; }
         /// <summary>
-        /// The file name of a file or folder.
+        /// <inheritdoc/>
         /// </summary>
+        /// <remarks>
+        /// By default, returns <c>System.IO.Path.GetFileName(Path)</c>.
+        /// </remarks> 
         public virtual string FileName => IOPath.GetFileName(Path);
         /// <summary>
         /// The full path of the file (or folder) in the archive space.
         /// Using this property is not recommended for comparing or listing files as delimiters vary, 
         /// use <see cref="NormalizedPath"/> instead. <para/>
         /// However since this property holds the exact path given from the archive, you can use to compare
-        /// to match a <see cref="DPAbstractNode"/> to the archive's native format. For example,
-        /// <code>
-        /// RARFileInfo info = e.fileInfo;
-        /// info.FileName == Path // returns true
-        /// </code>
+        /// to match a <see cref="DPAbstractNode"/> to the archive's native format.
         /// </summary>
-        public string Path = string.Empty;
+        /// <seealso cref="NormalizedPath"/>
+        public string Path { get; set; } = string.Empty;
         /// <summary>
         /// The path with all forward slashes replaced with backslashes. Use this property for comparing
         /// and listing files, folders, and archives.
@@ -40,39 +40,45 @@ namespace DAZ_Installer.Core
         /// </summary>
         public virtual string Ext => GetExtension(Path);
         /// <summary>
-        /// The folder the file (or folder) is a child of. Can be null.
+        /// <inheritdoc/>
         /// </summary>
-        public DPFolder? Parent { get => parent; set => UpdateParent(value); }
-        /// <summary>
-        /// The archive this file is associated to. Can be null. <para/>
-        /// Should only be null if this file is an <see cref="DPArchive"/> <b>AND</b>
-        /// the initial archive called by <see cref="DPProcessor.ProcessArchive(string, DPProcessSettings)"/>
-        /// </summary>
-        public DPArchive? AssociatedArchive { get; set; }
+        /// <remarks>
+        /// Setting this parent will call <see cref="UpdateParent(IDPFolder?)"/> to update the parent.
+        /// </remarks>
+        public IDPFolder? Parent { get => parent; set => UpdateParent(value); }
+        /// <inheritdoc/>
+        public IDPArchive? AssociatedArchive { get; set; }
 
-        protected abstract void UpdateParent(DPFolder? parent);
+        protected abstract void UpdateParent(IDPFolder? parent);
 
         #region Processing Properties
         /// <summary>
-        /// The final, absolute path that the file is supposed to be extracted to. 
+        /// <inheritdoc/>
         /// </summary>
+        /// <remarks>
+        /// This is the absolute path where the file will be extracted during processing.
+        /// </remarks>
         public string TargetPath { get; set; } = string.Empty;
         /// <summary>
-        /// The full relative path of the file (or folder) relative to the determined content folder (if any). 
-        /// If no content folder is detected, relative path will be <see cref="string.Empty"/>.
-        /// Currently, <b>relative path is not set for folders.</b>
+        /// <inheritdoc/>
         /// </summary>
+        /// <remarks>
+        /// If no content folder is detected, this will be <see cref="string.Empty"/>.
+        /// Currently, <b>relative path is not set for folders.</b>
+        /// </remarks>
         public string RelativePathToContentFolder { get; set; } = string.Empty;
         /// <summary>
-        /// The relative directory path at which will be used to determine which the file will go to in the system. <para/>
-        /// This property is used to determine the target path of a file. <para/>
+        /// <inheritdoc/>
+        /// </summary>
+        /// <remarks>
+        /// This property is used to determine the target path of a file.
         /// The value will be equal to <see cref="RelativePathToContentFolder"/>
         /// if the <see cref="FileName"/> is not in <see cref="DPProcessSettings.ContentRedirectFolders"/>.
-        /// </summary>
+        /// </remarks>
         public string RelativeTargetPath { get; set; } = string.Empty;
         #endregion
 
-        protected DPFolder? parent;
+        protected IDPFolder? parent;
 
         /// <summary>
         /// Returns the lowercase extension of a given path without the leading dot.
@@ -92,7 +98,7 @@ namespace DAZ_Installer.Core
         {
             if (string.IsNullOrEmpty(path)) return string.Empty;
 
-            string extension = IOPath.GetExtension(path);
+            var extension = IOPath.GetExtension(path);
 
             if (string.IsNullOrEmpty(extension))
             {
@@ -109,8 +115,10 @@ namespace DAZ_Installer.Core
         /// <summary>
         /// Constructor for creating file, folder, and even archive objects from the archive space.
         /// </summary>
+        /// <param name="_path">The path of the file or folder in the archive space.</param>
+        /// <param name="associatedArchive">The archive that contains this node, if any.</param>
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="info"/> or <paramref name="_path"/> is <see langword="null"/>.</exception>
-        public DPAbstractNode(string _path, DPArchive? associatedArchive = null)
+        public DPAbstractNode(string _path, IDPArchive? associatedArchive = null)
         {
             ArgumentNullException.ThrowIfNull(_path);
             Path = _path;

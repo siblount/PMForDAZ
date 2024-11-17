@@ -22,7 +22,7 @@ namespace DAZ_Installer.CoreTests.Extraction
         /// Asserts whether the contents of the archive are as expected.
         /// </summary>
         /// <param name="arc">The archive to check.</param>
-        internal static void AssertDefaultContents(DPArchive arc)
+        internal static void AssertDefaultContents(IDPArchive arc)
         {
             Assert.AreEqual(3, arc.Contents.Count, "Archive contents count does not match");
             Assert.AreEqual(1, arc.RootFolders.Count, "Archive root folders count does not match");
@@ -35,7 +35,7 @@ namespace DAZ_Installer.CoreTests.Extraction
         /// </summary>
         /// <param name="arc">The archive to check.</param>
         /// <param name="entities">The entities to check.</param>
-        public static void AssertExtractorSetPathsCorrectly(DPArchive arc, IEnumerable<string> entities)
+        public static void AssertExtractorSetPathsCorrectly(IDPArchive arc, IEnumerable<string> entities)
         {
             foreach (var entity in entities)
             {
@@ -49,7 +49,7 @@ namespace DAZ_Installer.CoreTests.Extraction
         /// </summary>
         /// <param name="extractor">The extractor to use.</param>
         /// <param name="arc">The archive for <paramref name="extractor"/> to peek into.</param>
-        public static void RunAndAssertPeekEvents(DPAbstractExtractor extractor, DPArchive arc)
+        public static void RunAndAssertPeekEvents(DPAbstractExtractor extractor, IDPArchive arc)
         {
             bool peeked = false;
             extractor.Peeking += () =>
@@ -97,7 +97,7 @@ namespace DAZ_Installer.CoreTests.Extraction
             return report;
         }
 
-        public static void AssertExtractFileInfosCorrectlySet(IEnumerable<DPFile> expectedFilesExtracted)
+        public static void AssertExtractFileInfosCorrectlySet(IEnumerable<IDPFile> expectedFilesExtracted)
         {
             foreach (var file in expectedFilesExtracted)
             {
@@ -125,7 +125,7 @@ namespace DAZ_Installer.CoreTests.Extraction
         /// <param name="arc">The archive to setup target paths for 
         /// <see cref="DPAbstractExtractor.ExtractToTemp(DPExtractSettings)"/></param>
         /// <param name="basePath">The base path to use for combining the path.</param>
-        public static void SetupTargetPaths(DPArchive arc, string basePath)
+        public static void SetupTargetPaths(IDPArchive arc, string basePath)
         {
             foreach (var file in arc.Contents.Values)
                 file.TargetPath = Path.Combine(basePath, arc.FileName, file.FileName);
@@ -141,8 +141,8 @@ namespace DAZ_Installer.CoreTests.Extraction
         /// <param name="arc">The archive to setup target paths for 
         /// <see cref="DPAbstractExtractor.ExtractToTemp(DPExtractSettings)"/></param>
         /// <param name="basePath">The base path to use for combining the path.</param>
-        /// <seealso cref="SetupTargetPaths(DPArchive, string)"/>
-        public static void SetupTargetPathsForTemp(DPArchive arc, string basePath)
+        /// <seealso cref="SetupTargetPaths(IDPArchive, string)"/>
+        public static void SetupTargetPathsForTemp(IDPArchive arc, string basePath)
         {
             foreach (var file in arc.Contents.Values)
                 file.TargetPath = Path.Combine(basePath, file.FileName);
@@ -157,7 +157,7 @@ namespace DAZ_Installer.CoreTests.Extraction
         /// <param name="email">The email to write to the stream.</param>
         /// <param name="website">The website to write to stream</param>
         /// <returns>A <see cref="MemoryStream"/> of a JSON metadata file.</returns>
-        public static Stream CreateMetadataStream(DPFile file,
+        public static Stream CreateMetadataStream(IDPFile file,
                                                   string type = "wearable",
                                                   string author = "TheRealSolly",
                                                   string email = "solomon1blount@gmail.com",
@@ -231,19 +231,19 @@ namespace DAZ_Installer.CoreTests.Extraction
         }
 
         /// <summary>
-        /// Returns a file stream based on the <see cref="DPAbstractNode.FileName"/> or if the extension is in <see cref="DPFile.DAZFormats"/>.
+        /// Returns a file stream based on the <see cref="IDPAbstractNode.FileName"/> or if the extension is in <see cref="DPFile.DAZFormats"/>.
         /// </summary>
         /// <remarks>
         /// The method determines the appropriate stream based on the following conditions:
         /// <list type="bullet">
         /// <item>
-        /// <description>If the file is a manifest, it returns a manifest stream from <see cref="CreateManifestStream(DPArchive, IEnumerable{string})"/></description>
+        /// <description>If the file is a manifest, it returns a manifest stream from <see cref="CreateManifestStream(IDPArchive, IEnumerable{string})"/></description>
         /// </item>
         /// <item>
         /// <description>If the file is a supplement, it returns a supplement stream from <see cref="CreateSupplementStream(string)"/></description>
         /// </item>
         /// <item>
-        /// <description>If the file extension is in <see cref="DPFile.DAZFormats"/>, it returns a metadata stream from <see cref="CreateMetadataStream(DPFile, string, string, string, string)"/></description>
+        /// <description>If the file extension is in <see cref="DPFile.DAZFormats"/>, it returns a metadata stream from <see cref="CreateMetadataStream(IDPFile, string, string, string, string)"/></description>
         /// </item>
         /// <item>
         /// <description>Otherwise, <see cref="Stream.Null"/> is returned</description>
@@ -256,7 +256,7 @@ namespace DAZ_Installer.CoreTests.Extraction
         /// Override paths for manifest. If not provided, the method will use the content paths found in <paramref name="arc"/>.
         /// </param>
         /// <returns>A <see cref="Stream"/> object determined by the file type and conditions.</returns>
-        public static Stream DetermineFileStream(DPFile file, DPArchive arc, IEnumerable<string>? pathsForManifest = null)
+        public static Stream DetermineFileStream(IDPFile file, IDPArchive arc, IEnumerable<string>? pathsForManifest = null)
         {
             if (file.FileName == "Manifest.dsx") return CreateManifestStream(pathsForManifest ?? arc.Contents.Values.Select(x => x.Path));
             else if (file.FileName == "Supplement.dsx") return CreateSupplementStream();

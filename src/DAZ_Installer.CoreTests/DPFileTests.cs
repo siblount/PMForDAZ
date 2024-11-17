@@ -101,67 +101,11 @@ namespace DAZ_Installer.Core.Tests
         }
 
         [TestMethod]
-        public void CreateNewFile_DPDazFileTest()
-        {
-            var file = DPFile.CreateNewFile("test.duf", Archive, null);
-            Assert.IsInstanceOfType(file, typeof(DPDazFile));
-
-            file = DPFile.CreateNewFile("test.dsf", Archive, null);
-            Assert.IsInstanceOfType(file, typeof(DPDazFile));
-        }
-
-        [TestMethod]
-        public void CreateNewFile_DPDSXFileTest()
-        {
-            var file = DPFile.CreateNewFile("test.dsx", Archive, null);
-            Assert.IsInstanceOfType(file, typeof(DPDSXFile));
-        }
-
-        [TestMethod]
-        public void CreateNewFile_DPArchiveTest()
-        {
-            foreach (var ext in DPFile.AcceptableImportFormats)
-            {
-                var file = DPFile.CreateNewFile($"test.{ext}", Archive, null);
-                Assert.IsInstanceOfType(file, typeof(DPArchive));
-            }
-        }
-
-        [TestMethod]
-        public void CreateNewFile_UnknownFileTest()
-        {
-            var file = DPFile.CreateNewFile("test.33t3", Archive, null);
-            Assert.IsInstanceOfType(file, typeof(DPFile));
-        }
-
-        [TestMethod]
-        public void MoveToTest()
-        {
-            var mockFileInfo = new Mock<IDPFileInfo>();
-            var file = new DPFile("Content/file.jpg", Archive, null, mockFileInfo.Object, Log.Logger);
-
-            file.MoveTo("Content/file2.jpg");
-
-            mockFileInfo.Verify(x => x.MoveTo("Content/file2.jpg", true), Times.Once);
-        }
-
-        [TestMethod]
-        public void DeleteTest()
-        {
-            var mockFileInfo = new Mock<IDPFileInfo>();
-            var file = new DPFile("Content/file.jpg", Archive, null, mockFileInfo.Object, Log.Logger);
-
-            file.Delete();
-
-            mockFileInfo.Verify(x => x.Delete(), Times.Once);
-        }
-
-        [TestMethod]
         public void ExtractTest()
         {
             var mockExtractor = Mock.Get(Extractor);
             mockExtractor.Setup(x => x.Extract(It.IsAny<DPExtractSettings>()))
-                         .Returns(new DPExtractionReport() { ExtractedFiles = new List<DPFile>() { new() } });
+                         .Returns(new DPExtractionReport() { ExtractedFiles = new List<IDPFile>() { Mock.Of<IDPFile>() } });
 
             var file = new DPFile("Content/file.jpg", Archive, null);
 
@@ -184,7 +128,7 @@ namespace DAZ_Installer.Core.Tests
         {
             var mockExtractor = Mock.Get(Extractor);
             mockExtractor.Setup(x => x.Extract(It.IsAny<DPExtractSettings>()))
-                         .Returns(new DPExtractionReport() { ExtractedFiles = new List<DPFile>() { new() } });
+                         .Returns(new DPExtractionReport() { ExtractedFiles = new List<IDPFile>() { Mock.Of<IDPFile>() } });
 
             var file = new DPFile("Content/file.jpg", Archive, null);
 
@@ -200,7 +144,7 @@ namespace DAZ_Installer.Core.Tests
         {
             var mockExtractor = Mock.Get(Extractor);
             mockExtractor.Setup(x => x.ExtractToTemp(It.IsAny<DPExtractSettings>()))
-                         .Returns(new DPExtractionReport() { ExtractedFiles = new List<DPFile>() { new() } });
+                         .Returns(new DPExtractionReport() { ExtractedFiles = new List<IDPFile>() { Mock.Of<IDPFile>() } });
 
             var file = new DPFile("Content/file.jpg", Archive, null);
 

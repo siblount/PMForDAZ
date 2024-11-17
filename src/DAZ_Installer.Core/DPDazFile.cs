@@ -5,14 +5,14 @@ using Serilog;
 
 namespace DAZ_Installer.Core
 {
-    public class DPDazFile : DPFile
+    public class DPDazFile : DPFile, IDPDazFile
     {
         public override ILogger Logger { get; set; } = Log.Logger.ForContext<DPDazFile>();
-        public DPContentInfo ContentInfo = new();
-        public DPDazFile(string _path, DPArchive arc, DPFolder? __parent) : base(_path, arc, __parent) => arc.DazFiles.Add(this);
+        public DPContentInfo ContentInfo { get; set; } = new();
+        public DPDazFile(string _path, IDPArchive arc, IDPFolder? __parent) : base(_path, arc, __parent) => arc.DazFiles.Add(this);
 
         /// <summary>
-        /// Reads and updates <c>ContentInfo</c> struct.
+        /// Reads and updates <see cref="ContentInfo"/>.
         /// </summary>
         /// <param name="stream">The file stream to read from.</param>
         public void ReadContents(StreamReader stream)
@@ -36,10 +36,14 @@ namespace DAZ_Installer.Core
                 try
                 {
                     ReadOnlySpan<char> propertyName = GetPropertyName(line);
-                    if (propertyName.Contains("type", StringComparison.Ordinal)) ContentInfo.ContentType = GetContentType(ParseJsonValue(line), this);
-                    else if (propertyName.Contains("author", StringComparison.Ordinal)) ContentInfo.Authors.Add(ParseJsonValue(line));
-                    else if (propertyName.Contains("email", StringComparison.Ordinal)) ContentInfo.Email = ParseJsonValue(line);
-                    else if (propertyName.Contains("website", StringComparison.Ordinal)) ContentInfo.Website = ParseJsonValue(line);
+                    if (propertyName.Contains("type", StringComparison.Ordinal)) 
+                        ContentInfo = ContentInfo with { ContentType = GetContentType(ParseJsonValue(line), this) };
+                    else if (propertyName.Contains("author", StringComparison.Ordinal)) 
+                        ContentInfo.Authors.Add(ParseJsonValue(line));
+                    else if (propertyName.Contains("email", StringComparison.Ordinal)) 
+                        ContentInfo = ContentInfo with { Email = ParseJsonValue(line) };
+                    else if (propertyName.Contains("website", StringComparison.Ordinal)) 
+                        ContentInfo = ContentInfo with { Website = ParseJsonValue(line) };
                 }
                 catch (Exception e)
                 {

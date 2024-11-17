@@ -7,7 +7,7 @@ namespace DAZ_Installer.Core
     /// </summary>
     public abstract class AbstractDestinationDeterminer
     {
-        virtual protected ILogger Logger { get; set; } = Log.Logger.ForContext<AbstractDestinationDeterminer>();
+        public virtual ILogger Logger { get; set; } = Log.Logger.ForContext<AbstractDestinationDeterminer>();
         /// <summary>
         /// Determines the files to extract inside of the <paramref name="arc"/> and sets their <see cref="DPAbstractNode.TargetPath"/> to their destination based on the <paramref name="settings"/>.
         /// </summary>
@@ -15,7 +15,7 @@ namespace DAZ_Installer.Core
         /// <param name="settings">The settings to base decisions off of.</param>
         /// <returns>A collection of <see cref="DPFile"/>s determined to be processed.</returns>
         /// <exception cref="Exception"></exception>
-        public abstract HashSet<DPFile> DetermineDestinations(DPArchive arc, DPProcessSettings settings);
+        public abstract HashSet<IDPFile> DetermineDestinations(IDPArchive arc, DPProcessSettings settings);
 
         public AbstractDestinationDeterminer() { }
 

@@ -32,19 +32,90 @@ namespace DAZ_Installer.Core
                                                                                                 .Union(new[] {"aniBlocks", "Animals", "Architecture", "Camera Presets", "data", "DAZ Studio Tutorials", "Documentation", "Documents",
                                                                                                               "Environments", "General", "Light Presets", "Lights", "People", "Presets", "Props", "Render Presets", "Render Settings", "Runtime",
                                                                                                               "Scene Builder", "Scene Subsets", "Scenes", "Scripts", "Shader Presets", "Shaders", "Support", "Templates", "Textures", "Vehicles" });
+        
+        /// <summary>
+        /// The current process settings being used by the processor.
+        /// </summary>
         public DPProcessSettings CurrentProcessSettings { get; private set; } = new();
+        /// <summary>
+        /// The logger that will be used to log messages.
+        /// </summary>
+        /// <returns>By default, the reference to <see cref="Log.Logger"/> for <see cref="DPProcessor"/>.</returns>
         public ILogger Logger { get; set; } = Log.Logger.ForContext<DPProcessor>();
+
+        /// <summary>
+        /// The factory that creates new <see cref="IDPArchive"/> objects, specifically on <see cref="ProcessArchive(string, DPProcessSettings)"/>.
+        /// </summary>
+        /// <value>A <see cref="DPParentArchiveFactory"/> by default, otherwise an <see cref="IDPParentArchiveFactory"/>.</value>
+        public IDPParentArchiveFactory ParentArchiveFactory { get; set; } = DPParentArchiveFactory.Instance;
+        /// <summary>
+        /// The file system that will be used to interact with the file system.
+        /// </summary>
+        /// <returns>A <see cref="DPFileSystem"/> by default, otherwise an <see cref="AbstractFileSystem"/>.</returns>
         public AbstractFileSystem FileSystem { get; set; } = new DPFileSystem();
-        public AbstractTagProvider TagProvider { get; set; } = new DPTagProvider();
-        public AbstractDestinationDeterminer DestinationDeterminer { get; set; } = new DPDestinationDeterminer();
-        private CancellationTokenSource CancellationTokenSource { get; set; } = new();
-        public CancellationToken CancellationToken { get; set; } = CancellationToken.None;
-        private CancellationTokenSource ArchiveCancellationSource { get; set; } = new();
-        private CancellationToken ArchiveCancellationToken { get; set; } = CancellationToken.None;
+        /// <summary>
+        /// The tag provider that will be used to get tags for the files.
+        /// </summary>
+        /// <returns>A <see cref="DPTagProvider"/> by default, otherwise an <see cref="AbstractTagProvider"/>.</returns>
+        public AbstractTagProvider TagProvider { get; set; } = DPTagProvider.Singleton;
+        /// <summary>
+        /// A destination determiner that will be used to determine the destination of the files.
+        /// </summary>
+        /// <returns>A <see cref="DPDestinationDeterminer"/> by default, otherwise an <see cref="AbstractDestinationDeterminer"/>.</returns>
+        public AbstractDestinationDeterminer DestinationDeterminer { get; set; } = DPDestinationDeterminer.Singleton;
+        /// <summary>
+        /// The cancellation token source that will be used to cancel processing entirely.
+        /// </summary>
+        /// <remarks>
+        /// <b>WARNING</b>:
+        /// This token source will be replaced each time <see cref="ProcessArchive(string, DPProcessSettings)"/> is called; 
+        /// replaced before the <see cref="ArchiveEnter"/> event is emitted.
+        /// The token is ready to be be modified when the <see cref="ArchiveEnter"/> event has been emitted.
+        /// </remarks>
+        public CancellationTokenSource CancellationTokenSource { get; set; } = new();
+        /// <summary>
+        /// The cancellation token representing the cancellation of the processing.
+        /// </summary>
+
+        /// <seealso cref="ArchiveCancellationToken"/>
+        public CancellationToken CancellationToken => CancellationTokenSource.Token;
+        /// <summary>
+        /// The cancellation token source that will be used to cancel the processing of the current archive.
+        /// </summary>
+        /// <remarks>
+        /// <b>WARNING:</b>
+        /// This token source will be replaced each time a new archive is processed; 
+        /// replaced before the <see cref="ArchiveEnter"/> event is emitted.
+        /// The token is ready to be be modified when the <see cref="ArchiveEnter"/> event has been emitted.
+        /// </remarks>
+        public CancellationTokenSource ArchiveCancellationSource { get; set; } = new();
+        /// <summary>
+        /// The cancellation token representing the cancellation of the processing of the current archive.
+        /// </summary>
+        /// <seealso cref="ArchiveCancellationSource"/> 
+        /// <seealso cref="CancellationToken"/>
+        private CancellationToken ArchiveCancellationToken => ArchiveCancellationSource.Token;
+        /// <summary>
+        /// Determines whether the processing of this archive is cancelled or not.
+        /// </summary>
         private bool ArchiveCancelled => ArchiveCancellationToken.IsCancellationRequested || CancellationToken.IsCancellationRequested;
+        /// <summary>
+        /// The location of the temporary files that will be used.
+        /// </summary>
+        /// <returns>The combination of <see cref="CurrentProcessSettings.TempPath"/> and <c>"DazProductInstaller"</c>.</returns>
         public string TempLocation => Path.Combine(CurrentProcessSettings.TempPath, @"DazProductInstaller\");
+        /// <summary>
+        /// The destination path of the files.
+        /// </summary>
+        /// <returns>The <see cref="CurrentProcessSettings.DestinationPath"/>.</returns>
         public string DestinationPath => CurrentProcessSettings.DestinationPath;
-        public DPArchive CurrentArchive { get; private set; } = null!;
+        /// <summary>
+        /// The current archive that is being processed.
+        /// </summary>
+        /// <value>The current archive that is being processed or null if the Processor is in <see cref="ProcessorState.Idle"/></value>
+        public IDPArchive? CurrentArchive { get; private set; } = null!;
+        /// <summary>The current state of the processor.</summary>
+        /// <remarks>Invokes <see cref="StateChanged"/> when state is changed.</remarks>
         public ProcessorState State { get => state; private set { state = value; StateChanged?.Invoke(); } }
 
         /// <summary>
@@ -73,7 +144,7 @@ namespace DAZ_Installer.Core
         /// </summary>
         private void EmitOnArchiveEnter()
         {
-            Logger.Information("Entering archive {arc}", CurrentArchive.FileName);
+            Logger.Information("Entering archive {arc}", CurrentArchive!.FileName);
             if (ArchiveEnter is null) return;
             var args = new DPArchiveEnterArgs(CurrentArchive);
             ArchiveEnter.Invoke(this, args);
@@ -84,8 +155,8 @@ namespace DAZ_Installer.Core
         /// <param name="successfullyProcessed">Tell whether the archive had been successfully processed.</param>
         private void EmitOnArchiveExit(bool successfullyProcessed, DPExtractionReport? report)
         {
-            if (successfullyProcessed) Logger.Information("Exiting archive {0} with success", CurrentArchive.FileName);
-            else Logger.Warning("Exiting archive {0} with failures", CurrentArchive.FileName);
+            if (successfullyProcessed) Logger.Information("Exiting archive {0} with success", CurrentArchive!.FileName);
+            else Logger.Warning("Exiting archive {0} with failures", CurrentArchive!.FileName);
             Logger.Debug("Archive exit report: {@0}", report);
             ArchiveExit?.Invoke(this, new DPArchiveExitArgs(CurrentArchive, report, successfullyProcessed));
         }
@@ -93,27 +164,27 @@ namespace DAZ_Installer.Core
         private void EmitOnProcessError(DPProcessorErrorArgs args)
         {
             Logger.Error(args.Ex, args.Explaination);
-            if (ProcessError is null) return;
+            if (ProcessError == null) return;
             ProcessError.Invoke(this, args);
         }
 
-        private void EmitOnExtractionProgress(DPArchive _, DPExtractProgressArgs args) => ExtractProgress?.Invoke(this, args);
+        private void EmitOnExtractionProgress(IDPArchive _, DPExtractProgressArgs args) => ExtractProgress?.Invoke(this, args);
 
-        private void processArchiveInternal([NotNull] DPArchive archiveFile, DPProcessSettings settings)
+        private void processArchiveInternal([NotNull] IDPArchive archiveFile, DPProcessSettings settings)
         {
-            Stack<DPArchive> archivesToProcess = new();
-            Stack<Tuple<DPArchive, DPExtractionReport>> parentArchives = new();
+            Stack<IDPArchive> archivesToProcess = new();
+            Stack<Tuple<IDPArchive, DPExtractionReport>> parentArchives = new();
 
             archivesToProcess.Push(archiveFile);
             CancellationTokenSource = new();
-            CancellationToken = CancellationTokenSource.Token;
-            while (archivesToProcess.TryPop(out DPArchive arc))
+            # pragma warning disable CS8600 // Converting null literal or possible null value to non-nullable type.
+            while (archivesToProcess.TryPop(out IDPArchive arc)) 
+            # pragma warning restore CS8600
             {
                 CurrentArchive = arc!;
                 DPExtractionReport? report = null;
                 PopParentArchive(parentArchives);
                 ArchiveCancellationSource = new();
-                ArchiveCancellationToken = ArchiveCancellationSource.Token;
                 EmitOnArchiveEnter();
                 try
                 {
@@ -154,7 +225,7 @@ namespace DAZ_Installer.Core
                         continue;
                     }
                     arc.Extractor.CancellationToken = ArchiveCancellationToken;
-                    if (!tryCatch(() => arc!.PeekContents(), "Failed to peek into archive")) continue;
+                    if (!tryCatch(() => arc.PeekContents(), "Failed to peek into archive")) continue;
 
                     // Check if we have enough room.
                     if (!HandleOnDestinationNotEnoughSpace())
@@ -164,7 +235,7 @@ namespace DAZ_Installer.Core
                     }
 
                     State = ProcessorState.PreparingExtraction;
-                    HashSet<DPFile> filesToExtract = null!;
+                    HashSet<IDPFile> filesToExtract = null!;
                     if (!tryCatch(prepareOperations, "Failed to prepare for extraction")) continue;
                     if (ArchiveCancelled) { HandleEarlyExit(); continue; }
                     if (!tryCatch(() => filesToExtract = DestinationDeterminer.DetermineDestinations(arc, settings), "Failed to determine destinations for files")) continue;
@@ -172,7 +243,7 @@ namespace DAZ_Installer.Core
                     State = ProcessorState.Extracting;
                     var extractSettings = new DPExtractSettings()
                     {
-                        TempPath = CurrentProcessSettings.TempPath,
+                        TempPath = TempLocation,
                         Archive = arc,
                         FilesToExtract = filesToExtract,
                         OverwriteFiles = CurrentProcessSettings.OverwriteFiles,
@@ -194,7 +265,7 @@ namespace DAZ_Installer.Core
                     }
 
                     // Create record.
-                    parentArchives.Push(new Tuple<DPArchive, DPExtractionReport>(arc, report)); // TODO: Use method to determine whether an archive was successfully processed.
+                    parentArchives.Push(new Tuple<IDPArchive, DPExtractionReport>(arc, report)); // TODO: Use method to determine whether an archive was successfully processed.
                 }
                 catch (Exception ex)
                 {
@@ -214,28 +285,13 @@ namespace DAZ_Installer.Core
             CurrentProcessSettings = settings;
             FileSystem.Scope = setupScope(settings);
             // Create new archive.
-            var archiveFile = DPArchive.CreateNewParentArchive(FileSystem.CreateFileInfo(filePath));
+            var archiveFile = ParentArchiveFactory.CreateNewParentArchive(FileSystem.CreateFileInfo(filePath));
             CurrentArchive = archiveFile;
 
             processArchiveInternal(archiveFile, settings);
             Finished?.Invoke();
             State = ProcessorState.Idle;
-        }
-
-        /// <summary>
-        /// For testing.
-        /// </summary>
-        /// <param name="arc"></param>
-        /// <param name="settings"></param>
-        internal void ProcessArchive(DPArchive arc, DPProcessSettings settings)
-        {
-            validateProcessSettings(ref settings);
-            CurrentProcessSettings = settings;
-            FileSystem.Scope = setupScope(settings);
-            CurrentArchive = arc;
-            processArchiveInternal(arc, settings);
-            Finished?.Invoke();
-            State = ProcessorState.Idle;
+            CurrentArchive = null;
         }
 
         /// <summary>
@@ -248,6 +304,8 @@ namespace DAZ_Installer.Core
             ArgumentNullException.ThrowIfNull(settings.DestinationPath, nameof(settings.DestinationPath));
             ArgumentNullException.ThrowIfNull(settings.TempPath, nameof(settings.TempPath));
             ArgumentNullException.ThrowIfNull(settings.ForceFileToDest, nameof(settings.ForceFileToDest));
+            if (string.IsNullOrWhiteSpace(settings.DestinationPath)) throw new ArgumentException("Destination path cannot be empty", nameof(settings.DestinationPath));
+            if (string.IsNullOrWhiteSpace(settings.TempPath)) throw new ArgumentException("Temp path cannot be empty", nameof(settings.TempPath));
             settings.ContentRedirectFolders ??= new(DefaultRedirects, StringComparer.OrdinalIgnoreCase);
             settings.ContentFolders ??= new(DefaultContentFolders, StringComparer.OrdinalIgnoreCase);
         }
@@ -255,26 +313,24 @@ namespace DAZ_Installer.Core
         /// <summary>
         /// Creates a scope based off of DPProcessSettings.
         /// </summary>
-        /// <returns></returns>
-        private static DPFileScopeSettings setupScope(DPProcessSettings settings)
-        {
-            var filesToAllow = new List<string>(settings.ForceFileToDest.Values);
-            return new DPFileScopeSettings(filesToAllow, new[] { settings.DestinationPath, settings.TempPath }, false, false, true, false);
-        }
+        /// <returns>A <see cref="DPFileScopeSettings"/>></returns>
+        private static DPFileScopeSettings setupScope(DPProcessSettings settings) => 
+            new(settings.ForceFileToDest.Values, new[] { settings.DestinationPath, settings.TempPath }, false, false, true, false);
 
         /// <summary>
         /// Checks whether the destination has enough space for the archive.
         /// </summary>
         /// <returns>True if the destination has enough space, otherwise false.</returns>
         /// <exception cref="Exception">An exception caused by creating the <see cref="IDPDriveInfo"/> object.</exception>
-        private bool DestinationHasEnoughSpace() => (ulong)FileSystem.CreateDriveInfo(CurrentProcessSettings.DestinationPath).AvailableFreeSpace > CurrentArchive.TrueArchiveSize;
+        private bool DestinationHasEnoughSpace => (ulong)FileSystem.CreateDriveInfo(CurrentProcessSettings.DestinationPath).AvailableFreeSpace > CurrentArchive.TrueArchiveSize;
 
         /// <summary>
-        /// Checks whether the temp path has enough space for the archive.
+        /// Checks whether the temp path has enough space for <see cref="CurrentArchive"/>.
         /// </summary>
         /// <returns>True if temp has enough space, otherwise false.</returns>
+        /// <exception cref="NullReferenceException">If <see cref="CurrentArchive"/> is null.</exception>
         /// <exception cref="Exception">An exception caused by creating the <see cref="IDPDriveInfo"/> object.</exception>
-        private bool TempHasEnoughSpace() => (ulong)FileSystem.CreateDriveInfo(CurrentProcessSettings.TempPath).AvailableFreeSpace > CurrentArchive.TrueArchiveSize;
+        private bool TempHasEnoughSpace => (ulong)FileSystem.CreateDriveInfo(TempLocation).AvailableFreeSpace > CurrentArchive.TrueArchiveSize;
 
 
         // TODO: Clear temp needs to remove as much space as possible. It will error when we have file handles.
@@ -293,16 +349,18 @@ namespace DAZ_Installer.Core
         private void prepareOperations()
         {
             Logger.Information("Preparing operations");
-            while (!ArchiveCancelled && !TempHasEnoughSpace())
+            while (!ArchiveCancelled && !TempHasEnoughSpace)
             {
                 ClearTemp();
-                if (TempHasEnoughSpace()) break;
+                if (TempHasEnoughSpace) break;
                 Logger.Warning("Temp location does not have enough space after clearing temp, requesting for an action");
+                if (ProcessError == null || ProcessError.GetInvocationList().Length == 0)
+                    throw new InvalidOperationException("Temp location does not have enough space and there is no event handler for ProcessError");
                 // Requires user help.
                 var args = new DPProcessorErrorArgs(null, "Temp location does not have enough space") { Continuable = true };
                 EmitOnProcessError(args);
             }
-            if (CurrentArchive.Extractor != null) CurrentArchive.Extractor.ExtractProgress += EmitOnExtractionProgress;
+            if (CurrentArchive!.Extractor != null) CurrentArchive.Extractor.ExtractProgress += EmitOnExtractionProgress;
             else Logger.Warning("Extractor is null, cannot report extraction progress");
             ReadMetaFiles(CurrentProcessSettings);
         }
@@ -310,19 +368,22 @@ namespace DAZ_Installer.Core
         private void HandleEarlyExit()
         {
             State = ProcessorState.Idle;
-            CurrentArchive.Extractor.ExtractProgress -= EmitOnExtractionProgress;
+            if (CurrentArchive is { Extractor: not null })
+                CurrentArchive.Extractor.ExtractProgress -= EmitOnExtractionProgress;
             EmitOnArchiveExit(false, null);
         }
 
         private bool HandleOnDestinationNotEnoughSpace()
         {
-            if (DestinationHasEnoughSpace()) return true;
-            while (!ArchiveCancelled && !DestinationHasEnoughSpace())
+            if (DestinationHasEnoughSpace) return true;
+            while (!ArchiveCancelled && !DestinationHasEnoughSpace)
             {
+                if (ProcessError == null || ProcessError.GetInvocationList().Length == 0)
+                    throw new InvalidOperationException("Destination does not have enough space and there is no event handler for ProcessError");
                 var args = new DPProcessorErrorArgs(null, "Destination does not have enough space.") { Continuable = true };
                 EmitOnProcessError(args);
             }
-            return !ArchiveCancelled || DestinationHasEnoughSpace();
+            return !ArchiveCancelled || DestinationHasEnoughSpace;
         }
 
         /// <summary>
@@ -349,18 +410,18 @@ namespace DAZ_Installer.Core
         }
 
         /// <summary>
-        /// Reads the files listed in <see cref="DPArchive.DSXFiles"/>.
+        /// Reads the files listed in <see cref="IDPArchive.DSXFiles"/>.
         /// </summary>
         private void ReadMetaFiles(DPProcessSettings settings)
         {
             // Extract the DAZ Files that have not been extracted.
-            var extractSettings = new DPExtractSettings(settings.TempPath,
+            var extractSettings = new DPExtractSettings(TempLocation,
                 CurrentArchive!.DSXFiles.Where((f) => f.FileInfo is null || !f.FileInfo.Exists),
                 true, CurrentArchive);
             if (ArchiveCancelled) return;
             CurrentArchive.ExtractContentsToTemp(extractSettings);
             Stream? stream = null!;
-            foreach (DPDSXFile file in CurrentArchive!.DSXFiles)
+            foreach (IDPDSXFile file in CurrentArchive!.DSXFiles)
             {
                 if (ArchiveCancelled) return;
                 using (LogContext.PushProperty("File", file.Path))
@@ -438,7 +499,7 @@ namespace DAZ_Installer.Core
                 EmitOnProcessError(new DPProcessorErrorArgs(ex, "Failed to cancel current archive"));
             }
         }
-        private void PopParentArchive(Stack<Tuple<DPArchive, DPExtractionReport>> s)
+        private void PopParentArchive(Stack<Tuple<IDPArchive, DPExtractionReport>> s)
         {
             if (s.TryPop(out var parentArc))
             {

@@ -186,7 +186,7 @@ namespace DAZ_Installer.Windows.DP
                     InstallOption = UserSettings.HandleInstallation,
                     OverwriteFiles = UserSettings.OverwriteFiles == SettingOptions.Yes ||
                                     UserSettings.OverwriteFiles == SettingOptions.Prompt,
-                    ForceFileToDest = new Dictionary<DPFile, string>(0),
+                    ForceFileToDest = new Dictionary<IDPFile, string>(0),
                 };
                 SetupEventHandlers();
 
@@ -235,7 +235,7 @@ namespace DAZ_Installer.Windows.DP
                 Logger.Error(ex, "An error occurred while attempting to delete source file {file}", file);
         }
 
-        private DPProductRecord? CreateRecords(DPArchive arc, DPExtractionReport report)
+        private DPProductRecord? CreateRecords(IDPArchive arc, DPExtractionReport report)
         {
             if (arc.Type != ArchiveType.Product) return null;
             var imageLocation = string.Empty;

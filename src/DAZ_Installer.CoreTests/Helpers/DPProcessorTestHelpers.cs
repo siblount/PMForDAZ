@@ -1,25 +1,164 @@
 ﻿using DAZ_Installer.Core.Extraction;
 using DAZ_Installer.CoreTests.Extraction;
+using DAZ_Installer.Core.Tests.Fakes;
+using System.Linq.Expressions;
 using DAZ_Installer.IO;
 using DAZ_Installer.IO.Fakes;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Moq;
 using Serilog;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.Json;
 using System.Xml;
+using System.Dynamic;
 
 namespace DAZ_Installer.Core.Tests
 {
     [Obsolete("For testing purposes only.")]
     internal class DPProcessorTestHelpers
     {
-        /// <summary>
-        /// Contains the DefaultContents from <see cref="DPArchiveTestHelpers"/> and the manifest and supplement."/>
-        /// </summary>
-        public static IEnumerable<string> DefaultContents => new string[] { "Manifest.dsx", "Supplement.dsx", "Contents/a.txt", "Contents/b.txt", "Contents/Documents/c.png", "Contents/Documents/d.txt", "Contents/e.duf", "Contents/f.duf", "bullshit.png" };
+        const string DEFAULT_ARCHIVE_PATH = "Z:/test.rar";
         public static MockOptions DefaultMockOptions => new();
-        public static AssertOptions DefaultAssertOptions => new();
+
+        /// <summary>
+        /// Used to assert the <see cref="DPProcessor"/> events.
+        /// </summary>
+        /// <remarks>
+        /// This is used to collect assertions for events that are made during the process of the <see cref="DPProcessor"/>.
+        /// </remarks>
+        public interface IProcessorAssertor
+        {
+            /// <summary>
+            /// Raises any exceptions that were thrown with <see cref="AddAssertion(Action)"/>
+            /// </summary>
+            void Assert();
+            /// <summary>
+            /// Asserts and holds on to the exception if it is thrown.
+            /// </summary>
+            /// <param name="assertion"></param>
+            void AddAssertion(Action assertion);
+        }
+
+        /// <summary>
+        /// Used to assert the <see cref="DPProcessor"/> events.
+        /// </summary>
+        /// <remarks>
+        /// This is used to collect assertions for events that are made during the process of the <see cref="DPProcessor"/>.
+        /// </remarks>
+        public class EventProcessorAssertor : IProcessorAssertor {
+            /// <summary>
+            /// The first exception that was thrown during the process of the <see cref="DPProcessor"/>.
+            /// </summary>
+            /// <remarks>
+            /// This can only be added by <see cref="AddAssertion(Action)"/>
+            /// </remarks>
+            public Exception? exception;
+            /// <summary>
+            /// Assert now which can throw an exception if an assertion fails.
+            /// </summary>
+            /// <exception cref="AggregateException">If an assertion fails.</exception> 
+            public void Assert() {
+                if (exception is not null) throw new AggregateException(exception);
+            }
+            /// <summary>
+            /// Asserts and if an assertion fails, no more assertions will be added and <see cref="Assert"/> will throw an exception.
+            /// </summary>
+            /// <param name="assertion">An assertion statement such as <see cref="Assert.AreEqual{T}(T, T)"/>.</param>
+            public void AddAssertion(Action assertion) {
+                if (exception is not null) return;
+                try {
+                    assertion();
+                } catch (Exception e) {
+                    exception = e;
+                }
+            }
+
+            public EventProcessorAssertor() {}
+        }
+
+        /// <summary>
+        /// A processor assertor that can be used to assert the <see cref="DPProcessor"/> events.
+        /// </summary>
+        /// <remarks>
+        /// This only throws at <see cref="Assert"/> if all assertions fail.
+        /// </remarks> 
+        public class EventOrProcessAssertor : IProcessorAssertor {
+            private List<Exception> exceptions = new();
+            private byte calls = 0;
+            /// <summary>
+            /// Assert throws if all assertions fail. If one assertion does not fail, then it does not throw.
+            /// </summary>
+            /// <exception cref="AggregateException">The exception of all failed assertions if all assertions fail.</exception>
+            public void Assert() {
+                if (exceptions.Count == calls) throw new AggregateException(exceptions);
+            }
+            /// <inheritdoc/>
+            public void AddAssertion(Action assertion) {
+                calls++;
+                try {
+                    assertion();
+                } catch (Exception e) {
+                    exceptions.Add(e);
+                }
+            }
+        }
+
+        /// <summary>
+        /// A task that can be used to assert the <see cref="EventProcessorAssertor"/> object.
+        /// </summary>
+        /// <remarks>
+        /// This is used to collect the assertions that are made during the process of the <see cref="DPProcessor"/>.
+        /// Helper functions use this to finalize event handler tests.
+        /// </remarks>
+        public sealed class AssertableTask : IAsyncResult, IDisposable {
+            private readonly IProcessorAssertor assertor;
+            private readonly Task task;
+            /// <summary>
+            /// A task that can be used to assert the <see cref="EventProcessorAssertor"/> object.
+            /// </summary>
+            /// <param name="action">The action that will be run.</param>
+            /// <param name="assertor">The assertor to use, if any. Otherwise, <see cref="EventProcessorAssertor"/> is used.</param>
+            public AssertableTask(Action action, IProcessorAssertor? assertor = null) {
+                this.assertor = assertor ?? new EventProcessorAssertor();
+                task = new Task(action);
+            }
+            /// <summary>
+            /// <inheritdoc cref="AssertableTask(Action, IProcessorAssertor)"/>
+            /// </summary>
+            /// <param name="action">The action that will be run with a assertable as a parameter.</param>
+            /// <param name="assertor">The assertor to use, if any. Otherwise, <see cref="EventProcessorAssertor"/> is used.</param>
+            public AssertableTask(Action<AssertableTask> action, IProcessorAssertor? assertor = null)
+            {
+                this.assertor = assertor ?? new EventProcessorAssertor();
+                task = new Task(() => action(this));
+            }
+            /// <inheritdoc cref="IProcessorAssertor.Assert"/>
+            public void Assert() => assertor.Assert();
+            /// <inheritdoc cref="IProcessorAssertor.AddAssertion(Action)"/>
+            public void AddAssertion(Action assertion) => assertor.AddAssertion(assertion);
+            /// <inheritdoc cref="Task.Dispose()"/>
+            public void Dispose() => task.Dispose();
+            /// <inheritdoc cref="Task.AsyncState"/>
+            public object? AsyncState => task.AsyncState;
+            /// <inheritdoc cref="Task.AsyncWaitHandle"/>
+            public WaitHandle AsyncWaitHandle => ((IAsyncResult)task).AsyncWaitHandle;
+            /// <inheritdoc cref="Task.CompletedSynchronously"/>
+            public bool CompletedSynchronously => ((IAsyncResult)task).CompletedSynchronously;
+            /// <inheritdoc cref="Task.IsCompleted"/>
+            public bool IsCompleted => ((IAsyncResult)task).IsCompleted;
+            /// <inheritdoc cref="Task.RunSynchronously()"/>
+            public void RunSynchronously() => task.RunSynchronously();
+            /// <inheritdoc cref="Task.Wait()"/>
+            public void Wait() => task.Wait();
+            /// <inheritdoc cref="Task.GetAwaiter()"/>
+            public TaskAwaiter GetAwaiter() => task.GetAwaiter();
+        }
+
+        /// <summary>
+        /// A collection of Mock settings used for <see cref="DPProcessorTestHelpers"/> helper methods.
+        /// </summary>
+        /// <seealso cref="ArchiveMocks"/>
         public struct MockOptions
         {
             /// <summary>
@@ -43,61 +182,134 @@ namespace DAZ_Installer.Core.Tests
             /// </summary>
             public bool partialFakeFileSystem = true;
             /// <summary>
-            /// The paths to use for the <see cref="DPArchive"/>. Defaults to <see cref="DefaultContents"/>.
+            /// Determines whether to partially mock the <see cref="FakeDPArchive"/> object.
             /// </summary>
-            [Obsolete("Not used")]
-            public IEnumerable<string> paths = DefaultContents;
-            /// <summary>
-            /// The function to use for extracting to a temporary directory, if any.
-            /// </summary>
-            public Func<DPExtractionReport>? ExtractToTempFunc = null;
-            /// <summary>
-            /// The function to use for extracting, if any.
-            /// </summary>
-            public Func<DPExtractionReport>? ExtractFunc = null;
-
+            public bool partialFakeDPArchive = true;
             public MockOptions() { }
+        }
+
+        public struct ProcessorOptions
+        {
+            /// <summary>
+            /// The settings that will be used to determine, for instance, a temp directory by <see cref="AbstractFileSystem"/>.
+            /// </summary>
+            public DPProcessSettings Settings;
+            /// <summary>
+            /// The archive to return on the start of the process.
+            /// </summary>
+            public IDPArchive Archive;
+            /// <summary>
+            /// The file system that the <see cref="DPProcessor"/> will use.
+            /// </summary>
+            public FakeFileSystem FileSystem;
+        }
+
+        /// <summary>
+        /// A struct that contains all the mocked dependencies for the <see cref="IDPArchive"/>
+        /// for <see cref="NewMockedArchive(MockOptions, out ArchiveMocks)"/>
+        /// </summary>
+        /// <seealso cref="MockOptions"/>
+        public struct ArchiveMocks
+        {
+            /// <summary>
+            /// The mocked Extractor that <see cref="FakeDPArchive"/> will use.
+            /// </summary>
+            public Mock<DPAbstractExtractor> MockExtractor;
+            /// <summary>
+            /// The mocked <see cref="MockFakeDPFileInfo"/> that <see cref="FakeDPArchive"/> will use.
+            /// </summary>
+            public Mock<FakeDPFileInfo> MockFakeDPFileInfo;
+            /// <summary>
+            /// The mocked <see cref="MockFakeFileInfo"/> that <see cref="ArchiveMocks.MockFakeDPFileInfo"/> will use.
+            /// </summary>
+            public Mock<FakeFileInfo> MockFakeFileInfo;
+            /// <summary>
+            /// The fake file system that <see cref="ArchiveMocks.MockFakeDPFileInfo"/> will use.
+            /// </summary>
+            public Mock<FakeFileSystem> MockFakeFileSystem;
+            /// <summary>
+            /// The mocked <see cref="FakeDPFolderFactory"/> that <see cref="FakeDPArchive"/> will use.
+            /// </summary>
+            public Mock<FakeDPFolderFactory> MockFolderFactory;
+            /// <summary>
+            /// The mocked <see cref="FakeDPFileFactory"/> that <see cref="FakeDPArchive"/> will use.
+            /// </summary>
+            public Mock<FakeDPFileFactory> MockFileFactory;
+            /// <summary>
+            /// The mocked <see cref="FakeDPArchive"/> that will be used for testing.
+            /// </summary>
+            public Mock<FakeDPArchive> MockArchive;
+
+            public readonly DPAbstractExtractor Extractor => MockExtractor.Object;
+            public readonly FakeDPFileInfo FakeDPFileInfo => MockFakeDPFileInfo.Object;
+            public readonly FakeFileInfo FakeFileInfo => MockFakeFileInfo.Object;
+            public readonly FakeFileSystem FakeFileSystem => MockFakeFileSystem.Object;
+            public readonly FakeDPFolderFactory FolderFactory => MockFolderFactory.Object;
+            public readonly FakeDPFileFactory FileFactory => MockFileFactory.Object;
+            public readonly FakeDPArchive Archive => MockArchive.Object;
+        }
+
+        /// <summary>
+        /// A struct that contains all the mocked dependencies for the <see cref="DPProcessor"/>
+        /// </summary>
+        public struct ProcessorMocks
+        {
+            /// <summary>
+            /// The mocked <see cref="AbstractDestinationDeterminer"/> that <see cref="DPProcessor"/> will use.
+            /// </summary>
+            public Mock<AbstractDestinationDeterminer> MockDestinationDeterminer;
+            /// <summary>
+            /// The mocked <see cref="AbstractTagProvider"/> that <see cref="DPProcessor"/> will use.
+            /// </summary>
+            public Mock<AbstractTagProvider> MockTagProvider;
+            /// <summary>
+            /// The mocked <see cref="FakeFileSystem"/> that <see cref="DPProcessor"/> will use.
+            /// </summary>
+            /// <remarks><see cref="DPProcessor"/> uses this object to "create" the temp directory and clear temp.</remarks>
+            public Mock<FakeDPDirectoryInfo> MockFakeTempDirectoryInfo;
+            /// <summary>
+            /// The mocked <see cref="FakeDPDriveInfo"/> that <see cref="DPProcessor"/> will use.
+            /// </summary>
+            public Mock<FakeDPDriveInfo> MockFakeDriveInfo;
+            
+            public readonly AbstractDestinationDeterminer DestinationDeterminer => MockDestinationDeterminer.Object;
+            public readonly AbstractTagProvider TagProvider => MockTagProvider.Object;
+            public readonly FakeDPDirectoryInfo FakeTempDirectoryInfo => MockFakeTempDirectoryInfo.Object;
+            public readonly FakeDPDriveInfo FakeDriveInfo => MockFakeDriveInfo.Object;
         }
 
         /// <summary>
         /// Creates a new <see cref="DPArchive"/> with mocked dependencies.
         /// </summary>
         /// <remarks>
-        /// Completely sets up the dependencies for the <see cref="DPArchive"/> and returns the mocked dependencies. 
+        /// Completely sets up the dependencies for the <see cref="DPArchive"/> and returns the mocked dependencies in an <see cref="ArchiveMocks"/> struct. 
         /// Partial mocks will allow you to keep the original behavior of the mocked object while still allowing you to override certain methods.
         /// If you do not wish to override any methods (or mock everything), make sure you change <paramref name="options"/> to False for partial fields.
         /// <br/>
-        /// The <paramref name="extractor"/> is setup to return a <see cref="DPExtractionReport"/> with the files that were extracted.
+        /// The extractor is setup to return a <see cref="DPExtractionReport"/> with the files that were extracted.
         /// </remarks>
         /// <param name="options">The mock options to use for setting up the archive.</param>
-        /// <param name="extractor">The mock extractor that the <see cref="DPArchive"/> will use.</param>
-        /// <param name="fakeDPFileInfo">The mock <see cref="FakeDPFileInfo"/> that the <see cref="DPArchive"/> will use.</param>
-        /// <param name="fakeFileInfo">The mock <see cref="FakeFileInfo"/> that the <paramref name="fakeDPFileInfo"/> will use.</param>
-        /// <param name="fakeFileSystem">The mock <see cref="FakeFileSystem"/> that the <paramref name="fakeDPFileInfo"/> will use.</param>
+        /// <param name="mocks">An out parameter that will contain all the mocked dependencies.</param>
         /// <returns>A new <see cref="DPArchive"/> with mocked dependencies.</returns>
-        public static DPArchive NewMockedArchive(MockOptions options, out Mock<DPAbstractExtractor> extractor, out Mock<FakeDPFileInfo> fakeDPFileInfo, out Mock<FakeFileInfo> fakeFileInfo, out Mock<FakeFileSystem> fakeFileSystem)
+        public static FakeDPArchive NewMockedArchive(MockOptions options, out ArchiveMocks mocks)
         {
-            var fs = new Mock<FakeFileSystem>() { CallBase = options.partialFakeFileSystem };
-            fakeFileSystem = fs;
-            fakeFileInfo = new Mock<FakeFileInfo>("Z:/test.rar") { CallBase = options.partialFileInfo };
-            fakeDPFileInfo = new Mock<FakeDPFileInfo>(fakeFileInfo.Object, fakeFileSystem.Object, null!) { CallBase = options.partialDPFileInfo };
-            extractor = new Mock<DPAbstractExtractor>();
-            var arc = new DPArchive(string.Empty, Log.Logger.ForContext<DPArchive>(), fakeDPFileInfo.Object, extractor.Object);
-            extractor.Setup(x => x.ExtractToTemp(It.IsAny<DPExtractSettings>())).Returns((DPExtractSettings x) =>
-            {
-                if (options.ExtractToTempFunc is null) return handleExtract(x, fs.Object);
-                return options.ExtractToTempFunc();
-            });
-            extractor.Setup(x => x.Extract(It.IsAny<DPExtractSettings>())).Returns((DPExtractSettings x) =>
-            {
-                if (options.ExtractFunc is null) return handleExtract(x, fs.Object);
-                return options.ExtractFunc();
-            });
-            return arc;
+            mocks = new ArchiveMocks();
+            mocks.MockFakeFileSystem = new Mock<FakeFileSystem>() { CallBase = options.partialFakeFileSystem };
+            mocks.MockFakeFileInfo = new Mock<FakeFileInfo>(DEFAULT_ARCHIVE_PATH) { CallBase = options.partialFileInfo };
+            mocks.MockFakeDPFileInfo = new Mock<FakeDPFileInfo>(mocks.FakeFileInfo, mocks.FakeFileSystem, null!) { CallBase = options.partialDPFileInfo };
+            mocks.MockExtractor = new Mock<DPAbstractExtractor>();
+            mocks.MockFileFactory = new Mock<FakeDPFileFactory>() { CallBase = true };
+            mocks.MockFolderFactory = new Mock<FakeDPFolderFactory>() { CallBase = true };
+            mocks.MockArchive = new Mock<FakeDPArchive>(DEFAULT_ARCHIVE_PATH, null!, null!) { CallBase = options.partialFakeDPArchive };
+            mocks.Archive.Extractor = mocks.Extractor;
+            mocks.Archive.FileFactory = mocks.FileFactory;
+            mocks.Archive.FolderFactory = mocks.FolderFactory;
+            mocks.Archive.FileInfo = mocks.FakeDPFileInfo;
+            return mocks.Archive;
         }
 
         /// <summary>
-        /// Initializes the DPProcessor by fully setting up its depenencies and creating the entities in the archive.
+        /// Initializes the <see cref="DPProcessor"/> by fully setting up its depenencies and creating the entities in the archive.
         /// </summary>
         /// <remarks>
         /// <paramref name="destDerm"/> returns a mock destination determiner that is setup to simply 
@@ -106,156 +318,221 @@ namespace DAZ_Installer.Core.Tests
         /// <br/>
         /// Also note that <paramref name="tagProvider"/> returns a mock tag provider that is not setup.
         /// </remarks>
-        /// <param name="arc">The archive that will be used for processes.</param>
-        /// <param name="system">The fake file system to use.</param>
-        /// <param name="destDerm">Returns a mock destination determiner.</param>
-        /// <param name="tagProvider">Returns a mock tag provider.</param>
+        /// <param name="opts">The options to use for setting up the processor.</param>
         /// <returns>A <see cref="DPProcessor"/> that is ready to be tested.</returns>
-        public static DPProcessor SetupProcessor(DPArchive arc, FakeFileSystem system, out Mock<AbstractDestinationDeterminer> destDerm, out Mock<AbstractTagProvider> tagProvider)
+        public static DPProcessor SetupProcessor(ProcessorOptions opts, out ProcessorMocks mocks)
         {
-            var d = destDerm = new Mock<AbstractDestinationDeterminer>();
-            d.Setup(x => x.DetermineDestinations(It.IsAny<DPArchive>(), It.IsAny<DPProcessSettings>())).Returns(() => arc.Contents.Values.ToHashSet());
-            var t = tagProvider = new Mock<AbstractTagProvider>();
+            mocks = new() {
+                MockDestinationDeterminer = new Mock<AbstractDestinationDeterminer>(),
+                MockTagProvider = new Mock<AbstractTagProvider>(),
+                MockFakeTempDirectoryInfo = new Mock<FakeDPDirectoryInfo>(opts.Settings.TempPath, opts.FileSystem, null!) { CallBase = true },
+                MockFakeDriveInfo = new Mock<FakeDPDriveInfo>(opts.FileSystem, opts.Settings.DestinationPath) { CallBase = true },
+            };
+            mocks.MockTagProvider = new Mock<AbstractTagProvider>();
+            var paf = new Mock<IDPParentArchiveFactory>();
+            paf.Setup(x => x.CreateNewParentArchive(It.IsAny<IDPFileInfo>())).Returns(opts.Archive);
             var p = new DPProcessor()
             {
                 Logger = Log.Logger.ForContext<DPProcessor>(),
-                FileSystem = system,
-                DestinationDeterminer = d.Object,
-                TagProvider = t.Object,
+                FileSystem = opts.FileSystem,
+                DestinationDeterminer = mocks.DestinationDeterminer,
+                TagProvider = mocks.TagProvider,
+                ParentArchiveFactory = paf.Object,
             };
-            SetupEntities(DefaultContents, arc);
-            UpdateFileInfos(new DPExtractSettings("A:/", arc.Contents.Values, archive: arc), system);
             return p;
         }
 
-        /// <summary>
-        /// Assert a mix of common things for the <see cref="DPProcessor"/>.
-        /// </summary>
-        /// <remarks>
-        /// Asserts that the <see cref="DPProcessor.DestinationDeterminer"/> and <see cref="DPProcessor.TagProvider"/> have been called <paramref name="time"/>s.
-        /// It also asserts that the <see cref="DPProcessor.CurrentArchive"/> is null.
-        /// </remarks>
-        /// <param name="processor">The processor to perform assertions on.</param>
-        /// <param name="time">
-        /// The amount of times <see cref="DPProcessor.DestinationDeterminer"/> 
-        /// and <see cref="DPProcessor.TagProvider"/> have been called. 
-        /// If null, it will be <see cref="Times.Once"/>.
-        /// </param>
-        public static void AssertCommon(DPProcessor processor, Times? time = null)
+        public static async Task AssertState(DPProcessor processor, IDPArchive archive, ProcessorState states, AssertableTask processorTask)
         {
-            var times = time is not null ? time.Value : Times.Once();
-            Mock.Get(processor.DestinationDeterminer).Verify(x => x.DetermineDestinations(It.IsAny<DPArchive>(), It.IsAny<DPProcessSettings>()), times);
-            Mock.Get(processor.TagProvider).Verify(x => x.GetTags(It.IsAny<DPArchive>(), It.IsAny<DPProcessSettings>()), times);
-            Assert.IsNull(processor.CurrentArchive);
-        }
 
-        /// <summary>
-        /// The default callback function for
-        /// <see cref="NewMockedArchive(MockOptions, out Mock{DPAbstractExtractor}, out Mock{FakeDPFileInfo}, out Mock{FakeFileInfo}, out Mock{FakeFileSystem})"/>
-        /// </summary>
-        /// <remarks>
-        /// Updates the file infos and returns a new <see cref="DPExtractionReport"/> with the files that were extracted.
-        /// </remarks>
-        /// <param name="settings"></param>
-        /// <param name="fs"></param>
-        /// <returns></returns>
-        private static DPExtractionReport handleExtract(DPExtractSettings settings, FakeFileSystem fs)
-        {
-            UpdateFileInfos(settings, fs);
-            return new DPExtractionReport()
+            void func()
             {
-                ErroredFiles = new(0),
-                ExtractedFiles = settings.FilesToExtract.ToList(),
-                Settings = settings
-            };
-        }
-
-        /// <summary>
-        /// Creates a new <see cref="DPFolder"/> or <see cref="DPFile"/> 
-        /// for each path in the <paramref name="paths"/> and adds it to the <paramref name="arc"/>.
-        /// </summary>
-        /// <param name="paths">The full path of folders or files to create.</param>
-        /// <param name="arc">The archive to add the entities to.</param>
-        private static void SetupEntities(IEnumerable<string> paths, DPArchive arc)
-        {
-            foreach (var path in paths)
-            {
-                if (string.IsNullOrEmpty(Path.GetFileName(path))) new DPFolder(path, arc, null);
-                else DPFile.CreateNewFile(path, arc, null);
+                if (processor.CurrentArchive != archive) return;
+                if (processor.State != ProcessorState.Idle && (processor.State & states) == ProcessorState.Idle)
+                    processorTask.AddAssertion(() => Assert.Fail("Got unexpected state: " + processor.State.ToString()));
+                // if the state is in the states, remove it
+                states &= ~processor.State;
             }
-        }
-
-        /// <summary>
-        /// Updates the <see cref="IDPFileInfo"/> for each file in the <paramref name="settings"/>.
-        /// </summary>
-        /// <param name="settings"></param>
-        /// <param name="system"></param>
-        private static void UpdateFileInfos(DPExtractSettings settings, FakeFileSystem system)
-        {
-            foreach (var file in settings.Archive.Contents.Values)
+            void stopOnEnd()
             {
-                var path = string.IsNullOrEmpty(file.TargetPath) ? Path.Combine(settings.TempPath, file.Path) : file.TargetPath;
-                file.FileInfo = system.CreateFileInfo(path);
-                var mockFileInfo = Mock.Get(file.FileInfo);
-                var stream = DPArchiveTestHelpers.DetermineFileStream(file, settings.Archive);
-                Exception? ex = null;
-                mockFileInfo.Setup(x => x.TryAndFixOpenRead(out It.Ref<Stream>.IsAny!, out ex))
-                            .Callback((out Stream s, out Exception ex) =>
-                            {
-                                s = DPArchiveTestHelpers.DetermineFileStream(file, settings.Archive);
-                                ex = null!;
-                            })
-                            .Returns(true);
+                if (processor.CurrentArchive != archive) return;
+                if (processor.State == ProcessorState.Idle)
+                {
+                    processor.StateChanged -= func;
+                    processor.StateChanged -= stopOnEnd;
+                }
             }
-        }
-
-        /// <summary>
-        /// Assert options for the <see cref="DPProcessor"/>.
-        /// </summary>
-        public struct AssertOptions
-        {
-            public int ExpectedProcessErrorCount = 0;
-            public int ExpectedArchiveCount = 1;
-            public int ExpectedFileErrorCount = 0;
-            /// <summary>
-            /// A dictionary of expected archives to be processed.
-            /// </summary>
-            /// <typeparam name="string">The archive name</typeparam>
-            /// <typeparam name="DPExtractionReport">The expected report</typeparam>
-            public Dictionary<string, DPExtractionReport>? ExpectArchiveProcessed = null;
-
-            public AssertOptions() { }
-        }
-
-        /// <summary>
-        /// Attaches common event handlers to the <paramref name="processor"/> with the given <paramref name="opts"/> to assert.
-        /// </summary>
-        /// <param name="processor">The processor to attach event handlers to</param>
-        /// <param name="opts">The assert options to use.</param>
-        public static void AttachCommonEventHandlers(DPProcessor processor, AssertOptions opts)
-        {
-            int arcEnterCount = 0, arcExitCount = 0;
-            int processErrorCount = 0;
-            processor.ArchiveEnter += (_, e) =>
-            {
-                if (++arcEnterCount > opts.ExpectedArchiveCount) Assert.Fail("Archive Enter called more than expected");
-            };
             processor.ArchiveExit += (_, e) =>
             {
-                arcExitCount++;
-                if (opts.ExpectArchiveProcessed is null) return;
-                if (!opts.ExpectArchiveProcessed.TryGetValue(e.Archive.FileName, out var wantReport)) return;
-                if (e.Report is null) Log.Logger.Warning("Report is null");
-                else AssertReport(wantReport, e.Report);
+                if (e.Archive == archive)
+                {
+                    processor.StateChanged -= func;
+                    processor.StateChanged -= stopOnEnd;
+                }
             };
-            processor.ProcessError += (_, e) =>
+            processor.StateChanged += func;
+            // Wait for the processor to finish.
+            await processorTask;
+            processor.StateChanged -= func;
+            // Now that the processor is finished, assert that all states were asserted.
+            processorTask.AddAssertion(() => Assert.AreEqual(ProcessorState.Idle, states, "Not all states were asserted"));
+        }
+        public static async Task AssertAnyState(DPProcessor processor, IDPArchive archive, ProcessorState states, AssertableTask processorTask)
+        {
+            var statesList = new List<ProcessorState>();
+            processor.ArchiveEnter += (_, e) =>
             {
-                if (++processErrorCount > opts.ExpectedProcessErrorCount) Assert.Fail("Process Error called more than expected");
+                if (e.Archive != archive) return;
+                statesList.Add(states);
             };
-            processor.Finished += () =>
+
+            void func()
             {
-                if (arcEnterCount != arcExitCount) Assert.Fail("Archive Enter and Exit counts do not match");
+                if (processor.CurrentArchive != archive) return;
+                statesList[^1] &= ~processor.State;
+            }
+            processor.StateChanged += func;
+            // Wait for the processor to finish.
+            await processorTask;
+            processor.StateChanged -= func;
+            // Now that the processor is finished, assert that all states were asserted.
+            if (statesList.All(x => x != ProcessorState.Idle))
+                processorTask.AddAssertion(() => Assert.Fail("No state found where all states were asserted"));
+        }
+
+        public static async Task AssertArchiveEnter(DPProcessor processor, AssertableTask processorTask, params IDPArchive[] expectedArchives)
+        {
+            var expectedArchivesList = expectedArchives.ToList();
+            var called = false;
+            processor.ArchiveEnter += (p, e) =>
+            {
+                // processorTask.AddAssertion(() => Assert.Fail("because i can"));
+                processorTask.AddAssertion(() => Assert.AreEqual(processor, p));
+                processorTask.AddAssertion(() => CollectionAssert.Contains(expectedArchives, e.Archive, "Archive not found in expected archives: " + e.Archive.FileName));
+                expectedArchivesList.Remove(e.Archive);
+                called = true;
             };
+
+            // Wait for the processor to finish.
+            await processorTask;
+
+            // Check that we were called as intended.
+            if (!called) processorTask.AddAssertion(() => Assert.Fail("ArchiveEnter was not called"));
+            processorTask.AddAssertion(() => Assert.AreEqual(0, expectedArchivesList.Count, "Not all expected archives were entered: " + string.Join(", ", expectedArchivesList.Select(x => x.FileName)))); 
+        }
+
+        public static async Task AssertAnyArchiveExit(DPProcessor processor, AssertableTask processorTask, bool success, DPExtractionReport? report, params IDPArchive[] archives)
+        {
+            var exitEvents = new List<DPArchiveExitArgs>();
+            void func(DPProcessor p, DPArchiveExitArgs e)
+            {
+                exitEvents.Add(e);
+            }
+            processor.ArchiveExit += func;
+
+            await processorTask;
+
+            processor.ArchiveExit -= func;
+
+            processorTask.AddAssertion(() =>
+            {
+                if (exitEvents.Count == 0) Assert.Fail("ArchiveExit was not called");
+                var matchingExit = exitEvents.FirstOrDefault(e => archives.Contains(e.Archive) && e.Processed == success && e.Report == report);
+                if (matchingExit == null) 
+                    Assert.Fail($"No matching ArchiveExit event found. Expected: success={success}, report={report}, archives=[{string.Join(", ", archives.Select(a => a.FileName))}]");
+            });
+        }
+
+        public static async Task AssertFinished(DPProcessor processor, AssertableTask processorTask)
+        {
+            var called = false;
+            processor.Finished += () => called = true;
+
+            await processorTask;
+            Assert.IsTrue(called, "Finished was not called");
+        }
+
+        public static async Task AssertExtractionProgress(DPProcessor processor, AssertableTask processorTask, DPExtractProgressArgs expected) {
+            var called = false;
+            processor.ExtractProgress += (p, e) =>
+            {
+                processorTask.AddAssertion(() => Assert.AreEqual(processor, p));
+                processorTask.AddAssertion(() => Assert.AreEqual(expected.ExtractionPercentage, e.ExtractionPercentage));
+                processorTask.AddAssertion(() => Assert.AreEqual(expected.Archive, e.Archive));
+                processorTask.AddAssertion(() => Assert.AreEqual(expected.File, e.File));
+                called = true;
+            };
+
+            // Wait for the processor to finish.
+            await processorTask;
+            if (!called) processorTask.AddAssertion(() => Assert.Fail("ExtractProgress was not called"));
+        }
+
+        public static async Task AssertAnyExtractionProgress(DPProcessor processor, AssertableTask processorTask, params DPExtractProgressArgs[] expectedArgs)
+        {
+            var progressEvents = new List<DPExtractProgressArgs>();
+            void func(DPProcessor p, DPExtractProgressArgs e)
+            {
+                progressEvents.Add(e);
+            }
+            processor.ExtractProgress += func;
+
+            await processorTask;
+
+            processor.ExtractProgress -= func;
+
+            processorTask.AddAssertion(() =>
+            {
+                if (progressEvents.Count == 0) Assert.Fail("ExtractProgress was not called");
+                var matchingProgress = progressEvents.FirstOrDefault(e => 
+                    expectedArgs.Any(expected => 
+                        e.ExtractionPercentage == expected.ExtractionPercentage &&
+                        e.Archive == expected.Archive &&
+                        e.File == expected.File
+                    )
+                );
+                if (matchingProgress == null)
+                    Assert.Fail($"No matching ExtractProgress event found. Expected one of: [{string.Join(", ", expectedArgs.Select(a => $"{{Archive: {a.Archive.FileName}, File: {a.File?.Path}, Percentage: {a.ExtractionPercentage}}}"))}]");
+            });
+        }
+        public static async Task AssertArchiveProcessOrder(DPProcessor processor, AssertableTask processorTask, Queue<IDPArchive> expectedArchiveOrder)
+        {
+            var expectedArchiveOrderForExiting = new Queue<IDPArchive>(expectedArchiveOrder);
+            void func(DPProcessor p, DPArchiveEnterArgs e)
+            {
+                if (expectedArchiveOrder.Count == 0) return;
+                var expected = expectedArchiveOrder.Dequeue();
+                processorTask.AddAssertion(() => Assert.AreEqual(expected, e.Archive, $"Expected {expected.Path}, got {e.Archive.Path}"));
+            }
+            void func2(DPProcessor p, DPArchiveExitArgs e)
+            {
+                if (expectedArchiveOrderForExiting.Count == 0) return;
+                var expected = expectedArchiveOrderForExiting.Dequeue();
+                processorTask.AddAssertion(() => Assert.AreEqual(expected, e.Archive, $"Expected {expected.Path}, got {e.Archive.Path}"));
+            }
+            processor.ArchiveEnter += func;
+            processor.ArchiveExit += func2;
+            await processorTask;
+            processor.ArchiveEnter -= func;
+            processor.ArchiveExit -= func2;
+
+        }
+        
+        public static async Task AssertProcessorError(DPProcessor processor, AssertableTask processorTask, DPProcessorErrorArgs expected)
+        {
+            var called = false;
+            processor.ProcessError += (p, e) =>
+            {
+                processorTask.AddAssertion(() => Assert.AreEqual(processor, p));
+                processorTask.AddAssertion(() => Assert.AreEqual(expected.Explaination, e.Explaination));
+                processorTask.AddAssertion(() => Assert.AreEqual(expected.Ex, e.Ex));
+                processorTask.AddAssertion(() => Assert.AreEqual(expected.Continuable, e.Continuable));
+                called = true;
+            };
+
+            // Wait for the processor to finish.
+            await processorTask;
+            if (!called) processorTask.AddAssertion(() => Assert.Fail("Error was not called"));
         }
 
         /// <summary>
@@ -274,8 +551,8 @@ namespace DAZ_Installer.Core.Tests
             return new DPExtractionReport()
             {
                 Settings = settings,
-                ErroredFiles = failedFiles.ToDictionary(m => CreateDummyFile(m), _ => string.Empty),
-                ExtractedFiles = successFiles?.Select(x => new DPFile(x, null, null, null, null!)).ToList() ?? new List<DPFile>()
+                ErroredFiles = failedFiles.ToDictionary(m => (IDPFile) CreateDummyFile(m), _ => string.Empty),
+                ExtractedFiles = successFiles?.Select(x => (IDPFile) CreateDummyFile(x)).ToList() ?? new List<IDPFile>()
             };
         }
 
@@ -284,7 +561,7 @@ namespace DAZ_Installer.Core.Tests
         /// </summary>
         /// <param name="path">The path to set for this file.</param>
         /// <returns>A file with null <see cref="DPArchive"/>, <see cref="DPFolder"/>, <see cref="IDPFileInfo"/>, and <see cref="ILogger"/>.</returns>
-        public static DPFile CreateDummyFile(string path) => new(path, null, null, null, null!);
+        public static FakeDPFile CreateDummyFile(string path) => new(path, null);
         /// <summary>
         /// Creates a <see cref="DPFolder"/> with null dependencies.
         /// </summary>
@@ -310,22 +587,59 @@ namespace DAZ_Installer.Core.Tests
             CollectionAssert.AreEqual(want.Settings.FilesToExtract.Select(x => x.Path).ToArray(), got.Settings.FilesToExtract.Select(x => x.Path).ToArray(), "Reports' files to extract are not the same");
             Assert.AreEqual(want.Settings.OverwriteFiles, got.Settings.OverwriteFiles, "Reports' overwrite files are not the same");
         }
+
+        private static bool CompareExtractSettings(DPExtractSettings want, DPExtractSettings got)
+        {
+            try
+            {
+                Assert.AreEqual(want.Archive, got.Archive);
+                Assert.AreEqual(want.TempPath, got.TempPath);
+                Assert.AreEqual(want.OverwriteFiles, got.OverwriteFiles);
+                Assert.AreEqual(want.FilesToExtract.Count, got.FilesToExtract.Count);
+                CollectionAssert.AreEqual(want.FilesToExtract.Select(x => x.Path).ToArray(), got.FilesToExtract.Select(x => x.Path).ToArray());
+            } catch (Exception e)
+            {
+                Log.Error(e, "Extract settings are not the same");
+                return false;
+            }
+            return true;
+        }
+
         /// <summary>
-        /// Calculates the expected files from a list of files.
+        /// Verify that <see cref="DPArchive.ExtractContents(DPExtractSettings)"/> or <see cref="DPArchive.ExtractContentsToTemp(DPExtractSettings)"/>.
         /// </summary>
-        /// <remarks>
-        /// It simply filters out any files that have an empty file name.
-        /// </remarks>
-        /// <param name="files">The list of files to calculate.</param>
-        /// <returns>A list of expected filenames.</returns>
-        public static List<string> CalculateExpectedFiles(IEnumerable<string> files) => files.Where(x => !string.IsNullOrEmpty(Path.GetFileName(x))).ToList();
+        /// <param name="toTemp">Whether to verify <see cref="DPArchive.ExtractContentsToTemp(DPExtractSettings)"/> or <see cref="DPArchive.ExtractContents(DPExtractSettings)"/>.</param>
+        /// <param name="arc">The archive to verify.</param>
+        /// <param name="expected">The expected settings to verify.</param>
+        /// <param name="times">The number of times to verify.</param> 
+        public static void VerifyExtractContentsCalled(bool toTemp, Mock<FakeDPArchive> arc, DPExtractSettings expected, Times times)
+        {
+            var methodName = toTemp ? nameof(FakeDPArchive.ExtractContentsToTemp) : nameof(FakeDPArchive.ExtractContents);
+
+            if (toTemp)
+            {
+                arc.Verify(x => x.ExtractContentsToTemp(It.Is<DPExtractSettings>(got => CompareExtractSettings(expected, got))), times, 
+                    $"Processor did not call {methodName} with expected settings.");
+            }
+            else
+            {
+                arc.Verify(x => x.ExtractContents(It.Is<DPExtractSettings>(got => CompareExtractSettings(expected, got))), times, 
+                    $"Processor did not call {methodName} with expected settings.");
+            }
+        }
+        public static void AssertExtractSettings(DPExtractSettings want, DPExtractSettings got) {
+            Assert.AreSame(want.Archive, got.Archive, "Archive is not the same");
+            CollectionAssert.AreEqual(want.FilesToExtract.Select(x => x.Path).ToArray(), got.FilesToExtract.Select(x => x.Path).ToArray(), "Files to extract are not the same");
+            Assert.AreEqual(want.OverwriteFiles, got.OverwriteFiles, "Overwrite files are not the same");
+            Assert.AreEqual(want.TempPath, got.TempPath, "Temp path is not the same");
+        }
         /// <summary>
         /// Creates a new <see cref="DPExtractSettings"/> with the given paths and archive.
         /// </summary>
         /// <param name="paths">The paths of the archive. Paths can be empty or null, it will be filtered out.</param>
         /// <param name="arc">The archive to extract.</param>
         /// <returns>A set-up <see cref="DPExtractSettings"/> object.</returns>
-        public static DPExtractSettings CreateExtractSettings(IEnumerable<string> paths, DPArchive arc) => 
+        public static DPExtractSettings CreateExtractSettings(IEnumerable<string> paths, IDPArchive arc) => 
             new("A:/", paths.Where(x => !string.IsNullOrEmpty(Path.GetFileName(x))).Select(x => CreateDummyFile(x)), archive: arc);
 
     }

@@ -26,107 +26,133 @@ namespace DAZ_Installer.Core
     {
         SevenZ, WinZip, RAR, Unknown
     }
+
     /// <summary>
     /// Abstract class for all supported archive files. 
     /// Currently the supported archive files are RAR, WinZip, and 7z (partially).
     /// </summary>
-    public class DPArchive : DPFile
+    public class DPArchive : DPFile, IDPArchive
     {
         public override ILogger Logger { get; set; } = Log.Logger.ForContext<DPArchive>();
-        public override string FileName => !IsInnerArchive ? FileInfo!.Name : IOPath.GetFileName(NormalizedPath);
-        public override string Ext => IsInnerArchive ? base.Ext : GetExtension(FileInfo?.Name ?? string.Empty);
+        public override string FileName
+        {
+            get
+            {
+                if (!IsInnerArchive && FileInfo is not null) return FileInfo.Name;
+                else if (!IsInnerArchive) Logger.Warning("Expected FileInfo to be not null when IsInnerArchive is true. Falling back to base.");
+                return base.FileName;
+            }
+        }
+        public override string Ext
+        {
+            get
+            {
+                if (!IsInnerArchive && FileInfo is not null) return GetExtension(FileInfo.Name ?? string.Empty);
+                else if (IsInnerArchive) Logger.Warning("Expected FileInfo to be not null when IsInnerArchive is true. Falling back to base.");
+                return base.Ext;
+            }
+        }
         /// <summary>
         /// The product name of the archive. If the archive has not been successfully processed, the product name will be equivalent to <see cref="FileName"/>.
         /// Otherwise, it is either the product name of the archive determined via the manifest file, a regex-filtered file name, or simply <see cref="FileName"/>.
         /// </summary>
         public virtual string ProductName => getProductName();
         /// <summary>
-        /// The archive format of the archive. If the archive has not been successfully processed, the archive format will be equivalent to <see cref="ArchiveFormat.Unknown"/>.
+        /// <inheritdoc/>
         /// </summary>
+        /// <remarks> If the archive has not been successfully processed, the archive format will be equivalent to <see cref="ArchiveFormat.Unknown"/>.</remarks>
         public ArchiveFormat ArchiveFormat { get; protected set; } = ArchiveFormat.Unknown;
         /// <summary>
-        /// The extractor that the archive will use. This could be null if the <see cref="ArchiveFormat"/> is <see cref="ArchiveFormat.Unknown"/>. But after construction of this object, it is usually not null.
+        /// <inheritdoc/>
         /// </summary>
+        /// <remarks>
+        /// If this archive was NOT constructed by <see cref="DPArchive.DPArchive(IDPFileInfo)"/>, it will be 
+        /// inherited by the parent archive's <see cref="ExtractorFactory"/> if both the ExtractorFactory 
+        /// and the <see cref="DPAbstractNode.AssociatedArchive"/> are not null.
+        /// </remarks>
+        /// <returns>
+        /// By default, a <see cref="DPExtractorFactory"/> is returned; otherwise, <see cref="IDPExtractorFactory"/>.
+        /// Furthermore, children of this archive will inherit this factory at construction time.
+        /// </returns>
+        public IDPExtractorFactory ExtractorFactory { get; set; } = DPExtractorFactory.Singleton;
+        /// <summary>
+        /// <inheritdoc/>
+        /// </summary>
+        /// <remarks> 
+        /// By default, a <see cref="DPFolderFactory"/> is returned; otherwise, <see cref="IDPFolderFactory"/>.
+        /// Furthermore, children of this archive will inherit this factory at construction time.
+        /// </remarks>
+        public IDPFolderFactory FolderFactory { get; set; } = DPFolderFactory.Instance;
+        /// <summary>
+        /// <inheritdoc/>
+        /// </summary>
+        /// <remarks> 
+        /// By default, a <see cref="DPFileFactory"/> is returned; otherwise, <see cref="IDPFileFactory"/>.
+        /// Furthermore, children of this archive will inherit this factory at construction time.
+        /// </remarks>
+        public IDPFileFactory FileFactory { get; set; } = DPFileFactory.Instance;
+        /// <summary>
+        /// <inheritdoc/>
+        /// </summary>
+        /// <remarks>
+        /// This could be null if the <see cref="ArchiveFormat"/> is <see cref="ArchiveFormat.Unknown"/>. 
+        /// But after construction of this object, it is usually not null.
+        /// </remarks>
         public DPAbstractExtractor? Extractor { get; set; }
         /// <summary>
-        /// The file system to use, this is derived from the <see cref="IDPIONode.FileSystem"/> which is from <see cref="DPFile.FileInfo"/>.
+        /// <inheritdoc/>
         /// </summary>
+        /// <remarks>
+        /// This is derived from the <see cref="IDPIONode.FileSystem"/> which is from <see cref="IDPFile.FileInfo"/>.
+        /// </remarks>
         public AbstractFileSystem FileSystem => FileInfo!.FileSystem;
         /// <summary>
-        /// The name that will be used for the list view. The list name is the working archive's <c>FileName</c> + $"\\{Path}".
+        /// <inheritdoc/>
         /// </summary>
         /// <value>The working archive's FileName + $"\\{Path}".</value>
         public string ListName => AssociatedArchive is null ? string.Empty : AssociatedArchive.FileName + '\\' + Path;
-        /// <summary>
-        /// A list of archives that are children of this archive. 
-        /// Or, in other words, archives that are contained within this archive.
-        /// </summary>
-        public List<DPArchive> Subarchives { get; init; } = new();
-        /// <summary>
-        /// A file that has been detected as a manifest file.
-        /// </summary>
-        // TODO: Make this a list of manifest files and fetch from here.
-        public List<DPDSXFile> ManifestFiles { get; protected set; } = new(2);
-        /// <summary>
-        /// A file that has been detected as a supplement file.
-        /// </summary>
+        /// <inheritdoc/>
+        public List<IDPArchive> Subarchives { get; init; } = new();
+        /// <inheritdoc/>
+        public List<IDPDSXFile> ManifestFiles { get; protected set; } = new(2);
+        /// <inheritdoc/>
         // TODO: Make this a list of supplement files and fetch from here.
-        public List<DPDSXFile> SupplementFiles { get; protected set; } = new(1);
-        /// <summary>
-        /// A boolean value to describe if this archive is a child of another archive. Default is false.
-        /// </summary>
+        public List<IDPDSXFile> SupplementFiles { get; protected set; } = new(1);
+        /// <inheritdoc/>
         public bool IsInnerArchive => AssociatedArchive is not null;
         /// <summary>
         /// The type of this archive. Default is <see cref="ArchiveType.Unknown"/>.
         /// </summary>
         public ArchiveType Type { get; set; } = ArchiveType.Unknown;
-        /// <summary>
-        /// The product info connected to this archive.
-        /// </summary>
-        public DPProductInfo ProductInfo = new();
+        /// <inheritdoc/>
+        public DPProductInfo ProductInfo { get; set; } = new();
+
+        /// <inheritdoc/>
+        public Dictionary<string, IDPFolder> Folders { get; } = new();
+
+        /// <inheritdoc/>
+        public List<IDPFolder> RootFolders { get; } = new();
+
+        /// <inheritdoc/>
+        public Dictionary<string, IDPFile> Contents { get; } = new();
 
         /// <summary>
-        /// A map of all of the folders parented to this archive.
+        /// <inheritdoc/>
         /// </summary>
-        /// <typeparam name="string">The NormalizedPath of the Folder.</typeparam>
-        /// <typeparam name="DPFolder">The folder.</typeparam>
-
-        public Dictionary<string, DPFolder> Folders { get; } = new();
-
+        /// <typeparam name="IDPFile">The file content in this archive.</typeparam>
+        public List<IDPFile> RootContents { get; } = new();
+        /// <inheritdoc/>
+        public List<IDPDSXFile> DSXFiles { get; } = new();
+        /// <inheritdoc/>
+        public List<IDPDazFile> DazFiles { get; } = new();
+        /// <inheritdoc/>
+        public ulong TrueArchiveSize { get; set; } = 0;
         /// <summary>
-        /// A list of folders at the root level of this archive.
+        /// <inheritdoc/>
         /// </summary>
-        public List<DPFolder> RootFolders { get; } = new();
-        /// <summary>
-        /// A dictionary of all of the contents and their normalized paths (<see cref="DPAbstractNode.NormalizedPath"/>) in the archive.
-        /// </summary>
-        /// <typeparam name="DPFile">The file content in this archive.</typeparam>
-        /// <typeparam name="string">The <see cref="DPAbstractNode.NormalizedPath"/> of a file.</typeparam>
-        public Dictionary<string, DPFile> Contents { get; } = new();
-
-        /// <summary>
-        /// A list of the root contents/ the contents at root level (DPAbstractFiles) of this archive.
-        /// </summary>
-        /// <typeparam name="DPAbstractFile">The file content in this archive.</typeparam>
-        public List<DPFile> RootContents { get; } = new();
-        /// <summary>
-        /// A list of all .dsx files in this archive.
-        /// </summary>
-        /// <typeparam name="DPDSXFile">A file that is either a manifest, supplementary, or support file (.dsx).</typeparam>
-        public List<DPDSXFile> DSXFiles { get; } = new();
-        /// <summary>
-        /// A list of all readable daz files in this archive. This consists of types with extension: .duf, .dsf.
-        /// </summary>
-        /// <typeparam name="DPDazFile">A file with the extension .duf OR .dsf.</typeparam>
-        /// <returns></returns>
-        public List<DPDazFile> DazFiles { get; } = new();
-        /// <summary>
-        /// The true uncompressed size of the archive contents in bytes.
-        /// </summary>
-        public ulong TrueArchiveSize { get; internal set; } = 0;
-        /// <summary>
-        /// The expected tag count for this archive. This value is updated when an applicable file has discovered new tags.
-        /// </summary>
+        /// <remarks>
+        /// This value is updated when an applicable file has discovered new tags.
+        /// </remarks>
         public uint ExpectedTagCount { get; set; } = 0;
 
         /// <summary>
@@ -145,26 +171,35 @@ namespace DAZ_Installer.Core
             FileInfo = info;
             // Try to determine the archive format NOW using most reliable method if possible.
             ArchiveFormat = GetArchiveFormat();
-            Extractor = GetDefaultExtractorForArchiveFormat(ArchiveFormat);
+            Extractor = ExtractorFactory.CreateExtractor(ArchiveFormat);
         }
-        public DPArchive(string _path, DPArchive? parent = null, DPFolder? parentFolder = null) : base(_path, parent, parentFolder)
+        /// <summary>
+        /// The constructor used for creating an archive that may be a child of another archive.
+        /// </summary>
+        /// <remarks>
+        /// The <see cref="ExtractorFactory"/> will be inherited from the parent archive if both the ExtractorFactory
+        /// and the <see cref="DPAbstractNode.AssociatedArchive"/> are not null.
+        /// </remarks>
+        /// <param name="_path">The path of the archive.</param>
+        /// <param name="parent">The parent archive of this archive.</param>
+        /// <param name="parentFolder">The parent folder of this archive.</param>
+        /// <inheritdoc/>
+        public DPArchive(string _path, IDPArchive? parent = null, IDPFolder? parentFolder = null) : base(_path, parent, parentFolder)
         {
-            // Make a file but we don't want to check anything.
-            //if (IsInnerArchive) Parent = null;
-            //else base.parent = null;
             RelativePathToContentFolder = FileName;
             ProductInfo = new DPProductInfo(IOPath.GetFileNameWithoutExtension(Path));
             parent?.Subarchives.Add(this);
 
             // Try to determine the archive format NOW using most reliable method if possible.
             ArchiveFormat = GetArchiveFormat();
-            Extractor = GetDefaultExtractorForArchiveFormat(ArchiveFormat);
+            if (parent is { ExtractorFactory: not null }) ExtractorFactory = parent.ExtractorFactory;
+            Extractor = ExtractorFactory.CreateExtractor(ArchiveFormat);
         }
 
         /// <summary>
         /// Constructor for testing purposes.
-        /// 
-        internal DPArchive(string _path, ILogger logger, IDPFileInfo info, DPAbstractExtractor extractor, DPArchive? parent = null, DPFolder? parentFolder = null) : base(_path, parent, parentFolder, info, logger)
+        /// </summary>
+        internal DPArchive(string _path, ILogger logger, IDPFileInfo info, DPAbstractExtractor extractor, IDPArchive? parent = null, IDPFolder? parentFolder = null) : base(_path, parent, parentFolder, info, logger)
         {
             // Make a file but we don't want to check anything.
             //if (IsInnerArchive) Parent = null;
@@ -190,27 +225,11 @@ namespace DAZ_Installer.Core
             else return string.Join(' ', matches.Select(x => x.Value));
         }
         #region Public Methods
-        /// <summary>
-        /// Creates a new archive that lives on the disk and has no parent.
-        /// </summary>
-        /// <param name="info">The file info to use for I/O operations.</param>
-        /// <returns>A new <see cref="DPArchive"/>.</returns>
-        public static DPArchive CreateNewParentArchive(IDPFileInfo info) => new(info);
-        /// <summary>
-        /// Peeks the archive contents if possible and will extract ALL archive contents to <paramref name="destLocation"/>.
-        /// </summary>
-        /// <param name="destLocation">The destination path to extract the archive contents to.</param>
-        /// <param name="tempLocation">The temporary path to extract the archive contents to.</param>
-        /// <param name="overwrite">Determines whether to overwrite the files on disk if they exist.</param>
-        /// <exception cref="ArgumentException"><paramref name="tempLocation"/> or <paramref name="destLocation"/> does not exist or do not have access to it.</exception>
+        /// <inheritdoc/>
         public DPExtractionReport ExtractAllContents(string tempLocation, bool overwrite = true) =>
             ExtractContents(new DPExtractSettings(tempLocation, Contents.Values, overwrite));
-        /// <summary>
-        /// Extracts contents from the archive (using <see cref="Extractor"/>), then peeks the archive contents if possible and 
-        /// will attempt to extract files specifed in <see cref="DPExtractSettings.FilesToExtract"/> to <see cref="DPExtractSettings.TempPath"/>.
-        /// </summary>
-        /// <param name="settings">The settings to use for extraction.</param>
-        /// <exception cref="IOException">Archive needed to be extracted first, but it failed to be extracted. </exception>
+
+        /// <inheritdoc/>
         public DPExtractionReport ExtractContents(DPExtractSettings settings)
         {
             if (!Extracted && !ExtractToTemp(settings))
@@ -219,12 +238,8 @@ namespace DAZ_Installer.Core
                 throw new InvalidOperationException("Extractor is null. Cannot extract archive contents.");
             return Extractor.Extract(settings);
         }
-        /// <summary>
-        /// Extracts contents from the archive (using <see cref="Extractor"/>), then peeks the archive contents if possible and 
-        /// will attempt to extract files specifed in <see cref="DPExtractSettings.FilesToExtract"/> to <see cref="DPExtractSettings.TempPath"/>.
-        /// </summary>
-        /// <param name="settings">The settings to use for extraction. <see cref="DPExtractSettings.DestinationPath"/> will be ignored.</param>
-        /// <exception cref="IOException">Archive needed to be extracted first, but it failed to be extracted. </exception>
+
+        /// <inheritdoc/>
         public DPExtractionReport ExtractContentsToTemp(DPExtractSettings settings)
         {
             if (!Extracted && !ExtractToTemp(settings))
@@ -235,14 +250,17 @@ namespace DAZ_Installer.Core
         }
 
         /// <summary>
-        /// Previews the archive by discovering files in this archive. If the archive is not on disk, then it will be first extracted to <paramref name="temp"/>.
-        /// If <paramref name="temp"/> is null, then it will be extracted to the temp directory.
+        /// Previews the archive by discovering files in this archive. 
         /// </summary>
+        /// <remarks>
+        /// If the archive is not on disk, then it will be first extracted to <paramref name="temp"/>.
+        /// If <paramref name="temp"/> is null, then it will be extracted to the temp directory.
+        /// </remarks>
         /// <param name="temp">The temp path to extract if the archive is not on disk, otherwise it will extract to <see cref="IOPath.GetTempPath"/></param>
         public void PeekContents(string? temp = null)
         {
             // Just extract to temp.
-            var settings = new DPExtractSettings(temp ?? IOPath.GetTempPath(), Array.Empty<DPFile>(), archive: this);
+            var settings = new DPExtractSettings(temp ?? IOPath.GetTempPath(), Array.Empty<IDPFile>(), archive: this);
             if (!Extracted && !ExtractToTemp(settings))
                 throw new IOException("Archive was not on disk and could not be extracted.");
             if (Extractor is null)
@@ -257,10 +275,10 @@ namespace DAZ_Installer.Core
         /// <param name="file">The file to extract.</param>
         /// <param name="tempLocation">The temp path to use if needed.</param>
         /// <param name="overwrite">Determines whether to overwrite the files on disk if they exist.</param>
-        public bool ExtractContent(DPFile file, string tempLocation, bool overwrite = true) => ExtractContents(new DPExtractSettings(tempLocation, new DPFile[] { file }, overwrite)).SuccessPercentage == 1;
+        public bool ExtractContent(IDPFile file, string tempLocation, bool overwrite = true) => ExtractContents(new DPExtractSettings(tempLocation, new IDPFile[] { file }, overwrite)).SuccessPercentage == 1;
 
         /// <summary>
-        ///  Checks whether or not the given ext is what is expected. Checks file headers. Does not throw exceptions.
+        /// Checks whether or not the given ext is what is expected. Checks file headers. Does not throw exceptions.
         /// </summary>
         /// <returns>Returns an extension of the appropriate archive extraction method. 
         /// Returns <see cref="ArchiveFormat.Unknown"/> on errors and when it doesn't match archive magic strings.</returns>
@@ -291,26 +309,30 @@ namespace DAZ_Installer.Core
             catch { return ArchiveFormat.Unknown; }
         }
         /// <summary>
-        /// <inheritdoc cref="DetermineArchiveFormatPrecise(string)"/>
+        /// Checks whether or not the given ext is what is expected. Checks file headers. Does not throw exceptions.
         /// </summary>
         /// <param name="stream">The stream to use.</param>
         /// <param name="closeWhenFinished">Determines whether to close the stream when finished.</param>
         /// <returns>Returns an extension of the appropriate archive extraction method. Otherwise, null.</returns>
         public static ArchiveFormat DetermineArchiveFormatPrecise(Stream stream, bool closeWhenFinished)
         {
+            Span<byte> zipFileHeaders = stackalloc byte[] { 0x50, 0x4B, 0x57, 0x69 };
+            Span<byte> RAR5FileHeaders = stackalloc byte[] { 0x52, 0x61, 0x72, 0x21, 0x1A, 0x07, 0x01, 0x00 };
+            Span<byte> RAR4FileHeaders = stackalloc byte[] { 0x52, 0x61, 0x72, 0x21, 0x1A, 0x07, 0x00 };
+
             try
             {
-                var bytes = new byte[8];
-                stream.Read(bytes, 0, 8);
-                if (closeWhenFinished) stream.Close();
+                Span<byte> bytes = stackalloc byte[8];
+                stream.Read(bytes);
+
                 // ZIP File Header
                 // 	50 4B OR 	57 69
-                if ((bytes[0] == 80 || bytes[0] == 87) && (bytes[1] == 75 || bytes[2] == 105))
+                if (bytes[..2].SequenceEqual(zipFileHeaders[..2]) || bytes[2..].SequenceEqual(zipFileHeaders[2..]))
                     return ArchiveFormat.WinZip;
                 // RAR 5 consists of 8 bytes.  0x52 0x61 0x72 0x21 0x1A 0x07 0x01 0x00
-                // RAR 4.x consists of 7. 0x52 0x61 0x72 0x21 0x1A 0x07 0x00
+                // RAR 4.x consists of 7.      0x52 0x61 0x72 0x21 0x1A 0x07 0x00
                 // Rar!
-                if (bytes[0] == 82 && bytes[1] == 97 && bytes[2] == 114 && bytes[3] == 33)
+                if (bytes.SequenceEqual(RAR5FileHeaders) || bytes.SequenceEqual(RAR4FileHeaders))
                     return ArchiveFormat.RAR;
 
                 if (bytes[0] == 55 && bytes[1] == 122 && bytes[2] == 188 && bytes[3] == 175)
@@ -318,7 +340,11 @@ namespace DAZ_Installer.Core
 
                 return ArchiveFormat.Unknown;
             }
-            catch { return ArchiveFormat.Unknown; }
+            catch (Exception e) { Log.Error(e, "failed to do something");  return ArchiveFormat.Unknown; }
+            finally
+            {
+                if (closeWhenFinished) stream.Close();
+            }
         }
 
         /// <summary>
@@ -359,32 +385,9 @@ namespace DAZ_Installer.Core
         }
 
         /// <summary>
-        /// Updates the <see cref="Extractor"/> property. If <paramref name="extractor"/> is null, it will be set to the
-        /// extractor that matches the <see cref="ArchiveFormat"/> property. <para/>
-        /// If <see cref="ArchiveFormat"/> is <see cref="ArchiveFormat.Unknown"/>, <see cref="Extractor"/> will be set to null. <para/>
-        /// If <paramref name="extractor"/> is not null, <see cref="Extractor"/> will be set to <paramref name="extractor"/> and no checks will be made.
-        /// </summary>
-        /// <param name="extractor"></param>
-        public void SetExtractor(DPAbstractExtractor? extractor = null)
-        {
-            if (extractor != null)
-            {
-                Extractor = extractor;
-                return;
-            }
-            ArchiveFormat = GetArchiveFormat();
-            if (ArchiveFormat == ArchiveFormat.Unknown)
-            {
-                Extractor = null;
-                return;
-            }
-            Extractor = GetDefaultExtractorForArchiveFormat(ArchiveFormat);
-        }
-
-        /// <summary>
         /// Returns the default extractor given an archive format. 
         /// </summary>
-        /// <param name="format">The format to get default extractor for.</param>
+        /// <param name="format">The archive format of the archive</param>
         /// <returns>The default extractor, null if <paramref name="format"/> is <see cref="ArchiveFormat.Unknown"/></returns>
         public static DPAbstractExtractor? GetDefaultExtractorForArchiveFormat(ArchiveFormat format)
         {
@@ -402,30 +405,23 @@ namespace DAZ_Installer.Core
         /// </summary>
         /// <param name="name">The name to search for.</param>
         /// <returns>The first file that contains <paramref name="name"/>; null if not found. </returns>
-        public DPFile? FindFileViaNameContains(string name) => Contents.Values.First(x => x.FileName.Contains(name));
-
-        private static List<string> ConvertDPFoldersToStringArr(Dictionary<string, DPFolder> folders)
-        {
-            var a = new List<string>(folders.Count);
-            foreach (DPFolder v in folders.Values) a.Add(v.Path);
-            return a;
-        }
+        public IDPFile? FindFileViaNameContains(string name) => Contents.Values.First(x => x.FileName.Contains(name));
 
         /// <summary>
         /// This function should be called after all the files have been extracted. If no content folders have been found, this is a bundle.
         /// </summary>
         public ArchiveType DetermineArchiveType()
         {
-            foreach (DPFolder folder in Folders.Values)
+            foreach (IDPFolder folder in Folders.Values)
             {
                 if (folder.IsContentFolder)
                 {
                     return ArchiveType.Product;
                 }
             }
-            foreach (DPFile content in Contents.Values)
+            foreach (IDPFile content in Contents.Values)
             {
-                if (content is DPArchive) return ArchiveType.Bundle;
+                if (content is IDPArchive) return ArchiveType.Bundle;
             }
             return ArchiveType.Unknown;
 
@@ -434,7 +430,7 @@ namespace DAZ_Installer.Core
         public int GetEstimateTagCount()
         {
             var count = 0;
-            foreach (DPFile content in Contents.Values)
+            foreach (IDPFile content in Contents.Values)
             {
                 count += content.Tags.Count;
             }
@@ -442,7 +438,7 @@ namespace DAZ_Installer.Core
             return count;
         }
 
-        public DPFolder? FindParent(DPAbstractNode obj)
+        public IDPFolder? FindParent(IDPAbstractNode obj)
         {
             var fileName = PathHelper.GetFileName(obj.Path);
             // This means obj.Path contains trailing seperator, so do it again but without the seperator.
@@ -453,7 +449,7 @@ namespace DAZ_Installer.Core
                 relativePathOnly = PathHelper.CleanDirPath(obj.Path.Remove(obj.Path.LastIndexOf(fileName)));
             }
             catch { }
-            if (FindFolder(relativePathOnly, out DPFolder? folder))
+            if (FindFolder(relativePathOnly, out IDPFolder? folder))
             {
                 return folder;
             }
@@ -466,8 +462,8 @@ namespace DAZ_Installer.Core
         /// </summary>
         /// <param name="relativePath"></param>
         /// <param name="folder"></param>
-        /// <returns></returns>
-        public bool FindFolder(string relativePath, [NotNullWhen(true)] out DPFolder? folder)
+        /// <returns>True if the folder was found, otherwise false.</returns>
+        public bool FindFolder(string relativePath, [NotNullWhen(true)] out IDPFolder? folder)
         {
             var normalizedRelativePath = PathHelper.NormalizePath(relativePath);
             return Folders.TryGetValue(normalizedRelativePath, out folder);

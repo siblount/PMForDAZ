@@ -9,7 +9,9 @@ namespace DAZ_Installer.Core.Extraction
     public class DP7zExtractor : DPAbstractExtractor
     {
         public override ILogger Logger { get; set; } = Log.Logger.ForContext<DP7zExtractor>();
-        internal IProcessFactory Factory { get; init; } = new ProcessFactory();
+        internal IProcessFactory Factory { get; init; } = ProcessFactory.Instance;
+        public IDPFileFactory FileFactory { get; init; } = DPFileFactory.Instance;
+        public IDPFolderFactory FolderFactory { get; init; } = DPFolderFactory.Instance;
         private struct Entity
         {
             public string Path;
@@ -40,7 +42,7 @@ namespace DAZ_Installer.Core.Extraction
 
         private Entity _lastEntity = new() { };
         private DPExtractionReport workingExtractionReport = null!;
-        private DPArchive workingArchive = null!;
+        private IDPArchive workingArchive = null!;
 
         // Flag
         private bool tempOnly = false;
@@ -64,7 +66,7 @@ namespace DAZ_Installer.Core.Extraction
             return extractInternal(settings, true);
         }
 
-        public override void Peek(DPArchive archive)
+        public override void Peek(IDPArchive archive)
         {
             using var _ = LogContext.PushProperty("Archive", archive.FileName);
             Reset();
@@ -263,7 +265,7 @@ namespace DAZ_Installer.Core.Extraction
                 var count = workingSettings.FilesToExtract.Count;
                 // For 7z specifically, we need to verify that the files were actually extracted and update their file info at the same time.
                 UpdateFileInfos();
-                foreach (DPFile file in workingSettings.FilesToExtract)
+                foreach (IDPFile file in workingSettings.FilesToExtract)
                 {
                     CancellationToken.ThrowIfCancellationRequested();
                     EmitOnMoveProgress(workingArchive, new DPExtractProgressArgs((byte)((float)i / count), workingArchive, file));
@@ -298,7 +300,7 @@ namespace DAZ_Installer.Core.Extraction
         private void finalizeTempOnlyOperation()
         {
             UpdateFileInfos();
-            foreach (DPFile file in workingSettings.FilesToExtract)
+            foreach (IDPFile file in workingSettings.FilesToExtract)
             {
                 if (file.FileInfo is not null) workingExtractionReport.ExtractedFiles.Add(file);
                 else workingExtractionReport.ErroredFiles.Add(file, "Failed to extract file to temp directory");
@@ -332,7 +334,7 @@ namespace DAZ_Installer.Core.Extraction
             try
             {
                 CancellationToken.ThrowIfCancellationRequested();
-                foreach (DPFile file in workingArchive.Contents.Values)
+                foreach (IDPFile file in workingArchive.Contents.Values)
                 {
                     if (file.AssociatedArchive != workingArchive)
                     {
@@ -352,18 +354,18 @@ namespace DAZ_Installer.Core.Extraction
         }
 
         /// <summary>
-        /// FinalizeEntity indicates that the last entity is finished and can make a <see cref="DPFile"/> or a <see cref="DPFolder"/>
+        /// FinalizeEntity indicates that the last entity is finished and can make a <see cref="IDPFile"/> or a <see cref="IDPFolder"/>
         /// It has to be done this way because 7z seperates the attributes within each line and the the callback is called
         /// for each line passed in.
         /// </summary>
         private void FinalizeEntity()
         {
             if (_lastEntity.isDirectory)
-                // Setting DPFolder to null will automatically create parent folders if they don't exist or
+                // Setting IDPFolder to null will automatically create parent folders if they don't exist or
                 // automatically add the folder to the parent folder if it does exist.
-                new DPFolder(_lastEntity.Path, workingArchive, null);
+                FolderFactory.CreateFolder(_lastEntity.Path, workingArchive, null);
             else
-                DPFile.CreateNewFile(_lastEntity.Path, workingArchive, null);
+                FileFactory.CreateNewFile(_lastEntity.Path, workingArchive, null);
         }
 
         private DPExtractionReport StartExtractionProcess(string tempFolder, bool tempOnly = false)
@@ -403,7 +405,7 @@ namespace DAZ_Installer.Core.Extraction
         /// <summary>
         /// Logs the error, emits the error event, and adds the file to the report if it is not null.
         /// </summary>
-        private void handleError(DPArchive arc, string msg, DPFile? file, DPExtractionReport? report, Exception? ex)
+        private void handleError(IDPArchive arc, string msg, IDPFile? file, DPExtractionReport? report, Exception? ex)
         {
             using var _ = LogContext.PushProperty("Archive", arc.FileName);
             Logger.Error(ex, msg);
@@ -419,7 +421,7 @@ namespace DAZ_Installer.Core.Extraction
             Logger.Information(extractToTemp ? "Preparing to extract to temp" : "Preparing to extract");
             Logger.Debug("Extract(settings) = \n{@settings}", settings);
             FileSystem = settings.Archive.FileSystem;
-            DPArchive archive = workingArchive = settings.Archive;
+            IDPArchive archive = workingArchive = settings.Archive;
             tempOnly = extractToTemp;
             CancellationToken = settings.CancelToken;
             if (archive.Contents.Count == 0)

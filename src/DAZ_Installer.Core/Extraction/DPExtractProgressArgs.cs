@@ -12,14 +12,14 @@
         /// <summary>
         /// The archive that is currently extracting files.
         /// </summary>
-        public readonly DPArchive Archive;
+        public readonly IDPArchive Archive;
         /// <summary>
         /// The file that is currently being extracted from archive. Sometimes this is null. This can occur
         /// when the archive has just finished the extraction process.
         /// </summary>
-        public readonly DPAbstractNode? File;
+        public readonly IDPAbstractNode? File;
 
-        internal DPExtractProgressArgs(byte percent, DPArchive archive, DPAbstractNode? file) : base()
+        internal DPExtractProgressArgs(byte percent, IDPArchive archive, IDPAbstractNode? file) : base()
         {
             ExtractionPercentage = percent;
             Archive = archive;

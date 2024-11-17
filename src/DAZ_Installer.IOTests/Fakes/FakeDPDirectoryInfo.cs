@@ -1,4 +1,6 @@
 ﻿
+using Moq;
+#pragma warning disable CS0618 // As intended, for testing purposes.
 namespace DAZ_Installer.IO.Fakes
 {
     public class FakeDPDirectoryInfo : IDPDirectoryInfo
@@ -7,6 +9,7 @@ namespace DAZ_Installer.IO.Fakes
 
         /// <inheritdoc cref="DPDirectoryInfo(IDirectoryInfo, DPIOContext, IDPDirectoryInfo)"/>
         public FakeDPDirectoryInfo(IDirectoryInfo info, AbstractFileSystem ctx, IDPDirectoryInfo? parent) => this.info = new DPDirectoryInfo(info, ctx, parent);
+        public FakeDPDirectoryInfo(string path, AbstractFileSystem ctx, IDPDirectoryInfo? parent) => this.info = new DPDirectoryInfo(new Mock<FakeDirectoryInfo>(path) { CallBase = true }.Object, ctx, parent);
 
         public virtual IDPDirectoryInfo? Parent => ((IDPDirectoryInfo)info).Parent;
 

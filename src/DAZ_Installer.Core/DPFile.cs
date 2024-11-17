@@ -7,10 +7,8 @@ using Serilog;
 using IOPath = System.IO.Path;
 namespace DAZ_Installer.Core
 {
-    /// <summary>
-    /// A <see cref="DPFile"/> is a regular file that can be found in a <see cref="DPArchive"/> or a <see cref="DPFolder"/>.
-    /// </summary>
-    public class DPFile : DPAbstractNode
+    /// <inheritdoc/>
+    public class DPFile : DPAbstractNode, IDPFile
     {
         // Public static members
         /// <summary>
@@ -42,12 +40,23 @@ namespace DAZ_Installer.Core
         /// </summary>
         public static readonly HashSet<string> AcceptableImportFormats = new() { "rar", "zip", "7z", "001" };
         /// <summary>
+        /// A factory to create folders.
+        /// </summary>
+        /// <returns>
+        /// Inherits the folder factory from <see cref="DPAbstractNode.AssociatedArchive"/> otherwise 
+        /// fallbacks to <see cref="DPFolderFactory"/>
+        /// </returns>
+        public IDPFolderFactory FolderFactory => AssociatedArchive?.FolderFactory ?? DPFolderFactory.Instance;
+        /// <summary>
         /// A list of tags that are associated with the file. This is typically initialized with the file name.
         /// </summary>
         public List<string> Tags { get; set; } = new List<string>(0);
         /// <summary>
-        /// The FileInfo object to use for moving, copying, and deleting files. Typically this is a <see cref="DPFileInfo"/>. 
+        /// <inheritdoc/>
         /// </summary>
+        /// <remarks>
+        /// Typically, this is a <see cref="DPFileInfo"/> object. This is set by the extractor when the file is extracted.
+        /// </remarks>
         public IDPFileInfo? FileInfo { get; set; }
         /// <summary>
         /// The logger to use; typically this is of type <see cref="Log"/>. If you override this, make sure to use <see cref="ILogger.ForContext{TSource}()"/>.
@@ -57,26 +66,21 @@ namespace DAZ_Installer.Core
         // Properties that are generally used for extraction.
 
         /// <summary>
-        /// Determines whether the file has been extracted or not; this simply checks if <see cref="FileInfo"/> is null or not. <br/>
+        /// <inheritdoc/>
+        /// </summary>
+        /// <remarks>
         /// This is because the extractor will not set <see cref="FileInfo"/> until the file has been extracted. <br/> This does not necessarily
         /// mean that the file has been extracted to the target path (eg. extracted to temp first). <br/>
         /// If you wish to check if the file has been extracted to the target path,
         /// use <see cref="ExtractedToTarget"/>.
-        /// </summary>
+        /// </remarks>
         /// <seealso cref="ExtractedToTarget"/>
         public bool Extracted => FileInfo != null;
-        /// <summary>
-        /// Determines whether the file has been extracted to the target path or not. <para/>
-        /// </summary>
+        /// <inheritdoc/>
         public bool ExtractedToTarget => FileInfo != null && !string.IsNullOrEmpty(TargetPath) && FileInfo.Path == IOPath.GetFullPath(TargetPath);
-        /// <summary>
-        /// The FileInfo object that represents the file that is on disk. This should only be set during initialization
-        /// or by the extractor.
-        /// </summary>
         #endregion
 
         // TO DO : Add get tags func.
-        // TO DO: Add static function to search for a property.
         static DPFile()
         {
             foreach (var eName in Enum.GetNames(typeof(ContentType)))
@@ -91,14 +95,14 @@ namespace DAZ_Installer.Core
         public DPFile() { }
 
         /// <summary>
-        /// A public constructor required for setting up this file that is connected to a <see cref="DPArchive"/>.
+        /// A public constructor required for setting up this file that is connected to a <see cref="IDPArchive"/>.
         /// </summary>
         /// <param name="_path">The path to set for this file.</param>
         /// <param name="arc">The archive to associate to, if any.</param>
         /// <param name="__parent">The parent folder for this file, if any.</param>
         /// <exception cref="InvalidOperationException">File already exists in <paramref name="arc"/>.</exception>
         /// <exception cref="ArgumentNullException">If <paramref name="_path"/> is null</exception>"
-        public DPFile(string _path, DPArchive? arc, DPFolder? __parent) : base(_path, arc)
+        public DPFile(string _path, IDPArchive? arc, IDPFolder? __parent) : base(_path, arc)
         {
             ArgumentNullException.ThrowIfNull(_path, nameof(_path));
             if (GetType() == typeof(DPFile)) Logger.Debug("Creating new DPFile for {0}", Path);
@@ -112,7 +116,7 @@ namespace DAZ_Installer.Core
         }
 
         /// <summary>
-        /// A testing constructor intended for testing purposes only. This calls <see cref="DPFile(string, DPArchive?, DPFolder?)"/> 
+        /// A testing constructor intended for testing purposes only. This calls <see cref="DPFile(string, IDPArchive?, IDPFolder?)"/> 
         /// constructor which means that the file will be added to the archive if <paramref name="arc"/> is not null, create missing folders,
         /// initialize tags, set the parent, etc.
         /// </summary>
@@ -121,59 +125,17 @@ namespace DAZ_Installer.Core
         /// <param name="__parent">The parent folder for this file, if any.</param>
         /// <param name="fileInfo">The related system FileInfo object, if any.</param>
         /// <param name="logger">The logger to use.</param>
-        public DPFile(string _path, DPArchive? arc, DPFolder? __parent, IDPFileInfo? fileInfo, ILogger logger) : this(_path, arc, __parent)
+        public DPFile(string _path, IDPArchive? arc, IDPFolder? __parent, IDPFileInfo? fileInfo, ILogger logger) : this(_path, arc, __parent)
         {
             FileInfo = fileInfo;
             Logger = logger;
         }
 
         /// <summary>
-        /// A factory method that creates a new file based on the extension of the file. 
-        /// If the extension is not recognized, then a regular <see cref="DPFile"/> is created.
-        /// If the extension is recognized, then a specialized file is created. <br/>
-        /// If the extension is "dsf" or "duf", then a <see cref="DPDazFile"/> is created. <br/>
-        /// If the extension is "dsx", then a <see cref="DPDSXFile"/> is created. <br/>
-        /// If the extension is in <see cref="AcceptableImportFormats"/>, then a <see cref="DPArchive"/> is created. <br/>
-        /// </summary>
-        /// <param name="path">The path to set for this file.</param>
-        /// <param name="arc">The associated archive to set for this file, if any.</param>
-        /// <param name="parent">The parent folder for this file, if any.</param>
-        /// <returns>Either a <see cref="DPArchive"/>, <see cref="DPDazFile"/>, <see cref="DPDSXFile"/>, or a <see cref="DPFile"/>.</returns>
-        public static DPFile CreateNewFile(string path, DPArchive? arc, DPFolder? parent)
-        {
-            var ext = GetExtension(path);
-            if (ext == "dsf" || ext == "duf")
-            {
-                ArgumentNullException.ThrowIfNull(arc, nameof(arc));
-                return new DPDazFile(path, arc, parent);
-            }
-            else if (ext == "dsx")
-            {
-                ArgumentNullException.ThrowIfNull(arc, nameof(arc));
-                return new DPDSXFile(path, arc, parent);
-            }
-            else if (AcceptableImportFormats.Contains(ext))
-                return new DPArchive(path, arc, parent);
-            return new DPFile(path, arc, parent);
-        }
-
-        /// <summary>
-        /// Attempts to move the file to the given path. This simply calls <see cref="FileInfo.MoveTo(string, bool)"/> to move
-        /// the file <b>in file system space</b> (not in archive space). Throws exceptions.
-        /// </summary>
-        /// <param name="path">The path to move to (must exist and have access to it).</param>
-        public void MoveTo(string path) => FileInfo?.MoveTo(path, true);
-        /// <summary>
-        /// Attempts to delete the file <b>in file system space</b> (not archive space). 
-        /// This simply calls <see cref="FileInfo.Delete"/> to delete the file. Throws exceptions.
-        /// </summary>
-        public void Delete() => FileInfo?.Delete();
-
-        /// <summary>
         /// Updates the parent of the file (or archive).
         /// </summary>
         /// <param name="newParent">The folder that will be the new parent of the file (or archive). </param>
-        protected override void UpdateParent(DPFolder? newParent)
+        protected override void UpdateParent(IDPFolder? newParent)
         {
             // If we were null, but now we're not...
             if (parent == null && newParent != null)
@@ -197,14 +159,14 @@ namespace DAZ_Installer.Core
                     return;
                 }
                 // Try to find a parent.
-                DPFolder? potParent = AssociatedArchive.FindParent(this);
+                IDPFolder? potParent = AssociatedArchive.FindParent(this);
 
                 // If we found a parent, then update it. This function will be called again.
                 if (potParent != null) Parent = potParent;
                 else
                 {
                     // Create a folder for us.
-                    potParent = DPFolder.CreateFoldersForFile(Path, AssociatedArchive);
+                    potParent = FolderFactory.CreateFolders(Path, AssociatedArchive);
 
                     // If we have successfully created a folder for us, then update it. This function will be called again.
                     if (potParent != null) Parent = potParent;
@@ -280,7 +242,7 @@ namespace DAZ_Installer.Core
         /// <param name="type">The content type defined in the <see cref="DPDazFile"/> content info.</param>
         /// <param name="file">The file to use.</param>
         /// <returns>The content type based on the parameters.</returns>
-        public static ContentType GetContentType(string? type, DPFile file)
+        public static ContentType GetContentType(string? type, IDPFile file)
         {
             if (!string.IsNullOrEmpty(type) && enumPairs.TryGetValue(type, out ContentType contentType))
                 return contentType;
