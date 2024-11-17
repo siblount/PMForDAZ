@@ -1,25 +1,21 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
-
   <PropertyGroup>
-    <TargetFramework>net6.0-windows</TargetFramework>
+    <TargetFramework>net8.0-windows</TargetFramework>
     <Nullable>enable</Nullable>
     <UseWindowsForms>true</UseWindowsForms>
     <ImplicitUsings>enable</ImplicitUsings>
     <Platforms>AnyCPU;x64</Platforms>
   </PropertyGroup>
-
   <ItemGroup>
-    <PackageReference Include="Serilog" Version="3.1.1" />
-    <PackageReference Include="Serilog.Expressions" Version="4.0.0" />
-    <PackageReference Include="Serilog.Sinks.Debug" Version="2.0.0" />
-    <PackageReference Include="Serilog.Sinks.File" Version="5.0.0" />
+    <PackageReference Include="Serilog" />
+    <PackageReference Include="Serilog.Expressions" />
+    <PackageReference Include="Serilog.Sinks.Debug" />
+    <PackageReference Include="Serilog.Sinks.File" />
   </ItemGroup>
-
   <ItemGroup>
     <ProjectReference Include="..\DAZ_Installer.Core\DAZ_Installer.Core.csproj" />
     <ProjectReference Include="..\DAZ_Installer.Database\DAZ_Installer.Database.csproj" />
   </ItemGroup>
-
   <ItemGroup>
     <Compile Update="LibraryItem.cs">
       <SubType>UserControl</SubType>
@@ -34,5 +30,4 @@
       <SubType>UserControl</SubType>
     </Compile>
   </ItemGroup>
-
 </Project>

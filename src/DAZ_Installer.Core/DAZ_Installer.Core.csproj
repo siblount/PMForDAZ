@@ -1,30 +1,24 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
-
   <PropertyGroup>
-    <TargetFramework>net6.0</TargetFramework>
+    <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <PlatformTarget>x64</PlatformTarget>
     <Platforms>AnyCPU;x64</Platforms>
   </PropertyGroup>
-
   <ItemGroup>
     <Compile Remove="Utilities\**" />
     <EmbeddedResource Remove="Utilities\**" />
     <None Remove="Utilities\**" />
   </ItemGroup>
-
   <ItemGroup>
-    <PackageReference Include="Serilog" Version="3.1.1" />
-    <PackageReference Include="Serilog.Expressions" Version="4.0.0" />
-    <PackageReference Include="Serilog.Sinks.Debug" Version="2.0.0" />
-    <PackageReference Include="Serilog.Sinks.File" Version="5.0.0" />
+    <PackageReference Include="Serilog" />
+    <PackageReference Include="Serilog.Expressions" />
+    <PackageReference Include="Serilog.Sinks.Debug" />
+    <PackageReference Include="Serilog.Sinks.File" />
   </ItemGroup>
-
   <ItemGroup>
     <ProjectReference Include="..\DAZ_Installer.IO\DAZ_Installer.IO.csproj" />
   </ItemGroup>
-
   <Import Project="..\DAZ_Installer.Common\DAZ_Installer.Common.projitems" Label="Shared" />
-
 </Project>
