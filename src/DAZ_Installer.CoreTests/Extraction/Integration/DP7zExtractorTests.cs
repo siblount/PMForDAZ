@@ -71,8 +71,15 @@ namespace DAZ_Installer.Core.Extraction.Integration.Tests
         [ClassCleanup]
         public static void ClassCleanup()
         {
-            Directory.Delete(TempPath, true);
-            Directory.Delete(ExtractPath, true);
+            try
+            {
+                Directory.Delete(TempPath, true);
+                Directory.Delete(ExtractPath, true);
+            }
+            catch (Exception e)
+            {
+                Log.Warning(e, "Failed to clean up temp directory");
+            }
         }
 
         [TestCleanup]

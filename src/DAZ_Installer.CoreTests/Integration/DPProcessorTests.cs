@@ -39,7 +39,6 @@ namespace DAZ_Installer.Core.Integration.Tests
         public static void ClassCleanup()
         {
             Directory.Delete(TempPath, true);
-            Directory.Delete(ExtractPath, true);
         }
 
         [TestCleanup]

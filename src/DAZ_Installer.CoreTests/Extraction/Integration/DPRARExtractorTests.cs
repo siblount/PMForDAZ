@@ -47,7 +47,14 @@ namespace DAZ_Installer.Core.Extraction.Integration.Tests
         public void Cleanup()
         {
             MSTestLogger.LogMessage("Cleaning up...");
-            Directory.Delete(ExtractPath, true);
+            try
+            {
+                Directory.Delete(ExtractPath, true);
+            }
+            catch (Exception e)
+            {
+                MSTestLogger.LogMessage($"Failed to delete {ExtractPath}: {e.Message}");
+            }
         }
 
         [TestInitialize]
