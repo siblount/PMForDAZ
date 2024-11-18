@@ -66,17 +66,6 @@ namespace DAZ_Installer.Core.Tests
                 OverwriteFiles = DefaultProcessSettings.OverwriteFiles,
             };
             var expectedProgressArgs = new DPExtractProgressArgs(100, arc, null);
-
-            // Setup DSX file
-            var dsxFile = new Mock<FakeDPDSXFile>("a.dsx", null!, mocks.Archive, true) { CallBase = true };
-            var dsxFileInfo = Mock.Get(mocks.FakeFileSystem.CreateFileInfo("a.dsx"));
-            dsxFile.Object.FileInfo = dsxFileInfo.Object;
-            dsxFileInfo.Setup(x => x.Exists).Returns(true);
-            dsxFileInfo.Setup(x => x.TryAndFixOpenRead(out It.Ref<Stream>.IsAny!, out It.Ref<Exception>.IsAny!))
-                        .Callback((out Stream s, out Exception? e) => {
-                                s = new MemoryStream();
-                                e = null;
-                        }).Returns(true);
             
             var expectedTempExtractSettings = expectedExtractSettings;
 
@@ -145,17 +134,6 @@ namespace DAZ_Installer.Core.Tests
                 OverwriteFiles = DefaultProcessSettings.OverwriteFiles,
             };
             var expectedProgressArgs = new DPExtractProgressArgs(100, arc, null);
-
-            // Setup DSX file
-            var dsxFile = new Mock<FakeDPDSXFile>("a.dsx", null!, mocks.Archive, true) { CallBase = true };
-            var dsxFileInfo = Mock.Get(mocks.FakeFileSystem.CreateFileInfo("a.dsx"));
-            dsxFile.Object.FileInfo = dsxFileInfo.Object;
-            dsxFileInfo.Setup(x => x.Exists).Returns(true);
-            dsxFileInfo.Setup(x => x.TryAndFixOpenRead(out It.Ref<Stream>.IsAny!, out It.Ref<Exception>.IsAny!))
-                        .Callback((out Stream s, out Exception? e) => {
-                                s = new MemoryStream();
-                                e = null;
-                        }).Returns(true);
             
             var expectedTempExtractSettings = expectedExtractSettings;
 
@@ -229,17 +207,6 @@ namespace DAZ_Installer.Core.Tests
             };
             var expectedProgressArgs = new DPExtractProgressArgs(100, arc, null);
 
-            // Setup DSX file
-            var dsxFile = new Mock<FakeDPDSXFile>("a.dsx", null!, mocks.Archive, true) { CallBase = true };
-            var dsxFileInfo = Mock.Get(mocks.FakeFileSystem.CreateFileInfo("a.dsx"));
-            dsxFile.Object.FileInfo = dsxFileInfo.Object;
-            dsxFileInfo.Setup(x => x.Exists).Returns(true);
-            dsxFileInfo.Setup(x => x.TryAndFixOpenRead(out It.Ref<Stream>.IsAny!, out It.Ref<Exception>.IsAny!))
-                        .Callback((out Stream s, out Exception? e) => {
-                            s = new MemoryStream();
-                            e = null;
-                        }).Returns(true);
-
             var expectedTempExtractSettings = expectedExtractSettings;
 
             var expectedProcessorStates1 = ProcessorState.Starting | ProcessorState.PreparingExtraction;
@@ -265,6 +232,142 @@ namespace DAZ_Installer.Core.Tests
             DPProcessorTestHelpers.VerifyExtractContentsCalled(true, mocks.MockArchive, expectedTempExtractSettings, Times.Exactly(2));
             mocks.MockArchive.VerifySet(x => x.Type = It.IsAny<ArchiveType>(), Times.Once(), "Processor did not set Archive.Type");
             processorMocks.MockTagProvider.Verify(x => x.GetTags(arc, DefaultProcessSettings), Times.Once(), "Processor did not call GetTags on the TagProvider with process settings");
+        }
+
+        [TestMethod]
+        public async Task ProcessArchiveTest_FailedToCreateTempStillSucceeds()
+        {
+            var arc = DPProcessorTestHelpers.NewMockedArchive(DPProcessorTestHelpers.DefaultMockOptions, out var mocks);
+            var po = new DPProcessorTestHelpers.ProcessorOptions() { Archive = arc, FileSystem = mocks.FakeFileSystem, Settings = DefaultProcessSettings };
+            var p = DPProcessorTestHelpers.SetupProcessor(po, out var processorMocks);
+            var processorTask = new DPProcessorTestHelpers.AssertableTask(() => p.ProcessArchive(mocks.FakeDPFileInfo.Path, DefaultProcessSettings));
+
+            processorMocks.MockDestinationDeterminer.Setup(x => x.DetermineDestinations(It.IsAny<IDPArchive>(), It.IsAny<DPProcessSettings>()))
+                                                    .Returns(new HashSet<IDPFile>()); // Used to set DPExtractSettings.FilesToExtract
+            processorMocks.FakeDriveInfo.AvailableFreeSpace = long.MaxValue; // Satisfy DestinationHasEnoughSpace()
+            var expectedReport = new DPExtractionReport() { ExtractedFiles = new List<IDPFile>() { new FakeDPFile() } };
+
+            // Setup extractor to raise ExtractProgress event
+            mocks.MockExtractor.Setup(x => x.Extract(It.IsAny<DPExtractSettings>()))
+                               .Returns(new DPExtractionReport())
+                               .Raises(x => x.ExtractProgress += null, arc, new DPExtractProgressArgs(100, arc, null));
+            mocks.MockArchive.Setup(x => x.ExtractContents(It.IsAny<DPExtractSettings>()))
+                             .Returns(expectedReport)
+                             .Callback(() => mocks.Extractor.Extract(new DPExtractSettings())); // Used to call ExtractionProgress event
+            // Setup mock archive to not call base.
+            mocks.MockArchive.Setup(x => x.ExtractContentsToTemp(It.IsAny<DPExtractSettings>())).Returns(new DPExtractionReport());
+            mocks.MockArchive.Setup(x => x.PeekContents(It.IsAny<string>())).Callback(() => { });
+
+            // Do not call base for FakeTempDirectoryInfo otherwise will run into issues with Create().
+            processorMocks.MockFakeTempDirectoryInfo.CallBase = false;
+            var expectedException = new Exception("Failed to create temp directory.");
+            processorMocks.MockFakeTempDirectoryInfo.Setup(x => x.Create()).Throws(expectedException);
+            // Setup file system to return specific temp directory info.
+            mocks.MockFakeFileSystem.Setup(x => x.CreateDirectoryInfo(Path.Combine(DefaultProcessSettings.TempPath, @"DazProductInstaller\")))
+                                    .Returns(processorMocks.FakeTempDirectoryInfo);
+            mocks.MockFakeFileSystem.Setup(x => x.CreateDriveInfo(DefaultProcessSettings.DestinationPath))
+                                    .Returns(processorMocks.FakeDriveInfo);
+
+            var expectedExtractSettings = new DPExtractSettings()
+            {
+                TempPath = Path.Combine(DefaultProcessSettings.TempPath, @"DazProductInstaller\"),
+                Archive = arc,
+                FilesToExtract = new HashSet<IDPFile>(),
+                OverwriteFiles = DefaultProcessSettings.OverwriteFiles,
+            };
+            var expectedProgressArgs = new DPExtractProgressArgs(100, arc, null);
+            var expectedTempExtractSettings = expectedExtractSettings;
+
+            var expectedProcessorStates = ProcessorState.Starting | ProcessorState.PreparingExtraction | ProcessorState.Peeking | ProcessorState.Extracting | ProcessorState.Analyzing;
+            var expectedErrorArgs = new DPProcessorErrorArgs(expectedException, "Unable to create temp directory.") { Continuable = true };
+            var assertTasks = new Task[] {
+                DPProcessorTestHelpers.AssertArchiveEnter(p, processorTask, arc),
+                DPProcessorTestHelpers.AssertState(p, arc, expectedProcessorStates, processorTask),
+                DPProcessorTestHelpers.AssertProcessorError(p, processorTask, expectedErrorArgs),
+                DPProcessorTestHelpers.AssertExtractionProgress(p, processorTask, expectedProgressArgs),
+                DPProcessorTestHelpers.AssertAnyArchiveExit(p, processorTask, true, expectedReport, arc),
+                DPProcessorTestHelpers.AssertFinished(p, processorTask),
+            };
+
+            processorTask.RunSynchronously();
+            await Task.WhenAll(assertTasks);
+
+            processorTask.Assert();
+            p.ArchiveCancellationSource.Cancel(); // Cancel afterward to test if CancellationToken is set properly.
+            Assert.IsTrue(mocks.Extractor.CancellationToken.IsCancellationRequested, "Cancellation token was not set properly for extractor.");
+            mocks.MockArchive.Verify(x => x.PeekContents(It.IsAny<string>()), Times.Once(), "Processor did not call PeekContents");
+            DPProcessorTestHelpers.VerifyExtractContentsCalled(false, mocks.MockArchive, expectedExtractSettings, Times.Once());
+            DPProcessorTestHelpers.VerifyExtractContentsCalled(true, mocks.MockArchive, expectedTempExtractSettings, Times.Once());
+            mocks.MockArchive.VerifySet(x => x.Type = It.IsAny<ArchiveType>(), Times.Once(), "Processor did not set Archive.Type");
+            processorMocks.MockTagProvider.Verify(x => x.GetTags(arc, DefaultProcessSettings), Times.Once(), "Processor did not call GetTags on the TagProvider with process settings");
+            processorMocks.MockFakeTempDirectoryInfo.Verify(x => x.Delete(true), Times.Never(), "Processor did not attempt to delete temp directory.");
+        }
+
+        [TestMethod]
+        public async Task ProcessArchiveTest_ClearTempErrorStillSucceeds()
+        {
+            var arc = DPProcessorTestHelpers.NewMockedArchive(DPProcessorTestHelpers.DefaultMockOptions, out var mocks);
+            var po = new DPProcessorTestHelpers.ProcessorOptions() { Archive = arc, FileSystem = mocks.FakeFileSystem, Settings = DefaultProcessSettings };
+            var p = DPProcessorTestHelpers.SetupProcessor(po, out var processorMocks);
+            var processorTask = new DPProcessorTestHelpers.AssertableTask(() => p.ProcessArchive(mocks.FakeDPFileInfo.Path, DefaultProcessSettings));
+
+            processorMocks.MockDestinationDeterminer.Setup(x => x.DetermineDestinations(It.IsAny<IDPArchive>(), It.IsAny<DPProcessSettings>()))
+                                                    .Returns(new HashSet<IDPFile>()); // Used to set DPExtractSettings.FilesToExtract
+            processorMocks.FakeDriveInfo.AvailableFreeSpace = long.MaxValue; // Satisfy DestinationHasEnoughSpace()
+            var expectedReport = new DPExtractionReport() { ExtractedFiles = new List<IDPFile>() { new FakeDPFile() } };
+
+            // Setup extractor to raise ExtractProgress event
+            mocks.MockExtractor.Setup(x => x.Extract(It.IsAny<DPExtractSettings>()))
+                               .Returns(new DPExtractionReport())
+                               .Raises(x => x.ExtractProgress += null, arc, new DPExtractProgressArgs(100, arc, null));
+            mocks.MockArchive.Setup(x => x.ExtractContents(It.IsAny<DPExtractSettings>()))
+                             .Returns(expectedReport)
+                             .Callback(() => mocks.Extractor.Extract(new DPExtractSettings())); // Used to call ExtractionProgress event
+            // Setup mock archive to not call base.
+            mocks.MockArchive.Setup(x => x.ExtractContentsToTemp(It.IsAny<DPExtractSettings>())).Returns(new DPExtractionReport());
+            mocks.MockArchive.Setup(x => x.PeekContents(It.IsAny<string>())).Callback(() => { });
+
+            // Do not call base for FakeTempDirectoryInfo otherwise will run into issues with Create().
+            processorMocks.MockFakeTempDirectoryInfo.CallBase = false;
+            var expectedException = new Exception("Failed to clear temp location");
+            processorMocks.MockFakeTempDirectoryInfo.Setup(x => x.Delete(true)).Throws(expectedException);
+            // Setup file system to return specific temp directory info.
+            mocks.MockFakeFileSystem.Setup(x => x.CreateDirectoryInfo(Path.Combine(DefaultProcessSettings.TempPath, @"DazProductInstaller\")))
+                                    .Returns(processorMocks.FakeTempDirectoryInfo);
+            mocks.MockFakeFileSystem.Setup(x => x.CreateDriveInfo(DefaultProcessSettings.DestinationPath))
+                                    .Returns(processorMocks.FakeDriveInfo);
+
+            var expectedExtractSettings = new DPExtractSettings()
+            {
+                TempPath = Path.Combine(DefaultProcessSettings.TempPath, @"DazProductInstaller\"),
+                Archive = arc,
+                FilesToExtract = new HashSet<IDPFile>(),
+                OverwriteFiles = DefaultProcessSettings.OverwriteFiles,
+            };
+            var expectedProgressArgs = new DPExtractProgressArgs(100, arc, null);
+            var expectedTempExtractSettings = expectedExtractSettings;
+
+            var expectedProcessorStates = ProcessorState.Starting | ProcessorState.PreparingExtraction | ProcessorState.Peeking | ProcessorState.Extracting | ProcessorState.Analyzing;
+            var assertTasks = new Task[] {
+                DPProcessorTestHelpers.AssertArchiveEnter(p, processorTask, arc),
+                DPProcessorTestHelpers.AssertState(p, arc, expectedProcessorStates, processorTask),
+                DPProcessorTestHelpers.AssertExtractionProgress(p, processorTask, expectedProgressArgs),
+                DPProcessorTestHelpers.AssertAnyArchiveExit(p, processorTask, true, expectedReport, arc),
+                DPProcessorTestHelpers.AssertFinished(p, processorTask),
+            };
+
+            processorTask.RunSynchronously();
+            await Task.WhenAll(assertTasks);
+
+            processorTask.Assert();
+            p.ArchiveCancellationSource.Cancel(); // Cancel afterward to test if CancellationToken is set properly.
+            Assert.IsTrue(mocks.Extractor.CancellationToken.IsCancellationRequested, "Cancellation token was not set properly for extractor.");
+            mocks.MockArchive.Verify(x => x.PeekContents(It.IsAny<string>()), Times.Once(), "Processor did not call PeekContents");
+            DPProcessorTestHelpers.VerifyExtractContentsCalled(false, mocks.MockArchive, expectedExtractSettings, Times.Once());
+            DPProcessorTestHelpers.VerifyExtractContentsCalled(true, mocks.MockArchive, expectedTempExtractSettings, Times.Once());
+            mocks.MockArchive.VerifySet(x => x.Type = It.IsAny<ArchiveType>(), Times.Once(), "Processor did not set Archive.Type");
+            processorMocks.MockTagProvider.Verify(x => x.GetTags(arc, DefaultProcessSettings), Times.Once(), "Processor did not call GetTags on the TagProvider with process settings");
+            processorMocks.MockFakeTempDirectoryInfo.Verify(x => x.Delete(true), Times.Never(), "Processor did not attempt to delete temp directory.");
         }
 
         [TestMethod]
@@ -740,18 +843,6 @@ namespace DAZ_Installer.Core.Tests
                 OverwriteFiles = DefaultProcessSettings.OverwriteFiles,
             };
             var expectedProgressArgs = new DPExtractProgressArgs(100, arc, null);
-
-            // Setup DSX file
-            var dsxFile = new Mock<FakeDPDSXFile>("a.dsx", null!, mocks.Archive, true) { CallBase = true };
-            var dsxFileInfo = Mock.Get(mocks.FakeFileSystem.CreateFileInfo("a.dsx"));
-            dsxFile.Object.FileInfo = dsxFileInfo.Object;
-            dsxFileInfo.Setup(x => x.Exists).Returns(true);
-            dsxFileInfo.Setup(x => x.TryAndFixOpenRead(out It.Ref<Stream>.IsAny!, out It.Ref<Exception>.IsAny!))
-                        .Callback((out Stream s, out Exception? e) => {
-                                s = new MemoryStream();
-                                e = null;
-                        }).Returns(true);
-            
             var expectedTempExtractSettings = expectedExtractSettings;
             var expectedProcessorErrorArgs = new DPProcessorErrorArgs(null, "Temp location does not have enough space") { Continuable = true };
             var expectedProcessorStates = ProcessorState.Starting | ProcessorState.PreparingExtraction | ProcessorState.Peeking | ProcessorState.Extracting | ProcessorState.Analyzing;
@@ -826,6 +917,74 @@ namespace DAZ_Installer.Core.Tests
 
             processorTask.Assert();
             StringAssert.Contains(bufferLogger.ToString(), "Temp location does not have enough space and there is no event handler for ProcessError");
+        }
+
+        [TestMethod]
+        public async Task ProcessArchiveTest_ErroraneousMetaFiles()
+        {
+            var arc = DPProcessorTestHelpers.NewMockedArchive(DPProcessorTestHelpers.DefaultMockOptions, out var mocks);
+            var po = new DPProcessorTestHelpers.ProcessorOptions() { Archive = arc, FileSystem = mocks.FakeFileSystem, Settings = DefaultProcessSettings };
+            var p = DPProcessorTestHelpers.SetupProcessor(po, out var processorMocks);
+            var processorTask = new DPProcessorTestHelpers.AssertableTask(() => p.ProcessArchive(mocks.FakeDPFileInfo.Path, DefaultProcessSettings));
+
+            processorMocks.MockDestinationDeterminer.Setup(x => x.DetermineDestinations(It.IsAny<IDPArchive>(), It.IsAny<DPProcessSettings>()))
+                                                    .Returns(new HashSet<IDPFile>()); // Used to set DPExtractSettings.FilesToExtract
+            var expectedReport = new DPExtractionReport() { ExtractedFiles = new List<IDPFile>() { new FakeDPFile() } };
+
+            // Setup extractor to raise ExtractProgress event
+            mocks.MockExtractor.Setup(x => x.Extract(It.IsAny<DPExtractSettings>()))
+                               .Returns(new DPExtractionReport())
+                               .Raises(x => x.ExtractProgress += null, arc, new DPExtractProgressArgs(100, arc, null));
+            mocks.MockArchive.Setup(x => x.ExtractContents(It.IsAny<DPExtractSettings>()))
+                             .Returns(expectedReport)
+                             .Callback(() => mocks.Extractor.Extract(new DPExtractSettings())); // Used to call ExtractionProgress event
+            // Setup mock archive to not call base.
+            mocks.MockArchive.Setup(x => x.ExtractContentsToTemp(It.IsAny<DPExtractSettings>())).Returns(new DPExtractionReport());
+            mocks.MockArchive.Setup(x => x.PeekContents(It.IsAny<string>())).Callback(() => { });
+
+            // Do not call base for FakeTempDirectoryInfo otherwise will run into issues with Create().
+            processorMocks.MockFakeTempDirectoryInfo.CallBase = false;
+            // Setup file system to return specific temp directory info.
+            mocks.MockFakeFileSystem.Setup(x => x.CreateDirectoryInfo(Path.Combine(DefaultProcessSettings.TempPath, @"DazProductInstaller\")))
+                                    .Returns(processorMocks.FakeTempDirectoryInfo);
+            mocks.MockFakeFileSystem.Setup(x => x.CreateDriveInfo(DefaultProcessSettings.DestinationPath))
+                                    .Returns(processorMocks.FakeDriveInfo);
+
+            var expectedExtractSettings = new DPExtractSettings()
+            {
+                TempPath = Path.Combine(DefaultProcessSettings.TempPath, @"DazProductInstaller\"),
+                Archive = arc,
+                FilesToExtract = new HashSet<IDPFile>(),
+                OverwriteFiles = DefaultProcessSettings.OverwriteFiles,
+            };
+            var expectedProgressArgs = new DPExtractProgressArgs(100, arc, null);
+            // Setup erroraneous meta file read.
+            var expectedMetareaderException = new Exception("Failed to open read stream for file for reading meta");
+            var expectedErrorArgs = new DPProcessorErrorArgs(expectedMetareaderException, "Failed to read metadata");
+            processorMocks.MockMetadataReader.Setup(x => x.ReadMetadata(It.IsAny<IEnumerable<IDPDSXFile>>(), It.IsAny<CancellationToken>())).Throws(expectedMetareaderException);
+            var expectedTempExtractSettings = expectedExtractSettings;
+            var expectedProcessorStates = ProcessorState.Starting | ProcessorState.PreparingExtraction | ProcessorState.Peeking | ProcessorState.Extracting | ProcessorState.Analyzing;
+            var assertTasks = new Task[] {
+                DPProcessorTestHelpers.AssertArchiveEnter(p, processorTask, arc),
+                DPProcessorTestHelpers.AssertState(p, arc, expectedProcessorStates, processorTask),
+                DPProcessorTestHelpers.AssertExtractionProgress(p, processorTask, expectedProgressArgs),
+                DPProcessorTestHelpers.AssertProcessorError(p, processorTask, expectedErrorArgs),
+                DPProcessorTestHelpers.AssertAnyArchiveExit(p, processorTask, true, expectedReport, arc),
+                DPProcessorTestHelpers.AssertFinished(p, processorTask),
+            };
+
+            processorTask.RunSynchronously();
+            await Task.WhenAll(assertTasks);
+
+            processorTask.Assert();
+            p.ArchiveCancellationSource.Cancel(); // Cancel afterward to test if CancellationToken is set properly.
+            Assert.IsTrue(mocks.Extractor.CancellationToken.IsCancellationRequested, "Cancellation token was not set properly for extractor.");
+            mocks.MockArchive.Verify(x => x.PeekContents(It.IsAny<string>()), Times.Once(), "Processor did not call PeekContents");
+            DPProcessorTestHelpers.VerifyExtractContentsCalled(false, mocks.MockArchive, expectedExtractSettings, Times.Once());
+            DPProcessorTestHelpers.VerifyExtractContentsCalled(true, mocks.MockArchive, expectedTempExtractSettings, Times.Once());
+            mocks.MockArchive.VerifySet(x => x.Type = It.IsAny<ArchiveType>(), Times.Once(), "Processor did not set Archive.Type");
+            processorMocks.MockTagProvider.Verify(x => x.GetTags(arc, DefaultProcessSettings), Times.Once(), "Processor did not call GetTags on the TagProvider with process settings");
+            processorMocks.MockFakeTempDirectoryInfo.Verify(x => x.Delete(true), Times.Never(), "Processor did not attempt to delete temp directory.");
         }
 
         [TestMethod]
@@ -1007,6 +1166,7 @@ namespace DAZ_Installer.Core.Tests
             Assert.AreSame(p.ParentArchiveFactory, DPParentArchiveFactory.Instance);
             Assert.AreSame(p.DestinationDeterminer, DPDestinationDeterminer.Singleton);
             Assert.AreSame(p.TagProvider, DPTagProvider.Singleton);
+            Assert.AreSame(p.MetadataReader, DPMetadataReader.Instance);
             Assert.IsInstanceOfType(p.FileSystem, typeof(DPFileSystem));
             Assert.IsInstanceOfType(p.Logger, typeof(Serilog.Core.Logger));
         }

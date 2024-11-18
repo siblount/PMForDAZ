@@ -26,6 +26,9 @@
     <ProjectReference Include="..\DAZ_Installer.IOTests\DAZ_Installer.IOTests.csproj" />
   </ItemGroup>
   <ItemGroup>
+    <None Update="Integration\Test Subjects\ExampleSupplement.dsx">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Update="Integration\Test Subjects\Test.rar">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>

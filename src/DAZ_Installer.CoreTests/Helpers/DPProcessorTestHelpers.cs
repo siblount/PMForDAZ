@@ -271,11 +271,16 @@ namespace DAZ_Installer.Core.Tests
             /// The mocked <see cref="FakeDPDriveInfo"/> that <see cref="DPProcessor"/> will use.
             /// </summary>
             public Mock<FakeDPDriveInfo> MockFakeDriveInfo;
+            /// <summary>
+            /// The mocked <see cref="MetadataReader"/> that <see cref="DPProcessor"/> will use.
+            /// </summary>
+            public Mock<IDPMetadataReader> MockMetadataReader;
             
             public readonly AbstractDestinationDeterminer DestinationDeterminer => MockDestinationDeterminer.Object;
             public readonly AbstractTagProvider TagProvider => MockTagProvider.Object;
             public readonly FakeDPDirectoryInfo FakeTempDirectoryInfo => MockFakeTempDirectoryInfo.Object;
             public readonly FakeDPDriveInfo FakeDriveInfo => MockFakeDriveInfo.Object;
+            public readonly IDPMetadataReader MetadataReader => MockMetadataReader.Object;
         }
 
         /// <summary>
@@ -327,8 +332,8 @@ namespace DAZ_Installer.Core.Tests
                 MockTagProvider = new Mock<AbstractTagProvider>(),
                 MockFakeTempDirectoryInfo = new Mock<FakeDPDirectoryInfo>(opts.Settings.TempPath, opts.FileSystem, null!) { CallBase = true },
                 MockFakeDriveInfo = new Mock<FakeDPDriveInfo>(opts.FileSystem, opts.Settings.DestinationPath) { CallBase = true },
+                MockMetadataReader = new Mock<IDPMetadataReader>()
             };
-            mocks.MockTagProvider = new Mock<AbstractTagProvider>();
             var paf = new Mock<IDPParentArchiveFactory>();
             paf.Setup(x => x.CreateNewParentArchive(It.IsAny<IDPFileInfo>())).Returns(opts.Archive);
             var p = new DPProcessor()
@@ -338,6 +343,7 @@ namespace DAZ_Installer.Core.Tests
                 DestinationDeterminer = mocks.DestinationDeterminer,
                 TagProvider = mocks.TagProvider,
                 ParentArchiveFactory = paf.Object,
+                MetadataReader = mocks.MetadataReader,
             };
             return p;
         }
@@ -533,6 +539,56 @@ namespace DAZ_Installer.Core.Tests
             // Wait for the processor to finish.
             await processorTask;
             if (!called) processorTask.AddAssertion(() => Assert.Fail("Error was not called"));
+        }
+
+        public static async Task AssertAnyProcessorError(DPProcessor processor, AssertableTask processorTask, params DPProcessorErrorArgs[] expected)
+        {
+            //var progressEvents = new List<DPExtractProgressArgs>();
+            //void func(DPProcessor p, DPExtractProgressArgs e)
+            //{
+            //    progressEvents.Add(e);
+            //}
+            //processor.ExtractProgress += func;
+
+            //await processorTask;
+
+            //processor.ExtractProgress -= func;
+
+            //processorTask.AddAssertion(() =>
+            //{
+            //    if (progressEvents.Count == 0) Assert.Fail("ExtractProgress was not called");
+            //    var matchingProgress = progressEvents.FirstOrDefault(e =>
+            //        expectedArgs.Any(expected =>
+            //            e.ExtractionPercentage == expected.ExtractionPercentage &&
+            //            e.Archive == expected.Archive &&
+            //            e.File == expected.File
+            //        )
+            //    );
+            //    if (matchingProgress == null)
+            //        Assert.Fail($"No matching ExtractProgress event found. Expected one of: [{string.Join(", ", expectedArgs.Select(a => $"{{Archive: {a.Archive.FileName}, File: {a.File?.Path}, Percentage: {a.ExtractionPercentage}}}"))}]");
+            //});
+            var processorErrorEvents = new List<DPProcessorErrorArgs>(2);
+            void func(DPProcessor p, DPProcessorErrorArgs e)
+            {
+                processorErrorEvents.Add(e);
+            }
+            processor.ProcessError += func;
+            await processorTask;
+            processor.ProcessError -= func;
+
+            processorTask.AddAssertion(() =>
+            {
+                if (processorErrorEvents.Count == 0) Assert.Fail("ProcessError was not called");
+                var matchingError = processorErrorEvents.FirstOrDefault(e =>
+                    expected.Any(expected =>
+                        e.Explaination == expected.Explaination &&
+                        e.Ex == expected.Ex &&
+                        e.Continuable == expected.Continuable
+                    )
+                );
+                if (matchingError == null)
+                    Assert.Fail($"No matching ProcessError event found. Expected one of: [{string.Join(", ", expected.Select(a => $"{{Explaination: {a.Explaination}, Ex: {a.Ex}, Continuable: {a.Continuable}}}"))}]");
+            });
         }
 
         /// <summary>
