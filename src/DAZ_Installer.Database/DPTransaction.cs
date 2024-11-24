@@ -23,7 +23,7 @@ namespace DAZ_Installer.Database
         /// <summary>
         /// Determines whether this transaction has been disposed.
         /// </summary>
-        public bool Disposed { get; protected set; } = false;
+        protected bool Disposed = false;
         /// <summary>
         /// The transaction object to wrap.
         /// </summary>
@@ -37,10 +37,13 @@ namespace DAZ_Installer.Database
         /// </summary>
         protected bool dispose;
         /// <summary>
-        /// The savepoint for this transaction. This is only used/set when this is not the parent transaction 
-        /// (when <see cref="parentTransaction"/> is null).
+        /// The savepoint for this transaction, if any. 
         /// </summary>
-        public string savepoint = string.Empty;
+        /// <remarks>
+        /// This is only used/set when this is not the parent transaction (when <see cref="parentTransaction"/> is null).
+        /// </remarks>
+        /// <value><see cref="string.Empty"/> if there is no savepoint, otherwise a GUID string.</value>
+        public string Savepoint { get; protected set; } = string.Empty;
 
         /// <summary>
         /// Creates a new DPTransaction.
@@ -63,8 +66,8 @@ namespace DAZ_Installer.Database
         internal DPTransaction(DPTransaction t) : this(t.transaction, false)
         {
             parentTransaction = t;
-            savepoint = Guid.NewGuid().ToString();
-            transaction.Save(savepoint);
+            Savepoint = Guid.NewGuid().ToString();
+            transaction.Save(Savepoint);
         }
 
         /// <summary>
@@ -83,7 +86,7 @@ namespace DAZ_Installer.Database
         public void Commit()
         {
             if (parentTransaction is null) transaction.Commit();
-            savepoint = string.Empty;
+            Savepoint = string.Empty;
         }
 
         /// <summary>
@@ -93,7 +96,7 @@ namespace DAZ_Installer.Database
         public void Rollback()
         {
             if (parentTransaction is null) transaction.Rollback();
-            else transaction.Rollback(savepoint);
+            else transaction.Rollback(Savepoint);
         }
 
         /// <summary>
@@ -109,9 +112,9 @@ namespace DAZ_Installer.Database
                 Disposed = true;
                 return;
             }
-            if (!string.IsNullOrEmpty(savepoint))
+            if (!string.IsNullOrEmpty(Savepoint))
             {
-                transaction.Rollback(savepoint);
+                transaction.Rollback(Savepoint);
             };
         }
     }
