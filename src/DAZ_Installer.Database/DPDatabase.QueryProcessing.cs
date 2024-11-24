@@ -18,7 +18,7 @@ namespace DAZ_Installer.Database
         /// <param name="c">The SqliteConnection to use. If null, a new connection will be created.</param>
         /// <param name="t">The cancellation token to use. Use <see cref="CancellationToken.None"/> if you never wish to cancel.</param>
         /// <returns></returns>
-        private List<DPProductRecordLite> DoSearchS(string searchQuery, DPSortMethod method, SqliteConnectionOpts opts)
+        private List<DPProductRecordLite> DoSearchS(string searchQuery, DPSortMethod method, DPConnectionOpts opts)
         {
             try
             {
@@ -43,7 +43,7 @@ namespace DAZ_Installer.Database
         /// </summary>
         /// <param name="limit">The limit amount of results to return.</param>
         /// <param name="method">The sorting method to apply to query results.</param>
-        private List<DPProductRecordLite> DoLibraryQuery(uint page, ulong limit, DPSortMethod method, SqliteConnectionOpts opts)   
+        private List<DPProductRecordLite> DoLibraryQuery(uint page, ulong limit, DPSortMethod method, DPConnectionOpts opts)   
         {
             try
             {

@@ -170,7 +170,7 @@ namespace DAZ_Installer.Database
                 if (File.Exists(Path)) Flags &= ~DPArchiveFlags.Missing;
                 else Flags |= DPArchiveFlags.Missing;
                 // TODO: Check if const database version is higher than the one in the database.
-                var opts = new SqliteConnectionOpts();
+                var opts = new DPConnectionOpts();
                 using var connection = CreateInitialConnection(ref opts);
                 if (!OpenConnection(connection)) return false;
                 if (Flags.HasFlag(DPArchiveFlags.Missing))
@@ -200,11 +200,11 @@ namespace DAZ_Installer.Database
         /// <summary>
         /// Creates and returns a connection with the connection string setup.
         /// </summary>
-        /// <seealso cref="CreateInitialConnection(ref SqliteConnectionOpts)"/>
+        /// <seealso cref="CreateInitialConnection(ref DPConnectionOpts)"/>
         /// <param name="opts">The options to (potentially) setup. This may update the Connection property. </param>
         /// <param name="readOnly">Determines if the connection should be a read-only
         /// connection or not.</param>
-        private void CreateConnection(ref SqliteConnectionOpts opts, bool readOnly = false)
+        private void CreateConnection(ref DPConnectionOpts opts, bool readOnly = false)
         {
             // If opts.Connection is not null, that connection will still work
             // since it was fine before. Commands will stop working if the database is locked.
@@ -240,11 +240,11 @@ namespace DAZ_Installer.Database
         /// <summary>
         /// Creates and returns a connection with the connection string setup. 
         /// This will always be a read-write connection. This should only be used during Initialization and for database updates.
-        /// Compared to <see cref="CreateConnection(ref SqliteConnectionOpts, bool)"/>, this does not check if the database is ready or if
+        /// Compared to <see cref="CreateConnection(ref DPConnectionOpts, bool)"/>, this does not check if the database is ready or if
         /// the database is Initialized. This will also create the database file if it does not exist.
         /// </summary>
         /// <returns>An SqliteConnection if successfully created, otherwise null.</returns>
-        private DPConnection? CreateInitialConnection(ref SqliteConnectionOpts opts)
+        private DPConnection? CreateInitialConnection(ref DPConnectionOpts opts)
         {
             try
             {
@@ -275,7 +275,7 @@ namespace DAZ_Installer.Database
         /// <returns>The connection passed if it isn't null and was successfully opened. 
         /// Otherwise, a new connection is passed if it was successfully opened. Otherwise,
         /// null is returned.</returns>
-        private DPConnection? CreateAndOpenConnection(ref SqliteConnectionOpts opts, bool readOnly = false)
+        private DPConnection? CreateAndOpenConnection(ref DPConnectionOpts opts, bool readOnly = false)
         {
             CreateConnection(ref opts, readOnly);
             var success = OpenConnection(opts.Connection);
@@ -307,7 +307,7 @@ namespace DAZ_Installer.Database
         /// <summary>
         /// Creates a new database file and sets it up for use.
         /// </summary>
-        private void CreateDatabase(SqliteConnectionOpts opts)
+        private void CreateDatabase(DPConnectionOpts opts)
         {
             if (!Directory.Exists(Path))
                 Directory.CreateDirectory(System.IO.Path.GetDirectoryName(Path)!);
@@ -342,7 +342,7 @@ namespace DAZ_Installer.Database
         /// <param name="c">The SqliteConnection to use, if any. Recommended to use a connection, otherwise use <c>CreateTables()</c> instead.</param>
         /// <param name="t">The cancellation token to use, if any. Use <see cref="CancellationToken.None"/> if it should never cancel.</param>
         /// <returns>Whether creating tables was a success.</returns>
-        private bool CreateTables(SqliteConnectionOpts opts)
+        private bool CreateTables(DPConnectionOpts opts)
         {
             var cmd = $@"
             CREATE TABLE IF NOT EXISTS {ProductTable} (
@@ -397,7 +397,7 @@ namespace DAZ_Installer.Database
         /// </summary>
         /// <param name="opts">The SqliteConnection to use, if any.</param>
         /// <returns>Whether creating indexes was a success.</returns>
-        private bool CreateIndexes(SqliteConnectionOpts opts)
+        private bool CreateIndexes(DPConnectionOpts opts)
         {
             const string createProductNameToPIDCommand = @$"
             CREATE INDEX {IDX_Name_Products} ON {ProductTable} (
@@ -435,7 +435,7 @@ namespace DAZ_Installer.Database
         /// <param name="c">The SqliteConnection to use, if any. Recommended to use a connection, otherwise use <c>CreateTables()</c> instead.</param>
         /// <param name="t">The cancellation token to use, if any. Use <see cref="CancellationToken.None"/> if it should never cancel.</param>
         /// <returns>Whether creating triggers was a success.</returns>
-        private bool CreateTriggers(SqliteConnectionOpts opts)
+        private bool CreateTriggers(DPConnectionOpts opts)
         {
             const string triggerSQL = @$"
                         CREATE TRIGGER IF NOT EXISTS {DeleteOnProductTrigger}
@@ -480,7 +480,7 @@ namespace DAZ_Installer.Database
         /// <param name="c">The SqliteConnection to use, if any. Recommended to use a connection, otherwise use <c>CreateTables()</c> instead.</param>
         /// <param name="t">The cancellation token to use, if any. Use <see cref="CancellationToken.None"/> if it should never cancel.</param>
         /// <returns>Whether creating triggers was a success.</returns>
-        private bool CreateViews(SqliteConnectionOpts opts)
+        private bool CreateViews(DPConnectionOpts opts)
         {
             const string viewSQL = @$"
                         CREATE VIEW {ProductLiteView} (Name, Thumbnail, Tags, PID) 
@@ -521,7 +521,7 @@ namespace DAZ_Installer.Database
         /// less journal sizes.
         /// </summary>
         /// <returns>Whether the execution was a success.</returns>
-        private bool ExecutePragmas(SqliteConnectionOpts opts)
+        private bool ExecutePragmas(DPConnectionOpts opts)
         {
 
             var pramaCommmands = @$"PRAGMA journal_mode = WAL;
@@ -553,7 +553,7 @@ namespace DAZ_Installer.Database
         /// <param name="c">The SqliteConnection to use, if any. Recommended to use a connection, otherwise use <c>DeleteTriggers()</c> instead.</param>
         /// <param name="token">Cancel token. Required, cannot be null. Use CancellationToken.None instead (though not recommended).</param>
         /// <returns>Whether deleting triggers was a success.</returns>
-        private bool TempDeleteTriggers(SqliteConnectionOpts opts)
+        private bool TempDeleteTriggers(DPConnectionOpts opts)
         {
             if (opts.IsCancellationRequested) return false;
             const string removeTriggersCommand = @$"DROP TRIGGER IF EXISTS {DeleteOnProductTrigger};
@@ -584,7 +584,7 @@ namespace DAZ_Installer.Database
         /// <param name="c"></param>
         /// <param name="t"></param>
         /// <returns></returns>
-        private bool ResetDatabase(SqliteConnectionOpts opts)
+        private bool ResetDatabase(DPConnectionOpts opts)
         {
             if (opts.IsCancellationRequested) return false;
             try
@@ -630,7 +630,7 @@ namespace DAZ_Installer.Database
         /// Sets the <see cref="Flags"/> to <see cref="DPArchiveFlags.None"/> and calls <see cref="Initialize"/>.
         /// </summary>
         /// <param name="opts"></param>
-        private void RefreshDatabase(SqliteConnectionOpts opts)
+        private void RefreshDatabase(DPConnectionOpts opts)
         {
             if (opts.IsCancellationRequested) return;
             try
@@ -649,7 +649,7 @@ namespace DAZ_Installer.Database
         /// </summary>
         /// <param name="opts"></param>
         /// <returns>Whether the operation was successful or not.</returns>
-        private bool CheckCorrupted(SqliteConnectionOpts opts)
+        private bool CheckCorrupted(DPConnectionOpts opts)
         {
             using var c = CreateInitialConnection(ref opts);
             if (c is null || !OpenConnection(c) || opts.IsCancellationRequested) return false;
@@ -693,7 +693,7 @@ namespace DAZ_Installer.Database
         /// </summary>
         /// <param name="opts"></param>
         /// <returns>Whether the command executed without error or not.</returns>
-        private bool CheckUpdateRequired(SqliteConnectionOpts opts)
+        private bool CheckUpdateRequired(DPConnectionOpts opts)
         {
             using var c = CreateInitialConnection(ref opts);
             if (c is null || !OpenConnection(c) || opts.IsCancellationRequested) return false;
@@ -717,7 +717,7 @@ namespace DAZ_Installer.Database
             return false;
         }
 
-        private bool BackupDatabase(SqliteConnectionOpts opts)
+        private bool BackupDatabase(DPConnectionOpts opts)
         {
             using var c = CreateInitialConnection(ref opts);
             using var d = new SqliteConnection();
@@ -755,7 +755,7 @@ namespace DAZ_Installer.Database
             return true;
         }
 
-        private bool RestoreDatabase(string? location, SqliteConnectionOpts opts)
+        private bool RestoreDatabase(string? location, DPConnectionOpts opts)
         {
             location ??= System.IO.Path.GetFileNameWithoutExtension(Path) + "_backup.db";
             if (!File.Exists(location)) return false;
@@ -791,7 +791,7 @@ namespace DAZ_Installer.Database
             return false;
         }
 
-        private bool VacuumDatabase(SqliteConnectionOpts opts)
+        private bool VacuumDatabase(DPConnectionOpts opts)
         {
             using var c = CreateAndOpenConnection(ref opts, true);
             if (!OpenConnection(c) || opts.IsCancellationRequested) return false;

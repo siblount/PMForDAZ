@@ -22,7 +22,7 @@ namespace DAZ_Installer.Database.Tests
         public static Mock<TestableDbConnection> MockBaseConnection = new();
         public static TestableDbConnection BaseConnection => MockBaseConnection.Object;
         public static DPConnection Connection = new DPConnection(BaseConnection);
-        public static SqliteConnectionOpts ConnectionOpts;
+        public static DPConnectionOpts ConnectionOpts;
 
         [ClassInitialize]
         public static void ClassInitialize(TestContext _)
@@ -39,7 +39,7 @@ namespace DAZ_Installer.Database.Tests
         {
             MockBaseConnection = new Mock<TestableDbConnection>() { CallBase = true };
             Connection = new DPConnection(BaseConnection);
-            ConnectionOpts = new SqliteConnectionOpts(Connection);
+            ConnectionOpts = new DPConnectionOpts(Connection);
         }
 
         [TestMethod]
@@ -98,7 +98,7 @@ namespace DAZ_Installer.Database.Tests
             // Mimic a transaction in a function.
             {
                 var childConnection = new DPConnection(Connection);
-                SqliteConnectionOpts opts = new SqliteConnectionOpts(childConnection);
+                DPConnectionOpts opts = new DPConnectionOpts(childConnection);
                 transaction = Connection.BeginTransaction(ref opts);
                 Assert.AreSame(transaction, opts.Transaction);
             }
@@ -119,7 +119,7 @@ namespace DAZ_Installer.Database.Tests
             // Mimic a transaction in a function.
             {
                 var childConnection = new DPConnection(Connection);
-                SqliteConnectionOpts opts = new SqliteConnectionOpts(childConnection);
+                DPConnectionOpts opts = new DPConnectionOpts(childConnection);
                 childTransaction = Connection.BeginTransaction(ref opts);
                 Assert.AreSame(childTransaction, opts.Transaction);
             }
@@ -153,7 +153,7 @@ namespace DAZ_Installer.Database.Tests
             // Mimic a transaction in a function.
             {
                 var childConnection = new DPConnection(Connection);
-                SqliteConnectionOpts opts = new SqliteConnectionOpts(childConnection);
+                DPConnectionOpts opts = new DPConnectionOpts(childConnection);
                 transaction = Connection.BeginTransaction(IsolationLevel.Chaos, ref opts);
 
                 Assert.AreSame(transaction, opts.Transaction);
@@ -175,7 +175,7 @@ namespace DAZ_Installer.Database.Tests
             // Mimic a transaction in a function.
             {
                 var childConnection = new DPConnection(Connection);
-                SqliteConnectionOpts opts = new SqliteConnectionOpts(childConnection);
+                DPConnectionOpts opts = new DPConnectionOpts(childConnection);
                 childTransaction = Connection.BeginTransaction(IsolationLevel.Chaos, ref opts);
                 Assert.AreSame(childTransaction, opts.Transaction);
             }

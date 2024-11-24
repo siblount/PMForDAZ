@@ -15,7 +15,7 @@ namespace DAZ_Installer.Database
             _mainTaskManager.StopAndWait();
             _priorityTaskManager.StopAndWait();
             return _priorityTaskManager.AddToQueue(() => {
-                var opts = new SqliteConnectionOpts(null, null, t);
+                var opts = new DPConnectionOpts(null, null, t);
                 using var connection = CreateInitialConnection(ref opts);
                 if (!OpenConnection(connection))
                     throw new Exception("Failed to open connection.");

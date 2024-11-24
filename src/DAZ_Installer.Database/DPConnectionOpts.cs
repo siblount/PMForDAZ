@@ -7,7 +7,7 @@ namespace DAZ_Installer.Database
     /// <summary>
     /// A struct that contains the connection object, transaction object, and cancellation token for a connection.
     /// </summary>
-    public struct SqliteConnectionOpts
+    public struct DPConnectionOpts
     {
         /// <summary>
         /// The connection object to use for this connection.
@@ -33,32 +33,32 @@ namespace DAZ_Installer.Database
         private DPConnection? connection = null;
 
         /// <summary>
-        /// A new instance of <see cref="SqliteConnectionOpts"/> with <see cref="Connection"/> set to null.
+        /// A new instance of <see cref="DPConnectionOpts"/> with <see cref="Connection"/> set to null.
         /// </summary>
-        public SqliteConnectionOpts() { }
+        public DPConnectionOpts() { }
         /// <summary>
-        /// A new instance of <see cref="SqliteConnectionOpts"/> with <see cref="Connection"/> set to the <see langword="value"/> provided.
+        /// A new instance of <see cref="DPConnectionOpts"/> with <see cref="Connection"/> set to the <see langword="value"/> provided.
         /// </summary>
         /// <param name="connection">The connection to use, if any.</param>
-        public SqliteConnectionOpts(DPConnection? connection) => this.connection = connection;
+        public DPConnectionOpts(DPConnection? connection) => this.connection = connection;
         /// <summary>
-        /// A new instance of <see cref="SqliteConnectionOpts"/> with <see cref="Connection"/> set to the <see langword="value"/> provided and <see cref="Transaction"/> set to the <see langword="value"/> provided.
+        /// A new instance of <see cref="DPConnectionOpts"/> with <see cref="Connection"/> set to the <see langword="value"/> provided and <see cref="Transaction"/> set to the <see langword="value"/> provided.
         /// </summary>
         /// <param name="connection">The connection to use, if any.</param>
         /// <param name="transaction">The transaction to use, if any.</param>
 
-        public SqliteConnectionOpts(DPConnection? connection, DPTransaction? transaction = null)
+        public DPConnectionOpts(DPConnection? connection, DPTransaction? transaction = null)
         {
             this.connection = connection;
             Transaction = transaction;
         }
         /// <summary>
-        /// A new instance of <see cref="SqliteConnectionOpts"/> with <see cref="Connection"/> set to the <see langword="value"/> provided and <see cref="Transaction"/> set to the <see langword="value"/> provided.
+        /// A new instance of <see cref="DPConnectionOpts"/> with <see cref="Connection"/> set to the <see langword="value"/> provided and <see cref="Transaction"/> set to the <see langword="value"/> provided.
         /// </summary>
         /// <param name="connection">The connection to use, if any.</param>
         /// <param name="transaction">The transaction to use, if any.</param>
         /// <param name="t">The cancellation to use.</param>
-        public SqliteConnectionOpts(DPConnection? connection, DPTransaction? transaction, CancellationToken t)
+        public DPConnectionOpts(DPConnection? connection, DPTransaction? transaction, CancellationToken t)
         {
             this.connection = connection;
             Transaction = transaction;

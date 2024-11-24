@@ -16,7 +16,7 @@ namespace DAZ_Installer.Database
         /// Updates the <see cref="ProductRecordCount"/> property.
         /// </summary>
         /// <param name="opts">The SqliteConnectionOpts to use.</param>
-        private void UpdateProductRecordCount(SqliteConnectionOpts opts)
+        private void UpdateProductRecordCount(DPConnectionOpts opts)
         {
             const string getCmd = $@"SELECT ""Product Record Count"" FROM {DatabaseInfoTable};";
             if (opts.IsCancellationRequested) return;
@@ -38,7 +38,7 @@ namespace DAZ_Installer.Database
         /// </summary>
         /// <param name="opts">The option parameters to use.</param>
         /// <returns>A list of <see cref="DPProductRecordLite"/>s or an empty list if cancelled.</returns>
-        private List<DPProductRecordLite> SearchProductRecords(DbDataReader reader, SqliteConnectionOpts opts)
+        private List<DPProductRecordLite> SearchProductRecords(DbDataReader reader, DPConnectionOpts opts)
         {
             List<DPProductRecordLite> searchResults = new(25);
             if (opts.IsCancellationRequested) return new List<DPProductRecordLite>(0);
@@ -62,7 +62,7 @@ namespace DAZ_Installer.Database
         /// <param name="tableName">The table to get columns from.</param>
         /// <param name="opts">The option parameters to use.</param>
         /// <returns>The columns of the table, or an empty array if cancelled or an error occurred.</returns>
-        private string[] GetColumns(string tableName, SqliteConnectionOpts opts)
+        private string[] GetColumns(string tableName, DPConnectionOpts opts)
         {
             if (opts.IsCancellationRequested || string.IsNullOrEmpty(tableName)) return Array.Empty<string>();
             try
@@ -93,7 +93,7 @@ namespace DAZ_Installer.Database
         /// Returns all an array of all of the tables in the database.
         /// </summary>
         /// <param name="opts">The option parameters to use.</param>
-        private string[] GetTables(SqliteConnectionOpts opts)
+        private string[] GetTables(DPConnectionOpts opts)
         {
             if (opts.IsCancellationRequested) return Array.Empty<string>();
             List<string> tables = new();
@@ -130,7 +130,7 @@ namespace DAZ_Installer.Database
         /// <returns>A hashset containing successfully extracted archive file names.</returns>
         // TODO: Deprecate this. As more products are installed, the hashset will grow and grow. This is not good.
         // Just query the database to check if the archive exists.
-        private bool ArchiveNameExists(string arcName, SqliteConnectionOpts opts)
+        private bool ArchiveNameExists(string arcName, DPConnectionOpts opts)
         {
             var getCmd = $@"SELECT EXISTS(SELECT 1 FROM {ProductTable} WHERE ""ArcName"" = @A LIMIT 1);";
             try
@@ -154,7 +154,7 @@ namespace DAZ_Installer.Database
         /// </summary>
         /// <param name="opts">The option parameters to use.</param>
         /// <returns>The last product record ID in the database.</returns>
-        private long GetLastProductID(SqliteConnectionOpts opts)
+        private long GetLastProductID(DPConnectionOpts opts)
         {
             if (opts.IsCancellationRequested) return 0;
             var c = $@"SELECT ROWID FROM {ProductTable} ORDER BY ROWID DESC LIMIT 1;";
@@ -178,7 +178,7 @@ namespace DAZ_Installer.Database
         /// <param name="tableName">The table to get all rows from.</param>
         /// <param name="opts">The option parameters to use.</param>
         /// <returns>A dataset containing all of the values from the table specified. May return null.</returns>
-        private DataSet? GetAllValuesFromTable(string tableName, SqliteConnectionOpts opts)
+        private DataSet? GetAllValuesFromTable(string tableName, DPConnectionOpts opts)
         {
             DataSet? dataset = null;
             DPDatabaseDataAdapter? adapter = null;
@@ -207,7 +207,7 @@ namespace DAZ_Installer.Database
         /// <param name="destination">The associated destination string.</param>
         /// <param name="opts">The option parameters to use.</param>
         /// <returns>The associated destination ID of <paramref name="destination"/>, otherwise -1 on errors.</returns>
-        private int GetDestinationID(string destination, SqliteConnectionOpts opts)
+        private int GetDestinationID(string destination, DPConnectionOpts opts)
         {
             if (opts.IsCancellationRequested) return -1;
             try
@@ -232,7 +232,7 @@ namespace DAZ_Installer.Database
         /// <param name="pid">The product record ID to fetch.</param>
         /// <param name="opts">The option parameters to use.</param>
         /// <returns></returns>
-        private DPProductRecord? GetProductRecord(long pid, SqliteConnectionOpts opts)
+        private DPProductRecord? GetProductRecord(long pid, DPConnectionOpts opts)
         {
             if (opts.IsCancellationRequested) return null;
             try
@@ -272,11 +272,11 @@ namespace DAZ_Installer.Database
         /// <summary>
         /// Removes product records from the database. It temporary disables the triggers to
         /// remove all records safely. In the event of an internal failure, you should make sure the triggers are
-        /// re-enabled by calling <see cref="CreateTriggers(SqliteConnectionOpts)"/>
+        /// re-enabled by calling <see cref="CreateTriggers(DPConnectionOpts)"/>
         /// </summary>
         /// <param name="opts">The option parameters to use.</param>
         /// <returns>Whether the removal was a success (true) or not (false).</returns>
-        private bool RemoveAllRecords(SqliteConnectionOpts opts) => ResetDatabase(opts);
+        private bool RemoveAllRecords(DPConnectionOpts opts) => ResetDatabase(opts);
 
         /// <summary>
         /// Removes values from the table specified with the conditions specified.
@@ -287,7 +287,7 @@ namespace DAZ_Installer.Database
         /// <param name="opts">The option parameters to use.</param>
         /// <returns>Whether the removal was a success (true) or not (false).</returns>
         private bool RemoveValuesWithCondition(string tableName, Tuple<string, object>[] conditions,
-            bool or, SqliteConnectionOpts opts)
+            bool or, DPConnectionOpts opts)
         {
             // Build columns.
             List<string> args = new(conditions.Length);
@@ -346,7 +346,7 @@ namespace DAZ_Installer.Database
         /// <param name="tableName">The table to remove everything from.</param>
         /// <param name="opts">The option parameters to use.</param>
         /// <returns>Whether the removal was a success (true) or not (false).</returns>
-        private bool RemoveAllFromTable(string tableName, SqliteConnectionOpts opts)
+        private bool RemoveAllFromTable(string tableName, DPConnectionOpts opts)
         {
             if (opts.IsCancellationRequested) return false;
 
@@ -387,7 +387,7 @@ namespace DAZ_Installer.Database
         /// <param name="opts">The option parameters to use.</param>
         /// <param name="pid">The product ID to insert the files to. If 0, it will get the last product ID in the database.</param>
         /// <returns>Whether the insertion was successful (true) or not (false).</returns>
-        private bool UpdateFiles(IReadOnlyList<string> files, SqliteConnectionOpts opts, long pid = 0)
+        private bool UpdateFiles(IReadOnlyList<string> files, DPConnectionOpts opts, long pid = 0)
         {
             if (opts.IsCancellationRequested) return false;
             try
@@ -425,7 +425,7 @@ namespace DAZ_Installer.Database
         /// <param name="tableName">The table name to insert multiple values to.</param>
         /// <param name="opts">The option parameters to use.</param>
         /// <returns>Whether the insertion was successful (true) or not (false).</returns>
-        private bool InsertDefaultValuesToTable(string tableName, SqliteConnectionOpts opts)
+        private bool InsertDefaultValuesToTable(string tableName, DPConnectionOpts opts)
         {
             if (opts.IsCancellationRequested) return false;
             try
@@ -470,7 +470,7 @@ namespace DAZ_Installer.Database
         /// <param name="opts">The option parameters to use.</param>
         /// <returns>Whether the insertion was successful (true) or not (false).</returns>
         private bool InsertValuesToTable(string tableName, string[] columns, object?[] values,
-            SqliteConnectionOpts opts)
+            DPConnectionOpts opts)
         {
             if (opts.IsCancellationRequested) return false;
             try
@@ -523,7 +523,7 @@ namespace DAZ_Installer.Database
         /// </summary>
         /// <param name="pRecord">The product record to insert. Cannot be null.</param>
         /// <param name="opts">The option parameters to use.</param>
-        private bool InsertRecords(DPProductRecord pRecord, SqliteConnectionOpts opts)
+        private bool InsertRecords(DPProductRecord pRecord, DPConnectionOpts opts)
         {
             // Trigger will update the product record's extraction record ID to the newly created record.
             if (opts.IsCancellationRequested) return false;
@@ -569,7 +569,7 @@ namespace DAZ_Installer.Database
         /// <param name="newRecord">The newly constructed DPProductRecord with new values to insert/update.</param>
         /// <param name="opts">The option parameters to use.</param>
         /// <returns>Whether the insertion was successful (true) or not (false).</returns>
-        private bool UpdateProductRecord(long pid, DPProductRecord newRecord, SqliteConnectionOpts opts)
+        private bool UpdateProductRecord(long pid, DPProductRecord newRecord, DPConnectionOpts opts)
         {
             if (opts.IsCancellationRequested || newRecord == null || pid < 0)
                 return false;
@@ -625,7 +625,7 @@ namespace DAZ_Installer.Database
             return true;
         }
 
-        private bool SetDestination(string dest, out int destID, SqliteConnectionOpts opts)
+        private bool SetDestination(string dest, out int destID, DPConnectionOpts opts)
         {
             destID = -1;
             if (opts.IsCancellationRequested) return false;
@@ -653,7 +653,7 @@ namespace DAZ_Installer.Database
         #endregion
         #endregion
         #region Update
-        private bool UpdateToVersion3(SqliteConnectionOpts opts)
+        private bool UpdateToVersion3(DPConnectionOpts opts)
         {
             if (opts.IsCancellationRequested) return false;
             try
@@ -734,7 +734,7 @@ namespace DAZ_Installer.Database
             var pragmaCheckpoint = "PRAGMA wal_checkpoint(TRUNCATE);";
             try
             {
-                var opts = new SqliteConnectionOpts();
+                var opts = new DPConnectionOpts();
                 using var connection = CreateAndOpenConnection(ref opts);
                 if (connection == null) return;
                 using var cmd = connection.CreateCommand(pragmaCheckpoint);

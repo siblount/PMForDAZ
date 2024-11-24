@@ -17,7 +17,7 @@ namespace DAZ_Installer.Database
             DPProductRecord? record = null;
             await _mainTaskManager.AddToQueue((t) =>
             {
-                var opts = new SqliteConnectionOpts() { CancellationToken = t };
+                var opts = new DPConnectionOpts() { CancellationToken = t };
                 record = GetProductRecord(id, opts);
                 callback?.Invoke(record);
             });
@@ -32,7 +32,7 @@ namespace DAZ_Installer.Database
             List<DPProductRecordLite> results = new(0);
             await _priorityTaskManager.AddToQueue((t) =>
             {
-                var opts = new SqliteConnectionOpts() { CancellationToken = t };
+                var opts = new DPConnectionOpts() { CancellationToken = t };
                 results = DoSearchS(searchQuery, sortMethod, opts);
                 callback?.Invoke(results);
                 SearchUpdated?.Invoke(results, callerID);
@@ -47,7 +47,7 @@ namespace DAZ_Installer.Database
             List<DPProductRecordLite> results = new(0);
             await _priorityTaskManager.AddToQueue((t) =>
             {
-                var opts = new SqliteConnectionOpts() { CancellationToken = t };
+                var opts = new DPConnectionOpts() { CancellationToken = t };
                 results = DoLibraryQuery(page, limit, sortMethod, opts);
                 callback?.Invoke(results);
                 MainQueryCompleted?.Invoke(callerID);
@@ -75,14 +75,14 @@ namespace DAZ_Installer.Database
         public Task RefreshDatabaseQ(bool forceRefresh = false)
         {
             if (!forceRefresh) return _mainTaskManager.AddToQueue((t) =>
-                RefreshDatabase(new SqliteConnectionOpts(null, null, t))
+                RefreshDatabase(new DPConnectionOpts(null, null, t))
             );
             try
             {
                 Flags |= DPArchiveFlags.Locked;
                 _mainTaskManager.StopAndWait();
                 _priorityTaskManager.StopAndWait();
-                _mainTaskManager.AddToQueue((t) => RefreshDatabase(new SqliteConnectionOpts(null, null, t)));
+                _mainTaskManager.AddToQueue((t) => RefreshDatabase(new DPConnectionOpts(null, null, t)));
             } finally
             {
                 Flags &= ~DPArchiveFlags.Locked;
@@ -100,7 +100,7 @@ namespace DAZ_Installer.Database
                 {
                     Flags |= DPArchiveFlags.Locked;
                     _priorityTaskManager.StopAndWait();
-                    var opts = new SqliteConnectionOpts() { CancellationToken = t };
+                    var opts = new DPConnectionOpts() { CancellationToken = t };
                     result = BackupDatabase(opts);
                     callback?.Invoke(result);
                 } finally
@@ -120,7 +120,7 @@ namespace DAZ_Installer.Database
                 {
                     Flags |= DPArchiveFlags.Locked;
                     _priorityTaskManager.StopAndWait();
-                    var opts = new SqliteConnectionOpts() { CancellationToken = t };
+                    var opts = new DPConnectionOpts() { CancellationToken = t };
                     result = RestoreDatabase(backupPath, opts);
                     callback?.Invoke(result);
                 } finally
@@ -137,7 +137,7 @@ namespace DAZ_Installer.Database
             var result = false;
             await _mainTaskManager.AddToQueue((t) =>
             {
-                var opts = new SqliteConnectionOpts() { CancellationToken = t };
+                var opts = new DPConnectionOpts() { CancellationToken = t };
                 result = VacuumDatabase(opts);
                 callback?.Invoke(result);
             });
@@ -149,7 +149,7 @@ namespace DAZ_Installer.Database
             DataSet? result = null;
             await _mainTaskManager.AddToQueue((t) =>
             {
-                var opts = new SqliteConnectionOpts() { CancellationToken = t };
+                var opts = new DPConnectionOpts() { CancellationToken = t };
                 result = GetAllValuesFromTable(tableName, opts);
                 callback?.Invoke(result);
                 if (result is not null)
@@ -162,7 +162,7 @@ namespace DAZ_Installer.Database
         {
             return _mainTaskManager.AddToQueue((t) =>
             {
-                var opts = new SqliteConnectionOpts() { CancellationToken = t };
+                var opts = new DPConnectionOpts() { CancellationToken = t };
                 var success = InsertRecords(record, opts);
                 if (!success) return;
             });
@@ -171,7 +171,7 @@ namespace DAZ_Installer.Database
         public Task InsertNewRowQ(string tableName, object[] values, string[] columns) {
             return _mainTaskManager.AddToQueue((t) =>
             {
-                var opts = new SqliteConnectionOpts() { CancellationToken = t };
+                var opts = new DPConnectionOpts() { CancellationToken = t };
                 InsertValuesToTable(tableName, columns, values, opts);
             });
         }
@@ -181,7 +181,7 @@ namespace DAZ_Installer.Database
             var arg = new Tuple<string, object>[1] { new Tuple<string, object>("ROWID", id) };
             return _mainTaskManager.AddToQueue((t) =>
             {
-                var opts = new SqliteConnectionOpts() { CancellationToken = t };
+                var opts = new DPConnectionOpts() { CancellationToken = t };
                 RemoveValuesWithCondition(tableName, arg, false, opts);
             });
         }
@@ -191,7 +191,7 @@ namespace DAZ_Installer.Database
             return _mainTaskManager.AddToQueue((t) =>
             {
                 var arg = new Tuple<string, object>[1] { new("ROWID", Convert.ToInt32(record.ID)) };
-                var opts = new SqliteConnectionOpts() { CancellationToken = t };
+                var opts = new DPConnectionOpts() { CancellationToken = t };
                 var success = RemoveValuesWithCondition(ProductTable, arg, false, opts);
                 if (success)
                 {
@@ -206,7 +206,7 @@ namespace DAZ_Installer.Database
             return _mainTaskManager.AddToQueue((t) =>
             {
                 var arg = new Tuple<string, object>[1] { new("ROWID", Convert.ToInt32(record.ID)) };
-                var opts = new SqliteConnectionOpts() { CancellationToken = t };
+                var opts = new DPConnectionOpts() { CancellationToken = t };
                 var success = RemoveValuesWithCondition(ProductTable, arg, false, opts);
                 if (success)
                 {
@@ -220,7 +220,7 @@ namespace DAZ_Installer.Database
         {
             return _mainTaskManager.AddToQueue((t) =>
             {
-                var opts = new SqliteConnectionOpts() { CancellationToken = t };
+                var opts = new DPConnectionOpts() { CancellationToken = t };
                 RemoveAllFromTable(tableName, opts);
             });
         }
@@ -229,7 +229,7 @@ namespace DAZ_Installer.Database
         {
             return _mainTaskManager.AddToQueue(t =>
             {
-                var opts = new SqliteConnectionOpts() { CancellationToken = t };
+                var opts = new DPConnectionOpts() { CancellationToken = t };
                 var success = UpdateProductRecord(id, newProductRecord, opts);
                 if (!success) return;
                 callback?.Invoke(newProductRecord.ID);
@@ -239,7 +239,7 @@ namespace DAZ_Installer.Database
 
         public Task RemoveAllRecordsQ() => _mainTaskManager.AddToQueue((ct) =>
         {
-            var opts = new SqliteConnectionOpts() { CancellationToken = ct };
+            var opts = new DPConnectionOpts() { CancellationToken = ct };
             RemoveAllRecords(opts);
         });
         
@@ -248,7 +248,7 @@ namespace DAZ_Installer.Database
             bool? result = null;
             await _priorityTaskManager.AddToQueue((t) =>
             {
-                var opts = new SqliteConnectionOpts() { CancellationToken = t };
+                var opts = new DPConnectionOpts() { CancellationToken = t };
                 result = ArchiveNameExists(arcName, opts);
                 callback?.Invoke(result);
             });

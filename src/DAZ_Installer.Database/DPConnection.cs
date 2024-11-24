@@ -93,7 +93,7 @@ namespace DAZ_Installer.Database
         /// <inheritdoc/>
         /// </summary>
         /// <returns>A <see cref="DPTransaction"/> wrapping a <see cref="DbTransaction"/>.</returns>
-        public DPTransaction BeginTransaction(ref SqliteConnectionOpts opts)
+        public DPTransaction BeginTransaction(ref DPConnectionOpts opts)
         {
             if (transaction is not null) 
                 return opts.Transaction = new DPTransaction(transaction);
@@ -107,7 +107,7 @@ namespace DAZ_Installer.Database
         /// <inheritdoc/>
         /// </summary>
         /// <returns>A <see cref="DPTransaction"/> wrapping a <see cref="DbTransaction"/>.</returns>
-        public DPTransaction BeginTransaction(IsolationLevel il, ref SqliteConnectionOpts opts)
+        public DPTransaction BeginTransaction(IsolationLevel il, ref DPConnectionOpts opts)
         {
             if (transaction is not null)
                 return opts.Transaction = new DPTransaction(transaction);
@@ -179,7 +179,7 @@ namespace DAZ_Installer.Database
         /// <returns>A transaction.</returns>
         IDbTransaction IDbConnection.BeginTransaction()
         {
-            var t = new SqliteConnectionOpts();
+            var t = new DPConnectionOpts();
             return BeginTransaction(ref t);
         }
         /// <summary>
@@ -188,7 +188,7 @@ namespace DAZ_Installer.Database
         /// <returns>A transaction.</returns>
         IDbTransaction IDbConnection.BeginTransaction(IsolationLevel il)
         {
-            var t = new SqliteConnectionOpts();
+            var t = new DPConnectionOpts();
             return BeginTransaction(il, ref t);
         }
         /// <summary>
