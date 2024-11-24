@@ -100,7 +100,7 @@ namespace DAZ_Installer.Database
             if (parentConnection is null || parentConnection.transaction is null) 
                 transaction = new DPTransaction(Connection.BeginTransaction(), true);
             else transaction = new DPTransaction(parentConnection.transaction);
-            return transaction = opts.Transaction = transaction;
+            return opts.Transaction = transaction;
         }
 
         /// <summary>
@@ -109,11 +109,12 @@ namespace DAZ_Installer.Database
         /// <returns>A <see cref="DPTransaction"/> wrapping a <see cref="DbTransaction"/>.</returns>
         public DPTransaction BeginTransaction(IsolationLevel il, ref SqliteConnectionOpts opts)
         {
-            if (transaction is not null) return transaction;
+            if (transaction is not null)
+                return opts.Transaction = new DPTransaction(transaction);
             if (parentConnection is null || parentConnection.transaction is null)
                 transaction = new DPTransaction(Connection.BeginTransaction(il), true);
             else transaction = new DPTransaction(parentConnection.transaction);
-            return transaction;
+            return opts.Transaction = transaction;
         }
 
         /// <summary>
