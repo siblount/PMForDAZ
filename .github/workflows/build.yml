@@ -1,0 +1,72 @@
+# This workflow will build a .NET project
+# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-net
+
+name: Build Workflow
+
+on:
+  workflow_call: # Allows release.yml to call this workflow.
+  push:
+    branches: [ "pending-main", "main" ]
+  pull_request:
+    branches: [ "pending-main", "main" ]
+
+jobs:
+  build:
+    name: Build and test
+    runs-on: windows-latest
+    timeout-minutes: 30
+
+    steps:
+    - uses: actions/checkout@v3
+      with: 
+        lfs: 'true'
+  
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v3
+      with:
+        dotnet-version: 6.0.x
+  
+    - name: Cache NuGet packages
+      uses: actions/cache@v3
+      with:
+        path: ~/.nuget/packages
+        key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj') }}
+        restore-keys: |
+          ${{ runner.os }}-nuget
+
+    - name: Build and test (no versioning)
+      run: ./build.ps1 --no-version
+
+  compile:
+    name: "Compile Installer"
+    runs-on: windows-latest
+    needs: build
+    timeout-minutes: 3
+
+    steps:
+    - name: Compile Windows-x64 installer (test)
+      uses: Minionguyjpro/Inno-Setup-Action@v1.2.5
+      with:
+        path: ./src/DAZ_Installer.Installer/Windows64.iss
+  
+  upload-artifacts:
+    name: Upload artifacts
+    runs-on: windows-latest
+    needs: compile
+
+    steps:
+    - name: Upload installer artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: installer
+        path: src/DAZ_Installer.Installer/Output/*
+        if-no-files-found: error
+        retention-days: 3
+
+    - name: Upload Windows project binaries artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: windows-binaries
+        path: src/DAZ_Installer.Windows/bin/*
+        if-no-files-found: error
+        retention-days: 3
