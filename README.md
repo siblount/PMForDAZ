@@ -92,7 +92,7 @@ The application cannot at this stage:
 
 ## How to get started?
 
-This project requires you use **Visual Studio 2022.** Currently, we are using **.NET 6**, please make sure you have .NET 6 installed. _You might be able to use an older version like Visual Studio 2019, please let me know._
+This project requires you use **Visual Studio 2022.** Currently, we are using **.NET 8**, please make sure you have .NET 8 installed. _You might be able to use an older version like Visual Studio 2019, please let me know._
 
 To open this project with Visual Studio, please select the solution file, located at `src\DAZ_Installer.sln`. All of the settings should be identical to mine, there may be some issues if you use Mac or Linux.
 
