@@ -30,24 +30,13 @@ jobs:
     - name: Build, test, and update versioning
       run: ./build.ps1
 
-  compile:
-    name: "Compile Installer"
-    runs-on: windows-latest
-    needs: build
-    timeout-minutes: 3
-
-    steps:
+    # Compile installer steps
     - name: Compile Windows-x64 installer (test)
       uses: Minionguyjpro/Inno-Setup-Action@v1.2.5
       with:
         path: ./src/DAZ_Installer.Installer/Windows64.iss
-  
-  upload-artifacts:
-    name: Upload artifacts
-    runs-on: windows-latest
-    needs: compile
 
-    steps:
+    # Upload artifacts
     - name: Upload installer artifact
       uses: actions/upload-artifact@v3
       with:
