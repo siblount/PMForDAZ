@@ -170,11 +170,12 @@ public sealed class BuildTask : FrostingTask<BuildContext>
 {
     public override void Run(BuildContext context)
     {
-        context.Log.Information("Building project...");
+        context.Log.Information("Building project for platform {0} and configuration {1}...", context.Platform, context.BuildConfiguration);
         context.DotNetBuild(context.PathFinder.FindPath("src/"), new DotNetBuildSettings
         {
             Configuration = context.BuildConfiguration,
             NoIncremental = true,
+            ArgumentCustomization = args => args.Append("--property:Platform={0}", context.Platform)
         });
     }
 }
@@ -185,14 +186,15 @@ public sealed class TestTask : FrostingTask<BuildContext>
 {
     public override void Run(BuildContext context)
     {
-        context.Log.Information("Running tests...");
+        context.Log.Information("Running tests for platform {0} and configuration {1}...", context.Platform, context.BuildConfiguration);
         context.DotNetTest(context.PathFinder.FindPath("src/"), new DotNetTestSettings
         {
             Configuration = context.BuildConfiguration,
             NoBuild = true,
             NoRestore = true,
             
-            ArgumentCustomization = args => args.Append("--collect:\"Code Coverage\"")
+            ArgumentCustomization = args => args.Append("--property:Platform={0}", context.Platform)
+                                                .Append("--collect:\"Code Coverage\"")
                                                 .Append("--filter TestCategory!=\"Performance\"") // Do not run performance tests.
         });
     }
