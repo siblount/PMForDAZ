@@ -17,6 +17,7 @@ using Serilog;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
+using Microsoft.VisualBasic.FileIO;
 
 namespace DAZ_Installer.Windows.Forms
 {
@@ -275,8 +276,11 @@ namespace DAZ_Installer.Windows.Forms
 
         private void deleteProductToolStripMenuItem_Click(object sender, EventArgs e)
         {
+            var actionMsg = DPSettings.CurrentSettingsObject.DeleteAction == RecycleOption.DeletePermanently ?
+                "THIS WILL PERMANENTLY DELETE ASSOCIATED FILES ON DISK!" : 
+                "This will move the files on disk to your recycle bin, which is a recoverable process, but the record will remain deleted.";
             var result = MessageBox.Show($"Are you sure you want to remove the record & product files for {record.Name}? " +
-                "THIS WILL PERMANENTLY REMOVE ASSOCIATED FILES ON DISK!", "Remove product confirmation", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+                actionMsg, "Remove product confirmation", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
             if (result == DialogResult.No) return;
             if (Directory.Exists(record.Destination))
             {

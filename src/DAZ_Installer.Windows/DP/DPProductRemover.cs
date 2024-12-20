@@ -91,6 +91,9 @@ namespace DAZ_Installer.Windows.DP
                     }
                 }
 
+                if (record.Files != failedFiles) 
+                    return new(false, failedFiles);
+
                 var callback = new Action<long>((id) => returnResult &= record.ID == id);
                 await database.RemoveProductRecordQ(record, callback).ConfigureAwait(false);
             } catch (Exception ex)
