@@ -17,7 +17,7 @@ namespace DAZ_Installer.Database
         /// </summary>
         public DPConnection? Connection
         {
-            get => connection;
+            readonly get => connection;
             set
             {
                 if (connection is null) connection = value;
@@ -29,7 +29,7 @@ namespace DAZ_Installer.Database
         /// </summary>
         public DPTransaction? Transaction { get; set; } = null;
         public CancellationToken CancellationToken { get; set; } = CancellationToken.None;
-        public bool IsCancellationRequested => CancellationToken.IsCancellationRequested;
+        public readonly bool IsCancellationRequested => CancellationToken.IsCancellationRequested;
         private DPConnection? connection = null;
 
         /// <summary>
@@ -63,30 +63,6 @@ namespace DAZ_Installer.Database
             this.connection = connection;
             Transaction = transaction;
             CancellationToken = t;
-        }
-
-        /// <summary>
-        /// Begins the transaction assuming <see cref="Connection"/> is not null. 
-        /// </summary>
-        /// <returns>The transaction already established on the <see cref="Connection"/> or an entirely new one.</returns>
-        /// <exception cref="ArgumentNullException">When <see cref="Connection"/> is null.</exception>
-        public DPTransaction BeginTransaction()
-        {
-            ArgumentNullException.ThrowIfNull(Connection, nameof(Connection));
-            Transaction = Connection.BeginTransaction(ref this);
-            return Transaction;
-        }
-
-        /// <summary>
-        /// Begins the transaction assuming <see cref="Connection"/> is not null.
-        /// </summary>
-        /// <returns>An <see cref="IDbCommand"/> object associated with this connection.</returns
-        /// <exception cref="ArgumentNullException"/>
-        /// <exception cref="Exception"/>
-        public IDbCommand CreateCommand()
-        {
-            ArgumentNullException.ThrowIfNull(Connection, nameof(Connection));
-            return Connection.CreateCommand();
         }
 
         /// <summary>
