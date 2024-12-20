@@ -9,7 +9,7 @@ using Moq;
 using System.Text;
 using System.Diagnostics;
 
-namespace Tests
+namespace Build.Tests
 {
     [TestClass]
     public class UpdateVersionTaskTests
