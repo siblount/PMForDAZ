@@ -355,3 +355,6 @@ src/DAZ_Installer.CoreTests/RealData/Manifests/*
 
 # Coverage
 *coveragereport
+
+# Do not include launch settings for cake builds
+ci/Properties/launchSettings.json
