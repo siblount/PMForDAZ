@@ -66,15 +66,20 @@ public class BuildContext : FrostingContext
 
 [TaskName("UpdateVersion")]
 [IsDependentOn(typeof(TestTask))]
-public sealed class UpdateVersionTask : AsyncFrostingTask<BuildContext>
+public sealed class UpdateVersionTask : FrostingTask<BuildContext>
 {
     public const string WINDOWS_PROJECT_PATH = "src/DAZ_Installer.Windows/DAZ_Installer.Windows.csproj";
     public const string INSTALLER_ISS_PATH = "src/DAZ_Installer.Installer/Windows64.iss";
     public const string VERSION_FILE_PATH = "src/DAZ_Installer.Windows/VERSION";
-    public override async Task RunAsync(BuildContext context)
+    public override void Run(BuildContext context)
     {
+        if (context.HasArgument("no-version"))
+        {
+            context.Log.Information("Skipping version update due to 'no-version' argument...");
+            return;
+        }
         if (!context.GithubActions.IsRunningOnGitHubActions)
-            throw new System.InvalidOperationException("This task SHOULD be ran in a Github Action ONLY!");
+            throw new System.InvalidOperationException("The update version task should only be run on a Github Action runner");
 
         context.Log.Information("Updating version...");
         var projectPath = context.PathFinder.FindPath(WINDOWS_PROJECT_PATH);
@@ -113,9 +118,17 @@ public sealed class UpdateVersionTask : AsyncFrostingTask<BuildContext>
         var updatedVersionContent = VersionVersionUpdater.UpdateVersion(context.Version, context.VersionSuffix);
         
         context.Log.Information("Saving related files...");
-        await projectFileInfo.Open(FileMode.OpenOrCreate, FileAccess.Write, FileShare.Write).WriteAsync(Encoding.UTF8.GetBytes(updatedContent));
-        await installerFileInfo.Open(FileMode.OpenOrCreate, FileAccess.Write, FileShare.Write).WriteAsync(Encoding.UTF8.GetBytes(updatedInstallerContent));
-        await versionFileInfo.Open(FileMode.OpenOrCreate, FileAccess.Write, FileShare.Write).WriteAsync(Encoding.UTF8.GetBytes(updatedVersionContent));
+        using var projectStream = projectFileInfo.Open(FileMode.OpenOrCreate, FileAccess.Write, FileShare.Write);
+        using var installerStream = installerFileInfo.Open(FileMode.OpenOrCreate, FileAccess.Write, FileShare.Write);
+        using var versionStream = versionFileInfo.Open(FileMode.OpenOrCreate, FileAccess.Write, FileShare.Write);
+
+        using var projectWriter = new StreamWriter(projectStream, Encoding.UTF8);
+        using var installerWriter = new StreamWriter(installerStream, Encoding.UTF8);
+        using var versionWriter = new StreamWriter(versionStream, Encoding.UTF8);
+
+        projectWriter.Write(updatedContent);
+        installerWriter.Write(updatedInstallerContent);
+        versionWriter.Write(updatedVersionContent);
 
         context.Log.Information("Version updated.");
     }
@@ -148,7 +161,7 @@ public sealed class UpdateVersionTask : AsyncFrostingTask<BuildContext>
     private static string ReadAllLines(IFile file)
     {
         using var stream = file.Open(FileMode.Open, FileAccess.Read, FileShare.Read);
-        using var reader = new StreamReader(stream);
+        using var reader = new StreamReader(stream, Encoding.UTF8);
         return reader.ReadToEnd();
     }
 }
@@ -178,7 +191,9 @@ public sealed class TestTask : FrostingTask<BuildContext>
             Configuration = context.BuildConfiguration,
             NoBuild = true,
             NoRestore = true,
+            
             ArgumentCustomization = args => args.Append("--collect:\"Code Coverage\"")
+                                                .Append("--filter TestCategory!=\"Performance\"") // Do not run performance tests.
         });
     }
 }

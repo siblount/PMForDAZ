@@ -8,6 +8,8 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Moq;
 using System.Text;
 using System.Diagnostics;
+using System.Threading.Tasks;
+using System;
 
 namespace Build.Tests
 {
@@ -55,217 +57,185 @@ namespace Build.Tests
 
         private const string SAMPLE_VERSION_CONTENT = "0.9.8\nPre-alpha";
 
-        private static Mock<IFile> SetupFile(string content, out MemoryStream stream)
-        {
-            var mockFile = new Mock<IFile>();
-            stream = new MemoryStream(ushort.MaxValue);
-            var readStream = new MemoryStream(Encoding.UTF8.GetBytes(content));
-            mockFile.Setup(x => x.Exists).Returns(true);
-            mockFile.Setup(x => x.Length).Returns(100); // Assuming file size is within limits
-            mockFile.Setup(x => x.Open(FileMode.OpenOrCreate, FileAccess.Write, FileShare.Write)).Returns(stream);
-            mockFile.Setup(x => x.Open(FileMode.Open, FileAccess.Read, FileShare.Read)).Returns(readStream);
-            return mockFile;
-        }
+        private Mock<ICakeContext> mockCakeContext = null!;
+        private Mock<IFileSystem> mockFileSystem = null!;
+        private Mock<IPathFinder> mockPathFinder = null!;
+        private Mock<IGitHubActionsProvider> mockGitHubActions = null!;
+        private BuildContext buildContext = null!;
+        private Dictionary<string, MemoryStream> fileStreams = null!;
 
-        [TestMethod]
-        [DataRow("0.9.9", "Pre-alpha")]
-        public async Task RunAsync_ShouldUpdateVersionsCorrectly(string version, string suffix)
+        [TestInitialize]
+        public void TestInitialize()
         {
-
-            // Arrange
             var context = Mock.Of<ICakeContext>();
-            var mockCakeContext = Mock.Get(context);
-            var mockFileSystem = new Mock<IFileSystem>();
-            var mockPathFinder = new Mock<IPathFinder>();
-            var mockGitHubActions = new Mock<IGitHubActionsProvider>();
+            mockCakeContext = Mock.Get(context);
+            mockFileSystem = new Mock<IFileSystem>();
+            mockPathFinder = new Mock<IPathFinder>();
+            mockGitHubActions = new Mock<IGitHubActionsProvider>();
             var mockEnvironment = new Mock<ICakeEnvironment>();
             var mockArguments = new Mock<ICakeArguments>();
-            
+            fileStreams = new Dictionary<string, MemoryStream>();
+
             mockCakeContext.SetupGet(x => x.Environment).Returns(mockEnvironment.Object);
             mockEnvironment.SetupGet(x => x.WorkingDirectory).Returns(new DirectoryPath("O:/DAZ_Installer"));
             mockCakeContext.SetupGet(x => x.Arguments).Returns(mockArguments.Object);
             mockArguments.Setup(x => x.HasArgument(It.IsAny<string>())).Returns(false);
             mockGitHubActions.SetupGet(x => x.IsRunningOnGitHubActions).Returns(true);
 
-
-            var buildContext = new BuildContext(context)
+            buildContext = new BuildContext(context)
             {
                 FileSystem = mockFileSystem.Object,
                 PathFinder = mockPathFinder.Object,
                 GithubActions = mockGitHubActions.Object,
             };
 
+            SetupMockFiles();
+        }
+
+        private void SetupMockFiles()
+        {
             mockPathFinder.Setup(x => x.FindPath(UpdateVersionTask.WINDOWS_PROJECT_PATH)).Returns(BuildContext.WINDOWS_PROJECT_FILENAME);
             mockPathFinder.Setup(x => x.FindPath(UpdateVersionTask.INSTALLER_ISS_PATH)).Returns(BuildContext.INSTALLER_ISS_FILENAME);
             mockPathFinder.Setup(x => x.FindPath(UpdateVersionTask.VERSION_FILE_PATH)).Returns(BuildContext.VERSION_FILENAME);
 
-            var mockProjectFile = SetupFile(SAMPLE_CSPROJ_CONTENT, out var projectStream);
-            var mockInstallerFile = SetupFile(SAMPLE_ISS_CONTENT, out var installerStream);
-            var mockVersionFile = SetupFile(SAMPLE_VERSION_CONTENT, out var versionStream);
-            mockFileSystem.Setup(x => x.GetFile(BuildContext.WINDOWS_PROJECT_FILENAME)).Returns(mockProjectFile.Object);
-            mockFileSystem.Setup(x => x.GetFile(BuildContext.INSTALLER_ISS_FILENAME)).Returns(mockInstallerFile.Object);
-            mockFileSystem.Setup(x => x.GetFile(BuildContext.VERSION_FILENAME)).Returns(mockVersionFile.Object);
+            SetupMockFile(BuildContext.WINDOWS_PROJECT_FILENAME, SAMPLE_CSPROJ_CONTENT);
+            SetupMockFile(BuildContext.INSTALLER_ISS_FILENAME, SAMPLE_ISS_CONTENT);
+            SetupMockFile(BuildContext.VERSION_FILENAME, SAMPLE_VERSION_CONTENT);
+        }
 
+        private void SetupMockFile(string filename, string content)
+        {
+            var mockFile = new Mock<IFile>();
+            var stream = new MemoryStream(ushort.MaxValue);
+            var writer = new StreamWriter(stream);
+            writer.Write(content);
+            writer.Flush();
+            stream.Position = 0;
+
+            fileStreams[filename] = stream;
+
+            mockFile.Setup(x => x.Exists).Returns(true);
+            mockFile.Setup(x => x.Length).Returns(100); // Assuming file size is within limits
+            mockFile.Setup(x => x.Open(FileMode.OpenOrCreate, FileAccess.Write, FileShare.Write))
+                    .Returns(() =>
+                    {
+                        fileStreams[filename].SetLength(0);
+                        return fileStreams[filename];
+                    });
+            mockFile.Setup(x => x.Open(FileMode.Open, FileAccess.Read, FileShare.Read))
+                    .Returns(() => new MemoryStream(fileStreams[filename].ToArray()));
+
+            mockFileSystem.Setup(x => x.GetFile(filename)).Returns(mockFile.Object);
+        }
+        private void VerifyFileContents(string filename, string expectedVersion, string? expectedSuffix = null)
+        {
+            var file = mockFileSystem.Object.GetFile(filename);
+            var stream = file.OpenRead();
+            var reader = new StreamReader(stream);
+            var content = reader.ReadToEnd();
+
+            if (filename == BuildContext.WINDOWS_PROJECT_FILENAME)
+            {
+                StringAssert.Contains(content, $"<FileVersion>{expectedVersion}</FileVersion>");
+                StringAssert.Contains(content, $"<AssemblyVersion>{expectedVersion}</AssemblyVersion>");
+                if (expectedSuffix != null)
+                {
+                    StringAssert.Contains(content, $"<VersionSuffix>{expectedSuffix}</VersionSuffix>");
+                }
+            }
+            else if (filename == BuildContext.INSTALLER_ISS_FILENAME)
+            {
+                StringAssert.Contains(content, $"#define MyAppVersion \"{expectedVersion}\"");
+            }
+            else if (filename == BuildContext.VERSION_FILENAME)
+            {
+                var expectedContent = expectedVersion + (string.IsNullOrEmpty(expectedSuffix) ? "" : "\n" + expectedSuffix);
+                Assert.AreEqual(expectedContent, content.Trim());
+            }
+
+            Debug.WriteLine($"Content of {filename}:");
+            Debug.WriteLine(content);
+            Debug.WriteLine("");
+        }
+
+        [TestMethod]
+        public void RunAsyncNoVersion()
+        {
+            // Arrange
+            mockCakeContext.Setup(x => x.Arguments.HasArgument("no-version")).Returns(true);
             var task = new UpdateVersionTask();
 
             // Act
-            await task.RunAsync(buildContext);
+            task.Run(buildContext);
+
+            // Assert
+            mockGitHubActions.VerifyNoOtherCalls();
+        }
+
+        [TestMethod]
+        [DataRow("0.9.9", "Pre-alpha")]
+        public void RunAsync_ShouldUpdateVersionsCorrectly(string expectedVersion, string expectedSuffix)
+        {
+
+            // Arrange
+            var task = new UpdateVersionTask();
+
+            // Act
+            task.Run(buildContext);
 
             // Assert
 
             // Verify that the version was incremented
-            Assert.AreEqual(version, buildContext.Version);
-            Assert.AreEqual(suffix, buildContext.VersionSuffix);
+            Assert.AreEqual(expectedVersion, buildContext.Version);
+            Assert.AreEqual(expectedSuffix, buildContext.VersionSuffix);
 
             // Verify that the files were indeed updated.
-            var projectContent = Encoding.UTF8.GetString(projectStream.ToArray());
-            var installerContent = Encoding.UTF8.GetString(installerStream.ToArray());
-            var versionContent = Encoding.UTF8.GetString(versionStream.ToArray());
-
-            StringAssert.Contains(projectContent, $"<FileVersion>{version}</FileVersion>");
-            StringAssert.Contains(projectContent, $"<AssemblyVersion>{version}</AssemblyVersion>");
-            StringAssert.Contains(projectContent, $"<VersionSuffix>{suffix}</VersionSuffix>");
-
-            StringAssert.Contains(installerContent, $"#define MyAppVersion \"{version}\"");
-
-            Assert.AreEqual($"{version}\n{suffix}", versionContent);
-
-            Debug.WriteLine("Got the following project content:");
-            Debug.WriteLine(projectContent);
-            Debug.WriteLine("");
-            Debug.WriteLine("Got the following installer content:");
-            Debug.WriteLine(installerContent);
-            Debug.WriteLine("");
-            Debug.WriteLine("Got the following version content:");
-            Debug.WriteLine(versionContent);
-            Debug.WriteLine("");
+            VerifyFileContents(BuildContext.WINDOWS_PROJECT_FILENAME, expectedVersion, expectedSuffix);
+            VerifyFileContents(BuildContext.INSTALLER_ISS_FILENAME, expectedVersion);
+            VerifyFileContents(BuildContext.VERSION_FILENAME, expectedVersion, expectedSuffix);
         }
 
         [TestMethod]
         [DataRow("0.9.9", "Pre-alpha", "0.9.10")]
         [DataRow("0.9.9", "", "0.9.10")]
         [DataRow("10.11.0", "Beta", "10.11.1")]
-        public async Task RunAsync_DifferentInitValues_ShouldUpdateVersionsCorrectly(string version, string suffix, string expectedVersion)
+        public void RunAsync_DifferentInitValues_ShouldUpdateVersionsCorrectly(string initialVersion, string initialSuffix, string expectedVersion)
         {
 
             // Arrange
-            var context = Mock.Of<ICakeContext>();
-            var mockCakeContext = Mock.Get(context);
-            var mockFileSystem = new Mock<IFileSystem>();
-            var mockPathFinder = new Mock<IPathFinder>();
-            var mockGitHubActions = new Mock<IGitHubActionsProvider>();
-            var mockEnvironment = new Mock<ICakeEnvironment>();
-            var mockArguments = new Mock<ICakeArguments>();
-
-            mockCakeContext.SetupGet(x => x.Environment).Returns(mockEnvironment.Object);
-            mockEnvironment.SetupGet(x => x.WorkingDirectory).Returns(new DirectoryPath("O:/DAZ_Installer"));
-            mockCakeContext.SetupGet(x => x.Arguments).Returns(mockArguments.Object);
-            mockArguments.Setup(x => x.HasArgument(It.IsAny<string>())).Returns(false);
-            mockGitHubActions.SetupGet(x => x.IsRunningOnGitHubActions).Returns(true);
-
-
-            var buildContext = new BuildContext(context)
-            {
-                FileSystem = mockFileSystem.Object,
-                PathFinder = mockPathFinder.Object,
-                GithubActions = mockGitHubActions.Object,
-            };
-
-            mockPathFinder.Setup(x => x.FindPath(UpdateVersionTask.WINDOWS_PROJECT_PATH)).Returns(BuildContext.WINDOWS_PROJECT_FILENAME);
-            mockPathFinder.Setup(x => x.FindPath(UpdateVersionTask.INSTALLER_ISS_PATH)).Returns(BuildContext.INSTALLER_ISS_FILENAME);
-            mockPathFinder.Setup(x => x.FindPath(UpdateVersionTask.VERSION_FILE_PATH)).Returns(BuildContext.VERSION_FILENAME);
-
-            var mockProjectFile = SetupFile(SAMPLE_CSPROJ_CONTENT, out var projectStream);
-            var mockInstallerFile = SetupFile(SAMPLE_ISS_CONTENT, out var installerStream);
-            var mockVersionFile = SetupFile($"{version}\n{suffix}", out var versionStream);
-            mockFileSystem.Setup(x => x.GetFile(BuildContext.WINDOWS_PROJECT_FILENAME)).Returns(mockProjectFile.Object);
-            mockFileSystem.Setup(x => x.GetFile(BuildContext.INSTALLER_ISS_FILENAME)).Returns(mockInstallerFile.Object);
-            mockFileSystem.Setup(x => x.GetFile(BuildContext.VERSION_FILENAME)).Returns(mockVersionFile.Object);
-
+            SetupMockFile(BuildContext.VERSION_FILENAME, $"{initialVersion}\n{initialSuffix}");
             var task = new UpdateVersionTask();
 
             // Act
-            await task.RunAsync(buildContext);
+            task.Run(buildContext);
 
             // Assert
 
             // Verify that the version was incremented
             Assert.AreEqual(expectedVersion, buildContext.Version);
-            Assert.AreEqual(suffix, buildContext.VersionSuffix);
+            Assert.AreEqual(initialSuffix, buildContext.VersionSuffix);
 
             // Verify that the files were indeed updated.
-            var projectContent = Encoding.UTF8.GetString(projectStream.ToArray());
-            var installerContent = Encoding.UTF8.GetString(installerStream.ToArray());
-            var versionContent = Encoding.UTF8.GetString(versionStream.ToArray());
-
-            StringAssert.Contains(projectContent, $"<FileVersion>{expectedVersion}</FileVersion>");
-            StringAssert.Contains(projectContent, $"<AssemblyVersion>{expectedVersion}</AssemblyVersion>");
-            StringAssert.Contains(projectContent, $"<VersionSuffix>{suffix}</VersionSuffix>");
-
-            StringAssert.Contains(installerContent, $"#define MyAppVersion \"{expectedVersion}\"");
-
-            var expectedVersionContent = $"{expectedVersion}\n{suffix}";
-            Assert.AreEqual(expectedVersionContent, versionContent);
-
-            Debug.WriteLine("Got the following project content:");
-            Debug.WriteLine(projectContent);
-            Debug.WriteLine("");
-            Debug.WriteLine("Got the following installer content:");
-            Debug.WriteLine(installerContent);
-            Debug.WriteLine("");
-            Debug.WriteLine("Got the following version content:");
-            Debug.WriteLine(versionContent);
-            Debug.WriteLine("");
+            VerifyFileContents(BuildContext.WINDOWS_PROJECT_FILENAME, expectedVersion, initialSuffix);
+            VerifyFileContents(BuildContext.INSTALLER_ISS_FILENAME, expectedVersion);
+            VerifyFileContents(BuildContext.VERSION_FILENAME, expectedVersion, initialSuffix);
         }
 
         [TestMethod]
         [DataRow("0.9.9", "Pre-alpha")]
         [DataRow("0.9.9", "")]
         [DataRow("20.987.6543", "Beta")]
-        public async Task RunAsync_Override_ShouldUpdateVersionsCorrectly(string version, string suffix)
+        public void RunAsync_Override_ShouldUpdateVersionsCorrectly(string version, string suffix)
         {
 
             // Arrange
-            var context = Mock.Of<ICakeContext>();
-            var mockCakeContext = Mock.Get(context);
-            var mockFileSystem = new Mock<IFileSystem>();
-            var mockPathFinder = new Mock<IPathFinder>();
-            var mockGitHubActions = new Mock<IGitHubActionsProvider>();
-            var mockEnvironment = new Mock<ICakeEnvironment>();
-            var mockArguments = new Mock<ICakeArguments>();
-
-            mockCakeContext.SetupGet(x => x.Environment).Returns(mockEnvironment.Object);
-            mockEnvironment.SetupGet(x => x.WorkingDirectory).Returns(new DirectoryPath("O:/DAZ_Installer"));
-            mockCakeContext.SetupGet(x => x.Arguments).Returns(mockArguments.Object);
-            mockArguments.Setup(x => x.HasArgument(It.IsAny<string>())).Returns(false);
-            mockGitHubActions.SetupGet(x => x.IsRunningOnGitHubActions).Returns(true);
-
-
-            var buildContext = new BuildContext(context)
-            {
-                FileSystem = mockFileSystem.Object,
-                PathFinder = mockPathFinder.Object,
-                GithubActions = mockGitHubActions.Object,
-                Version = version,
-                VersionSuffix = suffix,
-                VersionOverriden = true,
-            };
-
-            mockPathFinder.Setup(x => x.FindPath(UpdateVersionTask.WINDOWS_PROJECT_PATH)).Returns(BuildContext.WINDOWS_PROJECT_FILENAME);
-            mockPathFinder.Setup(x => x.FindPath(UpdateVersionTask.INSTALLER_ISS_PATH)).Returns(BuildContext.INSTALLER_ISS_FILENAME);
-            mockPathFinder.Setup(x => x.FindPath(UpdateVersionTask.VERSION_FILE_PATH)).Returns(BuildContext.VERSION_FILENAME);
-
-            var mockProjectFile = SetupFile(SAMPLE_CSPROJ_CONTENT, out var projectStream);
-            var mockInstallerFile = SetupFile(SAMPLE_ISS_CONTENT, out var installerStream);
-            var mockVersionFile = SetupFile(SAMPLE_VERSION_CONTENT, out var versionStream);
-            mockFileSystem.Setup(x => x.GetFile(BuildContext.WINDOWS_PROJECT_FILENAME)).Returns(mockProjectFile.Object);
-            mockFileSystem.Setup(x => x.GetFile(BuildContext.INSTALLER_ISS_FILENAME)).Returns(mockInstallerFile.Object);
-            mockFileSystem.Setup(x => x.GetFile(BuildContext.VERSION_FILENAME)).Returns(mockVersionFile.Object);
-
+            buildContext.Version = version;
+            buildContext.VersionSuffix = suffix;
+            buildContext.VersionOverriden = true;
             var task = new UpdateVersionTask();
 
             // Act
-            await task.RunAsync(buildContext);
+            task.Run(buildContext);
 
             // Assert
 
@@ -274,27 +244,10 @@ namespace Build.Tests
             Assert.AreEqual(suffix, buildContext.VersionSuffix);
 
             // Verify that the files were indeed updated.
-            var projectContent = Encoding.UTF8.GetString(projectStream.ToArray());
-            var installerContent = Encoding.UTF8.GetString(installerStream.ToArray());
-            var versionContent = Encoding.UTF8.GetString(versionStream.ToArray());
 
-            StringAssert.Contains(projectContent, $"<FileVersion>{version}</FileVersion>");
-            StringAssert.Contains(projectContent, $"<AssemblyVersion>{version}</AssemblyVersion>");
-            StringAssert.Contains(projectContent, $"<VersionSuffix>{suffix}</VersionSuffix>");
-
-            StringAssert.Contains(installerContent, $"#define MyAppVersion \"{version}\"");
-
-            Assert.AreEqual($"{version}\n{suffix}", versionContent);
-
-            Debug.WriteLine("Got the following project content:");
-            Debug.WriteLine(projectContent);
-            Debug.WriteLine("");
-            Debug.WriteLine("Got the following installer content:");
-            Debug.WriteLine(installerContent);
-            Debug.WriteLine("");
-            Debug.WriteLine("Got the following version content:");
-            Debug.WriteLine(versionContent);
-            Debug.WriteLine("");
+            VerifyFileContents(BuildContext.WINDOWS_PROJECT_FILENAME, version, suffix);
+            VerifyFileContents(BuildContext.INSTALLER_ISS_FILENAME, version);
+            VerifyFileContents(BuildContext.VERSION_FILENAME, version, suffix);
         }
     }
 }
