@@ -80,7 +80,7 @@ namespace DAZ_Installer.Windows.DP
         /// <summary>
         /// The delete action to use when deleting files from DAZ content directories. This does not apply to temp files.
         /// </summary>
-        public RecycleOption DeleteAction { get; set; } = RecycleOption.DeletePermanently;
+        public RecycleOption DeleteAction { get; set; } = RecycleOption.SendToRecycleBin;
         /// <summary>
         /// The directory for the database to use. This is not the database file itself.
         /// </summary>
