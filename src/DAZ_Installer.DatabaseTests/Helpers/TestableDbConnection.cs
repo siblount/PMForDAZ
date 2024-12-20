@@ -12,12 +12,12 @@ namespace DAZ_Installer.DatabaseTests.Helpers
     {
         public bool BeginTransactionCalled = false;
         public bool CreateCommandCalled = false;
-        protected override DbTransaction BeginDbTransaction(IsolationLevel isolationLevel)
+        protected sealed override DbTransaction BeginDbTransaction(IsolationLevel isolationLevel)
         {
             BeginTransactionCalled = true;
             return BeginDbTransactionPublic(isolationLevel);
         }
-        protected override DbCommand CreateDbCommand()
+        protected sealed override DbCommand CreateDbCommand()
         {
             CreateCommandCalled = true;
             return CreateDbCommandPublic();
