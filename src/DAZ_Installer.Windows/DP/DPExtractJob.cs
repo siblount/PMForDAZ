@@ -142,24 +142,36 @@ namespace DAZ_Installer.Windows.DP
             }
         }
 
-        private void Processor_ArchiveEnter(object sender, DPArchiveEnterArgs e)
+        private async Task Processor_ArchiveEnter(object sender, DPArchiveEnterArgs e)
         {
-            switch (UserSettings.InstallPrevProducts)
+            CancellationTokenSource cts = new();
+            cts.CancelAfter(TimeSpan.FromSeconds(15));
+            var exists = await Program.Database.ContainsArchive(e.Archive.FileName);
+            if (exists == false) return;
+            if (exists is null)
             {
-                case SettingOptions.No:
-                    Processor.CancelCurrentArchive();
-                    break;
-                case SettingOptions.Prompt:
-                    CancellationTokenSource cts = new();
-                    cts.CancelAfter(TimeSpan.FromSeconds(15));
-                    var t = Task.Run(() => Program.Database.ContainsArchive(e.Archive.FileName), cts.Token);
-                    progressCombo.SetText($"Checking if {e.Archive.FileName} was previously processed...");
-                    if (t.Result != true) return;
-                    DialogResult result = MessageBox.Show($"It seems that \"{e.Archive.FileName}\" was already processed. " +
-                        $"Do you wish to continue processing this file?", "Archive already processed",
-                        MessageBoxButtons.YesNo, MessageBoxIcon.Information);
-                    if (result == DialogResult.No) Processor.CancelCurrentArchive();
-                    break;
+                DialogResult result = MessageBox.Show($"An error occurred while attempting to check if \"{e.Archive.FileName}\" was already processed. " +
+                    "This may indicate a database failure which could mean the product will install but with no record. " + 
+                    "Alternatively, it could result in duplicate entries in the library.\n\n" +
+                    "Do you wish to continue processing this file?\n\n" +
+                    "Pressing Cancel will stop the entire extraction job.", "Database failure - do you wish to proceed?",
+                    MessageBoxButtons.YesNoCancel, MessageBoxIcon.Information);
+                if (result == DialogResult.Cancel) Processor.CancelProcessing();
+                if (result == DialogResult.No) Processor.CancelCurrentArchive();
+            } else
+            {
+                switch (UserSettings.InstallPrevProducts)
+                {
+                    case SettingOptions.Prompt:
+                        DialogResult result = MessageBox.Show($"It seems that \"{e.Archive.FileName}\" was already processed. " +
+                            $"Do you wish to continue processing this file?", "Archive already processed",
+                            MessageBoxButtons.YesNo, MessageBoxIcon.Information);
+                        if (result == DialogResult.No) Processor.CancelCurrentArchive();
+                        break;
+                    case SettingOptions.No:
+                        Processor.CancelCurrentArchive();
+                        break;
+                }
             }
         }
 
