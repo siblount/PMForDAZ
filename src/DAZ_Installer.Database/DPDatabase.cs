@@ -135,6 +135,15 @@ namespace DAZ_Installer.Database
         {
             StopAllDatabaseOperations(true);
         }
+
+        /// <summary>
+        /// Initializes a new database - potentially creating the necessary directories and database file if not found.
+        /// </summary>
+        /// <remarks>
+        /// This will throw an exception if the filepath does not end in .db
+        /// </remarks>
+        /// <param name="path">The path to an existing or non-existant but valid filepath.</param>
+        /// <exception cref="ArgumentException">If <see cref="path"/> does not end with '.db'</exception>
         public DPDatabase(string path)
         {
             if (!path.EndsWith(".db")) throw new ArgumentException("Database path must end with .db");
