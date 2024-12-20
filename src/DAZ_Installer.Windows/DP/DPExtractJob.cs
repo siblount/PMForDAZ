@@ -26,8 +26,8 @@ namespace DAZ_Installer.Windows.DP
         public List<string> FilesToProcess { get; init; }
         public bool Completed { get; protected set; } = false;
         public DPProcessor Processor = new();
-        public Task TaskJob { get; protected set; }
-        public DPSettings UserSettings { get; protected set; }
+        public Task? TaskJob { get; protected set; }
+        public DPSettings? UserSettings { get; protected set; }
 
         public static DPTaskManager extractJobs = new();
         private ProgressCombo progressCombo = Extract.ExtractPage.progressCombo;
@@ -66,6 +66,11 @@ namespace DAZ_Installer.Windows.DP
 
         private void Processor_StateChanged()
         {
+            if (Processor.CurrentArchive is null)
+            {
+                Logger.Error("Got a null archive in Processor_StateChanged");
+                return;
+            }
             if (Processor.State == ProcessorState.PreparingExtraction)
             {
                 // TO DO: Highlight files in red for files that failed to extract.
@@ -142,7 +147,7 @@ namespace DAZ_Installer.Windows.DP
             }
         }
 
-        private async Task Processor_ArchiveEnter(object sender, DPArchiveEnterArgs e)
+        private async void Processor_ArchiveEnter(object sender, DPArchiveEnterArgs e)
         {
             CancellationTokenSource cts = new();
             cts.CancelAfter(TimeSpan.FromSeconds(15));
@@ -259,7 +264,7 @@ namespace DAZ_Installer.Windows.DP
             var foldersExtracted = new HashSet<string>(arc.Contents.Count);
 
             // Add the paths relative to the content folder.
-            foreach (DPFile file in report.ExtractedFiles)
+            foreach (IDPFile file in report.ExtractedFiles)
             {
                 successfulFiles.Add(file.RelativePathToContentFolder!);
                 if (!string.IsNullOrWhiteSpace(file.RelativePathToContentFolder))
