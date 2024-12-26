@@ -10,12 +10,14 @@ using System.ComponentModel;
 using System.IO;
 using System.Text;
 using System.Windows.Forms;
+using DAZ_Installer.IO;
 
 namespace DAZ_Installer.Windows.Pages
 {
     public partial class Home : UserControl
     {
         public static Home HomePage = null!;
+        public DPFileSystem FileSystem = new();
         public Home()
         {
             InitializeComponent();
@@ -121,32 +123,20 @@ namespace DAZ_Installer.Windows.Pages
         private void Home_DragDrop(object sender, DragEventArgs e)
         {
             if (e.Data is null) return;
-            var tmp = (string[])e.Data.GetData(DataFormats.FileDrop, false);
+            if (e.Data.GetData(DataFormats.FileDrop, false) is not string[] draggedFiles) return;
             Queue<string> invalidFiles = new();
             listView1.BeginUpdate();
             // Check for string if it's valid.
-            foreach (var path in tmp)
+            foreach (var path in draggedFiles)
             {
-                var fileInfo = new FileInfo(path);
-                var ext = fileInfo.Extension;
-                ext = ext.IndexOf('.') != -1 ? ext.Substring(1) : ext;
-                if (fileInfo.Exists && DPFile.ValidImportExtension(ext))
-                {
-                    // Add to list.
-                    listView1.Items.Add(path);
-                }
-                else
-                {
-                    ArchiveFormat type = DPArchive.DetermineArchiveFormatPrecise(path); // TODO: I'm pretty sure this can be removed.
-                    if (type == ArchiveFormat.SevenZ && ext.EndsWith("001"))
-                        listView1.Items.Add(path);
-                    else invalidFiles.Enqueue(path);
-                }
+                var fileInfo = FileSystem.CreateFileInfo(path);
+                if (DPArchive.IsValidSupportedArchive(fileInfo)) listView1.Items.Add(path);
+                else invalidFiles.Enqueue(path);
             }
             listView1.EndUpdate();
             if (invalidFiles.Count > 0)
             {
-                var builder = new StringBuilder(50);
+                var builder = new StringBuilder(50 * draggedFiles.Length);
                 while (invalidFiles.Count != 0)
                     builder.AppendLine(" \u2022 " + invalidFiles.Dequeue());
                 MessageBox.Show("Files that cannot be processed where removed from the list." +
