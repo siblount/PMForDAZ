@@ -20,7 +20,7 @@ namespace DAZ_Installer.Core.Extraction {
             {
                 ArchiveFormat.SevenZ => new DP7zExtractor(),
                 ArchiveFormat.RAR => new DPRARExtractor(),
-                ArchiveFormat.WinZip => new DPZipExtractor(),
+                ArchiveFormat.PKZip => new DPZipExtractor(),
                 _ => null,
             };
         }

@@ -1,4 +1,5 @@
-﻿using DAZ_Installer.IO;
+﻿using DAZ_Installer.Core.Extraction;
+using DAZ_Installer.IO;
 
 namespace DAZ_Installer.Core.Tests.Fakes
 {
@@ -8,7 +9,7 @@ namespace DAZ_Installer.Core.Tests.Fakes
     /// <remarks>By default, uses <see cref="DPFile"/> code.</remarks>
     public class FakeDPFile : FakeDPAbstractNode, IDPFile
     {
-        private readonly IDPFile file = new DPFile();
+        private readonly DPFile file = new DPFile();
         /// <inheritdoc cref="IDPFile"/>/>
         public IDPFileInfo? FileInfo { get => file.FileInfo; set => file.FileInfo = value; }
         /// <inheritdoc cref="IDPFile"/>/>
@@ -38,5 +39,11 @@ namespace DAZ_Installer.Core.Tests.Fakes
             Parent = parent;
             AssociatedArchive = archive;
         }
+
+        public virtual bool Extract(DPExtractSettings settings) => file.Extract(settings);
+
+        public virtual bool Extract(DPExtractSettings settings, string dest) => file.Extract(settings, dest);
+
+        public virtual bool ExtractToTemp(DPExtractSettings settings) => file.ExtractToTemp(settings);
     }
 }

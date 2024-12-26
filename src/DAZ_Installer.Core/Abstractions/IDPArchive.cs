@@ -44,11 +44,6 @@ namespace DAZ_Installer.Core
         AbstractFileSystem FileSystem { get; }
 
         /// <summary>
-        /// The name that will be used for ListView.
-        /// </summary>
-        string ListName { get; }
-
-        /// <summary>
         /// A list of archives that are children of this archive. 
         /// Or, in other words, archives that are contained within this archive.
         /// </summary>
@@ -202,12 +197,5 @@ namespace DAZ_Installer.Core
         /// <param name="folder">The found folder, if any.</param>
         /// <returns>True if the folder was found, false otherwise.</returns>
         bool FindFolder(string relativePath, out IDPFolder? folder);
-
-        /// <summary>
-        /// Searches for all files that contains the name specified by <paramref name="name"/>.
-        /// </summary>
-        /// <param name="name">The name to search for.</param>
-        /// <returns>The first file that contains <paramref name="name"/>; null if not found. </returns>
-        IDPFile? FindFileViaNameContains(string name);
     }
 }

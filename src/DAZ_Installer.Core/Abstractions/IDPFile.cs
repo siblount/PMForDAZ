@@ -1,3 +1,4 @@
+using DAZ_Installer.Core.Extraction;
 using DAZ_Installer.IO;
 
 
@@ -30,5 +31,25 @@ namespace DAZ_Installer.Core {
         /// Determines whether the file has been extracted to the target path or not.
         /// </summary>
         public bool ExtractedToTarget { get; }
+        /// <summary>
+        /// Extracts this file to <see cref="DPAbstractNode.TargetPath"/>.
+        /// </summary>
+        /// <param name="settings">The extract settings to use.</param>
+        /// <returns>Whether the extraction was successful or not.</returns>
+        public bool Extract(DPExtractSettings settings);
+        /// <summary>
+        /// Extracts this file to <paramref name="dest"/> by setting 
+        /// <see cref="DPAbstractNode.TargetPath"/> to <paramref name="dest"/> and extracting.
+        /// </summary>
+        /// <param name="settings">The extract settings to use.</param>
+        /// <param name="dest">The location to extract this file to.</param>
+        /// <returns>Whether the extraction was a success or not.</returns>
+        public bool Extract(DPExtractSettings settings, string dest);
+        /// <summary>
+        /// Extracts this file to the temporary directory specified in <see cref="DPExtractSettings.TempPath"/>
+        /// </summary>
+        /// <param name="settings">The extract settings to use.</param>
+        /// <returns>Whether the operation was a succses or not</returns>
+        public bool ExtractToTemp(DPExtractSettings settings);
     }
 }

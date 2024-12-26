@@ -24,14 +24,14 @@ namespace DAZ_Installer.Core
     /// </summary>
     public enum ArchiveFormat
     {
-        SevenZ, WinZip, RAR, Unknown
+        SevenZ, PKZip, RAR, Unknown
     }
 
     /// <summary>
     /// Abstract class for all supported archive files. 
     /// Currently the supported archive files are RAR, WinZip, and 7z (partially).
     /// </summary>
-    public class DPArchive : DPFile, IDPArchive
+    public partial class DPArchive : DPFile, IDPArchive
     {
         public override ILogger Logger { get; set; } = Log.Logger.ForContext<DPArchive>();
         public override string FileName
@@ -82,7 +82,7 @@ namespace DAZ_Installer.Core
         /// By default, a <see cref="DPFolderFactory"/> is returned; otherwise, <see cref="IDPFolderFactory"/>.
         /// Furthermore, children of this archive will inherit this factory at construction time.
         /// </remarks>
-        public IDPFolderFactory FolderFactory { get; set; } = DPFolderFactory.Instance;
+        public override IDPFolderFactory FolderFactory { get; set; } = DPFolderFactory.Instance;
         /// <summary>
         /// <inheritdoc/>
         /// </summary>
@@ -104,19 +104,14 @@ namespace DAZ_Installer.Core
         /// </summary>
         /// <remarks>
         /// This is derived from the <see cref="IDPIONode.FileSystem"/> which is from <see cref="IDPFile.FileInfo"/>.
+        /// If the <see cref="DPFile.FileInfo"/> is null, a new readonly <see cref="DPFileSystem"/> is returned.
         /// </remarks>
-        public AbstractFileSystem FileSystem => FileInfo!.FileSystem;
-        /// <summary>
-        /// <inheritdoc/>
-        /// </summary>
-        /// <value>The working archive's FileName + $"\\{Path}".</value>
-        public string ListName => AssociatedArchive is null ? string.Empty : AssociatedArchive.FileName + '\\' + Path;
+        public AbstractFileSystem FileSystem => FileInfo?.FileSystem ?? new DPFileSystem();
         /// <inheritdoc/>
         public List<IDPArchive> Subarchives { get; init; } = new();
         /// <inheritdoc/>
         public List<IDPDSXFile> ManifestFiles { get; protected set; } = new(2);
         /// <inheritdoc/>
-        // TODO: Make this a list of supplement files and fetch from here.
         public List<IDPDSXFile> SupplementFiles { get; protected set; } = new(1);
         /// <inheritdoc/>
         public bool IsInnerArchive => AssociatedArchive is not null;
@@ -159,6 +154,10 @@ namespace DAZ_Installer.Core
         /// The regex expression used for creating a product name.
         /// </summary>
         public static Regex ProductNameRegex { get; protected set; } = new(@"([^+|\-|_|\s]+)", RegexOptions.Compiled);
+
+
+        [GeneratedRegex(@"\.part(\d)+$", RegexOptions.IgnoreCase)]
+        private static partial Regex PartNumberRARRegex();
 
         public DPArchive() { }
         /// <summary>
@@ -230,9 +229,10 @@ namespace DAZ_Installer.Core
             ExtractContents(new DPExtractSettings(tempLocation, Contents.Values, overwrite));
 
         /// <inheritdoc/>
+        /// <exception cref="InvalidOperationException">If <see cref="Extractor"/> is null.</exception>
         public DPExtractionReport ExtractContents(DPExtractSettings settings)
         {
-            if (!Extracted && !ExtractToTemp(settings))
+            if (FileInfo is null or { Exists: false } && !ExtractToTemp(settings))
                 throw new IOException("Archive was not on disk and could not be extracted.");
             if (Extractor is null)
                 throw new InvalidOperationException("Extractor is null. Cannot extract archive contents.");
@@ -240,9 +240,10 @@ namespace DAZ_Installer.Core
         }
 
         /// <inheritdoc/>
+        /// <exception cref="InvalidOperationException">If <see cref="Extractor"/> is null.</exception>
         public DPExtractionReport ExtractContentsToTemp(DPExtractSettings settings)
         {
-            if (!Extracted && !ExtractToTemp(settings))
+            if (FileInfo is null or { Exists: false } && !ExtractToTemp(settings))
                 throw new IOException("Archive was not on disk and could not be extracted.");
             if (Extractor is null)
                 throw new InvalidOperationException("Extractor is null. Cannot extract archive contents.");
@@ -261,7 +262,7 @@ namespace DAZ_Installer.Core
         {
             // Just extract to temp.
             var settings = new DPExtractSettings(temp ?? IOPath.GetTempPath(), Array.Empty<IDPFile>(), archive: this);
-            if (!Extracted && !ExtractToTemp(settings))
+            if (FileInfo is null or { Exists: false } && !ExtractToTemp(settings))
                 throw new IOException("Archive was not on disk and could not be extracted.");
             if (Extractor is null)
                 throw new InvalidOperationException("Extractor is null. Cannot peek archive contents.");
@@ -275,39 +276,13 @@ namespace DAZ_Installer.Core
         /// <param name="file">The file to extract.</param>
         /// <param name="tempLocation">The temp path to use if needed.</param>
         /// <param name="overwrite">Determines whether to overwrite the files on disk if they exist.</param>
-        public bool ExtractContent(IDPFile file, string tempLocation, bool overwrite = true) => ExtractContents(new DPExtractSettings(tempLocation, new IDPFile[] { file }, overwrite)).SuccessPercentage == 1;
-
-        /// <summary>
-        /// Checks whether or not the given ext is what is expected. Checks file headers. Does not throw exceptions.
-        /// </summary>
-        /// <returns>Returns an extension of the appropriate archive extraction method. 
-        /// Returns <see cref="ArchiveFormat.Unknown"/> on errors and when it doesn't match archive magic strings.</returns>
-
-        public static ArchiveFormat DetermineArchiveFormatPrecise(string location)
-        {
-            try
-            {
-                using FileStream stream = File.OpenRead(location);
-                var bytes = new byte[8];
-                stream.Read(bytes, 0, 8);
-                stream.Close();
-                // ZIP File Header
-                // 	50 4B OR 	57 69
-                if ((bytes[0] == 80 || bytes[0] == 87) && (bytes[1] == 75 || bytes[2] == 105))
-                    return ArchiveFormat.WinZip;
-                // RAR 5 consists of 8 bytes.  0x52 0x61 0x72 0x21 0x1A 0x07 0x01 0x00
-                // RAR 4.x consists of 7. 0x52 0x61 0x72 0x21 0x1A 0x07 0x00
-                // Rar!
-                if (bytes[0] == 82 && bytes[1] == 97 && bytes[2] == 114 && bytes[3] == 33)
-                    return ArchiveFormat.RAR;
-
-                if (bytes[0] == 55 && bytes[1] == 122 && bytes[2] == 188 && bytes[3] == 175)
-                    return ArchiveFormat.SevenZ;
-
-                return ArchiveFormat.Unknown;
-            }
-            catch { return ArchiveFormat.Unknown; }
+        /// <exception cref="ArgumentException">If <paramref name="file"/> is not a child of this archive.</exception>
+        public bool ExtractContent(IDPFile file, string tempLocation, bool overwrite = true) {
+            if (!Contents.ContainsKey(file.NormalizedPath))
+                throw new ArgumentException($"Cannot extract file {file.Path} that is not a child of archive {FileName}", nameof(file));
+            return ExtractContents(new DPExtractSettings(tempLocation, [file], overwrite)).SuccessPercentage == 1;
         }
+
         /// <summary>
         /// Checks whether or not the given ext is what is expected. Checks file headers. Does not throw exceptions.
         /// </summary>
@@ -316,31 +291,33 @@ namespace DAZ_Installer.Core
         /// <returns>Returns an extension of the appropriate archive extraction method. Otherwise, null.</returns>
         public static ArchiveFormat DetermineArchiveFormatPrecise(Stream stream, bool closeWhenFinished)
         {
-            Span<byte> zipFileHeaders = stackalloc byte[] { 0x50, 0x4B, 0x57, 0x69 };
-            Span<byte> RAR5FileHeaders = stackalloc byte[] { 0x52, 0x61, 0x72, 0x21, 0x1A, 0x07, 0x01, 0x00 };
-            Span<byte> RAR4FileHeaders = stackalloc byte[] { 0x52, 0x61, 0x72, 0x21, 0x1A, 0x07, 0x00 };
+            Span<byte> zipFileHeaders = [0x50, 0x4B];
+            Span<byte> RAR5FileHeaders = [0x52, 0x61, 0x72, 0x21, 0x1A, 0x07, 0x01, 0x00];
+            Span<byte> RAR4FileHeaders = [0x52, 0x61, 0x72, 0x21, 0x1A, 0x07, 0x00];
+            Span<byte> sevenZFileHeaders = [0x37, 0x7A, 0xBC, 0xAF];
 
             try
             {
                 Span<byte> bytes = stackalloc byte[8];
                 stream.Read(bytes);
 
-                // ZIP File Header
-                // 	50 4B OR 	57 69
-                if (bytes[..2].SequenceEqual(zipFileHeaders[..2]) || bytes[2..].SequenceEqual(zipFileHeaders[2..]))
-                    return ArchiveFormat.WinZip;
+                // ZIP File Header (PKZip, not WinZip)
+                // 	50 4B
+                if (bytes[..2].SequenceEqual(zipFileHeaders[..2]))
+                    return ArchiveFormat.PKZip;
+                if (bytes[..4].SequenceEqual(sevenZFileHeaders))
+                    return ArchiveFormat.SevenZ;
                 // RAR 5 consists of 8 bytes.  0x52 0x61 0x72 0x21 0x1A 0x07 0x01 0x00
                 // RAR 4.x consists of 7.      0x52 0x61 0x72 0x21 0x1A 0x07 0x00
                 // Rar!
-                if (bytes.SequenceEqual(RAR5FileHeaders) || bytes.SequenceEqual(RAR4FileHeaders))
+                if (bytes.SequenceEqual(RAR5FileHeaders) || bytes[..(RAR4FileHeaders.Length)].SequenceEqual(RAR4FileHeaders))
                     return ArchiveFormat.RAR;
-
-                if (bytes[0] == 55 && bytes[1] == 122 && bytes[2] == 188 && bytes[3] == 175)
-                    return ArchiveFormat.SevenZ;
-
                 return ArchiveFormat.Unknown;
             }
-            catch (Exception e) { Log.Error(e, "failed to do something");  return ArchiveFormat.Unknown; }
+            catch (Exception e) { 
+                Log.Error(e, "Failed to accurately determine archive format");  
+                return ArchiveFormat.Unknown; 
+            }
             finally
             {
                 if (closeWhenFinished) stream.Close();
@@ -355,22 +332,79 @@ namespace DAZ_Installer.Core
         /// <returns>A ArchiveFormat enum determining the archive format.</returns>
         public static ArchiveFormat DetermineArchiveFormat(string ext)
         {
-            // ADDITONAL NOTE: This is called for determing archive files inside of an
-            // archive file.
-            ext = ext.ToLower();
-            switch (ext)
+            return ext.ToLower() switch
             {
-                case "7z":
-                    return ArchiveFormat.SevenZ;
-                case "rar":
-                    return ArchiveFormat.RAR;
-                case "zip":
-                    return ArchiveFormat.WinZip;
-                default:
-                    if (uint.TryParse(ext, out var _)) return ArchiveFormat.SevenZ;
-                    return ArchiveFormat.Unknown;
-            }
+                "7z" or "001" => ArchiveFormat.SevenZ,
+                "rar" => ArchiveFormat.RAR,
+                "zip" => ArchiveFormat.PKZip,
+                _ => ArchiveFormat.Unknown,
+            };
         }
+
+        /// <summary>
+        /// Quickly checks if an given archive file can be processed.
+        /// </summary>
+        /// <remarks>
+        /// An slightly more extensive check than simply gathering the archive format. This is
+        /// should be primarily used as a validation check whether inputted files will process.
+        /// </remarks>
+        /// <example>
+        /// A rar file with the extension `test.part2.rar` would be given an <see cref="ArchiveFormat.RAR"/>
+        /// format. However, this would cause errors since <see cref="DPRARExtractor"/> only processes the 
+        /// first part of the archive.
+        /// </example>
+        /// <param name="fileInfo">The file info of the archive on disk to validate</param>
+        /// <returns>Whether the archive is supported by DP extractors.</returns>
+        public static bool IsValidSupportedArchive(IDPFileInfo fileInfo) {
+            var ext = GetExtension(fileInfo.Name);
+            var nameWithoutExtension = IOPath.GetFileNameWithoutExtension(fileInfo.Name);
+            var hasDotInNameWithoutExtension = nameWithoutExtension.LastIndexOf('.') != -1;
+            var format = DetermineArchiveFormat(ext);
+
+            if (format == ArchiveFormat.RAR) {
+                return !hasDotInNameWithoutExtension || IsFirstPartRarFile(nameWithoutExtension);
+            } else if (format != ArchiveFormat.Unknown) return true;
+
+            // If the format is unknown based on extension, check the file header
+            using var stream = fileInfo.OpenRead();
+            format = DetermineArchiveFormatPrecise(stream, true);
+            return format != ArchiveFormat.Unknown;
+        }
+
+        /// <summary>
+        /// Determines if a given name indicates the first part of a multi-part RAR file.
+        /// </summary>
+        /// <remarks>
+        /// Call <see cref="IOPath.GetFileNameWithoutExtension(string?)"/> first and pass it as an argument to
+        /// <paramref name="nameWithoutExtension"/>.
+        /// </remarks>
+        /// <param name="nameWithoutExtension">The name without the extension.</param>
+        private static bool IsFirstPartRarFile(string nameWithoutExtension) {
+            var match = PartNumberRARRegex().Match(nameWithoutExtension);
+            if (!match.Success) return true;
+            if (int.TryParse(match.Groups[1].Value, out int partNumber)) {
+                return partNumber == 1;
+            }
+            return false;
+        }
+
+        /// <summary>
+        /// Determines if the given extension (without the dot) represents a multi-part 7z file.
+        /// </summary>
+        /// <param name="extension">The file extension without the leading dot.</param>
+        /// <returns>True if the extension represents a multi-part 7z file, otherwise false.</returns>
+        private static bool IsMultiPart7zExtension(string extension)
+        {
+            // Check if the extension is exactly 3 digits
+            if (extension.Length != 3 || !int.TryParse(extension, out int partNumber))
+            {
+                return false;
+            }
+
+            // Check if the number is between 001 and 999
+            return partNumber >= 1 && partNumber <= 999;
+        }
+
         /// <summary>
         /// Calls <see cref="DetermineArchiveFormat(string)"/> on the <see cref="Ext"/> property and 
         /// potentially calls <see cref="DetermineArchiveFormatPrecise(string)"/> if <see cref="Extracted"/> is true.
@@ -385,31 +419,15 @@ namespace DAZ_Installer.Core
         }
 
         /// <summary>
-        /// Returns the default extractor given an archive format. 
+        /// Determines the archive type of this archive.
         /// </summary>
-        /// <param name="format">The archive format of the archive</param>
-        /// <returns>The default extractor, null if <paramref name="format"/> is <see cref="ArchiveFormat.Unknown"/></returns>
-        public static DPAbstractExtractor? GetDefaultExtractorForArchiveFormat(ArchiveFormat format)
-        {
-            return format switch
-            {
-                ArchiveFormat.SevenZ => new DP7zExtractor(),
-                ArchiveFormat.RAR => new DPRARExtractor(),
-                ArchiveFormat.WinZip => new DPZipExtractor(),
-                _ => null,
-            };
-        }
-
-        /// <summary>
-        /// Searches for all files that contains the name specified by <paramref name="name"/>.
-        /// </summary>
-        /// <param name="name">The name to search for.</param>
-        /// <returns>The first file that contains <paramref name="name"/>; null if not found. </returns>
-        public IDPFile? FindFileViaNameContains(string name) => Contents.Values.First(x => x.FileName.Contains(name));
-
-        /// <summary>
-        /// This function should be called after all the files have been extracted. If no content folders have been found, this is a bundle.
-        /// </summary>
+        /// <remarks>
+        /// This function should be called after all the files have been extracted.
+        /// If there are content folders detected, then <see cref="ArchiveType.Product"/>
+        /// is returned. If not, then if there is an archive file, then it will be treated
+        /// as a <see cref="ArchiveType.Bundle"/>. Otherwise, <see cref="ArchiveType.Unknown"/>
+        /// is returned.
+        /// </remarks>
         public ArchiveType DetermineArchiveType()
         {
             foreach (IDPFolder folder in Folders.Values)
@@ -440,33 +458,65 @@ namespace DAZ_Installer.Core
 
         public IDPFolder? FindParent(IDPAbstractNode obj)
         {
-            var fileName = PathHelper.GetFileName(obj.Path);
-            // This means obj.Path contains trailing seperator, so do it again but without the seperator.
-            if (fileName == string.Empty) fileName = IOPath.GetFileName(obj.Path.TrimEnd(PathHelper.GetSeperator(obj.Path)));
-            var relativePathOnly = "";
+            ReadOnlySpan<char> path = obj.Path;
+            
+            // Remove trailing separator if one exists
+            if (path.Length > 0 && (path[^1] == '\\' || path[^1] == '/'))
+                path = path[..^1];
+
+            var fileName = PathHelper.GetFileName(path).AsSpan();
+            if (fileName.IsEmpty)
+                return null; // If fileName is empty after trimming, we can't find a parent
+
+            var fileNameIndex = path.LastIndexOf(fileName);
+            if (fileNameIndex <= 0)
+                return null; // If we can't find the fileName in the path, we can't find a parent
+
+            ReadOnlySpan<char> relativePathSpan = path[..fileNameIndex];
+            string relativePathOnly;
+
             try
             {
-                relativePathOnly = PathHelper.CleanDirPath(obj.Path.Remove(obj.Path.LastIndexOf(fileName)));
+                relativePathOnly = PathHelper.CleanDirPath(relativePathSpan);
             }
-            catch { }
+            catch
+            {
+                return null; // If we can't clean the path, we can't find a parent
+            }
+
             if (FindFolder(relativePathOnly, out IDPFolder? folder))
             {
                 return folder;
             }
+
             return null;
         }
-
-        public bool FolderExists(string fPath) => Folders.ContainsKey(fPath);
+        
         /// <summary>
-        /// Simply finds the folder given a relative path.
+        /// Determines if this archive contains a folder with the exact normalized path specified.
         /// </summary>
-        /// <param name="relativePath"></param>
-        /// <param name="folder"></param>
+        /// <remarks>
+        /// This is equivalent to <c>Folders.ContainsKey(normalizedFolderPath)</c>.
+        /// </remarks>
+        /// <param name="normalizedFolderPath">The normalized folder path with 
+        /// <see cref="PathHelper.NormalizePath(string)"/>.
+        /// </param>
+        /// <returns>True if the <see cref="Folders"/> dictionary contains the key or not.</returns>
+        public bool FolderExists(string normalizedFolderPath) => Folders.ContainsKey(normalizedFolderPath);
+
+        /// <summary>
+        /// Simply finds the folder given a path.
+        /// </summary>
+        /// <remarks>
+        /// The path is normalized internally, so you can pass non-normalized paths safely.
+        /// </remarks>
+        /// <param name="path">A path of a potential folder (can be a normalized path)</param>
+        /// <param name="folder">The folder if found, otherwise null.</param>
         /// <returns>True if the folder was found, otherwise false.</returns>
-        public bool FindFolder(string relativePath, [NotNullWhen(true)] out IDPFolder? folder)
+        public bool FindFolder(string path, [NotNullWhen(true)] out IDPFolder? folder)
         {
-            var normalizedRelativePath = PathHelper.NormalizePath(relativePath);
-            return Folders.TryGetValue(normalizedRelativePath, out folder);
+            var normalizedPath = PathHelper.NormalizePath(path);
+            return Folders.TryGetValue(normalizedPath, out folder);
         }
 
         /// <summary>

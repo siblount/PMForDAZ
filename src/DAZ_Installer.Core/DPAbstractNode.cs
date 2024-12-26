@@ -98,14 +98,14 @@ namespace DAZ_Installer.Core
         {
             if (string.IsNullOrEmpty(path)) return string.Empty;
 
-            var extension = IOPath.GetExtension(path);
+            ReadOnlySpan<char> extension = IOPath.GetExtension(path);
 
-            if (string.IsNullOrEmpty(extension))
+            if (extension is { Length: >0 })
             {
-                return string.Empty;
+                return extension.TrimStart('.').ToString().ToLower();
             }
 
-            return extension.TrimStart('.').ToLower();
+            return string.Empty;
         }
 
         /// <summary>

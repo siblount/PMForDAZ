@@ -38,9 +38,6 @@ namespace DAZ_Installer.Core.Tests.Fakes
         /// <inheritdoc cref="DPArchive.FileSystem"/>
         public virtual AbstractFileSystem FileSystem => ((IDPArchive)archive).FileSystem;
 
-        /// <inheritdoc cref="DPArchive.ListName"/>
-        public virtual string ListName => ((IDPArchive)archive).ListName;
-
         /// <inheritdoc cref="DPArchive.Subarchives"/>
         public virtual List<IDPArchive> Subarchives => ((IDPArchive)archive).Subarchives;
 
@@ -97,9 +94,6 @@ namespace DAZ_Installer.Core.Tests.Fakes
 
         /// <inheritdoc cref="DPArchive.ExtractContentsToTemp"/>
         public virtual DPExtractionReport ExtractContentsToTemp(DPExtractSettings settings) => ((IDPArchive)archive).ExtractContentsToTemp(settings);
-
-        /// <inheritdoc cref="DPArchive.FindFileViaNameContains"/>
-        public virtual IDPFile? FindFileViaNameContains(string name) => ((IDPArchive)archive).FindFileViaNameContains(name);
 
         /// <inheritdoc cref="DPArchive.FindFolder"/>
         public virtual bool FindFolder(string relativePath, out IDPFolder? folder) => ((IDPArchive)archive).FindFolder(relativePath, out folder);
