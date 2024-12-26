@@ -339,5 +339,34 @@ namespace DAZ_Installer.Core.Tests
             CollectionAssert.AreEqual(new[] { parentFolder }, Archive.Folders.Values);
             CollectionAssert.AreEqual(new[] { parentFolder }, Archive.RootFolders);
         }
+
+        [TestMethod]
+        public void FolderFactoryTest_FallbackToDefault()
+        {
+            var file = new DPFile("Something", Archive, null);
+            Archive.FolderFactory = null!;
+
+            Assert.AreSame(DPFolderFactory.Instance, file.FolderFactory);
+        }
+
+        [TestMethod]
+        public void FolderFactoryTest_FallbackToAssociatedArchive()
+        {
+            var file = new DPFile("Something", Archive, null);
+            var folderFactory = Mock.Of<IDPFolderFactory>();
+            Archive.FolderFactory = folderFactory;
+
+            Assert.AreSame(folderFactory, file.FolderFactory);
+        }
+
+        [TestMethod]
+        public void FolderFactoryTest_Direct()
+        {
+            var file = new DPFile("Something", Archive, null);
+            var folderFactory = Mock.Of<IDPFolderFactory>();
+            file.FolderFactory = folderFactory;
+
+            Assert.AreSame(folderFactory, file.FolderFactory);
+        }
     }
 }

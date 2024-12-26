@@ -42,11 +42,18 @@ namespace DAZ_Installer.Core
         /// <summary>
         /// A factory to create folders.
         /// </summary>
+        /// <remarks>
+        /// Do not manually set the folder factory
         /// <returns>
         /// Inherits the folder factory from <see cref="DPAbstractNode.AssociatedArchive"/> otherwise 
         /// fallbacks to <see cref="DPFolderFactory"/>
         /// </returns>
-        public IDPFolderFactory FolderFactory => AssociatedArchive?.FolderFactory ?? DPFolderFactory.Instance;
+        public virtual IDPFolderFactory FolderFactory
+        {
+            get => _folderFactory ?? (AssociatedArchive?.FolderFactory ?? DPFolderFactory.Instance);
+            set => _folderFactory = value;
+        }
+        private IDPFolderFactory? _folderFactory;
         /// <summary>
         /// A list of tags that are associated with the file. This is typically initialized with the file name.
         /// </summary>
@@ -204,6 +211,11 @@ namespace DAZ_Installer.Core
         /// Extracts the current file to <see cref="DPAbstractNode.TargetPath"/>. If the <see cref="DPAbstractNode.AssociatedArchive"/> is not on disk, 
         /// then it will be extracted first.
         /// </summary>
+        /// <remarks>
+        /// It calls <see cref="IDPArchive.ExtractContent(IDPFile, string, bool)"/> if <see cref="IDPAbstractNode.AssociatedArchive"/>
+        /// is not null, otherwise returns false. This also means that if the associated archive is not on disk,
+        /// then the associated archive's parent will extract the archive first, then this file.
+        /// </remarks>
         /// <param name="settings">The extract settings to use.</param>
         /// <returns>Whether the extraction was successful or not.</returns>
         public bool Extract(DPExtractSettings settings)
@@ -215,9 +227,14 @@ namespace DAZ_Installer.Core
         /// <summary>
         /// Extracts the current file to <paramref name="dest"/> by setting <see cref="DPAbstractNode.TargetPath"/> to <paramref name="dest"/> and extracting.
         /// </summary>
+        /// <remarks>
+        /// It calls <see cref="IDPArchive.ExtractContent(IDPFile, string, bool)"/> if <see cref="IDPAbstractNode.AssociatedArchive"/>
+        /// is not null, otherwise returns false. This also means that if the associated archive is not on disk,
+        /// then the associated archive's parent will extract the archive first, then this file.
+        /// </remarks>
         /// <param name="settings">The extract settings to use.</param>
-        /// <param name="dest">Whether the extraction was successful or not.</param>
-        /// <returns></returns>
+        /// <param name="dest">The location to extract this file to.</param>
+        /// <returns>Whether the extraction was a success or not.</returns>
         public bool Extract(DPExtractSettings settings, string dest)
         {
             TargetPath = dest;
@@ -225,8 +242,13 @@ namespace DAZ_Installer.Core
         }
 
         /// <summary>
-        /// Extracts the current file. If the file is not extracted, then it will be extracted. Otherwise, nothing will happen.
+        /// <inheritdoc/>
         /// </summary>
+        /// <remarks>
+        /// It calls <see cref="IDPArchive.ExtractContentsToTemp(DPExtractSettings)"/> if <see cref="IDPAbstractNode.AssociatedArchive"/>
+        /// is not null, otherwise returns false. This also means that if the associated archive is not on disk,
+        /// then the associated archive's parent will extract the archive first, then this file.
+        /// </remarks>
         /// <param name="settings">The extract settings to use; only <see cref="DPExtractSettings.TempPath"/> will be honored.</param>
         /// <returns>Whether the operation was a succses or not</returns>
         public bool ExtractToTemp(DPExtractSettings settings)
