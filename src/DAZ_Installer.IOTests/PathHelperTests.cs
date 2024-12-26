@@ -42,14 +42,6 @@ namespace DAZ_Installer.IO.Tests
         }
 
         [DataTestMethod]
-        [DataRow("Contents", "")]
-        [DataRow("C:/Contents/Documents/sollybean", "C:/Contents/Documents")]
-        [DataRow("Contents/Documents/sollybean", "Contents/Documents")]
-        [DataRow("Contents/Documents", "Contents")]
-
-        public void GetParentTest(string path, string want) => Assert.AreEqual(want, PathHelper.GetParent(path));
-
-        [DataTestMethod]
         [DataRow("C:/Contents/Documents/sollybean", "sollybean")]
         [DataRow("C:/Contents/Documents/sollybean/", "")]
         [DataRow("C:/Contents/Documents/sollybean.", "sollybean.")]

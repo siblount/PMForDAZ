@@ -76,41 +76,47 @@ namespace DAZ_Installer.IO
             // Do not return anything if the result is a drive letter (eg: C:)
             return result.EndsWith(':') ? string.Empty : result;
         }
-        /// <summary>
-        /// Returns the parent directory of the given path.
-        /// </summary>
-        /// <param name="path">The path to get the parent of.</param>
-        [Obsolete("Use PathHelper.Up() instead.", false)]
-        public static string GetParent(string path) => Up(path);
+
         /// <summary>
         /// Returns the file name of a path.
         /// </summary>
         /// <param name="path">The path to use.</param>
-        public static string GetFileName(string path)
+        public static string GetFileName(ReadOnlySpan<char> path)
         {
-            var seperator = GetSeperator(path);
-            return path.Split(seperator)[^1];
+            if (path.IsEmpty)
+                return string.Empty;
+
+            int lastBackslash = path.LastIndexOf('\\');
+            int lastForwardSlash = path.LastIndexOf('/');
+
+            int lastSeparatorIndex = Math.Max(lastBackslash, lastForwardSlash);
+
+            return lastSeparatorIndex >= 0 ? path[(lastSeparatorIndex + 1)..].ToString() : path.ToString();
         }
 
         /// <summary>
         /// Clean the directory path by ensuring a consistent seperator and removing the trailing seperator. <para/>
         /// The only difference from <see cref="NormalizePath(string)"/> is that it uses the seperator of the given path 
-        /// (versus using the default seperator - forward slash).
+        /// (versus using the default seperator, forward slash (/)).
         /// </summary>
         /// <param name="path">The path to process.</param>
         /// <returns>The path with no trailing seperator and consistent seperator.</returns>
-        public static string CleanDirPath(string path)
+        public static string CleanDirPath(ReadOnlySpan<char> path)
         {
             var seperator = GetSeperator(path);
             path = SwitchToSeperator(path, seperator);
             var strBuilder = new StringBuilder(path.Length);
-            foreach (var str in path.Split(seperator, options: StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries))
+            const StringSplitOptions SPLIT_OPTIONS = StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries;
+            
+            foreach (var str in path.ToString().Split(seperator, options: SPLIT_OPTIONS))
             {
                 strBuilder.Append(str).Append(seperator);
             }
+
             if (strBuilder.Length == 0) return string.Empty;
             return strBuilder.Remove(strBuilder.Length - 1, 1).ToString();
         }
+
         /// <summary>
         /// Determines how many levels/directories above the given path is from the relative path.
         /// </summary>
@@ -157,10 +163,10 @@ namespace DAZ_Installer.IO
         /// <param name="path">The path to switch seperators.</param>
         /// <param name="seperator">The seperator to switch to.</param>
         /// <returns>The path with seperators switched.</returns>
-        public static string SwitchToSeperator(string path, char seperator)
+        public static string SwitchToSeperator(ReadOnlySpan<char> path, char seperator)
         {
             var oppositeSeperator = seperator == '\\' ? '/' : '\\';
-            return path.Replace(oppositeSeperator, seperator);
+            return path.ToString().Replace(oppositeSeperator, seperator);
         }
 
         /// <summary>
