@@ -19,8 +19,8 @@ namespace DAZ_Installer
         [Description("Title text"), Category("Data"), Browsable(true), EditorBrowsable(EditorBrowsableState.Always), DesignerSerializationVisibility(DesignerSerializationVisibility.Visible)]
         public string TitleText
         {
-            get => label1.Text;
-            set => label1.Text = value;
+            get => titleLbl.Text;
+            set => titleLbl.Text = value;
         }
 
         [Description("Holds the image inside of the imagebox."), Category("Data"), Browsable(true)]
@@ -56,7 +56,7 @@ namespace DAZ_Installer
             if (!initalized)
             {
                 initalized = true;
-                initialColor = label1.BackColor;
+                initialColor = titleLbl.BackColor;
             }
         }
 

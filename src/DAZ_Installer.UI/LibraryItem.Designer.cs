@@ -31,7 +31,7 @@ namespace DAZ_Installer
         {
             this.components = new System.ComponentModel.Container();
             this.imageBox = new System.Windows.Forms.PictureBox();
-            this.label1 = new System.Windows.Forms.Label();
+            this.titleLbl = new System.Windows.Forms.Label();
             this.tagsLayoutPanel = new System.Windows.Forms.FlowLayoutPanel();
             this.invisibleLabel = new System.Windows.Forms.Label();
             this.showFoldersBtn = new System.Windows.Forms.Button();
@@ -54,17 +54,17 @@ namespace DAZ_Installer
             // 
             // label1
             // 
-            this.label1.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
+            this.titleLbl.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
-            this.label1.AutoEllipsis = true;
-            this.label1.Font = new System.Drawing.Font("Segoe UI Variable Display Semil", 18F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
-            this.label1.Location = new System.Drawing.Point(128, 10);
-            this.label1.Margin = new System.Windows.Forms.Padding(0);
-            this.label1.Name = "label1";
-            this.label1.Size = new System.Drawing.Size(335, 31);
-            this.label1.TabIndex = 1;
-            this.label1.Text = "Title of Product";
-            this.label1.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
+            this.titleLbl.AutoEllipsis = true;
+            this.titleLbl.Font = new System.Drawing.Font("Segoe UI Variable Display Semil", 18F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
+            this.titleLbl.Location = new System.Drawing.Point(128, 10);
+            this.titleLbl.Margin = new System.Windows.Forms.Padding(0);
+            this.titleLbl.Name = "label1";
+            this.titleLbl.Size = new System.Drawing.Size(335, 31);
+            this.titleLbl.TabIndex = 1;
+            this.titleLbl.Text = "Title of Product";
+            this.titleLbl.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
             // 
             // tagsLayoutPanel
             // 
@@ -138,7 +138,7 @@ namespace DAZ_Installer
             this.Controls.Add(this.showFoldersBtn);
             this.Controls.Add(this.invisibleLabel);
             this.Controls.Add(this.tagsLayoutPanel);
-            this.Controls.Add(this.label1);
+            this.Controls.Add(this.titleLbl);
             this.Controls.Add(this.imageBox);
             this.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.Name = "LibraryItem";
@@ -153,7 +153,7 @@ namespace DAZ_Installer
         #endregion
 
         private System.Windows.Forms.PictureBox imageBox;
-        private System.Windows.Forms.Label label1;
+        private System.Windows.Forms.Label titleLbl;
         private System.Windows.Forms.FlowLayoutPanel tagsLayoutPanel;
         private System.Windows.Forms.Label invisibleLabel;
         private System.Windows.Forms.Button showFoldersBtn;
