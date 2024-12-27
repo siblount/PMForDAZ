@@ -30,7 +30,7 @@ namespace DAZ_Installer.Windows.Pages
         private void InitializeComponent()
         {
             components = new System.ComponentModel.Container();
-            var resources = new System.ComponentModel.ComponentResourceManager(typeof(Extract));
+            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(Extract));
             tabControl1 = new System.Windows.Forms.TabControl();
             fileListPage = new System.Windows.Forms.TabPage();
             fileListView = new System.Windows.Forms.ListView();
@@ -49,24 +49,28 @@ namespace DAZ_Installer.Windows.Pages
             selectInFileListToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             openInExplorerToolStripMenuItem1 = new System.Windows.Forms.ToolStripMenuItem();
             progressCombo = new UI.ProgressCombo();
+            splitContainer1 = new System.Windows.Forms.SplitContainer();
             tabControl1.SuspendLayout();
             fileListPage.SuspendLayout();
             fileListContextStrip.SuspendLayout();
             fileHierachyPage.SuspendLayout();
             fileHierachyContextStrip.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)splitContainer1).BeginInit();
+            splitContainer1.Panel1.SuspendLayout();
+            splitContainer1.SuspendLayout();
             SuspendLayout();
             // 
             // tabControl1
             // 
-            tabControl1.Anchor = System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right;
             tabControl1.Controls.Add(fileListPage);
             tabControl1.Controls.Add(fileHierachyPage);
             tabControl1.Controls.Add(queuePage);
-            tabControl1.Location = new System.Drawing.Point(31, 222);
+            tabControl1.Dock = System.Windows.Forms.DockStyle.Fill;
+            tabControl1.Location = new System.Drawing.Point(0, 0);
             tabControl1.Margin = new System.Windows.Forms.Padding(4, 2, 4, 2);
             tabControl1.Name = "tabControl1";
             tabControl1.SelectedIndex = 0;
-            tabControl1.Size = new System.Drawing.Size(491, 97);
+            tabControl1.Size = new System.Drawing.Size(491, 96);
             tabControl1.TabIndex = 1;
             // 
             // fileListPage
@@ -76,7 +80,7 @@ namespace DAZ_Installer.Windows.Pages
             fileListPage.Margin = new System.Windows.Forms.Padding(4, 2, 4, 2);
             fileListPage.Name = "fileListPage";
             fileListPage.Padding = new System.Windows.Forms.Padding(4, 2, 4, 2);
-            fileListPage.Size = new System.Drawing.Size(483, 69);
+            fileListPage.Size = new System.Drawing.Size(483, 68);
             fileListPage.TabIndex = 0;
             fileListPage.Text = "File List";
             fileListPage.UseVisualStyleBackColor = true;
@@ -91,7 +95,7 @@ namespace DAZ_Installer.Windows.Pages
             fileListView.Margin = new System.Windows.Forms.Padding(4, 2, 4, 2);
             fileListView.MultiSelect = false;
             fileListView.Name = "fileListView";
-            fileListView.Size = new System.Drawing.Size(475, 65);
+            fileListView.Size = new System.Drawing.Size(475, 64);
             fileListView.TabIndex = 0;
             fileListView.UseCompatibleStateImageBehavior = false;
             fileListView.View = System.Windows.Forms.View.Details;
@@ -219,11 +223,25 @@ namespace DAZ_Installer.Windows.Pages
             progressCombo.Size = new System.Drawing.Size(493, 196);
             progressCombo.TabIndex = 3;
             // 
+            // splitContainer1
+            // 
+            splitContainer1.Anchor = System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right;
+            splitContainer1.Location = new System.Drawing.Point(31, 223);
+            splitContainer1.Name = "splitContainer1";
+            // 
+            // splitContainer1.Panel1
+            // 
+            splitContainer1.Panel1.Controls.Add(tabControl1);
+            splitContainer1.Panel2Collapsed = true;
+            splitContainer1.Size = new System.Drawing.Size(491, 96);
+            splitContainer1.SplitterDistance = 163;
+            splitContainer1.TabIndex = 4;
+            // 
             // Extract
             // 
             AutoScaleMode = System.Windows.Forms.AutoScaleMode.Inherit;
             BackColor = System.Drawing.Color.White;
-            Controls.Add(tabControl1);
+            Controls.Add(splitContainer1);
             Controls.Add(progressCombo);
             Margin = new System.Windows.Forms.Padding(4, 2, 4, 2);
             Name = "Extract";
@@ -233,6 +251,9 @@ namespace DAZ_Installer.Windows.Pages
             fileListContextStrip.ResumeLayout(false);
             fileHierachyPage.ResumeLayout(false);
             fileHierachyContextStrip.ResumeLayout(false);
+            splitContainer1.Panel1.ResumeLayout(false);
+            ((System.ComponentModel.ISupportInitialize)splitContainer1).EndInit();
+            splitContainer1.ResumeLayout(false);
             ResumeLayout(false);
         }
 
@@ -256,5 +277,6 @@ namespace DAZ_Installer.Windows.Pages
         private Custom_Controls.QueueControl queueControl1;
         internal System.Windows.Forms.ImageList archiveFolderIcons;
         internal UI.ProgressCombo progressCombo;
+        private System.Windows.Forms.SplitContainer splitContainer1;
     }
 }
