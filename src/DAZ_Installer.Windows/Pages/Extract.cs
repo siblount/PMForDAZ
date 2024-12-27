@@ -133,31 +133,6 @@ namespace DAZ_Installer.Windows.Pages
             associatedTreeNodes.Clear();
         }
 
-        /// <summary>
-        /// Recursively gets the controls of the <paramref name="obj"/> and returns them as an array.
-        /// </summary>
-        /// <param name="obj"></param>
-        /// <returns></returns>
-        public static IEnumerable<Control> RecursivelyGetControls(Control obj)
-        {
-            Log.Information($"RecursivelyGetControls: {obj.Controls.Count}");
-            if (obj.Controls.Count == 0) return Enumerable.Empty<Control>();
-            var list = new List<Control>(obj.Controls.Count);
-            var enumerator = list.AsEnumerable();
-            foreach (Control control in obj.Controls)
-            {
-                enumerator.Concat(RecursivelyGetControls(control));
-                list.Add(control);
-            }
-            
-            return enumerator;
-        }
-
-        private void mainProcLbl_Click(object sender, EventArgs e)
-        {
-
-        }
-
         #region Context Strip Events
         private void selectInHierachyToolStripMenuItem_Click(object sender, EventArgs e)
         {
@@ -181,7 +156,6 @@ namespace DAZ_Installer.Windows.Pages
         }
 
         public void OpenFileInExplorer(string path) => Process.Start(@"explorer.exe", $"/select, \"{path}\"");
-        #endregion
 
         private void selectInFileListToolStripMenuItem_Click(object sender, EventArgs e)
         {
@@ -194,6 +168,7 @@ namespace DAZ_Installer.Windows.Pages
             // Switch tab.
             tabControl1.SelectTab(fileListPage);
         }
+        #endregion
     }
 
 }
