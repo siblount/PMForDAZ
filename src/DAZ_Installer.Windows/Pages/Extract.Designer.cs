@@ -30,10 +30,14 @@ namespace DAZ_Installer.Windows.Pages
         private void InitializeComponent()
         {
             components = new System.ComponentModel.Container();
-            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(Extract));
             System.Windows.Forms.ListViewGroup listViewGroup1 = new System.Windows.Forms.ListViewGroup("No extraction jobs processed yet", System.Windows.Forms.HorizontalAlignment.Left);
             System.Windows.Forms.ListViewItem listViewItem1 = new System.Windows.Forms.ListViewItem("");
+            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(Extract));
             tabControl1 = new System.Windows.Forms.TabControl();
+            queuePage = new System.Windows.Forms.TabPage();
+            queueListView = new System.Windows.Forms.ListView();
+            nameHeader = new System.Windows.Forms.ColumnHeader();
+            statusHeader = new System.Windows.Forms.ColumnHeader();
             fileListPage = new System.Windows.Forms.TabPage();
             fileListView = new System.Windows.Forms.ListView();
             filePathColumn = new System.Windows.Forms.ColumnHeader();
@@ -45,10 +49,6 @@ namespace DAZ_Installer.Windows.Pages
             fileHierachyPage = new System.Windows.Forms.TabPage();
             fileHierachyTree = new System.Windows.Forms.TreeView();
             archiveFolderIcons = new System.Windows.Forms.ImageList(components);
-            queuePage = new System.Windows.Forms.TabPage();
-            queueListView = new System.Windows.Forms.ListView();
-            nameHeader = new System.Windows.Forms.ColumnHeader();
-            statusHeader = new System.Windows.Forms.ColumnHeader();
             fileHierachyContextStrip = new System.Windows.Forms.ContextMenuStrip(components);
             inspectToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             selectInFileListToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
@@ -56,10 +56,10 @@ namespace DAZ_Installer.Windows.Pages
             progressCombo = new UI.ProgressCombo();
             splitContainer1 = new System.Windows.Forms.SplitContainer();
             tabControl1.SuspendLayout();
+            queuePage.SuspendLayout();
             fileListPage.SuspendLayout();
             fileListContextStrip.SuspendLayout();
             fileHierachyPage.SuspendLayout();
-            queuePage.SuspendLayout();
             fileHierachyContextStrip.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)splitContainer1).BeginInit();
             splitContainer1.Panel1.SuspendLayout();
@@ -76,8 +76,46 @@ namespace DAZ_Installer.Windows.Pages
             tabControl1.Margin = new System.Windows.Forms.Padding(4, 2, 4, 2);
             tabControl1.Name = "tabControl1";
             tabControl1.SelectedIndex = 0;
-            tabControl1.Size = new System.Drawing.Size(491, 96);
+            tabControl1.Size = new System.Drawing.Size(493, 137);
             tabControl1.TabIndex = 1;
+            // 
+            // queuePage
+            // 
+            queuePage.Controls.Add(queueListView);
+            queuePage.Location = new System.Drawing.Point(4, 24);
+            queuePage.Margin = new System.Windows.Forms.Padding(4, 2, 4, 2);
+            queuePage.Name = "queuePage";
+            queuePage.Padding = new System.Windows.Forms.Padding(4, 2, 4, 2);
+            queuePage.Size = new System.Drawing.Size(485, 109);
+            queuePage.TabIndex = 2;
+            queuePage.Text = "Queue";
+            queuePage.UseVisualStyleBackColor = true;
+            // 
+            // queueListView
+            // 
+            queueListView.Columns.AddRange(new System.Windows.Forms.ColumnHeader[] { nameHeader, statusHeader });
+            queueListView.Dock = System.Windows.Forms.DockStyle.Fill;
+            listViewGroup1.Header = "No extraction jobs processed yet";
+            listViewGroup1.Name = "listViewGroup1";
+            queueListView.Groups.AddRange(new System.Windows.Forms.ListViewGroup[] { listViewGroup1 });
+            listViewItem1.Group = listViewGroup1;
+            queueListView.Items.AddRange(new System.Windows.Forms.ListViewItem[] { listViewItem1 });
+            queueListView.LabelWrap = false;
+            queueListView.Location = new System.Drawing.Point(4, 2);
+            queueListView.Name = "queueListView";
+            queueListView.Size = new System.Drawing.Size(477, 105);
+            queueListView.TabIndex = 0;
+            queueListView.UseCompatibleStateImageBehavior = false;
+            queueListView.View = System.Windows.Forms.View.Details;
+            // 
+            // nameHeader
+            // 
+            nameHeader.Text = "Name";
+            nameHeader.Width = 275;
+            // 
+            // statusHeader
+            // 
+            statusHeader.Text = "Status";
             // 
             // fileListPage
             // 
@@ -86,7 +124,7 @@ namespace DAZ_Installer.Windows.Pages
             fileListPage.Margin = new System.Windows.Forms.Padding(4, 2, 4, 2);
             fileListPage.Name = "fileListPage";
             fileListPage.Padding = new System.Windows.Forms.Padding(4, 2, 4, 2);
-            fileListPage.Size = new System.Drawing.Size(483, 68);
+            fileListPage.Size = new System.Drawing.Size(485, 94);
             fileListPage.TabIndex = 0;
             fileListPage.Text = "File List";
             fileListPage.UseVisualStyleBackColor = true;
@@ -101,7 +139,7 @@ namespace DAZ_Installer.Windows.Pages
             fileListView.Margin = new System.Windows.Forms.Padding(4, 2, 4, 2);
             fileListView.MultiSelect = false;
             fileListView.Name = "fileListView";
-            fileListView.Size = new System.Drawing.Size(475, 64);
+            fileListView.Size = new System.Drawing.Size(477, 90);
             fileListView.TabIndex = 0;
             fileListView.UseCompatibleStateImageBehavior = false;
             fileListView.View = System.Windows.Forms.View.Details;
@@ -109,7 +147,7 @@ namespace DAZ_Installer.Windows.Pages
             // filePathColumn
             // 
             filePathColumn.Text = "File Path";
-            filePathColumn.Width = 530;
+            filePathColumn.Width = 450;
             // 
             // fileListContextStrip
             // 
@@ -158,7 +196,7 @@ namespace DAZ_Installer.Windows.Pages
             fileHierachyPage.Margin = new System.Windows.Forms.Padding(4, 2, 4, 2);
             fileHierachyPage.Name = "fileHierachyPage";
             fileHierachyPage.Padding = new System.Windows.Forms.Padding(4, 2, 4, 2);
-            fileHierachyPage.Size = new System.Drawing.Size(483, 68);
+            fileHierachyPage.Size = new System.Drawing.Size(485, 94);
             fileHierachyPage.TabIndex = 1;
             fileHierachyPage.Text = "File Hierachy";
             fileHierachyPage.UseVisualStyleBackColor = true;
@@ -170,7 +208,7 @@ namespace DAZ_Installer.Windows.Pages
             fileHierachyTree.Location = new System.Drawing.Point(4, 2);
             fileHierachyTree.Margin = new System.Windows.Forms.Padding(4, 2, 4, 2);
             fileHierachyTree.Name = "fileHierachyTree";
-            fileHierachyTree.Size = new System.Drawing.Size(475, 64);
+            fileHierachyTree.Size = new System.Drawing.Size(477, 90);
             fileHierachyTree.StateImageList = archiveFolderIcons;
             fileHierachyTree.TabIndex = 0;
             // 
@@ -182,44 +220,6 @@ namespace DAZ_Installer.Windows.Pages
             archiveFolderIcons.Images.SetKeyName(0, "FolderIcon.png");
             archiveFolderIcons.Images.SetKeyName(1, "RARIcon.png");
             archiveFolderIcons.Images.SetKeyName(2, "ZIPIcon.png");
-            // 
-            // queuePage
-            // 
-            queuePage.Controls.Add(queueListView);
-            queuePage.Location = new System.Drawing.Point(4, 24);
-            queuePage.Margin = new System.Windows.Forms.Padding(4, 2, 4, 2);
-            queuePage.Name = "queuePage";
-            queuePage.Padding = new System.Windows.Forms.Padding(4, 2, 4, 2);
-            queuePage.Size = new System.Drawing.Size(483, 68);
-            queuePage.TabIndex = 2;
-            queuePage.Text = "Queue";
-            queuePage.UseVisualStyleBackColor = true;
-            // 
-            // queueListView
-            // 
-            queueListView.Columns.AddRange(new System.Windows.Forms.ColumnHeader[] { nameHeader, statusHeader });
-            queueListView.Dock = System.Windows.Forms.DockStyle.Fill;
-            listViewGroup1.Header = "No extraction jobs processed yet";
-            listViewGroup1.Name = "listViewGroup1";
-            queueListView.Groups.AddRange(new System.Windows.Forms.ListViewGroup[] { listViewGroup1 });
-            listViewItem1.Group = listViewGroup1;
-            queueListView.Items.AddRange(new System.Windows.Forms.ListViewItem[] { listViewItem1 });
-            queueListView.LabelWrap = false;
-            queueListView.Location = new System.Drawing.Point(4, 2);
-            queueListView.Name = "queueListView";
-            queueListView.Size = new System.Drawing.Size(475, 64);
-            queueListView.TabIndex = 0;
-            queueListView.UseCompatibleStateImageBehavior = false;
-            queueListView.View = System.Windows.Forms.View.Details;
-            // 
-            // nameHeader
-            // 
-            nameHeader.Text = "Name";
-            nameHeader.Width = 275;
-            // 
-            // statusHeader
-            // 
-            statusHeader.Text = "Status";
             // 
             // fileHierachyContextStrip
             // 
@@ -253,20 +253,21 @@ namespace DAZ_Installer.Windows.Pages
             progressCombo.Location = new System.Drawing.Point(29, 22);
             progressCombo.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             progressCombo.Name = "progressCombo";
-            progressCombo.Size = new System.Drawing.Size(493, 196);
+            progressCombo.Size = new System.Drawing.Size(493, 145);
             progressCombo.TabIndex = 3;
+            progressCombo.Load += progressCombo_Load;
             // 
             // splitContainer1
             // 
             splitContainer1.Anchor = System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right;
-            splitContainer1.Location = new System.Drawing.Point(31, 223);
+            splitContainer1.Location = new System.Drawing.Point(29, 182);
             splitContainer1.Name = "splitContainer1";
             // 
             // splitContainer1.Panel1
             // 
             splitContainer1.Panel1.Controls.Add(tabControl1);
             splitContainer1.Panel2Collapsed = true;
-            splitContainer1.Size = new System.Drawing.Size(491, 96);
+            splitContainer1.Size = new System.Drawing.Size(493, 137);
             splitContainer1.SplitterDistance = 163;
             splitContainer1.TabIndex = 4;
             // 
@@ -280,10 +281,10 @@ namespace DAZ_Installer.Windows.Pages
             Name = "Extract";
             Size = new System.Drawing.Size(542, 344);
             tabControl1.ResumeLayout(false);
+            queuePage.ResumeLayout(false);
             fileListPage.ResumeLayout(false);
             fileListContextStrip.ResumeLayout(false);
             fileHierachyPage.ResumeLayout(false);
-            queuePage.ResumeLayout(false);
             fileHierachyContextStrip.ResumeLayout(false);
             splitContainer1.Panel1.ResumeLayout(false);
             ((System.ComponentModel.ISupportInitialize)splitContainer1).EndInit();

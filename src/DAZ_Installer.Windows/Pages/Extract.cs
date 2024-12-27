@@ -169,6 +169,13 @@ namespace DAZ_Installer.Windows.Pages
             tabControl1.SelectTab(fileListPage);
         }
         #endregion
+
+        private void progressCombo_Load(object sender, EventArgs e)
+        {
+            progressCombo.StartProgress();
+            progressCombo.SetText("Who let the dogs out woof woof woof");
+            progressCombo.ChangeProgressBarStyle(true);
+        }
     }
 
 }
