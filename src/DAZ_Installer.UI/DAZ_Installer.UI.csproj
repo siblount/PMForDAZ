@@ -26,8 +26,5 @@
     <Compile Update="PageButtonControl.cs">
       <SubType>UserControl</SubType>
     </Compile>
-    <Compile Update="QueueControl.cs">
-      <SubType>UserControl</SubType>
-    </Compile>
   </ItemGroup>
 </Project>
