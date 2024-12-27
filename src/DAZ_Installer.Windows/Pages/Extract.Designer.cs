@@ -309,7 +309,6 @@ namespace DAZ_Installer.Windows.Pages
         private System.Windows.Forms.ToolStripMenuItem selectInFileListToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem openInExplorerToolStripMenuItem1;
         private System.Windows.Forms.TabPage queuePage;
-        private Custom_Controls.QueueControl queueControl1;
         internal System.Windows.Forms.ImageList archiveFolderIcons;
         internal UI.ProgressCombo progressCombo;
         private System.Windows.Forms.SplitContainer splitContainer1;
