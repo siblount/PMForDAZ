@@ -25,8 +25,8 @@ namespace DAZ_Installer.Windows.Pages
         {
             InitializeComponent();
             ExtractPage = this;
-            tabControl1.TabPages.Remove(queuePage);
-            queuePage.Dispose();
+            tabControl1.TabPages.Remove(fileListPage);
+            tabControl1.TabPages.Remove(fileHierachyPage);
         }
 
         /// <summary>
