@@ -36,9 +36,11 @@
             // 
             // progressBarLbl
             // 
+            progressBarLbl.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
             progressBarLbl.AutoEllipsis = true;
-            progressBarLbl.Font = new Font("Segoe UI", 10.2F, FontStyle.Regular, GraphicsUnit.Point);
+            progressBarLbl.Font = new Font("Segoe UI", 10.2F);
             progressBarLbl.Location = new Point(0, 46);
+            progressBarLbl.Margin = new Padding(4, 0, 4, 0);
             progressBarLbl.Name = "progressBarLbl";
             progressBarLbl.Size = new Size(667, 31);
             progressBarLbl.TabIndex = 0;
@@ -48,17 +50,17 @@
             // progressBar
             // 
             progressBar.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
-            progressBar.Location = new Point(0, 80);
+            progressBar.Location = new Point(3, 80);
             progressBar.MarqueeAnimationSpeed = 20;
             progressBar.Name = "progressBar";
-            progressBar.Size = new Size(667, 293);
+            progressBar.Size = new Size(661, 293);
             progressBar.TabIndex = 1;
             progressBar.Value = 50;
             // 
             // cancelBtn
             // 
             cancelBtn.Anchor = AnchorStyles.Top | AnchorStyles.Right;
-            cancelBtn.Font = new Font("Segoe UI", 13.8F, FontStyle.Regular, GraphicsUnit.Point);
+            cancelBtn.Font = new Font("Segoe UI", 13.8F);
             cancelBtn.Location = new Point(612, 3);
             cancelBtn.Name = "cancelBtn";
             cancelBtn.Size = new Size(52, 46);
@@ -71,8 +73,8 @@
             // 
             mainProcLbl.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
             mainProcLbl.AutoEllipsis = true;
-            mainProcLbl.Font = new Font("Segoe UI Variable Display Semil", 17.25F, FontStyle.Regular, GraphicsUnit.Point);
-            mainProcLbl.Location = new Point(0, 0);
+            mainProcLbl.Font = new Font("Segoe UI Variable Display Semil", 17.25F);
+            mainProcLbl.Location = new Point(-3, 0);
             mainProcLbl.Margin = new Padding(4, 0, 4, 0);
             mainProcLbl.Name = "mainProcLbl";
             mainProcLbl.Size = new Size(608, 46);
