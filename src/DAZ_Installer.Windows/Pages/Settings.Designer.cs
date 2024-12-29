@@ -69,7 +69,7 @@ namespace DAZ_Installer.Windows.Pages
             // titleLbl
             // 
             titleLbl.AutoSize = true;
-            titleLbl.Font = new System.Drawing.Font("Segoe UI Variable Display Semil", 17.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
+            titleLbl.Font = new System.Drawing.Font("Segoe UI Variable Display Semil", 17.25F);
             titleLbl.Location = new System.Drawing.Point(27, 18);
             titleLbl.Name = "titleLbl";
             titleLbl.Size = new System.Drawing.Size(93, 31);
@@ -80,7 +80,7 @@ namespace DAZ_Installer.Windows.Pages
             // label6
             // 
             label6.AutoSize = true;
-            label6.Font = new System.Drawing.Font("Segoe UI", 10.2F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
+            label6.Font = new System.Drawing.Font("Segoe UI", 10.2F);
             label6.Location = new System.Drawing.Point(45, 62);
             label6.Name = "label6";
             label6.Size = new System.Drawing.Size(106, 19);
@@ -89,7 +89,7 @@ namespace DAZ_Installer.Windows.Pages
             // 
             // label4
             // 
-            label4.Font = new System.Drawing.Font("Segoe UI", 10.2F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
+            label4.Font = new System.Drawing.Font("Segoe UI", 10.2F);
             label4.Location = new System.Drawing.Point(1, 176);
             label4.Name = "label4";
             label4.Size = new System.Drawing.Size(150, 46);
@@ -100,7 +100,7 @@ namespace DAZ_Installer.Windows.Pages
             // label3
             // 
             label3.AutoSize = true;
-            label3.Font = new System.Drawing.Font("Segoe UI", 10.2F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
+            label3.Font = new System.Drawing.Font("Segoe UI", 10.2F);
             label3.Location = new System.Drawing.Point(11, 274);
             label3.Name = "label3";
             label3.Size = new System.Drawing.Size(141, 19);
@@ -117,13 +117,13 @@ namespace DAZ_Installer.Windows.Pages
             destinationPathCombo.Name = "destinationPathCombo";
             destinationPathCombo.Size = new System.Drawing.Size(209, 23);
             destinationPathCombo.TabIndex = 3;
-            destinationPathCombo.TextChanged += destinationPathCombo_TextChanged;
+            destinationPathCombo.SelectedIndexChanged += destinationPathCombo_SelectedIndexChanged;
             destinationPathCombo.Leave += destinationPathCombo_Leave;
             // 
             // label2
             // 
             label2.AutoSize = true;
-            label2.Font = new System.Drawing.Font("Segoe UI", 10.2F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
+            label2.Font = new System.Drawing.Font("Segoe UI", 10.2F);
             label2.Location = new System.Drawing.Point(38, 36);
             label2.Name = "label2";
             label2.Size = new System.Drawing.Size(111, 19);
@@ -134,7 +134,7 @@ namespace DAZ_Installer.Windows.Pages
             // label1
             // 
             label1.AutoSize = true;
-            label1.Font = new System.Drawing.Font("Segoe UI", 10.2F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
+            label1.Font = new System.Drawing.Font("Segoe UI", 10.2F);
             label1.Location = new System.Drawing.Point(7, 9);
             label1.Name = "label1";
             label1.Size = new System.Drawing.Size(143, 19);
@@ -152,7 +152,7 @@ namespace DAZ_Installer.Windows.Pages
             downloadThumbnailsComboBox.Name = "downloadThumbnailsComboBox";
             downloadThumbnailsComboBox.Size = new System.Drawing.Size(244, 23);
             downloadThumbnailsComboBox.TabIndex = 1;
-            downloadThumbnailsComboBox.TextChanged += downloadThumbnailsComboBox_TextChanged;
+            downloadThumbnailsComboBox.SelectedIndexChanged += downloadThumbnailsComboBox_SelectedIndexChanged;
             // 
             // fileHandlingCombo
             // 
@@ -164,7 +164,7 @@ namespace DAZ_Installer.Windows.Pages
             fileHandlingCombo.Name = "fileHandlingCombo";
             fileHandlingCombo.Size = new System.Drawing.Size(244, 23);
             fileHandlingCombo.TabIndex = 5;
-            fileHandlingCombo.TextChanged += fileHandlingCombo_TextChanged;
+            fileHandlingCombo.SelectedIndexChanged += fileHandlingCombo_SelectedIndexChanged;
             // 
             // panel1
             // 
@@ -242,11 +242,12 @@ namespace DAZ_Installer.Windows.Pages
             removeActionCombo.Name = "removeActionCombo";
             removeActionCombo.Size = new System.Drawing.Size(243, 23);
             removeActionCombo.TabIndex = 22;
+            removeActionCombo.SelectedIndexChanged += removeActionCombo_SelectedIndexChanged;
             // 
             // label10
             // 
             label10.AutoSize = true;
-            label10.Font = new System.Drawing.Font("Segoe UI", 10.2F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
+            label10.Font = new System.Drawing.Font("Segoe UI", 10.2F);
             label10.Location = new System.Drawing.Point(29, 438);
             label10.Name = "label10";
             label10.Size = new System.Drawing.Size(123, 19);
@@ -264,12 +265,12 @@ namespace DAZ_Installer.Windows.Pages
             allowOverwritingCombo.Name = "allowOverwritingCombo";
             allowOverwritingCombo.Size = new System.Drawing.Size(243, 23);
             allowOverwritingCombo.TabIndex = 20;
-            allowOverwritingCombo.TextChanged += allowOverwritingCombo_TextChanged;
+            allowOverwritingCombo.SelectedIndexChanged += allowOverwritingCombo_SelectedIndexChanged;
             // 
             // label9
             // 
             label9.AutoSize = true;
-            label9.Font = new System.Drawing.Font("Segoe UI", 10.2F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
+            label9.Font = new System.Drawing.Font("Segoe UI", 10.2F);
             label9.Location = new System.Drawing.Point(36, 398);
             label9.Name = "label9";
             label9.Size = new System.Drawing.Size(115, 19);
@@ -311,11 +312,11 @@ namespace DAZ_Installer.Windows.Pages
             installPrevProductsCombo.Name = "installPrevProductsCombo";
             installPrevProductsCombo.Size = new System.Drawing.Size(243, 23);
             installPrevProductsCombo.TabIndex = 16;
-            installPrevProductsCombo.TextChanged += installPrevProducts_TextChanged;
+            installPrevProductsCombo.SelectedIndexChanged += installPrevProducts_SelectedIndexChanged;
             // 
             // label8
             // 
-            label8.Font = new System.Drawing.Font("Segoe UI", 10.2F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
+            label8.Font = new System.Drawing.Font("Segoe UI", 10.2F);
             label8.Location = new System.Drawing.Point(11, 345);
             label8.Name = "label8";
             label8.Size = new System.Drawing.Size(141, 38);
@@ -333,12 +334,12 @@ namespace DAZ_Installer.Windows.Pages
             removeSourceFilesCombo.Name = "removeSourceFilesCombo";
             removeSourceFilesCombo.Size = new System.Drawing.Size(243, 23);
             removeSourceFilesCombo.TabIndex = 14;
-            removeSourceFilesCombo.TextChanged += removeSourceFiles_TextChanged;
+            removeSourceFilesCombo.SelectedIndexChanged += removeSourceFiles_SelectedIndexChanged;
             // 
             // label7
             // 
             label7.AutoSize = true;
-            label7.Font = new System.Drawing.Font("Segoe UI", 10.2F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
+            label7.Font = new System.Drawing.Font("Segoe UI", 10.2F);
             label7.Location = new System.Drawing.Point(11, 311);
             label7.Name = "label7";
             label7.Size = new System.Drawing.Size(141, 19);
@@ -406,7 +407,7 @@ namespace DAZ_Installer.Windows.Pages
             // label5
             // 
             label5.AutoSize = true;
-            label5.Font = new System.Drawing.Font("Segoe UI", 10.2F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
+            label5.Font = new System.Drawing.Font("Segoe UI", 10.2F);
             label5.Location = new System.Drawing.Point(45, 86);
             label5.Name = "label5";
             label5.Size = new System.Drawing.Size(107, 19);
@@ -442,7 +443,7 @@ namespace DAZ_Installer.Windows.Pages
             // 
             loadingLbl.Anchor = System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right;
             loadingLbl.AutoSize = true;
-            loadingLbl.Font = new System.Drawing.Font("Segoe UI", 36F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
+            loadingLbl.Font = new System.Drawing.Font("Segoe UI", 36F);
             loadingLbl.Location = new System.Drawing.Point(150, 130);
             loadingLbl.Name = "loadingLbl";
             loadingLbl.Size = new System.Drawing.Size(228, 65);

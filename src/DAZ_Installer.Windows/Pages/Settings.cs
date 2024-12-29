@@ -70,6 +70,7 @@ namespace DAZ_Installer.Windows.Pages
             SetupAllowOverwriting();
             SetupRemoveAction();
 
+            applySettingsBtn.Enabled = false;
             loadingPanel.Visible = false;
             loadingPanel.Dispose();
             validating = false;
@@ -170,18 +171,22 @@ namespace DAZ_Installer.Windows.Pages
 
         private void SetupContentRedirects()
         {
+            contentFolderRedirectsListBox.BeginUpdate();
             foreach (KeyValuePair<string, string> keypair in DPSettings.CurrentSettingsObject.FolderRedirects)
             {
                 contentFolderRedirectsListBox.Items.Add($"{keypair.Key} --> {keypair.Value}");
             }
+            contentFolderRedirectsListBox.EndUpdate();
         }
 
         private void SetupContentFolders()
         {
+            contentFoldersListBox.BeginUpdate();
             foreach (var folder in DPSettings.CurrentSettingsObject.CommonContentFolderNames)
             {
                 contentFoldersListBox.Items.Add(folder);
             }
+            contentFoldersListBox.EndUpdate();
         }
 
         private void SetupTempPath() => tempTxtBox.Text = DPSettings.CurrentSettingsObject.TempDir;
@@ -190,13 +195,16 @@ namespace DAZ_Installer.Windows.Pages
         {
             // If no detected daz content paths, all handled in the initalization phase of DPSettings.currentSettingsObject.
             // First, we will add our selected path.
+            destinationPathCombo.BeginUpdate();
             destinationPathCombo.Items.Add(DPSettings.CurrentSettingsObject.DestinationPath);
             destinationPathCombo.SelectedIndex = 0;
             destinationPathCombo.Items.AddRange(DPSettings.CurrentSettingsObject.detectedDazContentPaths);
+            destinationPathCombo.EndUpdate();
         }
 
         private void SetupFileHandling()
         {
+            fileHandlingCombo.BeginUpdate();
             fileHandlingCombo.Items.AddRange(names);
 
             // Now show the one we selected.
@@ -213,11 +221,12 @@ namespace DAZ_Installer.Windows.Pages
                     fileHandlingCombo.SelectedIndex = 2;
                     break;
             }
+            fileHandlingCombo.EndUpdate();
         }
 
         private void SetupDownloadThumbnailsSetting()
         {
-
+            downloadThumbnailsComboBox.BeginUpdate();
             foreach (var option in Enum.GetNames(typeof(SettingOptions)))
             {
                 downloadThumbnailsComboBox.Items.Add(option);
@@ -225,10 +234,12 @@ namespace DAZ_Installer.Windows.Pages
 
             SettingOptions choice = DPSettings.CurrentSettingsObject.DownloadImages;
             downloadThumbnailsComboBox.SelectedItem = Enum.GetName(choice);
+            downloadThumbnailsComboBox.EndUpdate();
         }
 
         private void SetupDeleteSourceFiles()
         {
+            removeSourceFilesCombo.BeginUpdate();
             foreach (var option in Enum.GetNames(typeof(SettingOptions)))
             {
                 removeSourceFilesCombo.Items.Add(option);
@@ -236,10 +247,12 @@ namespace DAZ_Installer.Windows.Pages
 
             SettingOptions choice = DPSettings.CurrentSettingsObject.PermDeleteSource;
             removeSourceFilesCombo.SelectedItem = Enum.GetName(choice);
+            removeSourceFilesCombo.EndUpdate();
         }
 
         private void SetupPreviouslyInstalledProducts()
         {
+            installPrevProductsCombo.BeginUpdate();
             foreach (var option in Enum.GetNames(typeof(SettingOptions)))
             {
                 installPrevProductsCombo.Items.Add(option);
@@ -247,29 +260,30 @@ namespace DAZ_Installer.Windows.Pages
 
             SettingOptions choice = DPSettings.CurrentSettingsObject.InstallPrevProducts;
             installPrevProductsCombo.SelectedItem = Enum.GetName(choice);
+            installPrevProductsCombo.EndUpdate();
         }
 
         private void SetupAllowOverwriting()
         {
+            allowOverwritingCombo.BeginUpdate();
             foreach (var option in Enum.GetNames(typeof(SettingOptions)))
             {
                 allowOverwritingCombo.Items.Add(option);
             }
             allowOverwritingCombo.SelectedItem = Enum.GetName(DPSettings.CurrentSettingsObject.OverwriteFiles);
+            allowOverwritingCombo.EndUpdate();
         }
 
         private void SetupRemoveAction()
         {
-            removeActionCombo.Items.AddRange(new string[] { "Delete permanently", "Move to Recycle Bin" });
-            switch (DPSettings.CurrentSettingsObject.DeleteAction)
+            removeActionCombo.BeginUpdate();
+            removeActionCombo.Items.AddRange(["Delete permanently", "Move to Recycle Bin"]);
+            removeActionCombo.SelectedItem = DPSettings.CurrentSettingsObject.DeleteAction switch
             {
-                case RecycleOption.DeletePermanently:
-                    removeActionCombo.SelectedItem = "Delete permanently";
-                    return;
-                default:
-                    removeActionCombo.SelectedItem = "Move to Recycle Bin";
-                    return;
-            }
+                RecycleOption.DeletePermanently => "Delete permanently",
+                _ => "Move to Recycle Bin",
+            };
+            removeActionCombo.EndUpdate();
         }
 
         private void applySettingsBtn_Click(object sender, EventArgs e)
@@ -298,7 +312,7 @@ namespace DAZ_Installer.Windows.Pages
             // We don't update content folders.
             if (validating) return false;
             var invalidReponses = false;
-            DPSettings.CurrentSettingsObject.DownloadImages = Enum.Parse<SettingOptions>((string)downloadThumbnailsComboBox.SelectedItem);
+            DPSettings.CurrentSettingsObject.DownloadImages = Enum.Parse<SettingOptions>((string)downloadThumbnailsComboBox.SelectedItem!);
             validating = true;
         // Destination Path
 
@@ -485,7 +499,7 @@ namespace DAZ_Installer.Windows.Pages
             }
         }
 
-        private void destinationPathCombo_TextChanged(object sender, EventArgs e)
+        private void destinationPathCombo_SelectedIndexChanged(object sender, EventArgs e)
         {
             if (!applySettingsBtn.Enabled && destinationPathCombo.Text != DPSettings.CurrentSettingsObject.DestinationPath)
             {
@@ -493,7 +507,7 @@ namespace DAZ_Installer.Windows.Pages
             }
         }
 
-        private void downloadThumbnailsComboBox_TextChanged(object sender, EventArgs e)
+        private void downloadThumbnailsComboBox_SelectedIndexChanged(object sender, EventArgs e)
         {
             if (!applySettingsBtn.Enabled && downloadThumbnailsComboBox.Text != Enum.GetName(DPSettings.CurrentSettingsObject.DownloadImages))
             {
@@ -501,7 +515,7 @@ namespace DAZ_Installer.Windows.Pages
             }
         }
 
-        private void fileHandlingCombo_TextChanged(object sender, EventArgs e)
+        private void fileHandlingCombo_SelectedIndexChanged(object sender, EventArgs e)
         {
             if (!applySettingsBtn.Enabled && fileHandlingCombo.Text != names[(int)DPSettings.CurrentSettingsObject.HandleInstallation])
             {
@@ -509,7 +523,7 @@ namespace DAZ_Installer.Windows.Pages
             }
         }
 
-        private void removeSourceFiles_TextChanged(object sender, EventArgs e)
+        private void removeSourceFiles_SelectedIndexChanged(object sender, EventArgs e)
         {
             if (!applySettingsBtn.Enabled && removeSourceFilesCombo.Text != Enum.GetName(DPSettings.CurrentSettingsObject.PermDeleteSource))
             {
@@ -517,13 +531,14 @@ namespace DAZ_Installer.Windows.Pages
             }
         }
 
-        private void installPrevProducts_TextChanged(object sender, EventArgs e)
+        private void installPrevProducts_SelectedIndexChanged(object sender, EventArgs e)
         {
             if (!applySettingsBtn.Enabled && installPrevProductsCombo.Text != Enum.GetName(DPSettings.CurrentSettingsObject.InstallPrevProducts))
             {
                 applySettingsBtn.Enabled = true;
             }
         }
+
         private void chooseDestPathBtn_Click(object sender, EventArgs e)
         {
             using var browser = new FolderBrowserDialog();
@@ -535,7 +550,7 @@ namespace DAZ_Installer.Windows.Pages
             {
                 destinationPathCombo.Items[0] = browser.SelectedPath;
                 destinationPathCombo.SelectedIndex = 0;
-                destinationPathCombo_TextChanged(null, null);
+                destinationPathCombo_SelectedIndexChanged(null, null);
             }
         }
 
@@ -580,15 +595,23 @@ namespace DAZ_Installer.Windows.Pages
             applySettingsBtn.Enabled = true;
         }
 
-        private void allowOverwritingCombo_TextChanged(object sender, EventArgs e)
+        private void openDatabaseBtn_Click(object _, EventArgs __) => new DatabaseToolsForm().ShowDialog();
+        #endregion
+
+        private void removeActionCombo_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            if (!applySettingsBtn.Enabled && removeActionCombo.Text != Enum.GetName(DPSettings.CurrentSettingsObject.DeleteAction))
+            {
+                applySettingsBtn.Enabled = true;
+            }
+        }
+
+        private void allowOverwritingCombo_SelectedIndexChanged(object sender, EventArgs e)
         {
             if (!applySettingsBtn.Enabled && allowOverwritingCombo.Text != Enum.GetName(DPSettings.CurrentSettingsObject.OverwriteFiles))
             {
                 applySettingsBtn.Enabled = true;
             }
         }
-
-        private void openDatabaseBtn_Click(object _, EventArgs __) => new DatabaseToolsForm().ShowDialog();
-        #endregion
     }
 }
