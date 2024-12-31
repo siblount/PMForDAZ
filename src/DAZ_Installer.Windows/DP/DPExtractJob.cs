@@ -12,6 +12,7 @@ using Serilog;
 using Serilog.Core;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.Eventing.Reader;
 using System.IO;
 using System.Linq;
 using System.Threading;
@@ -23,15 +24,16 @@ namespace DAZ_Installer.Windows.DP
     internal class DPExtractJob
     {
         public static ILogger Logger { get; set; } = Log.Logger.ForContext<DPExtractJob>();
-        public List<string> FilesToProcess { get; init; }
+        public List<string> InitialFilesToProcess { get; init; }
+        private Dictionary<string, DPArchiveInfo> ArchiveInfos { get; init; }
+        private readonly object archiveInfoLock = new();
         public bool Completed { get; protected set; } = false;
         public DPProcessor Processor = new();
         public Task? TaskJob { get; protected set; }
         public DPSettings? UserSettings { get; protected set; }
 
-        public static DPTaskManager extractJobs = new();
-        private ProgressCombo progressCombo = Extract.ExtractPage.progressCombo;
-        public static Queue<DPExtractJob> Jobs { get; } = new Queue<DPExtractJob>();
+        private static DPTaskManager ExtractJobs = new();
+        private readonly ProgressCombo progressCombo = Extract.ExtractPage.progressCombo;
         // TODO: Check if a product is already in list.
 
         //public DPExtractJob(string[] files)
@@ -41,17 +43,87 @@ namespace DAZ_Installer.Windows.DP
 
         public DPExtractJob(ListView.ListViewItemCollection files)
         {
-            Jobs.Enqueue(this);
-            var _files = new List<string>(files.Count);
+            InitialFilesToProcess = new List<string>(files.Count);
 
             foreach (ListViewItem file in files)
-                _files.Add(file.Text);
-            FilesToProcess = _files;
+                InitialFilesToProcess.Add(file.Text);
+            
+            ArchiveInfos = new(InitialFilesToProcess.Count * 2, PathComparer.Instance);
+            
+            foreach (var file in InitialFilesToProcess) {
+                ArchiveInfos[file] = new DPArchiveInfo(file);
+            }
         }
+
         public Task DoJob()
         {
-            TaskJob = extractJobs.AddToQueue(ProcessListAsync);
+            TaskJob = ExtractJobs.AddToQueue(ProcessListAsync);
             return TaskJob;
+        }
+
+        /// <summary>
+        /// Cancels processing current and pending archives.
+        /// </summary>
+        /// <seealso cref="CancelCurrentArchive"/>
+        /// <seealso cref="SkipArchive(string)"/>
+        public void CancelJob()
+        {
+            lock (archiveInfoLock)
+            {
+                Processor.CancelProcessing();
+                var ArchiveInfosToUpdate = ArchiveInfos.Values
+                    .Where(archive => archive.Status is not DPArchiveStatus.Completed
+                        and not DPArchiveStatus.CompletedWithIssues
+                        and not DPArchiveStatus.Failed);
+                foreach (var info in ArchiveInfosToUpdate)
+                {
+                    info.Status = DPArchiveStatus.CancellationRequested;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Cancels the current archive being processed.
+        /// </summary>
+        /// <seealso cref="CancelJob"/>
+        /// <seealso cref="SkipArchive(string)"/>
+        public void CancelCurrentArchive()
+        {
+            if (Processor.CurrentArchive is null) return;
+            lock (archiveInfoLock)
+            {
+                Processor.CancelCurrentArchive();
+                if (ArchiveInfos.TryGetValue(Processor.CurrentArchive.Path, out var archiveInfo))
+                    archiveInfo.Status = DPArchiveStatus.CancellationRequested;
+                else
+                    Logger.Error("Failed to cancel current archive due to unable to find archive info for {archive}", Processor.CurrentArchive.NormalizedPath);
+            }
+        }
+
+        public void SkipArchive(string archivePath)
+        {
+            if (!ArchiveInfos.TryGetValue(archivePath, out var archiveInfo))
+                throw new ArgumentException("File is not in the list of files to process", nameof(archivePath));
+            
+            lock (archiveInfoLock) {
+                switch (archiveInfo.Status)
+                {
+                    case DPArchiveStatus.Cancelled:
+                    case DPArchiveStatus.CancellationRequested:
+                    case DPArchiveStatus.CancellationPending:
+                    case DPArchiveStatus.Completed:
+                    case DPArchiveStatus.CompletedWithIssues:
+                    case DPArchiveStatus.Failed:
+                        return;
+                }
+
+                if (archiveInfo.Status is DPArchiveStatus.Pending)
+                    archiveInfo.Status = DPArchiveStatus.CancellationPending;
+                if (Processor.CurrentArchive is not null && 
+                        (Processor.CurrentArchive == archiveInfo.Archive || Processor.CurrentArchive.Path == archiveInfo.FilePath))
+                    Processor.CancelCurrentArchive();
+                    archiveInfo.Status = DPArchiveStatus.CancellationRequested;
+            }
         }
 
         private void SetupEventHandlers()
@@ -64,6 +136,7 @@ namespace DAZ_Installer.Windows.DP
             Processor.MoveProgress += Processor_MoveProgress;
         }
 
+
         private void Processor_StateChanged()
         {
             if (Processor.CurrentArchive is null)
@@ -71,6 +144,7 @@ namespace DAZ_Installer.Windows.DP
                 Logger.Error("Got a null archive in Processor_StateChanged");
                 return;
             }
+            if (CancelIfRequested(Processor.CurrentArchive.Path)) return;
             if (Processor.State == ProcessorState.PreparingExtraction)
             {
                 // TO DO: Highlight files in red for files that failed to extract.
@@ -100,7 +174,7 @@ namespace DAZ_Installer.Windows.DP
             }
         }
 
-        private void Processor_ExtractProgress(object sender, DPExtractProgressArgs e)
+        private void Processor_ExtractProgress(DPProcessor sender, DPExtractProgressArgs e)
         {
             progressCombo.ChangeProgressBarStyle(false);
             progressCombo.SetProgress(e.ExtractionPercentage);
@@ -113,16 +187,42 @@ namespace DAZ_Installer.Windows.DP
             progressCombo.SetText($"Moving files from {e.Archive.FileName} to destination...%");
         }
 
-        private void Processor_ProcessError(object sender, DPProcessorErrorArgs e)
+        private void Processor_ProcessError(DPProcessor _, DPProcessorErrorArgs e)
         {
-            MessageBox.Show("An unexpected error occurred while processing the archive.\n" +
-                            $"Error: {e.Explaination}\n" +
-                            $"Stack Trace: {e.Ex?.StackTrace}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            lock (archiveInfoLock)
+            {
+                if (Processor.CurrentArchive is not null)
+                {
+                    if (ArchiveInfos.TryGetValue(Processor.CurrentArchive.Path, out var info))
+                        info.Errors.Add(new(e.Ex, e.Explaination));
+                    else
+                    {
+                        Logger.Error("Could not find archive info for {archive}", Processor.CurrentArchive.NormalizedPath);
+                    }
+                } else Logger.Error("Processor_CurrentArchive is null in Processor_ProcessError");
+            }
         }
 
         private void Processor_ArchiveExit(object sender, DPArchiveExitArgs e)
         {
-            // TODO: Do stuff w/ archive.
+            lock (archiveInfoLock)
+            {
+                if (ArchiveInfos.TryGetValue(e.Archive.Path, out var info)) {
+                    if (e.Processed)
+                        info.Status = info.Errors.Count > 0 ? DPArchiveStatus.CompletedWithIssues : DPArchiveStatus.Completed;
+                    else { 
+                        info.Status = info.Status switch
+                        {
+                            DPArchiveStatus.CancellationPending => DPArchiveStatus.Cancelled,
+                            DPArchiveStatus.CancellationRequested => DPArchiveStatus.Cancelled,
+                            _ => DPArchiveStatus.Failed
+                        };
+                    }
+                } else {
+                    Logger.Error("Could not find archive info for {archive}", e.Archive.NormalizedPath);
+                }
+            }
+
             if (!e.Processed) return;
             // Create records if applicable.
             // TODO: Only add if successful extraction, and all files from temp were moved, and/or user didn't cancel operation.
@@ -132,23 +232,27 @@ namespace DAZ_Installer.Windows.DP
             CreateRecords(e.Archive, e.Report!);
 
             if (e.Archive.IsInnerArchive) return;
-            switch (UserSettings.PermDeleteSource)
+            switch (UserSettings!.PermDeleteSource)
             {
                 case SettingOptions.Yes:
                     RemoveSourceFile(e.Archive.Path);
                     break;
                 case SettingOptions.Prompt:
                     DialogResult result;
-                    result = MessageBox.Show("Do you wish to " + (UserSettings.PermDeleteSource == SettingOptions.Prompt ? "PERMENATELY DELETE" : "recycle") + " the source file? " +
-                                            (UserSettings.PermDeleteSource == SettingOptions.Prompt ? "This cannot be undone." : "You can undo this by restoring the file from your recycle bin."),
-                                            "Delete source files", MessageBoxButtons.YesNoCancel, MessageBoxIcon.Question);
+                    if (UserSettings.DeleteAction == RecycleOption.DeletePermanently)
+                        result = MessageBox.Show("Do you wish to PERMENATELY DELETE the source file? This cannot be undone.",
+                            "Delete source files", MessageBoxButtons.YesNoCancel, MessageBoxIcon.Question);
+                    else
+                        result = MessageBox.Show("Do you wish to recycle the source file? You can undo this by restoring the file from your recycle bin.",
+                            "Recycle source files", MessageBoxButtons.YesNoCancel, MessageBoxIcon.Question);
                     if (result == DialogResult.Yes) RemoveSourceFile(e.Archive.Path);
                     break;
             }
         }
 
-        private async void Processor_ArchiveEnter(object sender, DPArchiveEnterArgs e)
+        private async void Processor_ArchiveEnter(DPProcessor sender, DPArchiveEnterArgs e)
         {
+            if (CancelIfRequested(e.Archive.Path)) return;
             CancellationTokenSource cts = new();
             cts.CancelAfter(TimeSpan.FromSeconds(15));
             var exists = await Program.Database.ContainsArchive(e.Archive.FileName);
@@ -157,25 +261,24 @@ namespace DAZ_Installer.Windows.DP
             {
                 DialogResult result = MessageBox.Show($"An error occurred while attempting to check if \"{e.Archive.FileName}\" was already processed. " +
                     "This may indicate a database failure which could mean the product will install but with no record. " + 
-                    "Alternatively, it could result in duplicate entries in the library.\n\n" +
                     "Do you wish to continue processing this file?\n\n" +
                     "Pressing Cancel will stop the entire extraction job.", "Database failure - do you wish to proceed?",
                     MessageBoxButtons.YesNoCancel, MessageBoxIcon.Information);
-                if (result == DialogResult.Cancel) Processor.CancelProcessing();
-                if (result == DialogResult.No) Processor.CancelCurrentArchive();
+                if (result == DialogResult.Cancel) CancelJob();
+                if (result == DialogResult.No) CancelCurrentArchive();
             } else
             {
-                switch (UserSettings.InstallPrevProducts)
+                switch (UserSettings!.InstallPrevProducts)
                 {
                     case SettingOptions.Prompt:
                         DialogResult result = MessageBox.Show($"It seems that \"{e.Archive.FileName}\" was already processed. " +
                             $"Do you wish to continue processing this file?", "Archive already processed",
                             MessageBoxButtons.YesNo, MessageBoxIcon.Information);
-                        if (result == DialogResult.No) Processor.CancelCurrentArchive();
+                        if (result == DialogResult.No) CancelCurrentArchive();
                         break;
                     case SettingOptions.No:
-                        Processor.CancelCurrentArchive();
-                        break;
+                        CancelCurrentArchive();
+                        return;
                 }
             }
         }
@@ -203,14 +306,18 @@ namespace DAZ_Installer.Windows.DP
                     InstallOption = UserSettings.HandleInstallation,
                     OverwriteFiles = UserSettings.OverwriteFiles == SettingOptions.Yes ||
                                     UserSettings.OverwriteFiles == SettingOptions.Prompt,
-                    ForceFileToDest = new Dictionary<IDPFile, string>(0),
+                    ForceFileToDest = [],
                 };
                 SetupEventHandlers();
+                Extract.ExtractPage.AddToQueue(this);
 
-                var c = FilesToProcess.Count;
+                var c = InitialFilesToProcess.Count;
                 for (var i = 0; i < c; i++)
                 {
-                    var x = FilesToProcess[i];
+                    var x = InitialFilesToProcess[i];
+                    if (CancelIfRequested(x, false)) 
+                        continue;
+                        
                     int percentage = (int)((double)i / c * 100);
                     progressCombo.SetProgress(percentage);
                     progressCombo.SetText($"Processing archive {i + 1}/{c}: " +
@@ -228,7 +335,6 @@ namespace DAZ_Installer.Windows.DP
                 progressCombo.EndProgress();
 
                 Completed = true;
-                Jobs.Dequeue();
                 GC.Collect();
             }
             
@@ -238,18 +344,43 @@ namespace DAZ_Installer.Windows.DP
         /// Removes the source file from the file system depending on the user settings.
         /// </summary>
         /// <param name="file">The source file to delete.</param>
-        public void RemoveSourceFile(string file)
+        private void RemoveSourceFile(string file)
         {
-            var scopeSettings = new DPFileScopeSettings(new[] { file }, Array.Empty<string>(), false, true);
+            var scopeSettings = new DPFileScopeSettings([file], Array.Empty<string>(), false, true);
             var fs = new DPFileSystem(scopeSettings);
             var fi = fs.CreateFileInfo(file);
             Exception? ex;
-            if (UserSettings.DeleteAction == RecycleOption.DeletePermanently)
+            if (UserSettings!.DeleteAction == RecycleOption.DeletePermanently)
                 fi.TryAndFixDelete(out ex);
             else
                 fi.TryAndFixSendToRecycleBin(out ex);
             if (ex != null)
                 Logger.Error(ex, "An error occurred while attempting to delete source file {file}", file);
+        }
+
+        private bool CancelIfRequested(string archivePath, bool callProcessor = true) {
+            if (!ArchiveInfos.TryGetValue(archivePath, out var archiveInfo) || archiveInfo.Archive != Processor.CurrentArchive) 
+                return false;
+            lock (archiveInfoLock) {
+                if (callProcessor && archiveInfo.Status is DPArchiveStatus.CancellationPending) {
+                    Processor.CancelCurrentArchive();
+                    archiveInfo.Status = DPArchiveStatus.CancellationRequested;
+                    return true;
+                } else if (!callProcessor) archiveInfo.Status = DPArchiveStatus.Cancelled;
+            }
+            return archiveInfo.Status is DPArchiveStatus.CancellationRequested || 
+                   archiveInfo.Status is DPArchiveStatus.Cancelled || 
+                   archiveInfo.Status is DPArchiveStatus.CancellationPending;
+        }
+
+        private void CreateNewArchiveInfo(IDPArchive archive)
+        {
+            lock (archiveInfoLock)
+            {
+                if (ArchiveInfos.ContainsKey(archive.Path))
+                    return;
+                ArchiveInfos[archive.Path] = new DPArchiveInfo(archive);
+            }
         }
 
         private DPProductRecord? CreateRecords(IDPArchive arc, DPExtractionReport report)
@@ -272,7 +403,7 @@ namespace DAZ_Installer.Windows.DP
             }
             var erroredFiles = report.ErroredFiles.Keys.Select(x => x.RelativePathToContentFolder!).ToArray();
 
-            if (UserSettings.DownloadImages == SettingOptions.Yes)
+            if (UserSettings!.DownloadImages == SettingOptions.Yes)
                 imageLocation = new DPNetwork().DownloadImage(arc.FileName, TimeSpan.FromSeconds(10));
             else if (UserSettings.DownloadImages == SettingOptions.Prompt)
             {

@@ -3,11 +3,11 @@
 
 using DAZ_Installer.Core;
 using DAZ_Installer.Windows.DP;
-using Serilog;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
+using System.Drawing;
 using System.IO;
 using System.Linq;
 using System.Windows.Forms;
@@ -18,8 +18,10 @@ namespace DAZ_Installer.Windows.Pages
     public partial class Extract : UserControl
     {
         public static Extract ExtractPage = null!;
-        internal static Dictionary<IDPAbstractNode, ListViewItem> associatedListItems = new(2048);
-        internal static Dictionary<IDPAbstractNode, TreeNode> associatedTreeNodes = new(2048);
+        internal static Dictionary<IDPAbstractNode, ListViewItem> associatedListItems = new(256);
+        internal static Dictionary<IDPAbstractNode, TreeNode> associatedTreeNodes = new(256);
+        internal static Dictionary<string, ListViewItem> associatedQueueItems = new(2048, PathComparer.Instance);
+        internal static List<DPExtractJob> extractJobs = new(4);
 
         public Extract()
         {
@@ -27,6 +29,92 @@ namespace DAZ_Installer.Windows.Pages
             ExtractPage = this;
             tabControl1.TabPages.Remove(fileListPage);
             tabControl1.TabPages.Remove(fileHierachyPage);
+            var errorImage = SystemIcons.Error.ToBitmap(); // Do not dispose Handle
+            var warningImage = SystemIcons.Warning.ToBitmap(); // Do not dispose Handle
+            statusIcons.Images.Add("error", errorImage);
+            statusIcons.Images.Add("warning", warningImage);
+        }
+
+        internal void AddToQueue(DPExtractJob job)
+        {
+            if (InvokeRequired)
+            {
+                BeginInvoke(() => AddToQueue(job));
+                return;
+            }
+            extractJobs.Add(job);
+            var letter = (char)('A' - 1 + extractJobs.Count);
+            queueListView.BeginUpdate();
+            var groupKey = job.GetHashCode().ToString();
+            queueListView.Groups.Add(groupKey, $"Extract Job {letter}");
+            foreach (string file in job.InitialFilesToProcess)
+            {
+                ListViewItem item = queueListView.Items.Add(file);
+                item.Tag = file;
+                item.Group = queueListView.Groups[groupKey];
+            }
+            queueListView.EndUpdate();
+        }
+
+        internal void OnExtractJobStatusUpdate(DPExtractJob caller, DPArchiveInfo info)
+        {
+            if (InvokeRequired)
+            {
+                BeginInvoke(() => OnExtractJobStatusUpdate(caller, info));
+                return;
+            }
+            queueListView.BeginUpdate();
+            if (!associatedQueueItems.TryGetValue(info.FilePath, out ListViewItem? item))
+                return;
+            item.ForeColor = DetermineColorForArchive(info);
+            item.StateImageIndex = DetermineImageIndexForArchive(info);
+            DetermineErrorMessage(info, item);
+        }
+
+
+        private static void DetermineErrorMessage(DPArchiveInfo info, ListViewItem item)
+        {
+            var subItem = item.SubItems.Count == 0 ? new ListViewItem.ListViewSubItem(item, "") : item.SubItems[0];
+            switch (info.Status)
+            {
+                case DPArchiveStatus.CompletedWithIssues:
+                    subItem.Text = info.Errors.Count == 0 ? "Completed but some files were not extracted" : "Completed with errors";
+                    break;
+                case DPArchiveStatus.Failed:
+                    if (info.Errors.Count == 0)
+                        subItem.Text = "Failed to extract";
+                    else if (info.Errors.Count >= 2)
+                        subItem.Text = "Multiple errors occurred";
+                    else if (info.Errors[0].Exception is not null || info.Errors[0].Explanation is not null)
+                        subItem.Text = info.Errors[0].Exception?.Message ?? info.Errors[0].Explanation;
+                    else
+                        subItem.Text = "Failed to extract due to an unknown error";
+                    break;
+                case DPArchiveStatus.Cancelled:
+                    if (info.Errors.Count != 0)
+                        subItem.Text = "Cancelled with errors";
+                    break;
+            }
+        }
+
+        private static Color DetermineColorForArchive(DPArchiveInfo info)
+        {
+            if (info.Status is DPArchiveStatus.Cancelled) return Color.Gray;
+            if (info.Status is DPArchiveStatus.Failed) return Color.Red;
+            if (info.Status is DPArchiveStatus.Completed) return Color.Green;
+            if (info.Status is DPArchiveStatus.CompletedWithIssues) return Color.Orange;
+            if (info.Archive is { IsInnerArchive: true }) return Color.LightBlue;
+            return Color.Black;
+        }
+
+        private int DetermineImageIndexForArchive(DPArchiveInfo info)
+        {
+            return info.Status switch
+            {
+                DPArchiveStatus.Failed => statusIcons.Images.IndexOfKey("error"),
+                DPArchiveStatus.CompletedWithIssues => statusIcons.Images.IndexOfKey("warning"),
+                _ => 0
+            };
         }
 
         /// <summary>
@@ -169,13 +257,6 @@ namespace DAZ_Installer.Windows.Pages
             tabControl1.SelectTab(fileListPage);
         }
         #endregion
-
-        private void progressCombo_Load(object sender, EventArgs e)
-        {
-            progressCombo.StartProgress();
-            progressCombo.SetText("Who let the dogs out woof woof woof");
-            progressCombo.ChangeProgressBarStyle(true);
-        }
     }
 
 }
