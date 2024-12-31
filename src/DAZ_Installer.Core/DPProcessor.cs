@@ -436,8 +436,12 @@ namespace DAZ_Installer.Core
         }
 
         /// <summary>
-        /// Cancels the processing of the archive.
+        /// Cancels the processing of the archive and any pending archives.
         /// </summary>
+        /// <remarks>
+        /// Pending nested archives will not be processed at all after calling this function.
+        /// It is still possible for some processing for the current archive being processed, but never
+        /// the next archives.</remarks>
         public void CancelProcessing()
         {
             try
