@@ -53,8 +53,12 @@ namespace DAZ_Installer.Windows.Pages
             Logger.Information("Loading Settings");
             // Get our settings.
             validating = true;
+            applySettingsBtn.Enabled = false;
             if (!DPSettings.CurrentSettingsObject.Valid)
+            {
                 DPSettings.CurrentSettingsObject = SetupSettings();
+                applySettingsBtn.Enabled = true;
+            }
 
             ValidateDirectoryPaths(DPSettings.CurrentSettingsObject);
 
@@ -70,7 +74,6 @@ namespace DAZ_Installer.Windows.Pages
             SetupAllowOverwriting();
             SetupRemoveAction();
 
-            applySettingsBtn.Enabled = false;
             loadingPanel.Visible = false;
             loadingPanel.Dispose();
             validating = false;
@@ -89,17 +92,6 @@ namespace DAZ_Installer.Windows.Pages
                 Logger.Error(ex, "Failed to save settings");
             }
             return false;
-        }
-
-        public DPSettings? ParseSettings()
-        {
-            var result = DPSettings.FromJson(File.ReadAllText(SETTINGS_PATH));
-            if (result == null)
-            {
-                MessageBox.Show("There was an error processing settings. Settings have been reset to default values.",
-                    "Failed to process settings", MessageBoxButtons.OK, MessageBoxIcon.Error);
-            }
-            return result;
         }
 
         public DPSettings SetupSettings()
