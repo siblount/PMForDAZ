@@ -20,7 +20,7 @@ namespace DAZ_Installer.Windows.Pages
         public static Extract ExtractPage = null!;
         internal static Dictionary<IDPAbstractNode, ListViewItem> associatedListItems = new(256);
         internal static Dictionary<IDPAbstractNode, TreeNode> associatedTreeNodes = new(256);
-        internal static Dictionary<string, ListViewItem> associatedQueueItems = new(2048, PathComparer.Instance);
+        internal static Dictionary<string, ListViewItem> associatedQueueItems = new(64, PathComparer.Instance);
         internal static List<DPExtractJob> extractJobs = new(4);
 
         public Extract()
