@@ -97,7 +97,7 @@ namespace DAZ_Installer.Windows.DP
         {
             CurrentSettingsObject ??= new DPSettings();
         }
-        public DPSettings() => detectedDazContentPaths = DPRegistry.ContentDirectories;
+        public DPSettings() => detectedDazContentPaths = DPRegistry.Instance.ContentDirectories;
         /// <summary>
         /// Clones the current settings object and returns it.
         /// </summary>
@@ -162,7 +162,7 @@ namespace DAZ_Installer.Windows.DP
         public void Reset()
         {
             // Reset all properties to default values.
-            detectedDazContentPaths = DPRegistry.ContentDirectories;
+            detectedDazContentPaths = DPRegistry.Instance.ContentDirectories;
             HandleInstallation = InstallOptions.ManifestAndAuto;
             CommonContentFolderNames = new HashSet<string>(DPProcessor.DefaultContentFolders, StringComparer.OrdinalIgnoreCase);
             FolderRedirects = new Dictionary<string, string>(DPProcessor.DefaultRedirects, StringComparer.OrdinalIgnoreCase);
