@@ -15,7 +15,7 @@ using System.Windows.Forms;
 namespace DAZ_Installer.Windows.Pages
 {
 
-    public partial class Extract : UserControl
+    public partial class Extract : UserControl, IExtractView
     {
         public static Extract ExtractPage = null!;
         internal static Dictionary<IDPAbstractNode, ListViewItem> associatedListItems = new(256);
@@ -35,7 +35,7 @@ namespace DAZ_Installer.Windows.Pages
             statusIcons.Images.Add("warning", warningImage);
         }
 
-        internal void AddToQueue(DPExtractJob job)
+        public void AddToQueue(DPExtractJob job)
         {
             if (InvokeRequired)
             {
@@ -56,7 +56,7 @@ namespace DAZ_Installer.Windows.Pages
             queueListView.EndUpdate();
         }
 
-        internal void OnExtractJobStatusUpdate(DPExtractJob caller, DPArchiveInfo info)
+        public void OnExtractJobStatusUpdate(DPExtractJob caller, DPArchiveInfo info)
         {
             if (InvokeRequired)
             {
@@ -121,7 +121,7 @@ namespace DAZ_Installer.Windows.Pages
         /// Adds all the contents found in <paramref name="archive"/> to the list view.
         /// Assure that this function is called from the UI thread with either <see cref="Control.Invoke(Delegate)"/> or <see cref="Control.BeginInvoke(Delegate)"/>.
         /// </summary>
-        internal void AddToList(IDPArchive archive)
+        public void AddToList(IDPArchive archive)
         {
             fileListView.BeginUpdate();
             foreach (IDPFile content in archive.Contents.Values)
@@ -166,7 +166,7 @@ namespace DAZ_Installer.Windows.Pages
         /// Assure that this function is called from the UI thread with either <see cref="Control.Invoke(Delegate)"/> or <see cref="Control.BeginInvoke(Delegate)"/>.
         /// </summary>
         /// <param name="workingArchive">The archive to add to the hierachy</param>
-        internal void AddToHierachy(IDPArchive workingArchive)
+        public void AddToHierachy(IDPArchive workingArchive)
         {
             fileHierachyTree.BeginUpdate();
 

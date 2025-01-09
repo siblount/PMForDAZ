@@ -11,6 +11,7 @@ using System.IO;
 using System.Text;
 using System.Windows.Forms;
 using DAZ_Installer.IO;
+using System.Linq;
 
 namespace DAZ_Installer.Windows.Pages
 {
@@ -57,9 +58,7 @@ namespace DAZ_Installer.Windows.Pages
 
             // Goto next page.
             MainForm.SwitchPage(Extract.ExtractPage);
-
-
-            var newJob = new DPExtractJob(listView1.Items); // Todo: make a list.
+            var newJob = new DPExtractJob(listView1.Items.Cast<ListViewItem>().Select(x => x.Text)); // Todo: make a list.
             newJob.DoJob();
 
             // Clear list and reset home.

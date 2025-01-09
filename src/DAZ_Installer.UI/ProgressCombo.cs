@@ -10,11 +10,19 @@ using System.Windows.Forms;
 
 namespace DAZ_Installer.UI
 {
-    public partial class ProgressCombo : UserControl
+    public partial class ProgressCombo : UserControl, IProgressCombo
     {
         [Browsable(false), EditorBrowsable(EditorBrowsableState.Never), DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
-        public CancellationTokenSource CancellationTokenSource { get; set; } = new();
-        public bool IsMarquee => progressBar.Style == ProgressBarStyle.Marquee;
+        private CancellationTokenSource CancellationTokenSource { get; set; } = new();
+        /// <summary>
+        /// <inheritdoc/>
+        /// </summary>
+        /// <remarks>
+        /// When the user clicks the cancel button, the <see cref="CancellationTokenSource"/> is cancelled 
+        /// and reset. Receivers should cache the token to check for cancellation since the token may be
+        /// reset (aka a new cancellation token source is created).
+        /// </remarks>
+        public CancellationToken Token => CancellationTokenSource.Token;
 
         public ProgressCombo()
         {

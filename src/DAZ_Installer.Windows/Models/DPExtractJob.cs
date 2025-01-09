@@ -21,40 +21,72 @@ using System.Windows.Forms;
 
 namespace DAZ_Installer.Windows.DP
 {
-    internal class DPExtractJob
+    /// <summary>
+    /// A class that represents a job to process archives.
+    /// </summary>
+    public class DPExtractJob
     {
+        /// <summary>
+        /// The logger for the <see cref="DPExtractJob"/> class.
+        /// </summary>
         public static ILogger Logger { get; set; } = Log.Logger.ForContext<DPExtractJob>();
-        public List<string> InitialFilesToProcess { get; init; }
+        /// <summary>
+        /// The view to use for extracting archives.
+        /// </summary>
+        /// <value>By default, <see cref="Extract.ExtractPage"/> upon initialization.</value>
+        public IExtractView ExtractView { get; set; } = Extract.ExtractPage;
+        /// <summary>
+        /// The progress combo to use for extracting archives.
+        /// </summary>
+        /// <value>
+        /// By default, returns the value of the <see cref="Extract.progressCombo"/> 
+        /// property upon initialization.
+        /// </value>
+        public IProgressCombo ProgressCombo { get; set; } = Extract.ExtractPage.progressCombo;
+        /// <summary>
+        /// The processor to use for processing archives.
+        /// </summary>
+        public IDPProcessor Processor { get; set; } = new DPProcessor();
+        /// <summary>
+        /// The initial files to process.
+        /// </summary>
+        public string[] InitialFilesToProcess { get; init; }
+        /// <summary>
+        /// The task job to process the files.
+        /// </summary>
+        public Task? TaskJob { get; protected set; }
+        /// <summary>
+        /// The user settings to use for processing the files.
+        /// </summary>
+        /// <remarks>
+        /// The user settings will not be null once the Task is being executed (not in queue).
+        /// </remarks>
+        public DPSettings? UserSettings { get; protected set; }
         private Dictionary<string, DPArchiveInfo> ArchiveInfos { get; init; }
         private readonly object archiveInfoLock = new();
-        public bool Completed { get; protected set; } = false;
-        public DPProcessor Processor = new();
-        public Task? TaskJob { get; protected set; }
-        public DPSettings? UserSettings { get; protected set; }
 
         private static DPTaskManager ExtractJobs = new();
-        private readonly ProgressCombo progressCombo = Extract.ExtractPage.progressCombo;
         // TODO: Check if a product is already in list.
 
-        //public DPExtractJob(string[] files)
-        //{
-        //    filesToProcess = files;
-        //}
-
-        public DPExtractJob(ListView.ListViewItemCollection files)
+        /// <summary>
+        /// Creates a new instance of the <see cref="DPExtractJob"/> with the files to process.
+        /// </summary>
+        /// <param name="files">The initial files to process</param>
+        public DPExtractJob(IEnumerable<string> files)
         {
-            InitialFilesToProcess = new List<string>(files.Count);
 
-            foreach (ListViewItem file in files)
-                InitialFilesToProcess.Add(file.Text);
-            
-            ArchiveInfos = new(InitialFilesToProcess.Count * 2, PathComparer.Instance);
+            InitialFilesToProcess = [..files];
+            ArchiveInfos = new(InitialFilesToProcess.Length * 2, PathComparer.Instance);
             
             foreach (var file in InitialFilesToProcess) {
                 ArchiveInfos[file] = new DPArchiveInfo(file);
             }
         }
 
+        /// <summary>
+        /// Adds the job to the queue to be processed.
+        /// </summary>
+        /// <returns>The Task object</returns>
         public Task DoJob()
         {
             TaskJob = ExtractJobs.AddToQueue(ProcessListAsync);
@@ -100,6 +132,16 @@ namespace DAZ_Installer.Windows.DP
             }
         }
 
+        /// <summary>
+        /// Skips/cancels the archive from being processed.
+        /// </summary>
+        /// <remarks>
+        /// If the archive has not yet been processed, it will be skipped.
+        /// If the archive has been processed, it will not be skipped.
+        /// If the archive is currently in process, a cancellation request will be issued.
+        /// </remarks>
+        /// <param name="archivePath">The path of the archive to skip/cancel.</param>
+        /// <exception cref="ArgumentException">The archive is not the list of files to process</exception>
         public void SkipArchive(string archivePath)
         {
             if (!ArchiveInfos.TryGetValue(archivePath, out var archiveInfo))
@@ -148,43 +190,43 @@ namespace DAZ_Installer.Windows.DP
             if (Processor.State == ProcessorState.PreparingExtraction)
             {
                 // TO DO: Highlight files in red for files that failed to extract.
-                Extract.ExtractPage.BeginInvoke(() =>
+                ExtractView.BeginInvoke(() =>
                 {
-                    Extract.ExtractPage.SuspendLayout();
+                    ExtractView.SuspendLayout();
                     try
                     {
-                        Extract.ExtractPage.AddToList(Processor.CurrentArchive);
-                        Extract.ExtractPage.AddToHierachy(Processor.CurrentArchive);
-                        progressCombo.ChangeProgressBarStyle(true);
-                        progressCombo.SetText($"Preparing to extract contents in {Processor.CurrentArchive.FileName}...");
-                        progressCombo.SetProgress(0);
+                        ExtractView.AddToList(Processor.CurrentArchive);
+                        ExtractView.AddToHierachy(Processor.CurrentArchive);
+                        ProgressCombo.ChangeProgressBarStyle(true);
+                        ProgressCombo.SetText($"Preparing to extract contents in {Processor.CurrentArchive.FileName}...");
+                        ProgressCombo.SetProgress(0);
                     } catch (Exception ex)
                     {
                         Logger.Error(ex, "An error occurred while attempting to add archive to list");
                     } finally
                     {
-                        Extract.ExtractPage.ResumeLayout();
+                        ExtractView.ResumeLayout();
                     }
                 });
             }
             else if (Processor.State == ProcessorState.Analyzing)
             {
-                progressCombo.ChangeProgressBarStyle(true);
-                progressCombo.SetText($"Analyzing file contents in {Processor.CurrentArchive.FileName}...");
+                ProgressCombo.ChangeProgressBarStyle(true);
+                ProgressCombo.SetText($"Analyzing file contents in {Processor.CurrentArchive.FileName}...");
             }
         }
 
         private void Processor_ExtractProgress(DPProcessor sender, DPExtractProgressArgs e)
         {
-            progressCombo.ChangeProgressBarStyle(false);
-            progressCombo.SetProgress(e.ExtractionPercentage);
-            progressCombo.SetText($"Extracting contents from {e.Archive.FileName}...{e.ExtractionPercentage}%");
+            ProgressCombo.ChangeProgressBarStyle(false);
+            ProgressCombo.SetProgress(e.ExtractionPercentage);
+            ProgressCombo.SetText($"Extracting contents from {e.Archive.FileName}...{e.ExtractionPercentage}%");
         }
 
         private void Processor_MoveProgress(DPProcessor sender, DPExtractProgressArgs e)
         {
-            progressCombo.ChangeProgressBarStyle(true);
-            progressCombo.SetText($"Moving files from {e.Archive.FileName} to destination...%");
+            ProgressCombo.ChangeProgressBarStyle(true);
+            ProgressCombo.SetText($"Moving files from {e.Archive.FileName} to destination...%");
         }
 
         private void Processor_ProcessError(DPProcessor _, DPProcessorErrorArgs e)
@@ -226,9 +268,9 @@ namespace DAZ_Installer.Windows.DP
             if (!e.Processed) return;
             // Create records if applicable.
             // TODO: Only add if successful extraction, and all files from temp were moved, and/or user didn't cancel operation.
-            progressCombo.ChangeProgressBarStyle(true);
+            ProgressCombo.ChangeProgressBarStyle(true);
             Logger.Information("Creating records for {arc}", e.Archive.FileName);
-            progressCombo.SetText($"Creating records for {e.Archive.FileName}...");
+            ProgressCombo.SetText($"Creating records for {e.Archive.FileName}...");
             CreateRecords(e.Archive, e.Report!);
 
             if (e.Archive.IsInnerArchive) return;
@@ -288,10 +330,10 @@ namespace DAZ_Installer.Windows.DP
             try
             {
                 // Tell the progress combo we are beginning by enabling visibility of the progress bar and cancel button.
-                progressCombo.StartProgress();
+                ProgressCombo.StartProgress();
 
                 // Register the cancellation token so we can cancel the process.
-                var token = progressCombo.CancellationTokenSource.Token;
+                var token = ProgressCombo.Token;
                 token.Register(Processor.CancelProcessing);
 
                 // Snapshot the settings and this will be what we use
@@ -309,9 +351,9 @@ namespace DAZ_Installer.Windows.DP
                     ForceFileToDest = [],
                 };
                 SetupEventHandlers();
-                Extract.ExtractPage.AddToQueue(this);
+                ExtractView.AddToQueue(this);
 
-                var c = InitialFilesToProcess.Count;
+                var c = InitialFilesToProcess.Length;
                 for (var i = 0; i < c; i++)
                 {
                     var x = InitialFilesToProcess[i];
@@ -319,8 +361,8 @@ namespace DAZ_Installer.Windows.DP
                         continue;
                         
                     int percentage = (int)((double)i / c * 100);
-                    progressCombo.SetProgress(percentage);
-                    progressCombo.SetText($"Processing archive {i + 1}/{c}: " +
+                    ProgressCombo.SetProgress(percentage);
+                    ProgressCombo.SetText($"Processing archive {i + 1}/{c}: " +
                         $"{Path.GetFileName(x)}...({percentage}%)");
                     Processor.ProcessArchive(x, processSettings);
                 }
@@ -329,12 +371,10 @@ namespace DAZ_Installer.Windows.DP
                 Logger.Error(ex, "An error occurred while attempting to process archive list");
             } finally
             {
-                progressCombo.SetText($"Finished processing archives");
-                progressCombo.ChangeProgressBarStyle(false);
-                progressCombo.SetProgress(100);
-                progressCombo.EndProgress();
-
-                Completed = true;
+                ProgressCombo.SetText($"Finished processing archives");
+                ProgressCombo.ChangeProgressBarStyle(false);
+                ProgressCombo.SetProgress(100);
+                ProgressCombo.EndProgress();
                 GC.Collect();
             }
             

@@ -16,10 +16,29 @@ namespace DAZ_Installer.Core
     // GOAL: Extract files through RAR. While it discovers files, add it to list.
     // Then, deeply analyze each file; determine best approach; and execute best approach (or ask).
     // Lastly, clean up.
-    public class DPProcessor
+    /// <summary>
+    /// Implements the core processing logic for DAZ Studio Product archives, serving as the primary
+    /// orchestrator for extracting, analyzing, and installing DAZ Studio products.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The DPProcessor is the main implementation that handles the complete workflow of processing
+    /// DAZ Studio Product archives. It coordinates between various components to ensure proper
+    /// extraction, analysis, and installation of products.
+    /// </para>
+    /// 
+    /// Key responsibilities include:
+    /// <list type="bullet">
+    ///     <item>Managing the extraction process through various extractors</item>
+    ///     <item>Analyzing archive contents to determine product structure</item>
+    ///     <item>Coordinating metadata reading and tag assignment</item>
+    ///     <item>Managing temporary and destination paths</item>
+    ///     <item>Handling nested archives and complex product structures</item>
+    ///     <item>Providing progress updates and error handling</item>
+    /// </list>
+    /// </remarks>
+    public class DPProcessor : IDPProcessor
     {
-        // SecureString - System.Security
-        // We use these variables in case the user changes the settings in mist of an extraction process
         public static readonly ImmutableDictionary<string, string> DefaultRedirects = ImmutableDictionary.Create<string, string>(StringComparer.OrdinalIgnoreCase)
                                                                                                          .AddRange(new KeyValuePair<string, string>[]{ new("docs", "Documentation"),
                                                                                                                                                        new("Documents", "Documentation"),
@@ -123,15 +142,30 @@ namespace DAZ_Installer.Core
         /// <seealso cref="ProcessError"/>
         /// </summary>
         public event DPProcessorEventHandler<DPErrorArgs>? FileError;
-        /// <summary>
-        /// An event that is invoked when a
-        /// </summary>
+
+        /// <inheritdoc/>
         public event DPProcessorEventHandler<DPProcessorErrorArgs>? ProcessError;
+        /// <summary>
+        /// <inheritdoc/>
+        /// </summary>
+        /// <remarks>
+        /// The event will be invoked even for cancelled pending archives.
+        /// </remarks>
         public event DPProcessorEventHandler<DPArchiveEnterArgs>? ArchiveEnter;
+        /// <summary>
+        /// <inheritdoc/>
+        /// </summary>
+        /// <remarks>
+        /// The event will be invoked even for cancelled pending archives.
+        /// </remarks>
         public event DPProcessorEventHandler<DPArchiveExitArgs>? ArchiveExit;
+        /// <inheritdoc/>
         public event DPProcessorEventHandler<DPExtractProgressArgs>? ExtractProgress;
+        /// <inheritdoc/>
         public event DPProcessorEventHandler<DPExtractProgressArgs>? MoveProgress;
+        /// <inheritdoc/>
         public event Action? Finished;
+        /// <inheritdoc/>
         public event Action? StateChanged;
          
         private ProcessorState state;
