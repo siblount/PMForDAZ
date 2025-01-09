@@ -97,7 +97,7 @@ namespace DAZ_Installer.Windows.Pages
         public DPSettings SetupSettings()
         {
             var settings = new DPSettings();
-            if (DPRegistry.ContentDirectories.Length == 0)
+            if (DPRegistry.Instance.ContentDirectories.Length == 0)
             {
                 MessageBox.Show("Couldn't find DAZ Studio Content Directories located in registry. On the next prompt, please select where you want your products to be installed to. You can always change this later in the settings.",
                     "Content Directories not found", MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
@@ -111,7 +111,7 @@ namespace DAZ_Installer.Windows.Pages
                 }
                 settings.DestinationPath = path;
             }
-            else settings.DestinationPath = DPRegistry.ContentDirectories[0];
+            else settings.DestinationPath = DPRegistry.Instance.ContentDirectories[0];
             return settings;
         }
 
@@ -137,7 +137,7 @@ namespace DAZ_Installer.Windows.Pages
             applySettingsBtn.Enabled = invalidSettings;
             if (!destExists)
             {
-                if (DPRegistry.ContentDirectories.Length == 0 && !Directory.Exists(settings.DestinationPath))
+                if (DPRegistry.Instance.ContentDirectories.Length == 0 && !Directory.Exists(settings.DestinationPath))
                 {
                     MessageBox.Show("Couldn't find DAZ Studio Content Directories located in registry. On the next prompt, please select where you want your products to be installed to. You can always change this later in the settings.",
                         "Content Directories not found", MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
@@ -151,7 +151,7 @@ namespace DAZ_Installer.Windows.Pages
                     }
                     settings.DestinationPath = path;
                 }
-                else settings.DestinationPath = DPRegistry.ContentDirectories[0];
+                else settings.DestinationPath = DPRegistry.Instance.ContentDirectories[0];
             }
             if (!thumbExists && !fs.CreateDirectoryInfo("Thumbnails").TryCreate())
                 Logger.Warning("Failed to create default Thumbnails directory.");
@@ -318,13 +318,13 @@ namespace DAZ_Installer.Windows.Pages
                 if (Array.Find(drives, d => d.Name == destinationPath) == null)
                 {
                     // Means the drive is not mounted/ready, we need to select at least one
-                    if (DPRegistry.ContentDirectories.Length == 0)
+                    if (DPRegistry.Instance.ContentDirectories.Length == 0)
                     {
                         MessageBox.Show("The destination path currently selected is not valid because it is not mounted (or ready to be used). Please select a valid destination path in the following prompt.",
                                                        "Invalid destination path", MessageBoxButtons.OK, MessageBoxIcon.Error);
                         DPSettings.CurrentSettingsObject.DestinationPath = destinationPathCombo.Text = AskForDirectory();
                     }
-                    else DPSettings.CurrentSettingsObject.DestinationPath = destinationPathCombo.Text = DPRegistry.ContentDirectories[0];
+                    else DPSettings.CurrentSettingsObject.DestinationPath = destinationPathCombo.Text = DPRegistry.Instance.ContentDirectories[0];
                 }
                 try
                 {
