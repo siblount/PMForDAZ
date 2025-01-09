@@ -9,7 +9,7 @@ using System.Collections.Generic;
 namespace DAZ_Installer.Windows.DP
 {
     /// <inheritdoc/>
-    public class DPRegistry : IPlatformRegistry
+    public class DPRegistry : IDPPlatformRegistry
     {
         /// <inheritdoc/>
         public string[] ContentDirectories { get; set; } = [];

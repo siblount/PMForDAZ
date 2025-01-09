@@ -9,7 +9,7 @@ namespace DAZ_Installer.Windows.DP
     /// <summary>
     /// This interface is used to gather important registry values related to DAZ Studio.
     /// </summary>
-    public interface IPlatformRegistry
+    public interface IDPPlatformRegistry
     {
         /// <summary>
         /// The DAZ Content Directories. May be empty if none found.
