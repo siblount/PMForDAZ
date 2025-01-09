@@ -110,11 +110,6 @@ namespace DAZ_Installer.Core
         /// <returns>The combination of <see cref="CurrentProcessSettings.TempPath"/> and <c>"DazProductInstaller"</c>.</returns>
         public string TempLocation => Path.Combine(CurrentProcessSettings.TempPath, @"DazProductInstaller\");
         /// <summary>
-        /// The destination path of the files.
-        /// </summary>
-        /// <returns>The <see cref="CurrentProcessSettings.DestinationPath"/>.</returns>
-        public string DestinationPath => CurrentProcessSettings.DestinationPath;
-        /// <summary>
         /// The current archive that is being processed.
         /// </summary>
         /// <value>The current archive that is being processed or null if the Processor is in <see cref="ProcessorState.Idle"/></value>

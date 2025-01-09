@@ -1141,26 +1141,6 @@ namespace DAZ_Installer.Core.Tests
         }
 
         [TestMethod]
-        public void DestinationPathTest()
-        {
-            var arc = DPProcessorTestHelpers.NewMockedArchive(DPProcessorTestHelpers.DefaultMockOptions, out var mocks);
-            var settings = new DPProcessSettings("T:/", "D:/", InstallOptions.Automatic);
-            var po = new DPProcessorTestHelpers.ProcessorOptions() { Archive = arc, FileSystem = mocks.FakeFileSystem, Settings = settings };
-            var p = DPProcessorTestHelpers.SetupProcessor(po, out var processorMocks);
-
-            var processorTask = new DPProcessorTestHelpers.AssertableTask(() => p.ProcessArchive(mocks.FakeDPFileInfo.Path, settings));
-            p.ArchiveEnter += (p, e) =>
-            {
-                p.CancelProcessing();
-                processorTask.AddAssertion(() => Assert.AreEqual(settings.DestinationPath, p.DestinationPath));
-            };
-
-            processorTask.RunSynchronously();
-
-            processorTask.Assert();
-        }
-
-        [TestMethod]
         public void DefaultDependenciesTest() {
             var p = new DPProcessor();
             Assert.AreSame(p.ParentArchiveFactory, DPParentArchiveFactory.Instance);
