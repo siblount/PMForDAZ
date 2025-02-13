@@ -1,14 +1,16 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using DAZ_Installer.Core;
 using DAZ_Installer.Core.Extraction;
+using DAZ_Installer.IO;
 
 namespace DAZ_Installer.Windows.DP {
     /// <summary>
     /// Demonstrates the current status of an archive being processed.
     /// </summary>
     /// <seealso cref="DPExtractJob"/>
-    public class DPArchiveInfo
+    public record DPArchiveInfo
     {
         /// <summary>
         /// A record struct for holding error information about an archive during processing.
@@ -19,15 +21,17 @@ namespace DAZ_Installer.Windows.DP {
         /// <summary>
         /// The path of the archive.
         /// </summary>
-        public string FilePath { get; init; }
+        /// <remarks>By default, on creation, the path will be normalized using <see cref="PathHelper.NormalizePath(string)"/></remarks>
+        public string FilePath;
         /// <summary>
         /// The status of the archive.
         /// </summary>
-        public DPArchiveStatus Status { get; set; }
+        /// <remarks>By default, on creation, is <see cref="DPArchiveStatus.Pending"/></remarks>
+        public DPArchiveStatus Status;
         /// <summary>
         /// A list of any errors with possible exception and/or explanations.
         /// </summary>
-        public List<ErrorInfo> Errors { get; init; } = [];
+        public IList<ErrorInfo> Errors = [];
         /// <summary>
         /// The archive object, if one exists.
         /// </summary>
@@ -35,22 +39,34 @@ namespace DAZ_Installer.Windows.DP {
         /// It is possible for this to be null if the archive is cancelled before the processor
         /// is able to provide an archive file for this. This should not be null for nested
         /// archives and processed (regardless if it failed or not) 
-        public IDPArchive? Archive { get; set; }
+        /// </remarks>
+        public IDPArchive? Archive = null;
 
         /// <summary>
         /// Create an archive info object with archive.
         /// </summary>
-        /// <param name="archive"></param>
+        /// <param name="archive">The archive</param>
         public DPArchiveInfo(IDPArchive archive)
         {
             Archive = archive;
-            FilePath = archive.Path;
+            FilePath = PathHelper.NormalizePath(archive.FileInfo?.Path ?? string.Empty);
+            Status = DPArchiveStatus.Pending;
         }
 
         /// <summary>
         /// Create an archive info object with a path.
         /// </summary>
-        /// <param name="path">The path to the archive.</param>
-        public DPArchiveInfo(string path) => FilePath = path;
+        /// <remarks>
+        /// The <see cref="FilePath"/> property will be the normalized version of <paramref name="path"/>.
+        /// </remarks>
+        /// <param name="path">The file path on disk of the archive.</param>
+        public DPArchiveInfo(string path) => (FilePath, Status) = (PathHelper.NormalizePath(path), DPArchiveStatus.Pending);
+
+        /// <summary>
+        /// Creates a new DPArchiveInfo record with the added error info.
+        /// </summary>
+        /// <param name="errorInfo">A new error info to add</param>
+        /// <returns>A new DPArchiveInfo with the added <paramref name="errorInfo"/>.</returns>
+        public DPArchiveInfo WithError(ErrorInfo errorInfo) => this with { Errors = [..Errors, errorInfo] };
     }
 }

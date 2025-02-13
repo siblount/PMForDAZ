@@ -40,6 +40,27 @@ namespace DAZ_Installer.Windows.DP
         void AddToHierachy(IDPArchive workingArchive);
 
         /// <summary>
+        /// Resets the extract page to its initial state.
+        /// </summary>
+        /// <remarks>
+        /// This method should clear all lists, reset progress indicators,
+        /// and prepare the UI for a new extraction session.
+        /// </remarks>
+        void ResetExtractPage();
+
+        /// <summary>
+        /// Opens the file list tab for an archive. 
+        /// </summary>
+        /// <param name="archive">The archive to show the file list for.</param>
+        void ShowFileListTab(IDPArchive archive);
+
+        /// <summary>
+        /// Opens the file list tab for an archive. 
+        /// </summary>
+        /// <param name="archive">The archive to show the file hierachy for.</param>
+        void ShowFileHierachyTab(IDPArchive archive);
+
+        /// <summary>
         /// Updates the status of an existing extraction job in the UI.
         /// </summary>
         /// <param name="caller">The extraction job that triggered the update.</param>
@@ -49,13 +70,32 @@ namespace DAZ_Installer.Windows.DP
         /// It should update relevant UI elements to reflect the current state of the archive.
         /// </remarks>
         void OnExtractJobStatusUpdate(DPExtractJob caller, DPArchiveInfo info);
+
         /// <summary>
-        /// Resets the extract page to its initial state.
+        /// Handles the <see cref="IDPProcessor.ExtractProgress"/> event.
         /// </summary>
-        /// <remarks>
-        /// This method should clear all lists, reset progress indicators,
-        /// and prepare the UI for a new extraction session.
-        /// </remarks>
-        void ResetExtractPage();
+        /// <param name="processor">The processor that emitted the event</param>
+        /// <param name="e">The event args</param>
+        void OnExtractionProgressUpdate(IDPProcessor processor, DPExtractProgressArgs e);
+
+        /// <summary>
+        /// Handles the <see cref="IDPProcessor.MoveProgress"/> event.
+        /// </summary>
+        /// <param name="processor">The processor that emitted the event</param>
+        /// <param name="e">The event args</param>
+        void OnMoveProgressUpdate(IDPProcessor processor, DPExtractProgressArgs e);
+
+        /// <summary>
+        /// Updates the GUI to represent that the <see cref="IDPProcessor"/> is
+        /// preparing to extract contents.
+        /// </summary>
+        /// <param name="processor">The processor whose state has changed.</param>
+        void OnProcessorStateUpdate(IDPProcessor processor);
+        
+        /// <summary>
+        /// Updates the GUI to represent that a record is being created for the archive.
+        /// </summary>
+        /// <param name="archive">The archive whose records is being created for.</param>
+        void OnCreatingRecords(IDPArchive archive);
     }
 }

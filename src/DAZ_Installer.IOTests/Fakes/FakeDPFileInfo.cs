@@ -50,7 +50,7 @@
         public virtual bool TryOpen(FileMode mode, FileAccess access, out Stream? stream) => ((IDPFileInfo)fileInfo).TryOpen(mode, access, out stream);
         public virtual bool TryOpenRead(out Stream? stream) => ((IDPFileInfo)fileInfo).TryOpenRead(out stream);
         public virtual bool TryOpenWrite(out Stream? stream) => ((IDPFileInfo)fileInfo).TryOpenWrite(out stream);
-        public bool TrySendToRecycleBin(out Exception? ex) => fileInfo.TrySendToRecycleBin(out ex);
-        public bool TryAndFixSendToRecycleBin(out Exception? ex) => fileInfo.TryAndFixSendToRecycleBin(out ex);
+        public virtual bool TrySendToRecycleBin(out Exception? ex) => fileInfo.TrySendToRecycleBin(out ex);
+        public virtual bool TryAndFixSendToRecycleBin(out Exception? ex) => fileInfo.TryAndFixSendToRecycleBin(out ex);
     }
 }
