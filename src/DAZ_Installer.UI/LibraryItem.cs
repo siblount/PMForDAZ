@@ -24,7 +24,7 @@ namespace DAZ_Installer
         }
 
         [Description("Holds the image inside of the imagebox."), Category("Data"), Browsable(true)]
-
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Visible)]
         public Image Image
         {
             get => imageBox.Image;
@@ -32,6 +32,7 @@ namespace DAZ_Installer
         }
 
         [Description("Holds the label tags value."), Category("Data"), Browsable(true)]
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Visible)]
         public IReadOnlyList<string> Tags
         {
             get => GetTags();
@@ -41,12 +42,14 @@ namespace DAZ_Installer
         [Description("Determines the maximum number of tags to display."), Category("Data"), Browsable(true)]
         [DefaultValue(4)]
         public uint MaxTagCount { get; set; } = 4;
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
         public DPDatabase? Database { get; set; }
-
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
         public DPProductRecordLite ProductRecord { get; set; }
         /// <summary>
         /// The product record form to 
         /// </summary>
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
         public Type ProductRecordFormType { get; set; }
 
         private readonly List<Label> labels = new();

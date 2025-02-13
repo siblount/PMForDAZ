@@ -35,6 +35,13 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DAZ_Installer.DatabaseTests
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DAZ_Installer.TestingSuiteWindows", "DAZ_Installer.TestingSuiteWindows\DAZ_Installer.TestingSuiteWindows.csproj", "{EE91DB42-30F0-4DB3-A513-AFE8B4DE75F3}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DAZ_Installer.WindowsTests", "DAZ_Installer.WindowsTests\DAZ_Installer.WindowsTests.csproj", "{4530395D-F0B1-44D3-AEF2-D4C03D90A00C}"
+	ProjectSection(ProjectDependencies) = postProject
+		{6719331A-0851-4C4A-9C15-435AFD86EFFB} = {6719331A-0851-4C4A-9C15-435AFD86EFFB}
+		{A89C12E1-F4D6-46B6-8B65-1450928F56CD} = {A89C12E1-F4D6-46B6-8B65-1450928F56CD}
+		{E619A09A-3C2B-4375-8CFC-C1ED7EA3F3FE} = {E619A09A-3C2B-4375-8CFC-C1ED7EA3F3FE}
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -115,6 +122,14 @@ Global
 		{EE91DB42-30F0-4DB3-A513-AFE8B4DE75F3}.Release|Any CPU.Build.0 = Release|Any CPU
 		{EE91DB42-30F0-4DB3-A513-AFE8B4DE75F3}.Release|x64.ActiveCfg = Release|x64
 		{EE91DB42-30F0-4DB3-A513-AFE8B4DE75F3}.Release|x64.Build.0 = Release|x64
+		{4530395D-F0B1-44D3-AEF2-D4C03D90A00C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4530395D-F0B1-44D3-AEF2-D4C03D90A00C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4530395D-F0B1-44D3-AEF2-D4C03D90A00C}.Debug|x64.ActiveCfg = Debug|x64
+		{4530395D-F0B1-44D3-AEF2-D4C03D90A00C}.Debug|x64.Build.0 = Debug|x64
+		{4530395D-F0B1-44D3-AEF2-D4C03D90A00C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4530395D-F0B1-44D3-AEF2-D4C03D90A00C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4530395D-F0B1-44D3-AEF2-D4C03D90A00C}.Release|x64.ActiveCfg = Release|Any CPU
+		{4530395D-F0B1-44D3-AEF2-D4C03D90A00C}.Release|x64.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -124,6 +139,7 @@ Global
 	EndGlobalSection
 	GlobalSection(SharedMSBuildProjectFiles) = preSolution
 		DAZ_Installer.Common\DAZ_Installer.Common.projitems*{27f4b70e-1ee2-4fa6-a947-fcfa0284493f}*SharedItemsImports = 5
+		DAZ_Installer.Common\DAZ_Installer.Common.projitems*{4530395d-f0b1-44d3-aef2-d4c03d90a00c}*SharedItemsImports = 5
 		DAZ_Installer.Common\DAZ_Installer.Common.projitems*{4cb2a43f-bc49-44a6-b64e-416d59f07156}*SharedItemsImports = 5
 		DAZ_Installer.Common\DAZ_Installer.Common.projitems*{6719331a-0851-4c4a-9c15-435afd86effb}*SharedItemsImports = 5
 		DAZ_Installer.Common\DAZ_Installer.Common.projitems*{b52a5c81-d9c5-4b68-a117-b0aec3dd5d17}*SharedItemsImports = 13

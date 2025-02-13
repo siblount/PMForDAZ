@@ -12,6 +12,8 @@ namespace DAZ_Installer.Windows.Forms
         Dictionary<string, string> Aliases = new(DPSettings.CurrentSettingsObject.FolderRedirects);
         HashSet<string> keys = new(DPSettings.CurrentSettingsObject.FolderRedirects.Count,
             StringComparer.OrdinalIgnoreCase);
+
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
         public ListView AliasListView { get; init; }
         public ContentFolderAliasManager()
         {

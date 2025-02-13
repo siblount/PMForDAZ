@@ -12,16 +12,23 @@ using System.Threading.Tasks;
 using System.Windows.Forms;
 using Serilog;
 using DAZ_Installer.IO;
+using System.ComponentModel;
 
 namespace DAZ_Installer.Windows.Pages
 {
     public partial class Settings : UserControl
     {
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
         public ILogger Logger { get; set; } = Log.Logger.ForContext<Settings>();
+
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
         internal static bool setupComplete { get; set; } = false;
-        internal static readonly string[] names = new string[] { "Manifest Only", "Manifest and File Sense", "File Sense Only" };
+        internal static readonly string[] names = ["Manifest Only", "Manifest and File Sense", "File Sense Only"];
+
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
         internal static bool validating { get; set; } = false;
-        internal static Settings settingsPage { get; set; } = null;
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
+        internal static Settings settingsPage { get; set; } = null!;
 
         private const string SETTINGS_PATH = "settings.json";
 

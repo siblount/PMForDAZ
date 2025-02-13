@@ -11,23 +11,29 @@ namespace DAZ_Installer
     public partial class LibraryPanel : UserControl
     {
         public LibraryPanel() => InitializeComponent();
+        
         [Browsable(true), EditorBrowsable(EditorBrowsableState.Always), Description("Holds the current library items."), Category("Items")]
-
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
         public List<LibraryItem> LibraryItems { get; } = new List<LibraryItem>(25);
 
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
         public List<LibraryItem> SearchItems { get; set; } = new List<LibraryItem>(25);
+
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
         public uint CurrentPage
         {
             get => pageButtonControl1.CurrentPage;
             set => pageButtonControl1.CurrentPage = value;
         }
 
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
         public uint PageCount
         {
             get => pageButtonControl1.PageCount;
             set => pageButtonControl1.PageCount = value;
         }
 
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
         public bool EditMode
         {
             set

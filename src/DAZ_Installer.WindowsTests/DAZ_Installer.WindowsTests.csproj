@@ -1,0 +1,37 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net9.0-windows7.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+    <Nullable>enable</Nullable>
+    <Platforms>AnyCPU;x64</Platforms>
+  </PropertyGroup>
+	<ItemGroup>
+		<PackageReference Include="Microsoft.NET.Test.Sdk" />
+		<PackageReference Include="Moq" />
+		<PackageReference Include="MSTest.TestAdapter" />
+		<PackageReference Include="MSTest.TestFramework" />
+		<PackageReference Include="coverlet.collector">
+			<PrivateAssets>all</PrivateAssets>
+			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+		</PackageReference>
+	</ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\DAZ_Installer.CoreTests\DAZ_Installer.CoreTests.csproj" />
+    <ProjectReference Include="..\DAZ_Installer.Core\DAZ_Installer.Core.csproj" />
+    <ProjectReference Include="..\DAZ_Installer.Database\DAZ_Installer.Database.csproj" />
+    <ProjectReference Include="..\DAZ_Installer.IO\DAZ_Installer.IO.csproj" />
+    <ProjectReference Include="..\DAZ_Installer.UI\DAZ_Installer.UI.csproj" />
+    <ProjectReference Include="..\DAZ_Installer.Windows\DAZ_Installer.Windows.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Microsoft.VisualStudio.TestTools.UnitTesting" />
+  </ItemGroup>
+
+  <Import Project="..\DAZ_Installer.Common\DAZ_Installer.Common.projitems" Label="Shared" />
+
+</Project>
