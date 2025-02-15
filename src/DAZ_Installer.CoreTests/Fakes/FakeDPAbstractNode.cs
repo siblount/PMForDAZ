@@ -26,7 +26,7 @@ namespace DAZ_Installer.Core.Tests.Fakes
             protected override void UpdateParent(IDPFolder? parent) => this.parent = parent;
         }
 
-        private readonly IDPAbstractNode node = new AbstractNodeImpl();
+        protected IDPAbstractNode node { get; set; } = new AbstractNodeImpl();
 
         /// <inheritdoc cref="IDPAbstractNode"/>
         public virtual ILogger Logger { get => node.Logger; set => node.Logger = value; }
@@ -58,5 +58,8 @@ namespace DAZ_Installer.Core.Tests.Fakes
 
         /// <inheritdoc cref="IDPAbstractNode"/>
         public virtual string RelativeTargetPath { get => node.RelativeTargetPath; set => node.RelativeTargetPath = value; }
+
+        protected FakeDPAbstractNode(IDPAbstractNode node) => this.node = node;
+        public FakeDPAbstractNode() { }
     }
 }

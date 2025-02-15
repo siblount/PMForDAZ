@@ -9,7 +9,7 @@ namespace DAZ_Installer.Core.Tests.Fakes
     /// <remarks>By default, uses <see cref="DPFile"/> code.</remarks>
     public class FakeDPFile : FakeDPAbstractNode, IDPFile
     {
-        private readonly DPFile file = new DPFile();
+        private DPFile file => (DPFile)node;
         /// <inheritdoc cref="IDPFile"/>/>
         public IDPFileInfo? FileInfo { get => file.FileInfo; set => file.FileInfo = value; }
         /// <inheritdoc cref="IDPFile"/>/>
@@ -20,9 +20,16 @@ namespace DAZ_Installer.Core.Tests.Fakes
         public bool ExtractedToTarget => file.ExtractedToTarget;
 
         /// <summary>
+        /// A protected constructor so that all properties will work correctly (ie: <see cref="IDPAbstractNode.Path"/>
+        /// </summary>
+        /// <param name="file">An object that satisfies the <see cref="IDPFile"/> contract.</param>
+        protected FakeDPFile(IDPFile file) : base(file) { }
+
+        /// <summary>
         /// An empty constructor that does nothing.
         /// </summary>
-        public FakeDPFile() { }
+        public FakeDPFile() : base(new DPFile()) { }
+
         /// <summary>
         /// A constructor that simply sets the parameters with no side-effect.
         /// </summary>
@@ -33,7 +40,7 @@ namespace DAZ_Installer.Core.Tests.Fakes
         /// <param name="path">The path to set.</param>
         /// <param name="parent">The parent to set with no side-effects whatsoever.</param>
         /// <param name="archive">The associated archive to set</param>
-        public FakeDPFile(string path, IDPFolder? parent = null, IDPArchive? archive = null)
+        public FakeDPFile(string path, IDPFolder? parent = null, IDPArchive? archive = null) : this()
         {
             Path = path;
             Parent = parent;

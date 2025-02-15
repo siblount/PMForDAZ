@@ -10,7 +10,7 @@ namespace DAZ_Installer.Core.Tests.Fakes
     /// <remarks>By default, uses <see cref="DPFile"/> code.</remarks>
     public class FakeDPDSXFile : FakeDPAbstractNode, IDPDSXFile
     {
-        private readonly DPFile file = new DPFile();
+        private DPFile file => (DPFile)node;
         /// <inheritdoc cref="IDPFile"/>/>
         public virtual IDPFileInfo? FileInfo { get => file.FileInfo; set => file.FileInfo = value; }
         /// <inheritdoc cref="IDPFile"/>/>
@@ -25,7 +25,7 @@ namespace DAZ_Installer.Core.Tests.Fakes
         /// <summary>
         /// An empty constructor that does nothing.
         /// </summary>
-        public FakeDPDSXFile() { }
+        public FakeDPDSXFile() : base(new DPFile()){ }
         /// <summary>
         /// A regular constructor that sets the path, parent, and archive with no side-effects. Optionally, adds the file to the archive.
         /// </summary>
@@ -37,7 +37,7 @@ namespace DAZ_Installer.Core.Tests.Fakes
         /// <param name="parent">The parent to set with no side-effects whatsoever.</param>
         /// <param name="archive">The associated archive to set</param>
         /// <param name="addToArchive">Calls <see cref="AddToArchive"/> if true.</param>
-        public FakeDPDSXFile(string path, IDPFolder? parent = null, IDPArchive? archive = null, bool addToArchive = true)
+        public FakeDPDSXFile(string path, IDPFolder? parent = null, IDPArchive? archive = null, bool addToArchive = true) : this()
         {
             Path = path;
             Parent = parent;

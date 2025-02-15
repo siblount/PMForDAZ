@@ -15,7 +15,7 @@ namespace DAZ_Installer.Core.Tests.Fakes
     /// <remarks>Utilizes <see cref="DPArchive"/> for operations. All properties and methods are virtual.</remarks>
     public class FakeDPArchive : FakeDPFile, IDPArchive
     {
-        private readonly DPArchive archive = new();
+        private DPArchive archive => (DPArchive)node;
 
         /// <inheritdoc cref="DPArchive.ProductName"/>
         public virtual string ProductName => ((IDPArchive)archive).ProductName;
@@ -113,10 +113,10 @@ namespace DAZ_Installer.Core.Tests.Fakes
         /// <summary>
         /// An empty constructor that does nothing.
         /// </summary>
-        public FakeDPArchive() { }
+        public FakeDPArchive() : base(new DPArchive()) { }
 
         /// <inheritdoc cref="DPArchive.DPArchive(IDPFileInfo)"/>
-        public FakeDPArchive(IDPFileInfo fileInfo) => archive = new DPArchive(fileInfo);
+        public FakeDPArchive(IDPFileInfo fileInfo) : this() => node = new DPArchive(fileInfo);
 
         /// <summary>
         /// Creates a new <see cref="FakeDPArchive"/> with the given path, archive, and parent.
@@ -125,9 +125,9 @@ namespace DAZ_Installer.Core.Tests.Fakes
         /// <param name="path">The path to set.</param>
         /// <param name="archive">The parent archive of this archive, if any.</param>
         /// <param name="parent">The parent of this archive, if any.</param>
-        public FakeDPArchive(string path, IDPArchive? archive = null, IDPFolder? parent = null)
+        public FakeDPArchive(string path, IDPArchive? archive = null, IDPFolder? parent = null) : this()
         {
-            archive = new DPArchive(path, archive, parent);
+            node = new DPArchive(path, archive, parent);
         }
     }
 }

@@ -17,4 +17,5 @@ using System.Runtime.InteropServices;
 
 [assembly: Guid("b8a29ead-4696-4dde-bdd7-0aa54fa23802")]
 [assembly: InternalsVisibleTo("DAZ_Installer.CoreTests")]
+[assembly: InternalsVisibleTo("DAZ_Installer.WindowsTests")]
 [assembly: InternalsVisibleTo("DynamicProxyGenAssembly2")] // For generating mocks with NSubstitute

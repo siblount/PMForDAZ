@@ -1132,7 +1132,7 @@ namespace DAZ_Installer.Core.Tests
             p.ArchiveEnter += (p, e) =>
             {
                 p.CancelProcessing();
-                processorTask.AddAssertion(() => Assert.AreEqual(Path.Combine("T:/", @"DazProductInstaller\"), p.TempLocation));
+                processorTask.AddAssertion(() => Assert.AreEqual(Path.Combine("T:/", @"DazProductInstaller\"), ((DPProcessor) p).TempLocation));
             };
 
             processorTask.RunSynchronously();

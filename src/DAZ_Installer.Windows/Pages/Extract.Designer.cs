@@ -38,6 +38,15 @@ namespace DAZ_Installer.Windows.Pages
             queueListView = new System.Windows.Forms.ListView();
             nameHeader = new System.Windows.Forms.ColumnHeader();
             errorMessageHeader = new System.Windows.Forms.ColumnHeader();
+            queueContextStrip = new System.Windows.Forms.ContextMenuStrip(components);
+            skipArchiveToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            cancelExtractJobToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            cancelStripSeperator = new System.Windows.Forms.ToolStripSeparator();
+            cancelCurrentArchiveToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            cancelCurrentExtractJobToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            viewStripSeperator = new System.Windows.Forms.ToolStripSeparator();
+            viewFileListToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            viewFileHierachyToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             statusIcons = new System.Windows.Forms.ImageList(components);
             archiveFolderIcons = new System.Windows.Forms.ImageList(components);
             fileListPage = new System.Windows.Forms.TabPage();
@@ -58,6 +67,7 @@ namespace DAZ_Installer.Windows.Pages
             splitContainer1 = new System.Windows.Forms.SplitContainer();
             tabControl1.SuspendLayout();
             queuePage.SuspendLayout();
+            queueContextStrip.SuspendLayout();
             fileListPage.SuspendLayout();
             fileListContextStrip.SuspendLayout();
             fileHierachyPage.SuspendLayout();
@@ -95,6 +105,7 @@ namespace DAZ_Installer.Windows.Pages
             // queueListView
             // 
             queueListView.Columns.AddRange(new System.Windows.Forms.ColumnHeader[] { nameHeader, errorMessageHeader });
+            queueListView.ContextMenuStrip = queueContextStrip;
             queueListView.Dock = System.Windows.Forms.DockStyle.Fill;
             queueListView.GroupImageList = statusIcons;
             listViewGroup1.Header = "No extraction jobs processed yet";
@@ -121,6 +132,59 @@ namespace DAZ_Installer.Windows.Pages
             // 
             errorMessageHeader.Text = "Message";
             errorMessageHeader.Width = 160;
+            // 
+            // queueContextStrip
+            // 
+            queueContextStrip.Items.AddRange(new System.Windows.Forms.ToolStripItem[] { skipArchiveToolStripMenuItem, cancelCurrentArchiveToolStripMenuItem, cancelStripSeperator, cancelExtractJobToolStripMenuItem, cancelCurrentExtractJobToolStripMenuItem, viewStripSeperator, viewFileListToolStripMenuItem, viewFileHierachyToolStripMenuItem });
+            queueContextStrip.Name = "queueContextStrip";
+            queueContextStrip.Size = new System.Drawing.Size(211, 170);
+            queueContextStrip.Opening += queueContextStrip_Opening;
+            // 
+            // skipArchiveToolStripMenuItem
+            // 
+            skipArchiveToolStripMenuItem.Name = "skipArchiveToolStripMenuItem";
+            skipArchiveToolStripMenuItem.Size = new System.Drawing.Size(210, 22);
+            skipArchiveToolStripMenuItem.Text = "Skip archive";
+            // 
+            // cancelExtractJobToolStripMenuItem
+            // 
+            cancelExtractJobToolStripMenuItem.Name = "cancelExtractJobToolStripMenuItem";
+            cancelExtractJobToolStripMenuItem.Size = new System.Drawing.Size(210, 22);
+            cancelExtractJobToolStripMenuItem.Text = "Cancel extract job";
+            // 
+            // cancelStripSeperator
+            // 
+            cancelStripSeperator.Name = "cancelStripSeperator";
+            cancelStripSeperator.Size = new System.Drawing.Size(207, 6);
+            // 
+            // cancelCurrentArchiveToolStripMenuItem
+            // 
+            cancelCurrentArchiveToolStripMenuItem.Name = "cancelCurrentArchiveToolStripMenuItem";
+            cancelCurrentArchiveToolStripMenuItem.Size = new System.Drawing.Size(210, 22);
+            cancelCurrentArchiveToolStripMenuItem.Text = "Cancel current archive";
+            // 
+            // cancelCurrentExtractJobToolStripMenuItem
+            // 
+            cancelCurrentExtractJobToolStripMenuItem.Name = "cancelCurrentExtractJobToolStripMenuItem";
+            cancelCurrentExtractJobToolStripMenuItem.Size = new System.Drawing.Size(210, 22);
+            cancelCurrentExtractJobToolStripMenuItem.Text = "Cancel current extract job";
+            // 
+            // viewStripSeperator
+            // 
+            viewStripSeperator.Name = "viewStripSeperator";
+            viewStripSeperator.Size = new System.Drawing.Size(207, 6);
+            // 
+            // viewFileListToolStripMenuItem
+            // 
+            viewFileListToolStripMenuItem.Name = "viewFileListToolStripMenuItem";
+            viewFileListToolStripMenuItem.Size = new System.Drawing.Size(210, 22);
+            viewFileListToolStripMenuItem.Text = "View File List";
+            // 
+            // viewFileHierachyToolStripMenuItem
+            // 
+            viewFileHierachyToolStripMenuItem.Name = "viewFileHierachyToolStripMenuItem";
+            viewFileHierachyToolStripMenuItem.Size = new System.Drawing.Size(210, 22);
+            viewFileHierachyToolStripMenuItem.Text = "View File Hierachy";
             // 
             // statusIcons
             // 
@@ -292,6 +356,7 @@ namespace DAZ_Installer.Windows.Pages
             Size = new System.Drawing.Size(542, 344);
             tabControl1.ResumeLayout(false);
             queuePage.ResumeLayout(false);
+            queueContextStrip.ResumeLayout(false);
             fileListPage.ResumeLayout(false);
             fileListContextStrip.ResumeLayout(false);
             fileHierachyPage.ResumeLayout(false);
@@ -326,5 +391,14 @@ namespace DAZ_Installer.Windows.Pages
         private System.Windows.Forms.ColumnHeader nameHeader;
         private System.Windows.Forms.ColumnHeader errorMessageHeader;
         private System.Windows.Forms.ImageList statusIcons;
+        private System.Windows.Forms.ContextMenuStrip queueContextStrip;
+        private System.Windows.Forms.ToolStripMenuItem skipArchiveToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem cancelCurrentArchiveToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem cancelExtractJobToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem viewFileListToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem viewFileHierachyToolStripMenuItem;
+        private System.Windows.Forms.ToolStripSeparator cancelStripSeperator;
+        private System.Windows.Forms.ToolStripMenuItem cancelCurrentExtractJobToolStripMenuItem;
+        private System.Windows.Forms.ToolStripSeparator viewStripSeperator;
     }
 }

@@ -2,6 +2,7 @@
 {
     public interface IControl
     {
+        bool InvokeRequired { get; }
         /// <inheritdoc cref="Control.BeginInvoke(Action)"/>
         IAsyncResult BeginInvoke(Action action);
         /// <inheritdoc cref="Control.Invoke(Action)"/>

@@ -31,10 +31,18 @@ namespace DAZ_Installer.Core
         /// <summary>
         /// Occurs when the processor has about to begin processing an archive.
         /// </summary>
+        /// <remarks>
+        /// For every ArchiveEnter innovcation, <see cref="ArchiveExit"/> is guaranteed to be called
+        /// for the same archive.
+        /// </remarks>
         public event DPProcessorEventHandler<DPArchiveEnterArgs>? ArchiveEnter;
         /// <summary>
         /// Occurs when the processor has finished processing an archive.
         /// </summary>
+        /// <remarks>
+        /// For every <see cref="ArchiveEnter"/> innovcation, ArchiveExit is guaranteed to be called
+        /// for the same archive.
+        /// </remarks>
         public event DPProcessorEventHandler<DPArchiveExitArgs>? ArchiveExit;
         /// <summary>
         /// Occurs when the extractor has emitted a progress update.

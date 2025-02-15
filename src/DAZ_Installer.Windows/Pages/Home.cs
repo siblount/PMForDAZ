@@ -92,12 +92,7 @@ namespace DAZ_Installer.Windows.Pages
             DialogResult result = openFileDialog1.ShowDialog();
             if (result == DialogResult.OK)
             {
-                listView1.BeginUpdate();
-                foreach (var file in openFileDialog1.FileNames)
-                {
-                    listView1.Items.Add(file);
-                }
-                listView1.EndUpdate();
+                HandleNewFiles(openFileDialog1.FileNames);
                 listView1.BringToFront();
                 controlDragPanel(false);
             }
@@ -123,29 +118,39 @@ namespace DAZ_Installer.Windows.Pages
         {
             if (e.Data is null) return;
             if (e.Data.GetData(DataFormats.FileDrop, false) is not string[] draggedFiles) return;
+
+            HandleNewFiles(draggedFiles);
+            
+            if (listView1.Items.Count != 0)
+                dropBtn.Visible = dropBtn.Enabled = false;
+
+            dropBtn.Text = "Click here to select file(s) or drag them here.";
+        }
+
+        private void HandleNewFiles(IList<string> paths) {
             Queue<string> invalidFiles = new();
             listView1.BeginUpdate();
-            // Check for string if it's valid.
-            foreach (var path in draggedFiles)
-            {
-                var fileInfo = FileSystem.CreateFileInfo(path);
-                if (DPArchive.IsValidSupportedArchive(fileInfo)) listView1.Items.Add(path);
-                else invalidFiles.Enqueue(path);
+            try {
+                foreach (var path in paths) {
+                    var fileInfo = FileSystem.CreateFileInfo(path);
+                    if (DPArchive.IsValidSupportedArchive(fileInfo)) listView1.Items.Add(path);
+                    else invalidFiles.Enqueue(path);
+                }
+            } catch (Exception ex) {
+                MessageBox.Show($"An error occurred that may have prevented fully validating the new files:\n\n{ex.Message}", 
+                    "Error handling new files", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            } finally {
+                listView1.EndUpdate();
             }
-            listView1.EndUpdate();
             if (invalidFiles.Count > 0)
             {
-                var builder = new StringBuilder(50 * draggedFiles.Length);
+                var builder = new StringBuilder(50 * paths.Count);
                 while (invalidFiles.Count != 0)
                     builder.AppendLine(" \u2022 " + invalidFiles.Dequeue());
                 MessageBox.Show("Files that cannot be processed where removed from the list." +
                     "\nRemoved files:\n" + builder.ToString(), "Invalid files removed", MessageBoxButtons.OK,
                     MessageBoxIcon.Warning);
             }
-            if (listView1.Items.Count != 0)
-                dropBtn.Visible = dropBtn.Enabled = false;
-
-            dropBtn.Text = "Click here to select file(s) or drag them here.";
         }
     }
 }
