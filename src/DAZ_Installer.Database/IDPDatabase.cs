@@ -15,6 +15,50 @@ namespace DAZ_Installer.Database
     public interface IDPDatabase
     {
         /// <summary>
+        /// Describes if the current database has been initialized.
+        /// </summary>
+        public bool Initialized { get; }
+        /// <summary>
+        /// Describes if the current database is in a locked state.
+        /// </summary>
+        /// <remarks>
+        /// This is not referring to connection locks. The database may be 'locked' to prevent
+        /// additional requests.
+        /// </remarks>
+        public bool Locked { get; }
+        /// <summary>
+        /// Describes if the current database requires an update in order for it to work properly.
+        /// </summary>
+        public bool UpdateRequired { get; }
+        /// <summary>
+        /// Describes if the current database is in a corrupted state.
+        /// </summary>
+        /// <remarks>
+        /// This could simply mean that there are missing tables, or in the worse case,
+        /// the database is really corrupted (data decay). It may be possible for this to be true
+        /// while <see cref="UpdateRequired"/> is also true, meaning this may be true due to an outdated
+        /// schema.
+        /// </remarks>
+        /// <seealso cref="UpdateRequired"/>
+        public bool Corrupted { get; }
+        /// <summary>
+        /// Describes if the current database file is missing (or not accessible due to permissions).
+        /// </summary>
+        public bool Missing { get; }
+        /// <summary>
+        /// Describes if the database is not in a working state to accept connections and/or queries.
+        /// </summary>
+        /// <remarks>
+        /// Typically, this is true if only <see cref="Initialized"/> is true. Otherwise, false.
+        /// </remarks>
+        public bool DatabaseNotReady { get; }
+
+        /// <summary>
+        /// The path to the database file.
+        /// </summary>
+        public string Path { get; }
+
+        /// <summary>
         /// Search asynchroniously does a database search based on a user search query (ex: "hello world"). If you wish to retrieve 
         /// the values through an event, use a caller ID to identify the event is for that particular class at that
         /// time.

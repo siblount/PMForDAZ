@@ -9,6 +9,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Collections.Immutable;
 using DAZ_Installer.IO;
 using System.IO.Compression;
+using System.Data.Common;
 
 namespace DAZ_Installer.Database
 {
@@ -16,7 +17,7 @@ namespace DAZ_Installer.Database
     /// This class will handle all database operations such as initializing the database, creating tables, rows, deleting, etc.
     /// Database will be run on a different thread aside from the main thread.
     /// </summary>
-    public partial class DPDatabase
+    public partial class DPDatabase : IDPDatabase
     // SELECT * FROM ProductRecords WHERE ID IN(SELECT "Product Record ID" FROM TAGS WHERE Tag IN ("Run"))
     // Internal methods with suffix 'Q' are methods that can be queued to the TaskScheduler. 
     // Some can be executed immediately, such as RefreshDatabase.
@@ -119,6 +120,7 @@ namespace DAZ_Installer.Database
         /// The path of the database to use. Default is: <c>%TEMP%\db.db</c>.
         /// </summary>
         public string Path { get; protected set; } = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "db.db");
+        public IDPConnectionManager ConnectionManager { get; init; }
 
         //private string _expectedDatabasePath => Path.Join(DPSettings.databasePath, "db.db");
 
@@ -144,10 +146,24 @@ namespace DAZ_Installer.Database
         /// </remarks>
         /// <param name="path">The path to an existing or non-existant but valid filepath.</param>
         /// <exception cref="ArgumentException">If <see cref="path"/> does not end with '.db'</exception>
-        public DPDatabase(string path)
+        public DPDatabase(string path) : this(path, null) { }
+
+        /// <summary>
+        /// Initializes a new database - potentially creating the necessary directories and database file if not found.
+        /// </summary>
+        /// <remarks>
+        /// This will throw an exception if the filepath does not end in .db
+        /// </remarks>
+        /// <param name="path">The path to an existing or non-existant but valid filepath.</param>
+        /// <param name="connectionManager">The connection manager to use for creating and opening connections.</param>
+        /// <exception cref="ArgumentException">If <see cref="path"/> does not end with '.db'</exception>
+        public DPDatabase(string path, IDPConnectionManager? connectionManager = null)
         {
-            if (!path.EndsWith(".db")) throw new ArgumentException("Database path must end with .db");
+            if (!path.EndsWith(".db"))
+                throw new ArgumentException("Database path must end with .db");
+
             Path = path;
+            ConnectionManager = connectionManager ?? new DPConnectionManager(this, Initialize);
             Initialize();
         }
 
@@ -159,7 +175,7 @@ namespace DAZ_Installer.Database
         /// to initalize. Otherwise, it will return true indicating it initalized successfully.
         /// </summary>
         /// <returns>True if initalization was successful, otherwise false.</returns>
-        private bool Initialize()
+        internal bool Initialize()
         {
             // If another thread is initalizing, wait for it to initalize or wait 10 secs max.
             try
@@ -181,14 +197,18 @@ namespace DAZ_Installer.Database
                 // TODO: Check if const database version is higher than the one in the database.
                 var opts = new DPConnectionOpts();
                 using var connection = CreateInitialConnection(ref opts);
-                if (!OpenConnection(connection)) return false;
                 if (Flags.HasFlag(DPArchiveFlags.Missing))
                 {
                     // Create the database.
                     CreateDatabase(opts);
                     // Update database info.
-                    InsertDefaultValuesToTable(DatabaseInfoTable, opts);
+                    if (!InsertDefaultValuesToTable(DatabaseInfoTable, opts))
+                    {
+                        Flags |= DPArchiveFlags.Corrupted;
+                        return false;
+                    }
                 }
+                if (!OpenConnection(connection)) return false;
                 // Set the corrupted flag if applicable.
                 CheckCorrupted(opts);
                 // Set the update required flag if applicable.
@@ -201,102 +221,28 @@ namespace DAZ_Installer.Database
             {
                 Logger.Error(ex, "An error occurred while initializing");
                 _initializing = false;
+                if (Flags is DPArchiveFlags.None) 
+                    Flags = DPArchiveFlags.Corrupted;
                 return false;
             }
             _initializing = false;
             return true;
         }
-        /// <summary>
-        /// Creates and returns a connection with the connection string setup.
-        /// </summary>
-        /// <seealso cref="CreateInitialConnection(ref DPConnectionOpts)"/>
-        /// <param name="opts">The options to (potentially) setup. This may update the Connection property. </param>
-        /// <param name="readOnly">Determines if the connection should be a read-only
-        /// connection or not.</param>
-        private void CreateConnection(ref DPConnectionOpts opts, bool readOnly = false)
-        {
-            // If opts.Connection is not null, that connection will still work
-            // since it was fine before. Commands will stop working if the database is locked.
-            if (DatabaseNotReady) return;
-            if (opts.Connection is not null)
-            {
-                // SqliteConnectionOpts side effect will wrap the current connection with a new DPConnection
-                // so that on Dispose, it will not dispose the underlying connection.
-                opts.Connection = null;
-                return;
-            }
-            if (!Initialized && !Initialize()) return;
-            try
-            {
-                SqliteConnection connection = new();
-                SqliteConnectionStringBuilder builder = new();
-                builder.DataSource = System.IO.Path.GetFullPath(Path);
-                builder.Pooling = true;
-                builder.Mode = readOnly ? SqliteOpenMode.ReadOnly : SqliteOpenMode.ReadWrite;
-                connection.ConnectionString = builder.ConnectionString;
 
-                // SqliteConnectionOpts has a side effect with the Connection property.
-                // It will set the connection as expected ONLY when connection is null.
-                // Otherwise, any set operation will be ignore the value and set it to new DPConnection(connection).
-                // Hence, why we use null.
-                opts.Connection = new DPConnection(connection, true);
-            }
-            catch (Exception e)
-            {
-                Logger.Error(e, "Failed to create connection");
-            }
-        }
-        /// <summary>
-        /// Creates and returns a connection with the connection string setup. 
-        /// This will always be a read-write connection. This should only be used during Initialization and for database updates.
-        /// Compared to <see cref="CreateConnection(ref DPConnectionOpts, bool)"/>, this does not check if the database is ready or if
-        /// the database is Initialized. This will also create the database file if it does not exist.
-        /// </summary>
-        /// <returns>An SqliteConnection if successfully created, otherwise null.</returns>
+        /// <inheritdoc cref="IDPConnectionManager.CreateInitialConnection(ref DPConnectionOpts)"/>
         private DPConnection? CreateInitialConnection(ref DPConnectionOpts opts)
         {
-            try
-            {
-                SqliteConnection connection = new();
-                SqliteConnectionStringBuilder builder = new();
-                builder.DataSource = System.IO.Path.GetFullPath(Path);
-                builder.Pooling = true;
-                connection.ConnectionString = builder.ConnectionString;
-                // This will only be set if it's null. Otherwise, it will be new DPConnection(connection).
-                if (opts.Connection is null)
-                    opts.Connection = new DPConnection(connection, true);
-                else opts.Connection = null;
-            }
-            catch (Exception e)
-            {
-                Logger.Error(e, "Failed to create initial connection");
-            }
-            return opts.Connection;
+            return ConnectionManager.CreateInitialConnection(ref opts);
         }
 
-        /// <summary>
-        /// Creates, opens, and returns a SQLite Connection. If connection is null, a
-        /// connection will be created for you. If the connection fails to open or be
-        /// created, it will return null. This will create the database file if it does not exist.
-        /// </summary>
-        /// <param name="opts">The SqliteConnectionOpts to create and/or open the connection.</param>
-        /// <param name="readOnly">Determine if the new connection should be read only.</param>
-        /// <returns>The connection passed if it isn't null and was successfully opened. 
-        /// Otherwise, a new connection is passed if it was successfully opened. Otherwise,
-        /// null is returned.</returns>
+        /// <inheritdoc cref="IDPConnectionManager.CreateAndOpenConnection(ref DPConnectionOpts, bool)"/>
         private DPConnection? CreateAndOpenConnection(ref DPConnectionOpts opts, bool readOnly = false)
         {
-            CreateConnection(ref opts, readOnly);
-            var success = OpenConnection(opts.Connection);
-            return success ? opts.Connection : null;
+            return ConnectionManager.CreateAndOpenConnection(ref opts, readOnly);
         }
 
-        /// <summary>
-        /// Attempts to open the connection and returns whether it was successful or not.
-        /// Any errors including if connection is null will return false.
-        /// </summary>
-        /// <param name="connection">The connection to open.</param>
-        /// <returns>True if the connection opened successfully, otherwise false.</returns>
+        /// <inheritdoc cref="IDPConnectionManager.OpenConnection(IDbConnection?)"/>
+
         private bool OpenConnection([NotNullWhen(true)] IDbConnection? connection)
         {
             if (connection == null) return false;

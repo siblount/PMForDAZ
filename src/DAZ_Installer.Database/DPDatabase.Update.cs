@@ -4,7 +4,7 @@ using System.Diagnostics.CodeAnalysis;
 
 namespace DAZ_Installer.Database
 {
-    public partial class DPDatabase : IDPDatabase
+    public partial class DPDatabase
     {
         // This section is set up as an interface for other classes. You should use these methods
         // to get data. These methods can callback if a callback is specified and emit an event.

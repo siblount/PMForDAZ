@@ -1,6 +1,6 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
+    <TargetFramework>net9.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <Platforms>AnyCPU;x64</Platforms>
@@ -11,13 +11,15 @@
     <PackageReference Include="Serilog.Expressions" />
     <PackageReference Include="Serilog.Sinks.Debug" />
     <PackageReference Include="Serilog.Sinks.File" />
+    <PackageReference Include="System.Data.SqlClient" />
     <PackageReference Include="System.Data.SQLite" />
+    <PackageReference Include="System.Drawing.Common" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\DAZ_Installer.Core\DAZ_Installer.Core.csproj" />
   </ItemGroup>
 	<ItemGroup>
-		<InternalsVisibleTo Include="$(AssemblyName)Tests"/>
+		<InternalsVisibleTo Include="$(AssemblyName)Tests" />
 	</ItemGroup>
   <Target Name="PostBuild" AfterTargets="PostBuildEvent">
     <Exec Command="copy &quot;$(ProjectDir)libs\fts5.dll&quot; &quot;$(OutDir)&quot;" />

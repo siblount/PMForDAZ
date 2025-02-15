@@ -1,5 +1,4 @@
-﻿using DAZ_Installer.Database;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
+﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
 using MSTestLogger = Microsoft.VisualStudio.TestTools.UnitTesting.Logging.Logger;
 using System.Collections.Concurrent;
 using Serilog;
@@ -8,6 +7,10 @@ using Microsoft.Data.Sqlite;
 using System.CodeDom.Compiler;
 using System.IO.Compression;
 using DAZ_Installer.Common;
+using Moq;
+using System.Data.Common;
+using Moq.Protected;
+using DAZ_Installer.DatabaseTests.Helpers;
 
 // NOTE: This is an Integration Test! This does not use mocked file system, mocked database, etc.
 namespace DAZ_Installer.Database.Tests
@@ -16,6 +19,8 @@ namespace DAZ_Installer.Database.Tests
     public class DPDatabaseTests
     {
         public static DPDatabase Database { get; set; } = null!;
+        public static Mock<MockConnectionManager> MockConnectionManager { get; set; } = null!;
+        public static MockConnectionManager ConnectionManager => MockConnectionManager.Object;
         public static readonly string DatabaseDir = Path.Combine(Path.GetTempPath(), "DAZ_installer.DatabaseTests");
         public static string DatabasePath = Path.Combine(DatabaseDir, "database.db");
         [ClassInitialize]
@@ -30,6 +35,7 @@ namespace DAZ_Installer.Database.Tests
             if (File.Exists(DatabasePath))
                 File.Delete(DatabasePath);
         }
+
         [ClassCleanup]
         public static void ClassCleanup()
         {
@@ -43,14 +49,6 @@ namespace DAZ_Installer.Database.Tests
             {
                 Log.Error("Failed to clean up test database (Class Cleanup).", ex);
             }
-        }
-
-        [TestInitialize]
-        public void TestInitialize()
-        {
-            Database = new DPDatabase(DatabasePath);
-            GC.Collect();
-            GC.WaitForPendingFinalizers();
         }
 
         [TestCleanup]
@@ -69,6 +67,75 @@ namespace DAZ_Installer.Database.Tests
             {
                 Log.Error("Failed to delete test database.", ex);
             }
+        }
+
+        [TestInitialize]
+        public void TestInitialize()
+        {
+            Database = new DPDatabase(DatabasePath);
+            MockConnectionManager = new Mock<MockConnectionManager>() { CallBase = true };
+            Assert.AreEqual(DPArchiveFlags.Initialized, Database.Flags);
+        }
+
+        [TestMethod]
+        public void DPDatabaseTest()
+        {
+            Database = new DPDatabase(DatabasePath);
+            Assert.IsInstanceOfType(Database.ConnectionManager, typeof(DPConnectionManager));
+            Assert.AreEqual(DPArchiveFlags.Initialized, Database.Flags);
+            HashSet<string> expected = [DPDatabase.ProductFTS5Table, DPDatabase.ProductTable, DPDatabase.FilesTable, DPDatabase.DestinationTable, DPDatabase.DatabaseInfoTable];
+            HashSet<string> got = [.. Database.TableNames];
+            Assert.IsTrue(expected.IsProperSubsetOf(got));
+        }
+
+        [TestMethod]
+        public void DPDatabaseTest_DatabaseDoesntExist()
+        {
+            TestCleanup();
+
+            Database = new DPDatabase(DatabasePath);
+            Assert.AreEqual(DPArchiveFlags.Initialized, Database.Flags);
+            HashSet<string> expected = [DPDatabase.ProductFTS5Table, DPDatabase.ProductTable, DPDatabase.FilesTable, DPDatabase.DestinationTable, DPDatabase.DatabaseInfoTable];
+            HashSet<string> got = [.. Database.TableNames];
+            Assert.IsTrue(expected.IsProperSubsetOf(got));
+        }
+
+        [TestMethod]
+        public void DPDatabaseTest_FailsToInsertDefaultRows()
+        {
+            TestCleanup();
+            var mockConnection = new Mock<TestableDbConnection>();
+            var mockCommand = new Mock<DbCommand>();
+            mockConnection.SetupGet(x => x.State).Returns(ConnectionState.Open);
+            mockConnection.Setup(x => x.BeginDbTransactionPublic(It.IsAny<IsolationLevel>())).Returns(Mock.Of<DbTransaction>());
+            mockConnection.Setup(x => x.CreateDbCommandPublic()).Returns(mockCommand.Object);
+            mockCommand.SetupSet(x => x.CommandText = It.IsAny<string>()).Callback((string x) =>
+            {
+                if (x.Contains($"INSERT INTO {DPDatabase.DatabaseInfoTable} DEFAULT VALUES;"))
+                    throw new Exception("Test");
+            });
+            var dpConnection = new DPConnection(mockConnection.Object, true);
+            ConnectionManager.ConnectionToReturn = dpConnection;
+            Database = new DPDatabase(DatabasePath, ConnectionManager);
+
+            Assert.AreEqual(DPArchiveFlags.Corrupted, Database.Flags);
+        }
+
+        [TestMethod]
+        public void DPDatabaseTest_CreateDatabaseFail()
+        {
+            TestCleanup();
+            var mockConnection = new Mock<TestableDbConnection>();
+            var mockCommand = new Mock<DbCommand>();
+            mockConnection.SetupGet(x => x.State).Returns(ConnectionState.Open);
+            mockConnection.Setup(x => x.BeginDbTransactionPublic(It.IsAny<IsolationLevel>())).Returns(Mock.Of<DbTransaction>());
+            mockConnection.Setup(x => x.CreateDbCommandPublic()).Returns(mockCommand.Object);
+            mockCommand.SetupSet(x => x.CommandText = It.IsAny<string>()).Throws<Exception>();
+            var dpConnection = new DPConnection(mockConnection.Object, true);
+            ConnectionManager.ConnectionToReturn = dpConnection;
+            Database = new DPDatabase(DatabasePath, ConnectionManager);
+
+            Assert.AreEqual(DPArchiveFlags.Corrupted, Database.Flags);
         }
 
         [TestMethod]
@@ -804,7 +871,7 @@ namespace DAZ_Installer.Database.Tests
                 expected.Add(record.ToLite());
                 lastTask = Database.AddNewRecordEntry(record);
             }
-            expected = expected.Take(new Range(5, 10)).ToList();
+            expected = expected.Take(new System.Range(5, 10)).ToList();
             lastTask!.Wait();
 
             List<DPProductRecordLite>? callbackResults = null;
@@ -866,7 +933,7 @@ namespace DAZ_Installer.Database.Tests
                 lastTask = Database.AddNewRecordEntry(record);
             }
             lastTask!.Wait();
-            expected = expected.Take(new Range(5, 10)).ToList();
+            expected = expected.Take(new System.Range(5, 10)).ToList();
             List<DPProductRecordLite>? callbackResults = null;
             var result = Database.GetProductRecordsQ(DPSortMethod.Date, 2, 5, 0, r => callbackResults = r).Result;
 
