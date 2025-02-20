@@ -212,8 +212,9 @@ namespace DAZ_Installer.Windows.Pages
         /// <inheritdoc/>
         public void OnProcessorStateUpdate(IDPProcessor processor)
         {
-            if (InvokeRequired) BeginInvoke(() => HandleProcessorUpdate(processor, processor.CurrentArchive));
-            else HandleProcessorUpdate(processor, processor.CurrentArchive);
+            var arc = processor.CurrentArchive;
+            if (InvokeRequired) BeginInvoke(() => HandleProcessorUpdate(processor, arc));
+            else HandleProcessorUpdate(processor, arc);
         }
 
         private void HandleProcessorUpdate(IDPProcessor processor, IDPArchive? archive)
