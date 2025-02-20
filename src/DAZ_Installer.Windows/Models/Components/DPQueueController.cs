@@ -71,8 +71,7 @@ namespace DAZ_Installer.Windows.DP
                 {
                     var normalizedFilePath = PathHelper.NormalizePath(file);
                     var visibleArchiveName = PathHelper.GetFileName(normalizedFilePath);
-                    ListViewItem item = queueListView.Items.Add(string.Empty);
-                    item.SubItems.Add(visibleArchiveName);
+                    ListViewItem item = queueListView.Items.Add(visibleArchiveName);
                     var queueItem = new QueueItem(item, job, normalizedFilePath);
                     associatedQueueItems.Add(normalizedFilePath, queueItem);
                     item.Tag = queueItem;
@@ -172,7 +171,6 @@ namespace DAZ_Installer.Windows.DP
         {
             // Get the selected items and find their associated jobs and cancel them.
             queueListView.SelectedItems.OfType<ListViewItem>().Select(item => item.Tag).OfType<QueueItem>().Select(queueItem => queueItem.associatedJob).Distinct().ToList().ForEach(job => job.CancelJob());
-            throw new NotImplementedException();
         }
 
         /// <inheritdoc/>
@@ -292,8 +290,7 @@ namespace DAZ_Installer.Windows.DP
                 queueListView.BeginUpdate();
                 var visibleArchiveName = GetVisibleArchiveName(info);
 
-                var listItem = queueListView.Items.Add("");
-                listItem.SubItems.Add(visibleArchiveName);
+                var listItem = queueListView.Items.Add(visibleArchiveName);
 
                 item = new QueueItem(listItem, caller, info.FilePath);
                 listItem.Tag = item;
@@ -388,7 +385,7 @@ namespace DAZ_Installer.Windows.DP
             {
                 DPArchiveStatus.Failed => statusIcons.Images.IndexOfKey("error"),
                 DPArchiveStatus.CompletedWithIssues => statusIcons.Images.IndexOfKey("warning"),
-                _ => 0
+                _ => -1
             };
         }
 
@@ -398,7 +395,5 @@ namespace DAZ_Installer.Windows.DP
                         or DPArchiveStatus.Failed
                         or DPArchiveStatus.Cancelled 
                         or DPArchiveStatus.CancellationRequested;
-
-
     }
 }
