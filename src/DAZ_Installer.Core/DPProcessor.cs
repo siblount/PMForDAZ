@@ -176,33 +176,38 @@ namespace DAZ_Installer.Core
         /// References <paramref name="cancel"/> to determine whether <see cref="DPProcessor"/> should
         /// cancel operations or not.
         /// </summary>
-        private void EmitOnArchiveEnter()
+        private async Task EmitOnArchiveEnter()
         {
             Logger.Information("Entering archive {arc}", CurrentArchive!.FileName);
             if (ArchiveEnter is null) return;
             var args = new DPArchiveEnterArgs(CurrentArchive);
-            ArchiveEnter.Invoke(this, args);
+            await ArchiveEnter.Invoke(this, args);
         }
         /// <summary>
         /// Emits the <see cref="ArchiveExit"/> event and passes the arguments required. <para/>
         /// </summary>
         /// <param name="successfullyProcessed">Tell whether the archive had been successfully processed.</param>
-        private void EmitOnArchiveExit(bool successfullyProcessed, DPExtractionReport? report)
+        private async Task EmitOnArchiveExit(bool successfullyProcessed, DPExtractionReport? report)
         {
             if (successfullyProcessed) Logger.Information("Exiting archive {0} with success", CurrentArchive!.FileName);
             else Logger.Warning("Exiting archive {0} with failures", CurrentArchive!.FileName);
             Logger.Debug("Archive exit report: {@0}", report);
-            ArchiveExit?.Invoke(this, new DPArchiveExitArgs(CurrentArchive, report, successfullyProcessed));
+            if (ArchiveExit is null) return;
+            await ArchiveExit.Invoke(this, new DPArchiveExitArgs(CurrentArchive, report, successfullyProcessed));
         }
 
-        private void EmitOnProcessError(DPProcessorErrorArgs args)
+        private async Task EmitOnProcessError(DPProcessorErrorArgs args)
         {
             Logger.Error(args.Ex, args.Explaination);
-            if (ProcessError == null) return;
-            ProcessError.Invoke(this, args);
+            if (ProcessError is null) return;
+            await ProcessError.Invoke(this, args);
         }
 
-        private void EmitOnExtractionProgress(IDPArchive _, DPExtractProgressArgs args) => ExtractProgress?.Invoke(this, args);
+        private async Task EmitOnExtractionProgress(IDPArchive _, DPExtractProgressArgs args)
+        {
+            if (ExtractProgress is null) return;
+            await ExtractProgress.Invoke(this, args);
+        }
 
         private void processArchiveInternal([NotNull] IDPArchive archiveFile, DPProcessSettings settings)
         {
@@ -219,7 +224,7 @@ namespace DAZ_Installer.Core
                 DPExtractionReport? report = null;
                 PopParentArchive(parentArchives);
                 ArchiveCancellationSource = new();
-                EmitOnArchiveEnter();
+                EmitOnArchiveEnter().Wait();
                 try
                 {
                     if (ArchiveCancelled) { HandleEarlyExit(); continue; }
@@ -247,14 +252,14 @@ namespace DAZ_Installer.Core
                     }
                     catch (Exception e)
                     {
-                        EmitOnProcessError(new DPProcessorErrorArgs(e, "Unable to create temp directory.") { Continuable = true });
+                        EmitOnProcessError(new DPProcessorErrorArgs(e, "Unable to create temp directory.") { Continuable = true }).Wait();
                     }
 
                     State = ProcessorState.Peeking;
                     if (ArchiveCancelled) { HandleEarlyExit(); continue; }
                     if (arc.Extractor is null)
                     {
-                        EmitOnProcessError(new DPProcessorErrorArgs(null, "Unable to process archive. Potentially not an archive or archive is corrupted."));
+                        EmitOnProcessError(new DPProcessorErrorArgs(null, "Unable to process archive. Potentially not an archive or archive is corrupted.")).Wait();
                         HandleEarlyExit();
                         continue;
                     }
@@ -299,12 +304,12 @@ namespace DAZ_Installer.Core
                     }
 
                     // Create record.
-                    parentArchives.Push(new Tuple<IDPArchive, DPExtractionReport>(arc, report)); // TODO: Use method to determine whether an archive was successfully processed.
+                    parentArchives.Push(new Tuple<IDPArchive, DPExtractionReport>(arc, report!)); // TODO: Use method to determine whether an archive was successfully processed.
                 }
                 catch (Exception ex)
                 {
                     handleError(ex, "An unexpected error occured while processing archive.");
-                    EmitOnArchiveExit(false, report);
+                    EmitOnArchiveExit(false, report).Wait();
                 }
             }
 
@@ -388,11 +393,11 @@ namespace DAZ_Installer.Core
                 ClearTemp();
                 if (TempHasEnoughSpace) break;
                 Logger.Warning("Temp location does not have enough space after clearing temp, requesting for an action");
-                if (ProcessError == null || ProcessError.GetInvocationList().Length == 0)
+                if (ProcessError is null)
                     throw new InvalidOperationException("Temp location does not have enough space and there is no event handler for ProcessError");
                 // Requires user help.
                 var args = new DPProcessorErrorArgs(null, "Temp location does not have enough space") { Continuable = true };
-                EmitOnProcessError(args);
+                EmitOnProcessError(args).Wait();
             }
             if (CurrentArchive!.Extractor != null) CurrentArchive.Extractor.ExtractProgress += EmitOnExtractionProgress;
             else Logger.Warning("Extractor is null, cannot report extraction progress");
@@ -404,7 +409,7 @@ namespace DAZ_Installer.Core
             State = ProcessorState.Idle;
             if (CurrentArchive is { Extractor: not null })
                 CurrentArchive.Extractor.ExtractProgress -= EmitOnExtractionProgress;
-            EmitOnArchiveExit(false, null);
+            EmitOnArchiveExit(false, null).Wait();
         }
 
         private bool HandleOnDestinationNotEnoughSpace()
@@ -415,7 +420,7 @@ namespace DAZ_Installer.Core
                 if (ProcessError == null || ProcessError.GetInvocationList().Length == 0)
                     throw new InvalidOperationException("Destination does not have enough space and there is no event handler for ProcessError");
                 var args = new DPProcessorErrorArgs(null, "Destination does not have enough space.") { Continuable = true };
-                EmitOnProcessError(args);
+                EmitOnProcessError(args).Wait();
             }
             return !ArchiveCancelled || DestinationHasEnoughSpace;
         }
@@ -438,7 +443,7 @@ namespace DAZ_Installer.Core
 
         private void handleError(Exception ex, string errorMessage)
         {
-            EmitOnProcessError(new DPProcessorErrorArgs(ex, errorMessage));
+            EmitOnProcessError(new DPProcessorErrorArgs(ex, errorMessage)).Wait();
             HandleEarlyExit();
             return;
         }
@@ -460,7 +465,7 @@ namespace DAZ_Installer.Core
             }
             catch (Exception ex)
             {
-                EmitOnProcessError(new DPProcessorErrorArgs(ex, "Failed to read metadata"));
+                EmitOnProcessError(new DPProcessorErrorArgs(ex, "Failed to read metadata")).Wait();
             }
         }
 
@@ -480,7 +485,7 @@ namespace DAZ_Installer.Core
             }
             catch (Exception ex)
             {
-                EmitOnProcessError(new DPProcessorErrorArgs(ex, "Failed to cancel processing"));
+                EmitOnProcessError(new DPProcessorErrorArgs(ex, "Failed to cancel processing")).Wait();
             }
         }
         /// <summary>
@@ -493,7 +498,7 @@ namespace DAZ_Installer.Core
                 ArchiveCancellationSource.Cancel();
             } catch (Exception ex)
             {
-                EmitOnProcessError(new DPProcessorErrorArgs(ex, "Failed to cancel current archive"));
+                EmitOnProcessError(new DPProcessorErrorArgs(ex, "Failed to cancel current archive")).Wait();
             }
         }
         private void PopParentArchive(Stack<Tuple<IDPArchive, DPExtractionReport>> s)
@@ -503,7 +508,7 @@ namespace DAZ_Installer.Core
                 var temp = CurrentArchive;
                 var report = parentArc.Item2;
                 CurrentArchive = parentArc.Item1;
-                try { EmitOnArchiveExit(report.SuccessPercentage >= 0.1f, report); } catch { }
+                try { EmitOnArchiveExit(report.SuccessPercentage >= 0.1f, report).Wait(); } catch { }
                 CurrentArchive = temp;
             }
         }

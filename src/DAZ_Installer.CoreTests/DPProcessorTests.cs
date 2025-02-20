@@ -387,7 +387,7 @@ namespace DAZ_Installer.Core.Tests
                 DPProcessorTestHelpers.AssertState(p, arc, expectedProcessorStates, processorTask),
                 DPProcessorTestHelpers.AssertAnyArchiveExit(p, processorTask, false, null, arc),
             };
-            p.ArchiveEnter += (_, __) =>
+            p.ArchiveEnter += async (_, __) =>
             {
                 p.CancelProcessing();
                 processorTask.AddAssertion(() => Assert.IsTrue(p.ArchiveCancellationSource.IsCancellationRequested, "Archive cancellation source reports not cancelled."));
@@ -618,7 +618,7 @@ namespace DAZ_Installer.Core.Tests
                 DPProcessorTestHelpers.AssertFinished(p, processorTask),
             };
 
-            p.ProcessError += (_, __) => p.CancelProcessing();
+            p.ProcessError += async (_, __) => p.CancelProcessing();
 
             processorTask.RunSynchronously();
             await Task.WhenAll(assertTasks);
@@ -740,7 +740,7 @@ namespace DAZ_Installer.Core.Tests
                 DPProcessorTestHelpers.AssertFinished(p, processorTask),
             };
 
-            p.ProcessError += (_, __) => processorMocks.FakeDriveInfo.AvailableFreeSpace = long.MaxValue;
+            p.ProcessError += async (_, __) => processorMocks.FakeDriveInfo.AvailableFreeSpace = long.MaxValue;
 
             processorTask.RunSynchronously();
             await Task.WhenAll(assertTasks);
@@ -793,7 +793,7 @@ namespace DAZ_Installer.Core.Tests
                 DPProcessorTestHelpers.AssertFinished(p, processorTask),
             };
 
-            p.ProcessError += (_, __) => p.CancelProcessing();
+            p.ProcessError += async (_, __) => p.CancelProcessing();
 
             processorTask.RunSynchronously();
             await Task.WhenAll(assertTasks);
@@ -855,7 +855,7 @@ namespace DAZ_Installer.Core.Tests
                 DPProcessorTestHelpers.AssertFinished(p, processorTask),
             };
 
-            p.ProcessError += (_, __) => processorMocks.MockFakeDriveInfo.SetupSequence(x => x.AvailableFreeSpace).Returns(9999999999999);
+            p.ProcessError += async (_, __) => processorMocks.MockFakeDriveInfo.SetupSequence(x => x.AvailableFreeSpace).Returns(9999999999999);
 
             processorTask.RunSynchronously();
             await Task.WhenAll(assertTasks);
@@ -1129,7 +1129,7 @@ namespace DAZ_Installer.Core.Tests
             var p = DPProcessorTestHelpers.SetupProcessor(po, out var processorMocks);
 
             var processorTask = new DPProcessorTestHelpers.AssertableTask(() => p.ProcessArchive(mocks.FakeDPFileInfo.Path, settings));
-            p.ArchiveEnter += (p, e) =>
+            p.ArchiveEnter += async (p, e) =>
             {
                 p.CancelProcessing();
                 processorTask.AddAssertion(() => Assert.AreEqual(Path.Combine("T:/", @"DazProductInstaller\"), ((DPProcessor) p).TempLocation));

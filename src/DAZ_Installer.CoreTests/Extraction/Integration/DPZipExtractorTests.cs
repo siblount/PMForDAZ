@@ -163,7 +163,7 @@ namespace DAZ_Installer.Core.Extraction.Integration.Tests
             var e = new DPZipExtractor(Log.Logger, new ZipArchiveWrapperFactory()) { CancellationToken = cts.Token };
             var arc = new DPArchive(fi) { Extractor = e };
             arc.PeekContents();
-            e.ExtractProgress += (_, _) => cts.Cancel();
+            e.ExtractProgress += async (_, __) => cts.Cancel();
             var settings = new DPExtractSettings(ExtractPath, arc.Contents.Values);
             var expectedReport = new DPExtractionReport() { ExtractedFiles = new(1) { arc.Contents.First().Value }, ErroredFiles = new(0), Settings = settings };
             DPArchiveTestHelpers.SetupTargetPaths(arc, ExtractPath);

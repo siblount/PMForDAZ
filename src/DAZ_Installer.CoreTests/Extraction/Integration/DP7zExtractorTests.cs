@@ -216,7 +216,7 @@ namespace DAZ_Installer.Core.Extraction.Integration.Tests
 
             // Testing Extract() here
             bool encryptedFilesShowed = false;
-            e.ArchiveErrored += (a, b) =>
+            e.ArchiveErrored += async (a, b) =>
             {
                 Assert.IsFalse(encryptedFilesShowed, "Encrypted files event called more than once.");
                 if (b.Explaination == DPArchiveErrorArgs.EncryptedFilesExplanation) encryptedFilesShowed = true;
@@ -428,7 +428,7 @@ namespace DAZ_Installer.Core.Extraction.Integration.Tests
             var expectedReport = new DPExtractionReport() { ExtractedFiles = new(1) { arc.Contents.First().Value }, ErroredFiles = new(0), Settings = settings };
 
             DPArchiveTestHelpers.SetupTargetPaths(arc, ExtractPath);
-            e.MoveProgress += (_, __) => cts.Cancel(true);
+            e.MoveProgress += async (_, __) => cts.Cancel(true);
 
             // Testing Extract() here:
             var report = RunAndAssertExtractEvents(e, settings);

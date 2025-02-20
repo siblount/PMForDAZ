@@ -426,7 +426,7 @@ namespace DAZ_Installer.Core.Extraction.Tests
 
             // Testing Peek() here:
             DPArchiveTestHelpers.RunAndAssertPeekEvents(e, arc);
-            e.ArchiveErrored += (s, e) => Assert.AreEqual("Can not open encrypted archive. Wrong password? You silly goose.", e.Explaination);
+            e.ArchiveErrored += async (s, e) => Assert.AreEqual("Can not open encrypted archive. Wrong password? You silly goose.", e.Explaination);
         }
         [TestMethod]
         public void PeekTest_StartProcessFails()
@@ -437,7 +437,7 @@ namespace DAZ_Installer.Core.Extraction.Tests
 
             // Testing Peek() here:
             DPArchiveTestHelpers.RunAndAssertPeekEvents(e, arc);
-            e.ArchiveErrored += (s, e) => Assert.AreEqual("Failed to start 7z process", e.Explaination);
+            e.ArchiveErrored += async (s, e) => Assert.AreEqual("Failed to start 7z process", e.Explaination);
         }
 
         [TestMethod]
@@ -452,7 +452,7 @@ namespace DAZ_Installer.Core.Extraction.Tests
 
             // Testing Peek() here:
             DPArchiveTestHelpers.RunAndAssertPeekEvents(e, arc);
-            e.ArchiveErrored += (s, e) => Assert.AreEqual(DPArchiveErrorArgs.EncryptedFilesExplanation, e.Explaination);
+            e.ArchiveErrored += async (s, e) => Assert.AreEqual(DPArchiveErrorArgs.EncryptedFilesExplanation, e.Explaination);
         }
         [TestMethod]
         public void ExtractTest_CancelledBeforeOp()
@@ -498,7 +498,11 @@ namespace DAZ_Installer.Core.Extraction.Tests
 
             CancellationTokenSource cts = new();
             var settings = new DPExtractSettings("Z:/temp", arc.Contents.Values, archive: arc) { CancelToken = cts.Token };
-            e.MoveProgress += (_, __) => cts.Cancel(true);
+            e.MoveProgress += (_, __) =>
+            {
+                cts.Cancel(true);
+                return Task.CompletedTask;
+            };
             var expectedReport = new DPExtractionReport() { ExtractedFiles = new(1) { arc.Contents.First().Value }, ErroredFiles = new(0), Settings = settings };
             DPArchiveTestHelpers.SetupTargetPaths(arc, "Z:/abc/");
 

@@ -62,10 +62,10 @@ namespace DAZ_Installer.Core.RealData.Tests
                     CancellationTokenSource = TestContext.CancellationTokenSource,
                     FileSystem = FileSystem
                 };
-                p.ArchiveEnter += (_, __) => p.CancellationTokenSource = TestContext.CancellationTokenSource;
+                p.ArchiveEnter += async (_, __) => p.CancellationTokenSource = TestContext.CancellationTokenSource;
                 var exitArgs = new List<DPArchiveExitArgs>();
-                p.ArchiveExit += (_, a) => exitArgs.Add(a);
-                p.ArchiveExit += (_, a) =>
+                p.ArchiveExit += async (_, a) => exitArgs.Add(a);
+                p.ArchiveExit += async (_, a) =>
                 {
                     if (!a.Processed) p.CancelProcessing();
                     Assert.Fail($"Archive processing for {a.Archive.FileName} failed");

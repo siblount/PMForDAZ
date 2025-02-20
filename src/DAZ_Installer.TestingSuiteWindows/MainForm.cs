@@ -588,8 +588,8 @@ namespace DAZ_Installer.TestingSuiteWindows
             var processor = currentProcessor = new DPProcessor();
             try
             {
-                processor.ArchiveEnter += (_, a) => arcs.Add(a.Archive);
-                processor.ArchiveExit += (_, a) =>
+                processor.ArchiveEnter += async (_, a) => arcs.Add(a.Archive);
+                processor.ArchiveExit += async (_, a) =>
                 {
                     if (a.Processed) records.Add(a.Report!);
                 };

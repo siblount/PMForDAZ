@@ -368,7 +368,7 @@ namespace DAZ_Installer.Core.Tests
                     processor.StateChanged -= stopOnEnd;
                 }
             }
-            processor.ArchiveExit += (_, e) =>
+            processor.ArchiveExit += async (_, e) =>
             {
                 if (e.Archive == archive)
                 {
@@ -386,7 +386,7 @@ namespace DAZ_Installer.Core.Tests
         public static async Task AssertAnyState(DPProcessor processor, IDPArchive archive, ProcessorState states, AssertableTask processorTask)
         {
             var statesList = new List<ProcessorState>();
-            processor.ArchiveEnter += (_, e) =>
+            processor.ArchiveEnter += async (_, e) =>
             {
                 if (e.Archive != archive) return;
                 statesList.Add(states);
@@ -410,7 +410,7 @@ namespace DAZ_Installer.Core.Tests
         {
             var expectedArchivesList = expectedArchives.ToList();
             var called = false;
-            processor.ArchiveEnter += (p, e) =>
+            processor.ArchiveEnter += async (p, e) =>
             {
                 // processorTask.AddAssertion(() => Assert.Fail("because i can"));
                 processorTask.AddAssertion(() => Assert.AreEqual(processor, p));
@@ -430,7 +430,7 @@ namespace DAZ_Installer.Core.Tests
         public static async Task AssertAnyArchiveExit(DPProcessor processor, AssertableTask processorTask, bool success, DPExtractionReport? report, params IDPArchive[] archives)
         {
             var exitEvents = new List<DPArchiveExitArgs>();
-            void func(IDPProcessor p, DPArchiveExitArgs e)
+            async Task func(IDPProcessor p, DPArchiveExitArgs e)
             {
                 exitEvents.Add(e);
             }
@@ -460,7 +460,7 @@ namespace DAZ_Installer.Core.Tests
 
         public static async Task AssertExtractionProgress(DPProcessor processor, AssertableTask processorTask, DPExtractProgressArgs expected) {
             var called = false;
-            processor.ExtractProgress += (p, e) =>
+            processor.ExtractProgress += async (p, e) =>
             {
                 processorTask.AddAssertion(() => Assert.AreEqual(processor, p));
                 processorTask.AddAssertion(() => Assert.AreEqual(expected.ExtractionPercentage, e.ExtractionPercentage));
@@ -477,7 +477,7 @@ namespace DAZ_Installer.Core.Tests
         public static async Task AssertAnyExtractionProgress(DPProcessor processor, AssertableTask processorTask, params DPExtractProgressArgs[] expectedArgs)
         {
             var progressEvents = new List<DPExtractProgressArgs>();
-            void func(IDPProcessor p, DPExtractProgressArgs e)
+            async Task func(IDPProcessor p, DPExtractProgressArgs e)
             {
                 progressEvents.Add(e);
             }
@@ -504,13 +504,13 @@ namespace DAZ_Installer.Core.Tests
         public static async Task AssertArchiveProcessOrder(DPProcessor processor, AssertableTask processorTask, Queue<IDPArchive> expectedArchiveOrder)
         {
             var expectedArchiveOrderForExiting = new Queue<IDPArchive>(expectedArchiveOrder);
-            void func(IDPProcessor p, DPArchiveEnterArgs e)
+            async Task func(IDPProcessor p, DPArchiveEnterArgs e)
             {
                 if (expectedArchiveOrder.Count == 0) return;
                 var expected = expectedArchiveOrder.Dequeue();
                 processorTask.AddAssertion(() => Assert.AreEqual(expected, e.Archive, $"Expected {expected.Path}, got {e.Archive.Path}"));
             }
-            void func2(IDPProcessor p, DPArchiveExitArgs e)
+            async Task func2(IDPProcessor p, DPArchiveExitArgs e)
             {
                 if (expectedArchiveOrderForExiting.Count == 0) return;
                 var expected = expectedArchiveOrderForExiting.Dequeue();
@@ -527,7 +527,7 @@ namespace DAZ_Installer.Core.Tests
         public static async Task AssertProcessorError(DPProcessor processor, AssertableTask processorTask, DPProcessorErrorArgs expected)
         {
             var called = false;
-            processor.ProcessError += (p, e) =>
+            processor.ProcessError += async (p, e) =>
             {
                 processorTask.AddAssertion(() => Assert.AreEqual(processor, p));
                 processorTask.AddAssertion(() => Assert.AreEqual(expected.Explaination, e.Explaination));
@@ -568,7 +568,7 @@ namespace DAZ_Installer.Core.Tests
             //        Assert.Fail($"No matching ExtractProgress event found. Expected one of: [{string.Join(", ", expectedArgs.Select(a => $"{{Archive: {a.Archive.FileName}, File: {a.File?.Path}, Percentage: {a.ExtractionPercentage}}}"))}]");
             //});
             var processorErrorEvents = new List<DPProcessorErrorArgs>(2);
-            void func(IDPProcessor p, DPProcessorErrorArgs e)
+            async Task func(IDPProcessor p, DPProcessorErrorArgs e)
             {
                 processorErrorEvents.Add(e);
             }

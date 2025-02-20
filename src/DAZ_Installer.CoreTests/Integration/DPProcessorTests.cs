@@ -66,7 +66,7 @@ namespace DAZ_Installer.Core.Integration.Tests
         internal static async Task AssertArchiveExit(DPProcessor p, DPArchiveExitArgs expected, DPProcessorTestHelpers.AssertableTask task)
         {
             var called = false;
-            p.ArchiveExit += (_, args) => {
+            p.ArchiveExit += async (_, args) => {
                 task.AddAssertion(() => Assert.IsNotNull(args.Archive.FileInfo, "Archive FileInfo is null"));
                 task.AddAssertion(() => Assert.AreEqual(expected.Archive.FileName, args.Archive.FileName, "Archive filename mismatch"));
                 task.AddAssertion(() => Assert.AreEqual(expected.Processed, args.Processed, "Processed mismatch"));
@@ -118,7 +118,7 @@ namespace DAZ_Installer.Core.Integration.Tests
         internal static async Task AssertExtractionProgress(DPProcessor p, string arcFileName, DPProcessorTestHelpers.AssertableTask task) {
             var lastNum = 0;
             var called = false;
-            p.ExtractProgress += (_, args) => {
+            p.ExtractProgress += async (_, args) => {
                 if (args.Archive.FileName != arcFileName) return;
                 called = true;
                 if (args.File is null) Log.Warning("ExtractionProgress event called with null file");
@@ -151,7 +151,7 @@ namespace DAZ_Installer.Core.Integration.Tests
             var expectedReport = DPProcessorTestHelpers.CreateExtractionReport(settings, Enumerable.Empty<string>(), expectedFiles);
             var processorTask = new DPProcessorTestHelpers.AssertableTask(() => p.ProcessArchive(ArchivePath, DefaultProcessSettings));
 
-            p.ArchiveEnter += (gp, args) => {
+            p.ArchiveEnter += async (gp, args) => {
                 processorTask.AddAssertion(() => Assert.AreEqual(ArchivePath, args.Archive.FileInfo.Path, "Archive FileInfo Path mismatch")); 
                 processorTask.AddAssertion(() => Assert.AreEqual(p, gp));
             };

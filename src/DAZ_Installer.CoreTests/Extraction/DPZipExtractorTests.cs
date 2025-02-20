@@ -474,7 +474,7 @@ namespace DAZ_Installer.Core.Extraction.Tests
             var settings = new DPExtractSettings("Z:/temp", arc.Contents.Values, archive: arc);
             var expectedReport = new DPExtractionReport() { ExtractedFiles = new(1) { arc.Contents.First().Value }, ErroredFiles = new(0), Settings = settings };
             DPArchiveTestHelpers.SetupTargetPaths(arc, "Z:/abc/");
-            e.ExtractProgress += (_, __) => e.CancellationToken = new(true);
+            e.ExtractProgress += async (_, __) => e.CancellationToken = new(true);
 
             // Testing Extract() here:
             var report = e.Extract(settings);

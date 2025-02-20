@@ -184,8 +184,8 @@ namespace DAZ_Installer.Windows.DP
             Processor.ArchiveExit += Processor_ArchiveExit;
             Processor.ProcessError += Processor_ProcessError;
             Processor.StateChanged += Processor_StateChanged;
-            Processor.ExtractProgress += ExtractView.OnExtractionProgressUpdate;
-            Processor.MoveProgress += ExtractView.OnMoveProgressUpdate;
+            Processor.ExtractProgress += Processor_ExtractProgress;
+            Processor.MoveProgress += Processor_MoveProgress;
         }
 
         private void RemoveEventHandlers() {
@@ -193,8 +193,8 @@ namespace DAZ_Installer.Windows.DP
             Processor.ArchiveExit -= Processor_ArchiveExit;
             Processor.ProcessError -= Processor_ProcessError;
             Processor.StateChanged -= Processor_StateChanged;
-            Processor.ExtractProgress -= ExtractView.OnExtractionProgressUpdate;
-            Processor.MoveProgress -= ExtractView.OnMoveProgressUpdate;
+            Processor.ExtractProgress -= Processor_ExtractProgress;
+            Processor.MoveProgress -= Processor_MoveProgress;
         }
 
         private void UpdateExtractView(string archivePath) {
@@ -202,6 +202,16 @@ namespace DAZ_Installer.Windows.DP
                 ExtractView.OnExtractJobStatusUpdate(this, archiveInfo);
             } else Logger.Warning("Attempted to update extract view but could not" + 
                                 "find associated archive: {arc}", archivePath);
+        }
+
+        private Task Processor_ExtractProgress(IDPProcessor p, DPExtractProgressArgs args) {
+            ExtractView.OnExtractionProgressUpdate(p, args);
+            return Task.CompletedTask;
+        }
+
+        private Task Processor_MoveProgress(IDPProcessor p, DPExtractProgressArgs args) {
+            ExtractView.OnMoveProgressUpdate(p, args);
+            return Task.CompletedTask;
         }
 
         private void Processor_StateChanged()
@@ -222,9 +232,10 @@ namespace DAZ_Installer.Windows.DP
             }
             else UpdateExtractView(Processor.CurrentArchive.FileInfo.Path);
             ExtractView.OnProcessorStateUpdate(Processor);
+            return;
         }
 
-        private void Processor_ProcessError(IDPProcessor _, DPProcessorErrorArgs e)
+        private Task Processor_ProcessError(IDPProcessor _, DPProcessorErrorArgs e)
         {
             if (Processor.CurrentArchive is not null)
             {
@@ -232,10 +243,11 @@ namespace DAZ_Installer.Windows.DP
                 ArchiveInfosMap.TryUpdate(archiveInfo.FilePath, archiveInfo.WithError(new(e.Ex, e.Explaination)), archiveInfo);
                 UpdateExtractView(Processor.CurrentArchive.FileInfo!.Path);
             } else Logger.Error("Processor_CurrentArchive is null in Processor_ProcessError");
+            return Task.CompletedTask;
         }
 
         // ArchiveExit is ALWAYS called for every Processsor_ArchiveEnter
-        private async void Processor_ArchiveExit(object sender, DPArchiveExitArgs e)
+        private async Task Processor_ArchiveExit(object sender, DPArchiveExitArgs e)
         {
             var info = EnsureArchiveInfo(e.Archive);
             DPArchiveStatus status;
@@ -283,7 +295,7 @@ namespace DAZ_Installer.Windows.DP
             }
         }
 
-        private async void Processor_ArchiveEnter(IDPProcessor sender, DPArchiveEnterArgs e)
+        private async Task Processor_ArchiveEnter(IDPProcessor sender, DPArchiveEnterArgs e)
         {
             var info = EnsureArchiveInfo(e.Archive);
             UpdateExtractView(e.Archive.FileInfo!.Path);
