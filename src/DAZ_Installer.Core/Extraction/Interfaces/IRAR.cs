@@ -18,9 +18,14 @@ namespace DAZ_Installer.Core.Extraction
         event ExtractionProgressHandler ExtractionProgress;
 
         /// <inheritdoc cref="RAR.CurrentFile"/>
-        RARFileInfo CurrentFile { get; }
+        /// <remarks>
+        /// After a <see cref="ReadHeader"/> call, the function <em>usually</em> sets the current file, but
+        /// if it does not throw an exception at the <see cref="ReadHeader"/> call, then the current file will be <see langword="null"/>
+        /// because the archive is a multi-volume archive and the file has already been seen in the previous <see cref="ReadHeader"/> call.
+        /// </remarks>
+        RARFileInfo? CurrentFile { get; }
         /// <inheritdoc cref="RAR.ArchiveData"/>
-        RAR.RAROpenArchiveDataEx ArchiveData { get; }
+        RAROpenArchiveDataEx ArchiveData { get; }
         /// <inheritdoc cref="RAR.DestinationPath"/>
         string DestinationPath { get; set; }
         /// <inheritdoc cref="RAR.Close"/>

@@ -4,7 +4,8 @@ namespace DAZ_Installer.Core.Extraction.Fakes
 {
     internal class FakeRAR : IRAR
     {
-        public IEnumerator<RARFileInfo> FilesEnumerable;
+        public IEnumerator<RARFileInfo> FilesEnumerator;
+        public IEnumerable<RARFileInfo> FilesEnumerable;
         public virtual bool Disposed { get; set; } = false;
         public virtual bool Closed { get; set; } = true;
         /// <summary>
@@ -19,9 +20,13 @@ namespace DAZ_Installer.Core.Extraction.Fakes
         public virtual event RAR.PasswordRequiredHandler? PasswordRequired;
         public virtual event RAR.ExtractionProgressHandler? ExtractionProgress;
 
-        internal FakeRAR(IEnumerable<RARFileInfo> files) => FilesEnumerable = files.GetEnumerator();
+        internal FakeRAR(IEnumerable<RARFileInfo> files)
+        {
+            FilesEnumerable = files;
+            FilesEnumerator = files.GetEnumerator();
+        }
 
-        public virtual RARFileInfo CurrentFile => FilesEnumerable.Current;
+        public virtual RARFileInfo CurrentFile => FilesEnumerator.Current;
 
         /// <summary>
         /// Returns the value at <see cref="ArchiveDataToReturn"/>.
@@ -73,7 +78,7 @@ namespace DAZ_Installer.Core.Extraction.Fakes
             Closed = false;
             ActionCalled = true;
             Mode = mode;
-            FilesEnumerable.Reset();
+            FilesEnumerator.Reset();
         }
         /// <summary>
         /// Moves the enumerator to the next element in the archive.
@@ -85,10 +90,10 @@ namespace DAZ_Installer.Core.Extraction.Fakes
         /// <exception cref="ObjectDisposedException"/>
         public virtual bool ReadHeader()
         {
-            var a = throwIfDisposed() || throwIfClosed() || throwIfActionNotCalled() || FilesEnumerable.MoveNext();
+            var a = throwIfDisposed() || throwIfClosed() || throwIfActionNotCalled() || FilesEnumerator.MoveNext();
             if (!a) return a;
             if (Mode == RAR.OpenMode.List) 
-                NewFile?.Invoke(this, new NewFileEventArgs(FilesEnumerable.Current));
+                NewFile?.Invoke(this, new NewFileEventArgs(FilesEnumerator.Current));
             ActionCalled = false;
             return true;
 
@@ -111,7 +116,7 @@ namespace DAZ_Installer.Core.Extraction.Fakes
         public virtual void Test()
         {
             _ = throwIfDisposed() && throwIfClosed();
-            ArgumentNullException.ThrowIfNull(FilesEnumerable.Current);
+            ArgumentNullException.ThrowIfNull(FilesEnumerator.Current);
             ActionCalled = true;
         }
 

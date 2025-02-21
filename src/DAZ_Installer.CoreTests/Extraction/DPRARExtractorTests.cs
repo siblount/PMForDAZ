@@ -117,6 +117,52 @@ namespace DAZ_Installer.Core.Extraction.Tests
         }
 
         [TestMethod]
+        public void ExtractTest_EncountersNullCurrentFile_FirstVolume()
+        {
+            var arc = SetupArchiveWithPartiallyFakedDependencies(DefaultOptions, out var e, out var fakeRAR, out _, out _, out _, out _);
+            var settings = new DPExtractSettings("Z:/temp", arc.Contents.Values, archive: arc);
+            var expectedReport = new DPExtractionReport() { ExtractedFiles = new(arc.Contents.Values), ErroredFiles = [], Settings = settings };
+            DPArchiveTestHelpers.SetupTargetPaths(arc, "Z:/abc/");
+            var files = new List<RARFileInfo?>(fakeRAR.Object.FilesEnumerable);
+            files.Insert(Convert.ToByte(Math.Floor(files.Count / 2d)), null); // Put a null in the middle.
+            fakeRAR.Object.FilesEnumerator = files.GetEnumerator();
+
+            // Testing Extract() here:
+            var report = DPArchiveTestHelpers.RunAndAssertExtractEvents(e, settings);
+            DPArchiveTestHelpers.AssertReport(expectedReport, report);
+
+            DPArchiveTestHelpers.AssertDefaultContents(arc);
+            DPArchiveTestHelpers.AssertExtractorSetPathsCorrectly(arc, DefaultContents);
+            DPArchiveTestHelpers.AssertExtractFileInfosCorrectlySet(arc.Contents.Values);
+            Assert.AreEqual(arc.FileSystem, e.FileSystem);
+        }
+
+        [TestMethod]
+        public void ExtractTest_EncountersNullCurrentFile_NotVolume()
+        {
+            var arc = SetupArchiveWithPartiallyFakedDependencies(DefaultOptions, out var e, out var fakeRAR, out _, out _, out _, out _);
+            var settings = new DPExtractSettings("Z:/temp", arc.Contents.Values, archive: arc);
+            var expectedReport = new DPExtractionReport() { ExtractedFiles = new(arc.Contents.Values), ErroredFiles = [], Settings = settings };
+            DPArchiveTestHelpers.SetupTargetPaths(arc, "Z:/abc/");
+            var files = new List<RARFileInfo?>(fakeRAR.Object.FilesEnumerable);
+            files.Insert(Convert.ToByte(Math.Floor(files.Count / 2d)), null); // Put a null in the middle.
+            fakeRAR.Object.FilesEnumerator = files.GetEnumerator();
+            fakeRAR.Object.ArchiveDataToReturn = fakeRAR.Object.ArchiveDataToReturn with { Flags = 0 };
+            var archiveErrorCalled = false;
+            e.ArchiveErrored += async (s, e) => archiveErrorCalled = true;
+
+            // Testing Extract() here:
+            var report = DPArchiveTestHelpers.RunAndAssertExtractEvents(e, settings);
+            DPArchiveTestHelpers.AssertReport(expectedReport, report);
+
+            DPArchiveTestHelpers.AssertDefaultContents(arc);
+            DPArchiveTestHelpers.AssertExtractorSetPathsCorrectly(arc, DefaultContents);
+            DPArchiveTestHelpers.AssertExtractFileInfosCorrectlySet(arc.Contents.Values);
+            Assert.AreEqual(arc.FileSystem, e.FileSystem);
+            Assert.IsTrue(archiveErrorCalled);
+        }
+
+        [TestMethod]
         public void ExtractTest_QuitsOnArcNotExists()
         {
             var arc = SetupArchiveWithPartiallyFakedDependencies(DefaultOptions, out var e, out var _, out var arcDPFileInfo, out _, out _, out _);
@@ -384,9 +430,9 @@ namespace DAZ_Installer.Core.Extraction.Tests
         {
             var arc = SetupArchiveWithPartiallyFakedDependencies(DefaultPeekOptions, out var e, out var fakeRAR, out _, out _, out _, out _);
             var l = new List<string>();
-            fakeRAR.Object.FilesEnumerable.MoveNext();
-            fakeRAR.Object.FilesEnumerable.Current.encrypted = true;
-            fakeRAR.Object.FilesEnumerable.Reset();
+            fakeRAR.Object.FilesEnumerator.MoveNext();
+            fakeRAR.Object.FilesEnumerator.Current.encrypted = true;
+            fakeRAR.Object.FilesEnumerator.Reset();
 
             // Testing Peek() here:
             DPArchiveTestHelpers.RunAndAssertPeekEvents(e, arc);

@@ -29,6 +29,16 @@ namespace DAZ_Installer.Core.Extraction
 
         private void HandleMissingVolume(IRAR sender, MissingVolumeEventArgs e)
         {
+            if (sender.CurrentFile is null)
+            {
+                Logger.Warning("Unable to handle missing volume due to null CurrentFile");
+                return;
+            }
+            if (session is null)
+            {
+                Logger.Error("Unable to handle missing volume due to null session");
+                return;
+            }
             var msg = $"{sender.CurrentFile.FileName} is missing volume : {e.VolumeName}.";
             Logger.Warning(msg);
             var args = new DPArchiveErrorArgs(session.settings.Archive, null, msg);
@@ -36,8 +46,13 @@ namespace DAZ_Installer.Core.Extraction
         }
 
 
-        public void HandleNewFile(IRAR sender, NewFileEventArgs e)
+        private void HandleNewFile(IRAR sender, NewFileEventArgs e)
         {
+            if (session is null)
+            {
+                Logger.Error("Unable to handle new file due to null session");
+                return;
+            }
             try
             {
                 if (e.fileInfo.IsDirectory)
@@ -80,7 +95,6 @@ namespace DAZ_Installer.Core.Extraction
             IDPArchive arc = settings.Archive;
             session ??= new Session() { report = new DPExtractionReport(), settings = settings };
             CancellationToken = settings.CancelToken;
-
             var report = new DPExtractionReport()
             {
                 Settings = settings,
@@ -114,6 +128,18 @@ namespace DAZ_Installer.Core.Extraction
                         for (var i = 0; i < settings.FilesToExtract.Count && RARHandler.ReadHeader(); i++)
                         {
                             CancellationToken.ThrowIfCancellationRequested();
+                            // For a multivolume archive, ReadHeader() will repeat the same file. However, we modified it so that if this does happen, it returns null.
+                            // Therefore, if it is null, we simply skip it and don't count it as a file extracted (or errored).
+                            if (RARHandler.CurrentFile is null)
+                            {
+                                Logger.Debug("Got a null current file");
+                                // If this was not a multivolume archive, then something has seriously gone wrong.
+                                if (!isFirstVolume)
+                                    handleError(arc, "Got a null CurrentFile but no exception was thrown while reading the header, attempting to continue to read", null, null, null);
+                                RARHandler.Skip();
+                                i--;
+                                continue;
+                            }
                             var arcHasFile = arc.Contents.TryGetValue(PathHelper.NormalizePath(RARHandler.CurrentFile.FileName), out var file);
                             if (!RARHandler.CurrentFile.IsDirectory && arcHasFile && file!.AssociatedArchive == arc && settings.FilesToExtract.Contains(file))
                             {
@@ -192,7 +218,7 @@ namespace DAZ_Installer.Core.Extraction
                 while (RARHandler.ReadHeader())
                 {
                     CancellationToken.ThrowIfCancellationRequested();
-                    if (RARHandler.CurrentFile.IsDirectory) continue;
+                    if (RARHandler is { CurrentFile.IsDirectory: true }) continue;
                     TestFile(RARHandler, arc);
                 }
                 RARHandler.Close();
@@ -209,7 +235,7 @@ namespace DAZ_Installer.Core.Extraction
         #endregion
         private bool ExtractFile(IRAR handler, DPExtractSettings settings, DPExtractionReport report)
         {
-            var fileName = handler.CurrentFile.FileName;
+            var fileName = handler.CurrentFile!.FileName;
             IDPArchive arc = settings.Archive;
             
             // Means that archive was modified while we were extracting.
@@ -286,6 +312,8 @@ namespace DAZ_Installer.Core.Extraction
 
         private bool TestFile(IRAR handler, IDPArchive arc)
         {
+            if (handler.CurrentFile is null) return false;
+
             try
             {
                 // I'm not sure if UnpackedSize returns negative if the file is partial.

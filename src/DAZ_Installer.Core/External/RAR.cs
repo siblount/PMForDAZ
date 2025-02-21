@@ -528,6 +528,7 @@ namespace DAZ_Installer.External
                 throw new IOException("Archive data is corrupt.");
 
             // Determine if new file
+            // This says if file is continued from previous (ie: split rar archive)
             //if (((header.Flags & 0x01) != 0) && currentFile != null)
             if ((header.Flags & 0x01) != 0)
                 return true;

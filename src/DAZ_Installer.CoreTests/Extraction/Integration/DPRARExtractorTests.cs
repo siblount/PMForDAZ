@@ -82,6 +82,7 @@ namespace DAZ_Installer.Core.Extraction.Integration.Tests
             using var r2 = new RAR(Path.Combine(TestSubjectsPath, path));
             RAR.DataAvailableHandler fileDataFunc = (s, e) =>
             {
+                ArgumentNullException.ThrowIfNull(s.CurrentFile, nameof(s.CurrentFile));
                 if (!s.CurrentFile.FileName.Contains("random_image") && !path.Contains("Test_split")) return;
                 fileData.AddRange(e.Data);
             };
