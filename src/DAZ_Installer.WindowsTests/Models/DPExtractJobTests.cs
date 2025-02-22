@@ -119,13 +119,18 @@ namespace DAZ_Installer.Windows.DP.Tests
             });
 
             var task = job.DoJob();
-            var task2 = job.DoJob();
-
-            if (task2.Status is not (TaskStatus.WaitingForActivation or TaskStatus.WaitingToRun))
+            var task2 = job2.DoJob();
+            Thread.Sleep(0);
+            try
             {
-                Assert.Fail($"Expected either WaitingForAction or WaitingToRun, got: {task2.Status}");
+                if (task2.Status is not (TaskStatus.WaitingForActivation or TaskStatus.WaitingToRun))
+                {
+                    Assert.Fail($"Expected either WaitingForAction or WaitingToRun, got: {task2.Status}");
+                }
+            } finally
+            {
+                waitSlim.Set();
             }
-            waitSlim.Set();
 
             await Task.WhenAll(task, task2);
         }
@@ -589,6 +594,34 @@ namespace DAZ_Installer.Windows.DP.Tests
             DPExtractJobTestHelpers.AssertStatusUpdates(MockExtractView, "U:/foo", DPArchiveStatus.Pending);
             DPExtractJobTestHelpers.AssertStatusUpdates(MockExtractView, "U:/bar", DPArchiveStatus.Pending);
             MockExtractView.Verify(x => x.OnExtractJobStatusUpdate(It.IsAny<DPExtractJob>(), It.Is<DPArchiveInfo>(x => x.FilePath == "U:/foo" && x.Errors.Count == 1)), Times.Once());
+        }
+
+        [TestMethod]
+        public async Task FileError_UpdatesArchiveInfo()
+        {
+            string[] files = ["U:/foo", "U:/bar"];
+            var job = NewExtractJob(files);
+            var cts = new CancellationTokenSource();
+            MockProgressCombo.SetupGet(x => x.Token).Returns(cts.Token);
+            var archiveMock1 = new Mock<FakeDPArchive>("U:/foo") { CallBase = true };
+            var archiveMock2 = new Mock<FakeDPArchive>("U:/foo") { CallBase = true };
+            IDPArchive? processorCurrentArchive = null;
+            MockProcessor.SetupGet(x => x.CurrentArchive).Returns(() => processorCurrentArchive);
+            MockProcessor.Setup(x => x.ProcessArchive(It.IsAny<string>(), It.IsAny<DPProcessSettings>())).Callback((string path, DPProcessSettings _) => {
+                var mockArchive = NewFakeDPArchive(path, true);
+                processorCurrentArchive = mockArchive.Object; // Setup Current Processor before raising the event.
+                MockProcessor.Raise(x => x.ArchiveEnter += null, new DPArchiveEnterArgs(processorCurrentArchive));
+                if (path == "U:/foo")
+                {
+                    MockProcessor.Raise(x => x.FileError += null, new DPArchiveErrorArgs(mockArchive.Object));
+                }
+            });
+
+            await job.DoJob();
+
+            DPExtractJobTestHelpers.AssertStatusUpdates(MockExtractView, "U:/foo", DPArchiveStatus.Pending);
+            DPExtractJobTestHelpers.AssertStatusUpdates(MockExtractView, "U:/bar", DPArchiveStatus.Pending);
+            Assert.AreEqual(1, job.GetArchiveInfosSnapshot()["U:/foo"].Errors.Count);
         }
 
         [TestMethod]

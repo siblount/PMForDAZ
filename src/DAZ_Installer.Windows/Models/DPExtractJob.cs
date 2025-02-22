@@ -183,6 +183,7 @@ namespace DAZ_Installer.Windows.DP
             Processor.ArchiveEnter += Processor_ArchiveEnter;
             Processor.ArchiveExit += Processor_ArchiveExit;
             Processor.ProcessError += Processor_ProcessError;
+            Processor.FileError += Processor_FileError;
             Processor.StateChanged += Processor_StateChanged;
             Processor.ExtractProgress += Processor_ExtractProgress;
             Processor.MoveProgress += Processor_MoveProgress;
@@ -192,6 +193,7 @@ namespace DAZ_Installer.Windows.DP
             Processor.ArchiveEnter -= Processor_ArchiveEnter;
             Processor.ArchiveExit -= Processor_ArchiveExit;
             Processor.ProcessError -= Processor_ProcessError;
+            Processor.FileError -= Processor_FileError;
             Processor.StateChanged -= Processor_StateChanged;
             Processor.ExtractProgress -= Processor_ExtractProgress;
             Processor.MoveProgress -= Processor_MoveProgress;
@@ -211,6 +213,13 @@ namespace DAZ_Installer.Windows.DP
 
         private Task Processor_MoveProgress(IDPProcessor p, DPExtractProgressArgs args) {
             ExtractView.OnMoveProgressUpdate(p, args);
+            return Task.CompletedTask;
+        }
+
+        private Task Processor_FileError(IDPProcessor sender, DPArchiveErrorArgs args)
+        {
+            var info = EnsureArchiveInfo(args.Archive);
+            ArchiveInfosMap.TryUpdate(info.FilePath, info.WithError(new(args.Ex, args.Explaination)), info);
             return Task.CompletedTask;
         }
 
@@ -330,7 +339,7 @@ namespace DAZ_Installer.Windows.DP
             }
         }
 
-        private void ProcessArchivesAsync(CancellationToken _)
+        private void ProcessArchivesAsync()
         {
             try
             {
