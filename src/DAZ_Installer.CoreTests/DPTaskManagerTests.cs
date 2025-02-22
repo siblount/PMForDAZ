@@ -6,12 +6,30 @@ using Moq;
 using DAZ_Installer.Common;
 using System.Diagnostics;
 using System.Threading.Tasks;
+using System.Collections.Concurrent;
 
 namespace DAZ_Installer.Core.Tests
 {
     [TestClass]
     public class DPTaskManagerTests
     {
+        private class TestSynchronizationContext : SynchronizationContext
+        {
+            public override void Post(SendOrPostCallback d, object? state)
+            {
+                ThreadPool.QueueUserWorkItem(_ => d(state));
+            }
+
+            public override void Send(SendOrPostCallback d, object? state)
+            {
+                ThreadPool.QueueUserWorkItem(_ =>
+                {
+                    SetSynchronizationContext(this);
+                    d(state);
+                }, null);
+            }
+        }
+
         [ClassInitialize]
         public static void ClassInitialize(TestContext _)
         {
@@ -338,6 +356,109 @@ namespace DAZ_Installer.Core.Tests
             mockAction2.Verify(a => a(2, "test2", false, 2.71, 'b', It.IsAny<CancellationToken>()), Times.Once);
             mockAction3.Verify(a => a(3, "test3", true, 1.41, 'c', It.IsAny<CancellationToken>()), Times.Once);
         }
+
+        [TestMethod]
+        public async Task NestedTaskQueuing_MaintainsOrder()
+        {
+            var nestedExecutionOrder = new List<string>();
+            var taskManager = new DPTaskManager();
+            Lock lockObj = new();
+            Task? lastTask = null;
+
+            var task1 = taskManager.AddToQueue(() =>
+            {
+                lock (lockObj)
+                {
+                    nestedExecutionOrder.Add("Task1-Start");
+                }
+
+                // Queue another task from within this task
+                lastTask = taskManager.AddToQueue(() =>
+                {
+                    lock (lockObj)
+                    {
+                        nestedExecutionOrder.Add("Nested-Task");
+                    }
+                });
+
+                lock (lockObj)
+                {
+                    nestedExecutionOrder.Add("Task1-End");
+                }
+            });
+
+            var task2 = taskManager.AddToQueue(() =>
+            {
+                lock (lockObj)
+                {
+                    nestedExecutionOrder.Add("Task2");
+                }
+            });
+
+            await Task.WhenAll(task1, task2);
+            if (lastTask is not null) await lastTask;
+
+            CollectionAssert.AreEqual(
+                new[] { "Task1-Start", "Task1-End", "Task2", "Nested-Task" },
+                nestedExecutionOrder
+            );
+        }
+
+        [TestMethod]
+        public async Task DifferentThreadContexts_MaintainsOrder()
+        {
+            var executionOrder = new List<int>();
+            var syncContext = new TestSynchronizationContext();
+
+            var taskManager = new DPTaskManager();
+            Lock lockObj = new();
+            var threadIds = new ConcurrentDictionary<int, int>();
+            ManualResetEventSlim slim = new(false);
+
+            // Queue from ThreadPool
+            var task1 = Task.Run(() => taskManager.AddToQueue(() =>
+            {
+                lock (lockObj)
+                {
+                    executionOrder.Add(1);
+                    threadIds[1] = Thread.CurrentThread.ManagedThreadId;
+                }
+            }));
+
+            // Queue from custom context thread
+            var task2 = Task.Factory.StartNew(() =>
+            {
+                SynchronizationContext.SetSynchronizationContext(syncContext);
+                taskManager.AddToQueue(() =>
+                {
+                    lock (lockObj)
+                    {
+                        executionOrder.Add(2);
+                        threadIds[2] = Thread.CurrentThread.ManagedThreadId;
+                    }
+                });
+                slim.Set();
+            });
+
+            // Queue from main thread
+            slim.Wait();
+            var task3 = taskManager.AddToQueue(() =>
+            {
+                lock (lockObj)
+                {
+                    executionOrder.Add(3);
+                    threadIds[3] = Thread.CurrentThread.ManagedThreadId;
+                }
+            });
+
+            await Task.WhenAll(task1, task2, task3);
+
+            CollectionAssert.AreEqual(
+                new[] { 1, 2, 3 },
+                executionOrder
+            );
+        }
+
         [TestMethod]
         public void StopTest()
         {
