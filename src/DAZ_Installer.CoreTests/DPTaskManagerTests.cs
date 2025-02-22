@@ -5,6 +5,7 @@ using MSTestLogger = Microsoft.VisualStudio.TestTools.UnitTesting.Logging.Logger
 using Moq;
 using DAZ_Installer.Common;
 using System.Diagnostics;
+using System.Threading.Tasks;
 
 namespace DAZ_Installer.Core.Tests
 {
@@ -22,7 +23,7 @@ namespace DAZ_Installer.Core.Tests
         }
 
         [TestMethod]
-        public async Task AddToQueueActionTest()
+        public async Task AddToQueueTest_Action()
         {
             var mockAction = new Mock<Action>();
 
@@ -33,7 +34,38 @@ namespace DAZ_Installer.Core.Tests
         }
 
         [TestMethod]
-        public async Task AddToQueueActionContinuesTest()
+        public async Task AddToQueueTest_QueueAction()
+        {
+            var mockAction = new Mock<DPTaskManager.QueueAction>();
+
+            var taskManager = new DPTaskManager();
+            await taskManager.AddToQueue(mockAction.Object);
+
+            mockAction.Verify(a => a(It.IsAny<CancellationToken>()), Times.Once);
+        }
+
+        [TestMethod]
+        public async Task AddToQueueTest_ActionDoesntStartInParallel()
+        {
+            var taskManager = new DPTaskManager();
+            using var waitSlim = new ManualResetEventSlim(false);
+
+            var t = taskManager.AddToQueue(() => waitSlim.Wait());
+            var t2 = taskManager.AddToQueue(() => waitSlim.Wait());
+            Thread.Sleep(0);
+
+            if (t2.Status is not (TaskStatus.WaitingForActivation or TaskStatus.WaitingToRun))
+            {
+                Assert.Fail($"Expected either WaitingForAction or WaitingToRun, got: {t2.Status}");
+            }
+
+            waitSlim.Set();
+
+            await Task.WhenAll(t, t2);
+        }
+
+        [TestMethod]
+        public async Task AddToQueueTest_ActionContinues()
         {
             var mockAction1 = new Mock<Action>();
             var mockAction2 = new Mock<Action>();
@@ -56,7 +88,7 @@ namespace DAZ_Installer.Core.Tests
         }
 
         [TestMethod]
-        public async Task AddToQueueMaintainsOrderAcrossThreads()
+        public async Task AddToQueueTest_MaintainsOrderAcrossThreads()
         {
             var taskManager = new DPTaskManager();
             var numberOfTasks = 8 * Environment.ProcessorCount;
@@ -92,6 +124,26 @@ namespace DAZ_Installer.Core.Tests
             await taskManager.AddToQueue(mockAction.Object);
 
             mockAction.Verify(a => a(It.IsAny<CancellationToken>()), Times.Once);
+        }
+
+        [TestMethod]
+        public async Task AddToQueueTest_QueueActionDoesntStartInParallel()
+        {
+            var taskManager = new DPTaskManager();
+            using var waitSlim = new ManualResetEventSlim(false);
+
+            var t = taskManager.AddToQueue((_) => waitSlim.Wait());
+            var t2 = taskManager.AddToQueue((_) => waitSlim.Wait());
+            Thread.Sleep(0);
+
+            if (t2.Status is not (TaskStatus.WaitingForActivation or TaskStatus.WaitingToRun))
+            {
+                Assert.Fail($"Expected either WaitingForAction or WaitingToRun, got: {t2.Status}");
+            }
+
+            waitSlim.Set();
+
+            await Task.WhenAll(t, t2);
         }
 
         [TestMethod]
@@ -308,7 +360,6 @@ namespace DAZ_Installer.Core.Tests
             mockAction2.Verify(a => a(), Times.Never);
             mockAction3.Verify(a => a(), Times.Never);
             Assert.IsTrue(task3.IsCanceled);
-
         }
 
         [TestMethod]

@@ -7,7 +7,7 @@ namespace DAZ_Installer.Core
     // (1) Token still works even after being disposed.
     // (2) Source still semi-works after dispose call. Token is "disposed".
     // (3) Tasks will continue to run unless you explicitly use the token and current task scheduler.
-    public struct DPTaskManager
+    public class DPTaskManager
     {
         public delegate void QueueAction(CancellationToken token);
         public delegate void QueueAction<in T>(T arg1, CancellationToken token);
@@ -19,7 +19,7 @@ namespace DAZ_Installer.Core
         private CancellationTokenSource _source;
         private CancellationToken _token;
         private volatile Task? lastTask;
-        private readonly object lockObj = new();
+        private readonly Lock lockObj = new();
         // (3) Tasks will continue with continueWith() chain unless this is passed in.
         private const TaskContinuationOptions _continuationOptions = TaskContinuationOptions.NotOnCanceled;
 
