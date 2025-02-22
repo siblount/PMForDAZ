@@ -66,34 +66,34 @@ namespace DAZ_Installer.Core
 
         public Task AddToQueue(Action action)
         {
-            CancellationToken t = _token;
             Task task;
             lock (lockObj)
             {
+                CancellationToken t = _token;
                 if (lastTask == null)
                 {
                     task = lastTask = Task.Factory.StartNew(action, _token);
                 }
                 else
                 {
-                    task = lastTask = lastTask.ContinueWith((_) => action(), t, _continuationOptions, TaskScheduler.Current);
+                    task = lastTask = lastTask.ContinueWith((_) => action(), t, _continuationOptions, TaskScheduler.Default);
                 }
             }
             return task;
         }
         public Task AddToQueue(QueueAction action)
         {
-            CancellationToken t = _token;
             Task task;
             lock (lockObj)
             {
+                CancellationToken t = _token;
                 if (lastTask == null)
                 {
                     task = lastTask = Task.Factory.StartNew(() => action(t));
                 }
                 else
                 {
-                    task = lastTask = lastTask.ContinueWith((_) => action(t), t, _continuationOptions, TaskScheduler.Current);
+                    task = lastTask = lastTask.ContinueWith((_) => action(t), t, _continuationOptions, TaskScheduler.Default);
                 }
             }
             return task;
@@ -101,17 +101,17 @@ namespace DAZ_Installer.Core
 
         public Task AddToQueue<T>(QueueAction<T> action, T arg)
         {
-            CancellationToken t = _token;
             Task task;
             lock (lockObj)
             {
+                CancellationToken t = _token;
                 if (lastTask == null)
                 {
                     task = lastTask = Task.Factory.StartNew(() => action(arg, t));
                 }
                 else
                 {
-                    task = lastTask = lastTask.ContinueWith((_) => action(arg, t), t, _continuationOptions, TaskScheduler.Current);
+                    task = lastTask = lastTask.ContinueWith((_) => action(arg, t), t, _continuationOptions, TaskScheduler.Default);
                 }
             }
             return task;
@@ -120,17 +120,17 @@ namespace DAZ_Installer.Core
 
         public Task AddToQueue<T1, T2>(QueueAction<T1, T2> action, T1 arg1, T2 arg2)
         {
-            CancellationToken t = _token;
             Task task;
             lock (lockObj)
             {
+                CancellationToken t = _token;
                 if (lastTask == null)
                 {
                     task = lastTask = Task.Factory.StartNew(() => action(arg1, arg2, t));
                 }
                 else
                 {
-                    task = lastTask = lastTask.ContinueWith((_) => action(arg1, arg2, t), t, _continuationOptions, TaskScheduler.Current);
+                    task = lastTask = lastTask.ContinueWith((_) => action(arg1, arg2, t), t, _continuationOptions, TaskScheduler.Default);
                 }
             }
             return task;
@@ -138,10 +138,10 @@ namespace DAZ_Installer.Core
 
         public Task AddToQueue<T1, T2, T3>(QueueAction<T1, T2, T3> action, T1 arg1, T2 arg2, T3 arg3)
         {
-            CancellationToken t = _token;
-            Task task = lastTask;
+            Task task;
             lock (lockObj)
             {
+                CancellationToken t = _token;
                 if (lastTask == null)
                 {
                     task = lastTask = Task.Factory.StartNew(() => action(arg1, arg2, arg3, t));
@@ -149,7 +149,7 @@ namespace DAZ_Installer.Core
                 else
                 {
                     task = lastTask = lastTask.ContinueWith((_) => action(arg1, arg2, arg3, t),
-                                                    t, _continuationOptions, TaskScheduler.Current);
+                                                    t, _continuationOptions, TaskScheduler.Default);
                 }
             }
             return task;
@@ -157,10 +157,10 @@ namespace DAZ_Installer.Core
 
         public Task AddToQueue<T1, T2, T3, T4>(QueueAction<T1, T2, T3, T4> action, T1 arg1, T2 arg2, T3 arg3, T4 arg4)
         {
-            CancellationToken t = _token;
-            Task task = lastTask;
+            Task task;
             lock (lockObj)
             {
+                CancellationToken t = _token;
                 if (lastTask == null)
                 {
                     task = lastTask = Task.Factory.StartNew(() => action(arg1, arg2, arg3, arg4, t));
@@ -168,7 +168,7 @@ namespace DAZ_Installer.Core
                 else
                 {
                     task = lastTask = lastTask.ContinueWith((_) => action(arg1, arg2, arg3, arg4, t),
-                                                        t, _continuationOptions, TaskScheduler.Current);
+                                                        t, _continuationOptions, TaskScheduler.Default);
                 }
             }
             return task;
@@ -176,11 +176,10 @@ namespace DAZ_Installer.Core
 
         public Task AddToQueue<T1, T2, T3, T4, T5>(QueueAction<T1, T2, T3, T4, T5> action, T1 arg1, T2 arg2, T3 arg3, T4 arg4, T5 arg5)
         {
-            CancellationToken t = _token;
-            Task task = lastTask;
-
+            Task task;
             lock (lockObj)
             {
+                CancellationToken t = _token;
                 if (lastTask == null)
                 {
                     task = lastTask = Task.Factory.StartNew(() => action(arg1, arg2, arg3, arg4, arg5, t));
@@ -188,7 +187,7 @@ namespace DAZ_Installer.Core
                 else
                 {
                     task = lastTask = lastTask.ContinueWith((_) => action(arg1, arg2, arg3, arg4, arg5, t),
-                                                        t, _continuationOptions, TaskScheduler.Current);
+                                                        t, _continuationOptions, TaskScheduler.Default);
                 } 
             }
             return task;
