@@ -25,6 +25,11 @@ namespace DAZ_Installer.Core
     public interface IDPProcessor
     {
         /// <summary>
+        /// An event that is invoked when a file that is being extracted, moved, or deleted throws an error.
+        /// <seealso cref="ProcessError"/>
+        /// </summary>
+        public event DPProcessorEventHandler<DPArchiveErrorArgs>? FileError;
+        /// <summary>
         /// Occurs when the processor has encountered an recoverable (or unrecoverable) error.
         /// </summary>
         public event DPProcessorEventHandler<DPProcessorErrorArgs>? ProcessError;

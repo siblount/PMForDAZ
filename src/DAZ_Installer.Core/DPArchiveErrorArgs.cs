@@ -3,32 +3,20 @@
     /// <summary>
     /// Represents error arguments for <see cref="DPArchive"/> errors.
     /// </summary>
-    public class DPArchiveErrorArgs : DPProcessorErrorArgs
+    public sealed class DPArchiveErrorArgs : DPErrorArgs
     {
         /// <summary>
         /// The archive the <see cref="DPProcessor"/> was processing when the error occurred.
         /// </summary>
         public IDPArchive Archive { get; init; }
         /// <summary>
-        /// Determine whether the archive should cancel the operation or not.
-        /// <para/>
-        /// Change this value to <see langword="true"/> if you wish to cancel processing the 
-        /// archive. <para/>
-        /// This will only be honored if <see cref="Continuable"/> is <see langword="true"/>.
-        /// </summary>
-        public new bool CancelOperation { get; set; } = true;
-        /// <summary>
         /// <inheritdoc cref="DPArchiveErrorArgs"/>
         /// </summary>
         /// <param name="ex">The exception thrown by the error, if any.</param>
         /// <param name="explaination">The additional explaination for the error/situation.</param>
         /// <param name="archive">The archive that errored.</param>
-        internal DPArchiveErrorArgs(IDPArchive archive, Exception? ex = null,
-            string? explaination = null) : base(ex, explaination)
+        internal DPArchiveErrorArgs(IDPArchive archive, Exception? ex = null, string? explaination = null) : base(ex, explaination)
         {
-            Ex = ex;
-            if (explaination != null)
-                Explaination = explaination;
             Archive = archive;
         }
         /// <summary>

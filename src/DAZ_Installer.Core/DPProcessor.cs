@@ -141,7 +141,7 @@ namespace DAZ_Installer.Core
         /// An event that is invoked when a file that is being extracted, moved, or deleted throws an error.
         /// <seealso cref="ProcessError"/>
         /// </summary>
-        public event DPProcessorEventHandler<DPErrorArgs>? FileError;
+        public event DPProcessorEventHandler<DPArchiveErrorArgs>? FileError;
 
         /// <inheritdoc/>
         public event DPProcessorEventHandler<DPProcessorErrorArgs>? ProcessError;
@@ -209,6 +209,12 @@ namespace DAZ_Installer.Core
             await ExtractProgress.Invoke(this, args);
         }
 
+        private async Task EmitOnArchiveError(IDPArchive archive, DPArchiveErrorArgs args)
+        {
+            if (FileError is null) return;
+            await FileError.Invoke(this, args);
+        }
+
         private void processArchiveInternal([NotNull] IDPArchive archiveFile, DPProcessSettings settings)
         {
             Stack<IDPArchive> archivesToProcess = new();
@@ -216,9 +222,9 @@ namespace DAZ_Installer.Core
 
             archivesToProcess.Push(archiveFile);
             CancellationTokenSource = new();
-            # pragma warning disable CS8600 // Converting null literal or possible null value to non-nullable type.
-            while (archivesToProcess.TryPop(out IDPArchive arc)) 
-            # pragma warning restore CS8600
+#pragma warning disable CS8600 // Converting null literal or possible null value to non-nullable type.
+            while (archivesToProcess.TryPop(out IDPArchive arc))
+#pragma warning restore CS8600
             {
                 CurrentArchive = arc!;
                 DPExtractionReport? report = null;
@@ -243,7 +249,7 @@ namespace DAZ_Installer.Core
                         ParentExtractor = arc.AssociatedArchive?.Extractor?.GetType().Name,
                     };
                     Logger.Debug("Archive that is about to be processed: {@Arc}", arcDebugInfo);
-                    
+
 
                     State = ProcessorState.Starting;
                     try
@@ -263,7 +269,7 @@ namespace DAZ_Installer.Core
                         HandleEarlyExit();
                         continue;
                     }
-                    arc.Extractor.CancellationToken = ArchiveCancellationToken;
+                    AttachExtractor();
                     if (!tryCatch(() => arc.PeekContents(), "Failed to peek into archive")) continue;
 
                     // Check if we have enough room.
@@ -311,10 +317,13 @@ namespace DAZ_Installer.Core
                     handleError(ex, "An unexpected error occured while processing archive.");
                     EmitOnArchiveExit(false, report).Wait();
                 }
+                finally
+                {
+                    DetachExtractor();
+                }
+
+                PopParentArchive(parentArchives);
             }
-
-            PopParentArchive(parentArchives);
-
         }
 
         // TODO: RetryArchive()
@@ -361,7 +370,7 @@ namespace DAZ_Installer.Core
         /// </summary>
         /// <returns>True if the destination has enough space, otherwise false.</returns>
         /// <exception cref="Exception">An exception caused by creating the <see cref="IDPDriveInfo"/> object.</exception>
-        private bool DestinationHasEnoughSpace => (ulong)FileSystem.CreateDriveInfo(CurrentProcessSettings.DestinationPath).AvailableFreeSpace > CurrentArchive.TrueArchiveSize;
+        private bool DestinationHasEnoughSpace => (ulong)FileSystem.CreateDriveInfo(CurrentProcessSettings.DestinationPath).AvailableFreeSpace > CurrentArchive!.TrueArchiveSize;
 
         /// <summary>
         /// Checks whether the temp path has enough space for <see cref="CurrentArchive"/>.
@@ -369,7 +378,7 @@ namespace DAZ_Installer.Core
         /// <returns>True if temp has enough space, otherwise false.</returns>
         /// <exception cref="NullReferenceException">If <see cref="CurrentArchive"/> is null.</exception>
         /// <exception cref="Exception">An exception caused by creating the <see cref="IDPDriveInfo"/> object.</exception>
-        private bool TempHasEnoughSpace => (ulong)FileSystem.CreateDriveInfo(TempLocation).AvailableFreeSpace > CurrentArchive.TrueArchiveSize;
+        private bool TempHasEnoughSpace => (ulong)FileSystem.CreateDriveInfo(TempLocation).AvailableFreeSpace > CurrentArchive!.TrueArchiveSize;
 
 
         // TODO: Clear temp needs to remove as much space as possible. It will error when we have file handles.
@@ -377,7 +386,7 @@ namespace DAZ_Installer.Core
         {
             Logger.Information("Clearing temp location at {TempLocation}", TempLocation);
             var tmpScope = FileSystem.Scope;
-            FileSystem.Scope = new DPFileScopeSettings(Array.Empty<string>(), new[] { TempLocation }, false, throwOnPathTransversal: true);
+            FileSystem.Scope = new DPFileScopeSettings(Array.Empty<string>(), [TempLocation], false, throwOnPathTransversal: true);
             IDPDirectoryInfo info = FileSystem.CreateDirectoryInfo(TempLocation);
             if (!TryHelper.Try(() => info.Delete(true), out Exception? ex))
                 Logger.Error(ex, "Failed to clear temp location");
@@ -399,17 +408,30 @@ namespace DAZ_Installer.Core
                 var args = new DPProcessorErrorArgs(null, "Temp location does not have enough space") { Continuable = true };
                 EmitOnProcessError(args).Wait();
             }
-            if (CurrentArchive!.Extractor != null) CurrentArchive.Extractor.ExtractProgress += EmitOnExtractionProgress;
-            else Logger.Warning("Extractor is null, cannot report extraction progress");
             ReadMetaFiles();
         }
 
         private void HandleEarlyExit()
         {
             State = ProcessorState.Idle;
-            if (CurrentArchive is { Extractor: not null })
-                CurrentArchive.Extractor.ExtractProgress -= EmitOnExtractionProgress;
+            DetachExtractor();
             EmitOnArchiveExit(false, null).Wait();
+        }
+
+        private void AttachExtractor()
+        {
+            CurrentArchive!.Extractor!.CancellationToken = ArchiveCancellationToken;
+            CurrentArchive.Extractor.ExtractProgress += EmitOnExtractionProgress;
+            CurrentArchive.Extractor.ArchiveErrored += EmitOnArchiveError;
+        }
+
+        private void DetachExtractor()
+        {
+            if (CurrentArchive is { Extractor: not null })
+            {
+                CurrentArchive.Extractor.ExtractProgress -= EmitOnExtractionProgress;
+                CurrentArchive.Extractor.ArchiveErrored -= EmitOnArchiveError;
+            }
         }
 
         private bool HandleOnDestinationNotEnoughSpace()
@@ -445,7 +467,6 @@ namespace DAZ_Installer.Core
         {
             EmitOnProcessError(new DPProcessorErrorArgs(ex, errorMessage)).Wait();
             HandleEarlyExit();
-            return;
         }
 
         /// <summary>

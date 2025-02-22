@@ -1,17 +1,24 @@
 ﻿namespace DAZ_Installer.Core
 {
     /// <summary>
-    /// Represents an exception and a file or 
+    /// Represents that an error occurred with potentialyl additional information.
     /// </summary>
     public class DPErrorArgs : EventArgs
     {
-        public readonly DPAbstractNode File;
-        public readonly Exception Ex;
+        /// <summary>
+        /// The exception thrown, if any.
+        /// </summary>
+        public Exception? Ex { get; init; }
+        /// <summary>
+        /// Additional information for the error, if any.
+        /// </summary>
+        public string Explaination { get; internal set; } = string.Empty;
 
-        internal DPErrorArgs(DPAbstractNode file, Exception ex) : base()
+        public DPErrorArgs(Exception? ex = null, string? explaination = null)
         {
-            File = file;
             Ex = ex;
+            if (explaination != null)
+                Explaination = explaination;
         }
     }
 }
