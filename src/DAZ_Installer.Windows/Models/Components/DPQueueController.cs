@@ -344,9 +344,18 @@ namespace DAZ_Installer.Windows.DP
             return info.Archive is { IsInnerArchive: true } ? $"{fileName} (from {parentName})" : fileName;
         }
 
+        private static ListViewItem.ListViewSubItem GetSubItem(ListViewItem owner)
+        {
+            if (owner.SubItems.Count == 2) return owner.SubItems[1];
+            var subItem = new ListViewItem.ListViewSubItem(owner, "");
+            owner.SubItems.Add(subItem);
+            return subItem;
+        }
+
         private static void DetermineErrorMessage(DPArchiveInfo info, ListViewItem item)
         {
-            var subItem = item.SubItems.Count == 2 ? item.SubItems[1] : new ListViewItem.ListViewSubItem(item, "");
+            var subItem = GetSubItem(item);
+
             switch (info.Status)
             {
                 case DPArchiveStatus.CompletedWithIssues:
