@@ -90,6 +90,8 @@ namespace DAZ_Installer.Core.Tests
             mocks.MockArchive.VerifySet(x => x.Type = It.IsAny<ArchiveType>(), Times.Once(), "Processor did not set Archive.Type");
             processorMocks.MockTagProvider.Verify(x => x.GetTags(arc, DefaultProcessSettings), Times.Once(), "Processor did not call GetTags on the TagProvider with process settings");
             processorMocks.MockFakeTempDirectoryInfo.Verify(x => x.Delete(true), Times.Never(), "Processor did not attempt to delete temp directory.");
+            DPProcessorTestHelpers.AssertExtractorAttached(mocks.MockExtractor);
+            DPProcessorTestHelpers.AssertExtractorDetached(mocks.MockExtractor);
         }
 
         [TestMethod]
@@ -157,6 +159,8 @@ namespace DAZ_Installer.Core.Tests
             DPProcessorTestHelpers.VerifyExtractContentsCalled(true, mocks.MockArchive, expectedTempExtractSettings, Times.Exactly(2));
             mocks.MockArchive.VerifySet(x => x.Type = It.IsAny<ArchiveType>(), Times.Exactly(2), "Processor did not set Archive.Type");
             processorMocks.MockTagProvider.Verify(x => x.GetTags(arc, DefaultProcessSettings), Times.Exactly(2), "Processor did not call GetTags on the TagProvider with process settings");
+            DPProcessorTestHelpers.AssertExtractorAttached(mocks.MockExtractor, Times.AtLeast(2));
+            DPProcessorTestHelpers.AssertExtractorDetached(mocks.MockExtractor, Times.AtLeast(2));
         }
 
         [TestMethod]
@@ -232,6 +236,8 @@ namespace DAZ_Installer.Core.Tests
             DPProcessorTestHelpers.VerifyExtractContentsCalled(true, mocks.MockArchive, expectedTempExtractSettings, Times.Exactly(2));
             mocks.MockArchive.VerifySet(x => x.Type = It.IsAny<ArchiveType>(), Times.Once(), "Processor did not set Archive.Type");
             processorMocks.MockTagProvider.Verify(x => x.GetTags(arc, DefaultProcessSettings), Times.Once(), "Processor did not call GetTags on the TagProvider with process settings");
+            DPProcessorTestHelpers.AssertExtractorAttached(mocks.MockExtractor, Times.AtLeast(2));
+            DPProcessorTestHelpers.AssertExtractorDetached(mocks.MockExtractor, Times.AtLeast(2));
         }
 
         [TestMethod]
@@ -301,6 +307,8 @@ namespace DAZ_Installer.Core.Tests
             mocks.MockArchive.VerifySet(x => x.Type = It.IsAny<ArchiveType>(), Times.Once(), "Processor did not set Archive.Type");
             processorMocks.MockTagProvider.Verify(x => x.GetTags(arc, DefaultProcessSettings), Times.Once(), "Processor did not call GetTags on the TagProvider with process settings");
             processorMocks.MockFakeTempDirectoryInfo.Verify(x => x.Delete(true), Times.Never(), "Processor did not attempt to delete temp directory.");
+            DPProcessorTestHelpers.AssertExtractorAttached(mocks.MockExtractor);
+            DPProcessorTestHelpers.AssertExtractorDetached(mocks.MockExtractor);
         }
 
         [TestMethod]
@@ -368,6 +376,8 @@ namespace DAZ_Installer.Core.Tests
             mocks.MockArchive.VerifySet(x => x.Type = It.IsAny<ArchiveType>(), Times.Once(), "Processor did not set Archive.Type");
             processorMocks.MockTagProvider.Verify(x => x.GetTags(arc, DefaultProcessSettings), Times.Once(), "Processor did not call GetTags on the TagProvider with process settings");
             processorMocks.MockFakeTempDirectoryInfo.Verify(x => x.Delete(true), Times.Never(), "Processor did not attempt to delete temp directory.");
+            DPProcessorTestHelpers.AssertExtractorAttached(mocks.MockExtractor);
+            DPProcessorTestHelpers.AssertExtractorDetached(mocks.MockExtractor);
         }
 
         [TestMethod]
@@ -399,6 +409,8 @@ namespace DAZ_Installer.Core.Tests
 
             processorTask.Assert();
             mocks.MockArchive.Verify(x => x.PeekContents(It.IsAny<string>()), Times.Never(), "Processor did not call PeekContents");
+            DPProcessorTestHelpers.AssertExtractorAttached(mocks.MockExtractor, Times.Never());
+            DPProcessorTestHelpers.AssertExtractorDetached(mocks.MockExtractor);
         }
 
         [TestMethod]
@@ -478,6 +490,8 @@ namespace DAZ_Installer.Core.Tests
             await Task.WhenAll(assertTasks);
 
             processorTask.Assert();
+            DPProcessorTestHelpers.AssertExtractorAttached(mocks.MockExtractor);
+            DPProcessorTestHelpers.AssertExtractorDetached(mocks.MockExtractor);
         }
 
         [TestMethod]
@@ -530,6 +544,8 @@ namespace DAZ_Installer.Core.Tests
             await Task.WhenAll(assertTasks);
 
             processorTask.Assert();
+            DPProcessorTestHelpers.AssertExtractorAttached(mocks.MockExtractor);
+            DPProcessorTestHelpers.AssertExtractorDetached(mocks.MockExtractor);
         }
         [TestMethod]
         public async Task ProcessArchiveTest_ExtractToTempError()
@@ -579,6 +595,8 @@ namespace DAZ_Installer.Core.Tests
             await Task.WhenAll(assertTasks);
 
             processorTask.Assert();
+            DPProcessorTestHelpers.AssertExtractorAttached(mocks.MockExtractor);
+            DPProcessorTestHelpers.AssertExtractorDetached(mocks.MockExtractor);
         }
 
         [TestMethod]
@@ -624,6 +642,8 @@ namespace DAZ_Installer.Core.Tests
             await Task.WhenAll(assertTasks);
 
             processorTask.Assert();
+            DPProcessorTestHelpers.AssertExtractorAttached(mocks.MockExtractor);
+            DPProcessorTestHelpers.AssertExtractorDetached(mocks.MockExtractor);
         }
 
         [TestMethod]
@@ -672,6 +692,8 @@ namespace DAZ_Installer.Core.Tests
             processorTask.Assert();
             var bufferLog = bufferLogger.ToString();
             StringAssert.Contains(bufferLog, "Destination does not have enough space and there is no event handler for ProcessError", $"BufferLog: {bufferLog}");
+            DPProcessorTestHelpers.AssertExtractorAttached(mocks.MockExtractor);
+            DPProcessorTestHelpers.AssertExtractorDetached(mocks.MockExtractor);
         }
 
         [TestMethod]
@@ -754,6 +776,8 @@ namespace DAZ_Installer.Core.Tests
             mocks.MockArchive.VerifySet(x => x.Type = It.IsAny<ArchiveType>(), Times.Once(), "Processor did not set Archive.Type");
             processorMocks.MockTagProvider.Verify(x => x.GetTags(arc, DefaultProcessSettings), Times.Once(), "Processor did not call GetTags on the TagProvider with process settings");
             processorMocks.MockFakeTempDirectoryInfo.Verify(x => x.Delete(true), Times.Never(), "Processor did not attempt to delete temp directory.");
+            DPProcessorTestHelpers.AssertExtractorAttached(mocks.MockExtractor);
+            DPProcessorTestHelpers.AssertExtractorDetached(mocks.MockExtractor);
         }
 
         [TestMethod]
@@ -799,6 +823,8 @@ namespace DAZ_Installer.Core.Tests
             await Task.WhenAll(assertTasks);
 
             processorTask.Assert();
+            DPProcessorTestHelpers.AssertExtractorAttached(mocks.MockExtractor);
+            DPProcessorTestHelpers.AssertExtractorDetached(mocks.MockExtractor);
         }
 
         [TestMethod]
@@ -869,6 +895,8 @@ namespace DAZ_Installer.Core.Tests
             mocks.MockArchive.VerifySet(x => x.Type = It.IsAny<ArchiveType>(), Times.Once(), "Processor did not set Archive.Type");
             processorMocks.MockTagProvider.Verify(x => x.GetTags(arc, DefaultProcessSettings), Times.Once(), "Processor did not call GetTags on the TagProvider with process settings");
             processorMocks.MockFakeTempDirectoryInfo.Verify(x => x.Delete(true), Times.Once(), "Processor did not attempt to delete temp directory.");
+            DPProcessorTestHelpers.AssertExtractorAttached(mocks.MockExtractor);
+            DPProcessorTestHelpers.AssertExtractorDetached(mocks.MockExtractor);
         }
 
         [TestMethod]
@@ -917,6 +945,8 @@ namespace DAZ_Installer.Core.Tests
 
             processorTask.Assert();
             StringAssert.Contains(bufferLogger.ToString(), "Temp location does not have enough space and there is no event handler for ProcessError");
+            DPProcessorTestHelpers.AssertExtractorAttached(mocks.MockExtractor);
+            DPProcessorTestHelpers.AssertExtractorDetached(mocks.MockExtractor);
         }
 
         [TestMethod]
@@ -985,6 +1015,8 @@ namespace DAZ_Installer.Core.Tests
             mocks.MockArchive.VerifySet(x => x.Type = It.IsAny<ArchiveType>(), Times.Once(), "Processor did not set Archive.Type");
             processorMocks.MockTagProvider.Verify(x => x.GetTags(arc, DefaultProcessSettings), Times.Once(), "Processor did not call GetTags on the TagProvider with process settings");
             processorMocks.MockFakeTempDirectoryInfo.Verify(x => x.Delete(true), Times.Never(), "Processor did not attempt to delete temp directory.");
+            DPProcessorTestHelpers.AssertExtractorAttached(mocks.MockExtractor);
+            DPProcessorTestHelpers.AssertExtractorDetached(mocks.MockExtractor);
         }
 
         [TestMethod]
@@ -1253,6 +1285,8 @@ namespace DAZ_Installer.Core.Tests
                 DPProcessorTestHelpers.VerifyExtractContentsCalled(true, mocks[i].MockArchive, expectedExtractSettings, Times.Once());
                 mocks[i].MockArchive.VerifySet(x => x.Type = It.IsAny<ArchiveType>(), Times.Once(), $"Processor did not set Archive.Type for archive {i}");
                 processorMocks.MockTagProvider.Verify(x => x.GetTags(arc, DefaultProcessSettings), Times.Once(), $"Processor did not call GetTags on the TagProvider with process settings for archive {i}");
+                DPProcessorTestHelpers.AssertExtractorAttached(mocks[i].MockExtractor);
+                DPProcessorTestHelpers.AssertExtractorDetached(mocks[i].MockExtractor);
             }
 
             processorMocks.MockFakeTempDirectoryInfo.Verify(x => x.Delete(true), Times.Never(), "Processor attempted to delete temp directory.");

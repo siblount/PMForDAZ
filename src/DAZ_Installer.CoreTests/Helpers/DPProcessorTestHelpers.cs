@@ -543,30 +543,6 @@ namespace DAZ_Installer.Core.Tests
 
         public static async Task AssertAnyProcessorError(DPProcessor processor, AssertableTask processorTask, params DPProcessorErrorArgs[] expected)
         {
-            //var progressEvents = new List<DPExtractProgressArgs>();
-            //void func(DPProcessor p, DPExtractProgressArgs e)
-            //{
-            //    progressEvents.Add(e);
-            //}
-            //processor.ExtractProgress += func;
-
-            //await processorTask;
-
-            //processor.ExtractProgress -= func;
-
-            //processorTask.AddAssertion(() =>
-            //{
-            //    if (progressEvents.Count == 0) Assert.Fail("ExtractProgress was not called");
-            //    var matchingProgress = progressEvents.FirstOrDefault(e =>
-            //        expectedArgs.Any(expected =>
-            //            e.ExtractionPercentage == expected.ExtractionPercentage &&
-            //            e.Archive == expected.Archive &&
-            //            e.File == expected.File
-            //        )
-            //    );
-            //    if (matchingProgress == null)
-            //        Assert.Fail($"No matching ExtractProgress event found. Expected one of: [{string.Join(", ", expectedArgs.Select(a => $"{{Archive: {a.Archive.FileName}, File: {a.File?.Path}, Percentage: {a.ExtractionPercentage}}}"))}]");
-            //});
             var processorErrorEvents = new List<DPProcessorErrorArgs>(2);
             async Task func(IDPProcessor p, DPProcessorErrorArgs e)
             {
@@ -589,6 +565,28 @@ namespace DAZ_Installer.Core.Tests
                 if (matchingError == null)
                     Assert.Fail($"No matching ProcessError event found. Expected one of: [{string.Join(", ", expected.Select(a => $"{{Explaination: {a.Explaination}, Ex: {a.Ex}, Continuable: {a.Continuable}}}"))}]");
             });
+        }
+
+        /// <summary>
+        /// Asserts that the <see cref="DPAbstractExtractor"/> is detached from the <see cref="DPProcessor"/>.
+        /// </summary>
+        /// <param name="extractor">The mock extractor to verify</param>
+        /// <param name="times">How many times the removal of the events should be, by default it is <see cref="Times.AtLeastOnce()"/></param>
+        public static void AssertExtractorDetached(Mock<DPAbstractExtractor> extractor, Times? times = null)
+        {
+            extractor.VerifyRemove(x => x.ArchiveErrored -= It.IsAny<DPArchiveEventHandler<DPArchiveErrorArgs>>(), times ?? Times.AtLeastOnce());
+            extractor.VerifyRemove(x => x.ExtractProgress -= It.IsAny<DPArchiveEventHandler<DPExtractProgressArgs>>(), times ?? Times.AtLeastOnce());
+        }
+
+        /// <summary>
+        /// Asserts that the <see cref="DPAbstractExtractor"/> is attached by the <see cref="DPProcessor"/>.
+        /// </summary>
+        /// <param name="extractor">The mock extractor to verify</param>
+        /// <param name="times">How many times the additional of the events should be, by default it is <see cref="Times.AtLeastOnce()"/></param>
+        public static void AssertExtractorAttached(Mock<DPAbstractExtractor> extractor, Times? times = null)
+        {
+            extractor.VerifyAdd(x => x.ArchiveErrored += It.IsAny<DPArchiveEventHandler<DPArchiveErrorArgs>>(), times ?? Times.AtLeastOnce());
+            extractor.VerifyAdd(x => x.ExtractProgress += It.IsAny<DPArchiveEventHandler<DPExtractProgressArgs>>(), times ?? Times.AtLeastOnce());
         }
 
         /// <summary>
