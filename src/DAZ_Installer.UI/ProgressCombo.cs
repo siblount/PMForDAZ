@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Serilog;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
@@ -51,7 +52,10 @@ namespace DAZ_Installer.UI
         {
             if (InvokeRequired)
             {
-                BeginInvoke(StartProgress);
+                Invoke(StartProgress); // Changed to Invoke, otherwise CancellationTokenSource would always be outdated
+                              // by the time the user clicks to cancel, the progress is using a new one
+                              // but we gave DPExtractJob an old one because the BeginInvoke, even though
+                              // this is called first, would actually be executed after DPExtractJob calls for the Token, thus making it outdated.
                 return;
             }
             CancellationTokenSource = new();
