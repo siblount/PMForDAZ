@@ -28,10 +28,12 @@
         /// </summary>
         private void InitializeComponent()
         {
+            components = new System.ComponentModel.Container();
             progressBarLbl = new Label();
             progressBar = new ProgressBar();
             cancelBtn = new Button();
             mainProcLbl = new Label();
+            toolTip1 = new ToolTip(components);
             SuspendLayout();
             // 
             // progressBarLbl
@@ -66,6 +68,7 @@
             cancelBtn.Size = new Size(52, 46);
             cancelBtn.TabIndex = 2;
             cancelBtn.Text = "X";
+            toolTip1.SetToolTip(cancelBtn, "Cancel the current extract job (this will attempt to stop processing pending archives)");
             cancelBtn.UseVisualStyleBackColor = true;
             cancelBtn.Click += cancelBtn_Click;
             // 
@@ -100,5 +103,6 @@
         private ProgressBar progressBar;
         private Button cancelBtn;
         internal Label mainProcLbl;
+        private ToolTip toolTip1;
     }
 }
