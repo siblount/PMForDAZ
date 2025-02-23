@@ -116,6 +116,7 @@ namespace DAZ_Installer.Windows.DP
         public Task DoJob()
         {
             TaskJob = ExtractJobs.AddToQueue(ProcessArchivesAsync);
+            ExtractView.AddToQueue(this);
             return TaskJob;
         }
 
@@ -366,7 +367,6 @@ namespace DAZ_Installer.Windows.DP
                     ForceFileToDest = [],
                 };
                 SetupEventHandlers();
-                ExtractView.AddToQueue(this);
 
                 var c = InitialFilesToProcess.Length;
                 for (var i = 0; i < c; i++)
