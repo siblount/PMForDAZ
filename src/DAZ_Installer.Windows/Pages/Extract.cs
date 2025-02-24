@@ -283,50 +283,66 @@ namespace DAZ_Installer.Windows.Pages
         }
 
         /// <inheritdoc/>
-        public void ShowFileHierachyTab(IDPArchive archive) {
+        public void ShowFileHierachyTab(IDPArchive archive)
+        {
             if (archive.Contents.Count == 0) return;
-            if (InvokeRequired) {
+            if (InvokeRequired)
+            {
                 BeginInvoke(() => ShowFileHierachyTab(archive));
                 return;
             }
 
-            try {
+            try
+            {
                 fileHierachyTree.BeginUpdate();
                 if (fileHierachyShowing)
                     fileHierachyTree.Nodes.Clear();
                 AddToHierachy(archive);
-            } catch (Exception ex) {
+            }
+            catch (Exception ex)
+            {
                 Logger.Error(ex, "Failed to add the archive contents to file hierachy");
-            } finally {
+            }
+            finally
+            {
                 fileHierachyTree.EndUpdate();
             }
 
-            if (!fileHierachyShowing) {
+            if (!fileHierachyShowing)
+            {
                 tabControl1.Controls.Add(fileHierachyPage);
                 fileHierachyShowing = true;
             }
         }
 
         /// <inheritdoc/>
-        public void ShowFileListTab(IDPArchive archive) {
+        public void ShowFileListTab(IDPArchive archive)
+        {
             if (archive.Contents.Count == 0) return;
-            if (InvokeRequired) {
+            if (InvokeRequired)
+            {
                 BeginInvoke(() => ShowFileHierachyTab(archive));
                 return;
             }
 
-            try {
+            try
+            {
                 fileListView.BeginUpdate();
                 if (fileListShowing)
                     fileListView.Items.Clear();
                 AddToList(archive);
-            } catch (Exception ex) {
+            }
+            catch (Exception ex)
+            {
                 Logger.Error(ex, "Failed to add the archive contents to file list");
-            } finally {
+            }
+            finally
+            {
                 fileListView.EndUpdate();
             }
 
-            if (!fileListShowing) {
+            if (!fileListShowing)
+            {
                 tabControl1.Controls.Add(fileListPage);
                 fileListShowing = true;
             }
@@ -375,17 +391,37 @@ namespace DAZ_Installer.Windows.Pages
 
         private void queueContextStrip_Opening(object sender, CancelEventArgs e)
         {
-            if (queueListView.SelectedItems.Count is 0)
-            {
-                viewFileHierachyToolStripMenuItem.Visible = viewFileListToolStripMenuItem.Visible = viewStripSeperator.Visible =
-                cancelExtractJobToolStripMenuItem.Enabled = skipArchiveToolStripMenuItem.Enabled = false;
-            }
-            viewFileHierachyToolStripMenuItem.Visible = viewFileListToolStripMenuItem.Visible = viewStripSeperator.Visible = queueListView.SelectedItems.Count is 1;
+            QueueController.OnContextMenu(sender, e);
+        }
 
+        private void skipArchiveToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            QueueController.OnSkipArchive();
+        }
 
-            // Only show cancel current archive or job if there is a running job.
-            cancelCurrentArchiveToolStripMenuItem.Enabled = cancelExtractJobToolStripMenuItem.Enabled = 
-                extractJobs.Any(job => job.TaskJob is not null && job.TaskJob.Status is TaskStatus.Running);
+        private void cancelCurrentArchiveToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            QueueController.OnCancelCurrentArchive();
+        }
+
+        private void cancelExtractJobToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            QueueController.OnCancelJob();
+        }
+
+        private void cancelCurrentExtractJobToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            QueueController.OnCancelCurrentJob();
+        }
+
+        private void viewFileListToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            QueueController.OnViewFileList();
+        }
+
+        private void viewFileHierachyToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            QueueController.OnViewHierachy();
         }
     }
 

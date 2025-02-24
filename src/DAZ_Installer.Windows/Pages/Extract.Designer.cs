@@ -40,9 +40,9 @@ namespace DAZ_Installer.Windows.Pages
             errorMessageHeader = new System.Windows.Forms.ColumnHeader();
             queueContextStrip = new System.Windows.Forms.ContextMenuStrip(components);
             skipArchiveToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            cancelExtractJobToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            cancelStripSeperator = new System.Windows.Forms.ToolStripSeparator();
             cancelCurrentArchiveToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            cancelStripSeperator = new System.Windows.Forms.ToolStripSeparator();
+            cancelExtractJobToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             cancelCurrentExtractJobToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             viewStripSeperator = new System.Windows.Forms.ToolStripSeparator();
             viewFileListToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
@@ -116,6 +116,7 @@ namespace DAZ_Installer.Windows.Pages
             queueListView.LabelWrap = false;
             queueListView.Location = new System.Drawing.Point(4, 2);
             queueListView.Name = "queueListView";
+            queueListView.ShowItemToolTips = true;
             queueListView.Size = new System.Drawing.Size(477, 105);
             queueListView.SmallImageList = archiveFolderIcons;
             queueListView.StateImageList = statusIcons;
@@ -137,7 +138,7 @@ namespace DAZ_Installer.Windows.Pages
             // 
             queueContextStrip.Items.AddRange(new System.Windows.Forms.ToolStripItem[] { skipArchiveToolStripMenuItem, cancelCurrentArchiveToolStripMenuItem, cancelStripSeperator, cancelExtractJobToolStripMenuItem, cancelCurrentExtractJobToolStripMenuItem, viewStripSeperator, viewFileListToolStripMenuItem, viewFileHierachyToolStripMenuItem });
             queueContextStrip.Name = "queueContextStrip";
-            queueContextStrip.Size = new System.Drawing.Size(211, 170);
+            queueContextStrip.Size = new System.Drawing.Size(211, 148);
             queueContextStrip.Opening += queueContextStrip_Opening;
             // 
             // skipArchiveToolStripMenuItem
@@ -145,29 +146,33 @@ namespace DAZ_Installer.Windows.Pages
             skipArchiveToolStripMenuItem.Name = "skipArchiveToolStripMenuItem";
             skipArchiveToolStripMenuItem.Size = new System.Drawing.Size(210, 22);
             skipArchiveToolStripMenuItem.Text = "Skip archive";
-            // 
-            // cancelExtractJobToolStripMenuItem
-            // 
-            cancelExtractJobToolStripMenuItem.Name = "cancelExtractJobToolStripMenuItem";
-            cancelExtractJobToolStripMenuItem.Size = new System.Drawing.Size(210, 22);
-            cancelExtractJobToolStripMenuItem.Text = "Cancel extract job";
-            // 
-            // cancelStripSeperator
-            // 
-            cancelStripSeperator.Name = "cancelStripSeperator";
-            cancelStripSeperator.Size = new System.Drawing.Size(207, 6);
+            skipArchiveToolStripMenuItem.Click += skipArchiveToolStripMenuItem_Click;
             // 
             // cancelCurrentArchiveToolStripMenuItem
             // 
             cancelCurrentArchiveToolStripMenuItem.Name = "cancelCurrentArchiveToolStripMenuItem";
             cancelCurrentArchiveToolStripMenuItem.Size = new System.Drawing.Size(210, 22);
             cancelCurrentArchiveToolStripMenuItem.Text = "Cancel current archive";
+            cancelCurrentArchiveToolStripMenuItem.Click += cancelCurrentArchiveToolStripMenuItem_Click;
+            // 
+            // cancelStripSeperator
+            // 
+            cancelStripSeperator.Name = "cancelStripSeperator";
+            cancelStripSeperator.Size = new System.Drawing.Size(207, 6);
+            // 
+            // cancelExtractJobToolStripMenuItem
+            // 
+            cancelExtractJobToolStripMenuItem.Name = "cancelExtractJobToolStripMenuItem";
+            cancelExtractJobToolStripMenuItem.Size = new System.Drawing.Size(210, 22);
+            cancelExtractJobToolStripMenuItem.Text = "Cancel extract job";
+            cancelExtractJobToolStripMenuItem.Click += cancelExtractJobToolStripMenuItem_Click;
             // 
             // cancelCurrentExtractJobToolStripMenuItem
             // 
             cancelCurrentExtractJobToolStripMenuItem.Name = "cancelCurrentExtractJobToolStripMenuItem";
             cancelCurrentExtractJobToolStripMenuItem.Size = new System.Drawing.Size(210, 22);
             cancelCurrentExtractJobToolStripMenuItem.Text = "Cancel current extract job";
+            cancelCurrentExtractJobToolStripMenuItem.Click += cancelCurrentExtractJobToolStripMenuItem_Click;
             // 
             // viewStripSeperator
             // 
@@ -179,12 +184,14 @@ namespace DAZ_Installer.Windows.Pages
             viewFileListToolStripMenuItem.Name = "viewFileListToolStripMenuItem";
             viewFileListToolStripMenuItem.Size = new System.Drawing.Size(210, 22);
             viewFileListToolStripMenuItem.Text = "View File List";
+            viewFileListToolStripMenuItem.Click += viewFileListToolStripMenuItem_Click;
             // 
             // viewFileHierachyToolStripMenuItem
             // 
             viewFileHierachyToolStripMenuItem.Name = "viewFileHierachyToolStripMenuItem";
             viewFileHierachyToolStripMenuItem.Size = new System.Drawing.Size(210, 22);
             viewFileHierachyToolStripMenuItem.Text = "View File Hierachy";
+            viewFileHierachyToolStripMenuItem.Click += viewFileHierachyToolStripMenuItem_Click;
             // 
             // statusIcons
             // 
