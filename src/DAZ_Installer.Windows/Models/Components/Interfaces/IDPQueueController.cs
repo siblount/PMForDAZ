@@ -46,6 +46,10 @@ namespace DAZ_Installer.Windows.DP
         /// </summary>
         public void OnCancelJob();
         /// <summary>
+        /// Handles the cancel current job context menu event.
+        /// </summary>
+        public void OnCancelCurrentJob();
+        /// <summary>
         /// Handles the cancel current archive context menu event.
         /// </summary>
         public void OnCancelCurrentArchive();

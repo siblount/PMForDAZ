@@ -66,7 +66,8 @@ namespace DAZ_Installer.Windows.DP
             try
             {
                 var groupKey = job.GetHashCode().ToString();
-                queueListView.Groups.Add(groupKey, $"Extract Job {letter}");
+                var group = queueListView.Groups.Add(groupKey, $"Extract Job {letter}");
+                group.Tag = job;
                 foreach (string file in job.InitialFilesToProcess)
                 {
                     var normalizedFilePath = PathHelper.NormalizePath(file);
@@ -74,9 +75,10 @@ namespace DAZ_Installer.Windows.DP
                     ListViewItem item = queueListView.Items.Add(visibleArchiveName);
                     var queueItem = new QueueItem(item, job, normalizedFilePath);
                     associatedQueueItems.Add(normalizedFilePath, queueItem);
+                    Logger.Debug("Added item with key: {key}", normalizedFilePath);
                     item.Tag = queueItem;
                     item.ToolTipText = "This archive is in the queue because it was manually added to the queue.";
-                    item.Group = queueListView.Groups[groupKey];
+                    item.Group = group;
                 }
             }
             catch (Exception ex)
@@ -109,10 +111,11 @@ namespace DAZ_Installer.Windows.DP
                 {
                     UpdateQueueItem(job, info);
                 }
+                UpdateGroups();
             }
             catch (Exception ex)
             {
-                Logger.Error(ex, "An unexpected error occured when attempting to update all archive infos");
+                Logger.Error(ex, "An unexpected error occured when attempting to update the view for all queue items");
             }
             finally
             {
@@ -130,7 +133,7 @@ namespace DAZ_Installer.Windows.DP
             }
             catch (Exception ex)
             {
-                Logger.Error(ex, "An unexpected error occured when handling extract job status update");
+                Logger.Error(ex, "An unexpected error occured when attempting to update the view");
             }
             finally
             {
@@ -171,6 +174,19 @@ namespace DAZ_Installer.Windows.DP
         {
             // Get the selected items and find their associated jobs and cancel them.
             queueListView.SelectedItems.OfType<ListViewItem>().Select(item => item.Tag).OfType<QueueItem>().Select(queueItem => queueItem.associatedJob).Distinct().ToList().ForEach(job => job.CancelJob());
+        }
+
+        /// <inheritdoc/>
+        public void OnCancelCurrentJob()
+        {
+            foreach (var job in extractJobs)
+            {
+                if (job is { TaskJob.Status: TaskStatus.Running })
+                {
+                    job.CancelJob();
+                    return;
+                }
+            }
         }
 
         /// <inheritdoc/>
@@ -282,6 +298,24 @@ namespace DAZ_Installer.Windows.DP
             else Logger.Error("Failed to update associated queue item due to null queue item for arc: {arc}", info.FilePath);
         }
 
+        private void UpdateGroups()
+        {
+            foreach (ListViewGroup group in queueListView.Groups)
+            {
+                if (group.Tag is IDPExtractJob job)
+                {
+                    if (job.TaskJob is { Status: TaskStatus.Running }) group.Subtitle = "Current";
+                    else if (job.TaskJob is { Status: TaskStatus.WaitingForActivation or TaskStatus.WaitingToRun or TaskStatus.Created }) group.Subtitle = "Pending";
+                    else if (job.TaskJob is { Status: TaskStatus.RanToCompletion or TaskStatus.Faulted or TaskStatus.Canceled }) group.Subtitle = "Finished";
+                }
+                else
+                {
+                    Logger.Error("Got unknown or null tag for group, cannot update group: {group}", group.Header);
+                    group.Subtitle = "Unknown";
+                }
+            }
+        }
+
         private ListViewItem? EnsureAssociatedQueueItem(IDPExtractJob caller, DPArchiveInfo info)
         {
             if (associatedQueueItems.TryGetValue(info.FilePath, out var item)) return item.associatedListItem;
@@ -295,6 +329,7 @@ namespace DAZ_Installer.Windows.DP
                 item = new QueueItem(listItem, caller, info.FilePath);
                 listItem.Tag = item;
                 associatedQueueItems.Add(info.FilePath, item);
+                Logger.Debug("Added item with key: {key}", info.FilePath);
 
                 SetTooltipMessageForArchiveQueueListViewItem(info, item.associatedListItem);
                 try
@@ -309,7 +344,7 @@ namespace DAZ_Installer.Windows.DP
             }
             catch (Exception ex)
             {
-                Logger.Error(ex, "Failed to esnure associated queue item for job {@job} with info {@info}", caller, info);
+                Logger.Error(ex, "Failed to ensure associated queue item for job {@job} with info {@info}", caller, info);
             }
             finally
             {

@@ -143,7 +143,7 @@ namespace DAZ_Installer.Windows.DP
             if (Processor.CurrentArchive is null) return;
             Processor.CancelCurrentArchive();
             if (Processor.CurrentArchive.FileInfo is not null)
-                SetArchiveStatus(Processor.CurrentArchive.FileInfo.Path, DPArchiveStatus.CancellationRequested);
+                SetArchiveStatus(PathHelper.NormalizePath(Processor.CurrentArchive.FileInfo.Path), DPArchiveStatus.CancellationRequested);
             else Logger.Error("Failed to set archive status of current archive due to null FileInfo");
         }
 
@@ -238,7 +238,7 @@ namespace DAZ_Installer.Windows.DP
             CancelIfRequested(Processor.CurrentArchive);
             if (Processor.State == ProcessorState.PreparingExtraction)
             {
-                SetArchiveStatus(Processor.CurrentArchive.FileInfo.Path, DPArchiveStatus.Processing);
+                SetArchiveStatus(PathHelper.NormalizePath(Processor.CurrentArchive.FileInfo.Path), DPArchiveStatus.Processing);
             }
             else UpdateExtractView(Processor.CurrentArchive.FileInfo.Path);
             ExtractView.OnProcessorStateUpdate(Processor);
@@ -271,7 +271,7 @@ namespace DAZ_Installer.Windows.DP
                     _ => DPArchiveStatus.Failed
                 };
             }
-            SetArchiveStatus(e.Archive.FileInfo!.Path, status);
+            SetArchiveStatus(PathHelper.NormalizePath(e.Archive.FileInfo!.Path), status);
 
             if (!e.Processed) return;
             if (e.Report is not null) {
@@ -442,7 +442,7 @@ namespace DAZ_Installer.Windows.DP
             
             if (callProcessor) Processor.CancelCurrentArchive();
 
-            SetArchiveStatus(archivePath, callProcessor ? DPArchiveStatus.Cancelled: DPArchiveStatus.CancellationRequested);
+            SetArchiveStatus(PathHelper.NormalizePath(archivePath), callProcessor ? DPArchiveStatus.Cancelled: DPArchiveStatus.CancellationRequested);
                 
             return IsInCancellableState(archiveInfo.Status);
         }
@@ -481,7 +481,7 @@ namespace DAZ_Installer.Windows.DP
                 archiveInfo = archiveInfoWithArchive;
             // If we created a new archive (ex: for a nested archive) and the parent is scheduled for cancellation, then
             // mark the nested archive for cancellation.
-            if (archive.Parent is not null && ArchiveInfosMap.TryGetValue(archive.Parent.Path, out DPArchiveInfo? value) 
+            if (archive.AssociatedArchive is { FileInfo: not null } && ArchiveInfosMap.TryGetValue(archive.AssociatedArchive.FileInfo.Path, out DPArchiveInfo? value) 
                                             && IsInCancellableState(value.Status))
                 SetArchiveStatus(archiveInfo.FilePath, DPArchiveStatus.CancellationPending);
             return archiveInfo;
