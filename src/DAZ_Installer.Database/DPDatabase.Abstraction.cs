@@ -400,11 +400,11 @@ namespace DAZ_Installer.Database
                     Logger.Error("GetLastProductID returned 0");
                     return false;
                 }
+
                 using var transaction = connection.BeginTransaction(ref opts);
                 var insertCommand = $"INSERT OR REPLACE INTO {FilesTable} VALUES ({pid}, @A0);";
                 using var sqlCommand = connection.CreateCommand(insertCommand);
-
-                var filesString = JoinString(", ", files, 70);
+                var filesString = JoinString(", ", files, 999);
                 var param = new SqliteParameter("@A0", filesString is null ? DBNull.Value : filesString);
                 sqlCommand.Parameters.Add(param);
                 sqlCommand.ExecuteNonQuery();
@@ -875,7 +875,7 @@ namespace DAZ_Installer.Database
         /// <param name="command">The command to add parameters into. Cannot be null.</param>
         /// <param name="cArgs">The argument placeholders to fill. Cannot be null.</param>
         /// <param name="values">The values to replace placeholders with. Cannot be null.</param>
-        private void FillParamsToConnection(DbCommand command, IReadOnlyList<string> cArgs, params object[] values)
+        private void FillParamsToConnection(DbCommand command, IReadOnlyList<string> cArgs, params object?[] values)
         {
             for (var i = 0; i < cArgs.Count; i++)
             {
