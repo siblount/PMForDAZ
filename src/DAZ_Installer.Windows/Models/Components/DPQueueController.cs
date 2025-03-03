@@ -77,7 +77,7 @@ namespace DAZ_Installer.Windows.DP
                     associatedQueueItems.Add(normalizedFilePath, queueItem);
                     Logger.Debug("Added item with key: {key}", normalizedFilePath);
                     item.Tag = queueItem;
-                    item.ToolTipText = "This archive is in the queue because it was manually added to the queue.";
+                    item.ToolTipText = "Manually added to queue";
                     item.Group = group;
                 }
             }
@@ -173,7 +173,9 @@ namespace DAZ_Installer.Windows.DP
         public void OnCancelJob()
         {
             // Get the selected items and find their associated jobs and cancel them.
-            queueListView.SelectedItems.OfType<ListViewItem>().Select(item => item.Tag).OfType<QueueItem>().Select(queueItem => queueItem.associatedJob).Distinct().ToList().ForEach(job => job.CancelJob());
+            queueListView.SelectedItems.OfType<ListViewItem>().Select(item => item.Tag).OfType<QueueItem>()
+                                       .Select(queueItem => queueItem.associatedJob).Distinct().ToList()
+                                       .ForEach(job => job.CancelJob());
         }
 
         /// <inheritdoc/>
@@ -276,8 +278,8 @@ namespace DAZ_Installer.Windows.DP
 
             if (queueListView.SelectedItems[0].Tag is QueueItem item) {
                if (item.associatedJob.GetArchiveInfosSnapshot().TryGetValue(item.archiveInfoKey, out var archiveInfo)) {
-                if (archiveInfo.Archive is not null) 
-                    extractView.ShowFileListTab(archiveInfo.Archive);
+                    if (archiveInfo.Archive is not null)
+                        extractView.ShowFileHierachyTab(archiveInfo.Archive);
                } else {
                 Logger.Error("Cannot view file list because archive info snapshot did not contain the key associated with the list item for item: {item}",
                     queueListView.SelectedItems[0].Text);
@@ -294,6 +296,7 @@ namespace DAZ_Installer.Windows.DP
                 item.ForeColor = DetermineColorForArchive(info);
                 item.StateImageIndex = DetermineImageIndexForArchive(info);
                 DetermineErrorMessage(info, item);
+                SetTooltipMessageForArchiveQueueListViewItem(info, item);
             }
             else Logger.Error("Failed to update associated queue item due to null queue item for arc: {arc}", info.FilePath);
         }
@@ -355,10 +358,33 @@ namespace DAZ_Installer.Windows.DP
 
         private static void SetTooltipMessageForArchiveQueueListViewItem(DPArchiveInfo info, ListViewItem item)
         {
-            if (info is { Archive.IsInnerArchive: true })
-                item.ToolTipText = "This archive is in the queue because the processor deemed it necessary to process it. " +
-                                   (info.Archive is { AssociatedArchive: { } } ? $"The parent archive is {info.Archive.AssociatedArchive.FileName}." : "");
-            else item.ToolTipText = "This archive is in the queue because it was manually added to the queue.";
+            StringBuilder sb = new(100);
+            
+            // Add source information
+            if (info.Archive is { AssociatedArchive: { }}) 
+                sb.AppendFormat("Automatically extracted from {0}\n", info.Archive.AssociatedArchive.FileName);
+            else sb.AppendLine("Manually added to queue");
+
+            // Add status information
+            string statusMessage = info.Status switch
+            {
+                DPArchiveStatus.Cancelled when info.Flags.HasFlag(DPArchiveInfo.InfoFlags.ProductAlreadyExists)
+                    => "Skipped - Product already exists in library",
+                DPArchiveStatus.Cancelled 
+                    => "Cancelled by user",
+                DPArchiveStatus.Failed 
+                    => "Failed to extract",
+                DPArchiveStatus.Completed 
+                    => "Successfully processed",
+                DPArchiveStatus.CompletedWithIssues 
+                    => "Completed with some extraction errors",
+                _ => string.Empty
+            };
+
+            if (!string.IsNullOrEmpty(statusMessage)) 
+                sb.Append(statusMessage);
+
+            item.ToolTipText = sb.ToString();
         }
 
         /// <summary>
@@ -393,6 +419,11 @@ namespace DAZ_Installer.Windows.DP
 
             switch (info.Status)
             {
+                case DPArchiveStatus.Cancelled:
+                    if (info.Flags.HasFlag(DPArchiveInfo.InfoFlags.ProductAlreadyExists)) 
+                        subItem.Text = "Product already exists";
+                    else if (info.Errors.Count != 0) subItem.Text = "Cancelled with errors";
+                        break;
                 case DPArchiveStatus.CompletedWithIssues:
                     subItem.Text = info.Errors.Count == 0 ? "Completed but some files were not extracted" : "Completed with errors";
                     break;
@@ -405,10 +436,6 @@ namespace DAZ_Installer.Windows.DP
                         subItem.Text = info.Errors[0].Exception?.Message ?? info.Errors[0].Explanation;
                     else
                         subItem.Text = "Failed to extract due to an unknown error";
-                    break;
-                case DPArchiveStatus.Cancelled:
-                    if (info.Errors.Count != 0)
-                        subItem.Text = "Cancelled with errors";
                     break;
             }
         }
