@@ -39,7 +39,7 @@ namespace DAZ_Installer.Core
             get
             {
                 if (!IsInnerArchive && FileInfo is not null) return FileInfo.Name;
-                else if (!IsInnerArchive) Logger.Warning("Expected FileInfo to be not null when IsInnerArchive is true. Falling back to base.");
+                else if (!IsInnerArchive) Logger.Warning("FileInfo should not be null when IsInnerArchive is false, falling back to base.");
                 return base.FileName;
             }
         }
@@ -48,7 +48,7 @@ namespace DAZ_Installer.Core
             get
             {
                 if (!IsInnerArchive && FileInfo is not null) return GetExtension(FileInfo.Name ?? string.Empty);
-                else if (IsInnerArchive) Logger.Warning("Expected FileInfo to be not null when IsInnerArchive is true. Falling back to base.");
+                else if (!IsInnerArchive) Logger.Warning("FileInfo should not be null when IsInnerArchive is false, falling back to base");
                 return base.Ext;
             }
         }
