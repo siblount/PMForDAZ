@@ -20,6 +20,7 @@ namespace DAZ_Installer.Windows.DP
                                    IExtractView extractView,
                                    ToolStripMenuItem viewHierachyItem,
                                    ToolStripMenuItem viewFileListItem,
+                                   ToolStripMenuItem viewErrorsItem,
                                    ToolStripSeparator viewSeperator,
                                    ToolStripMenuItem cancelJobItem,
                                    ToolStripMenuItem cancelCurrentJobItem,
@@ -201,6 +202,8 @@ namespace DAZ_Installer.Windows.DP
                 return;
             }
 
+            viewErrorsItem.Enabled = false;
+
             // Hide elements that are only for selected items.
             if (queueListView.SelectedItems.Count is 0)
             {
@@ -217,6 +220,7 @@ namespace DAZ_Installer.Windows.DP
                     {
                         viewHierachyItem.Enabled = viewFileListItem.Enabled = info.Archive?.Contents.Count is not 0;
                         skipArchiveItem.Enabled = !IsCompletedOrScheduledForCancellation(info);
+                        viewErrorsItem.Enabled = info.Errors.Count != 0;
                     } else Logger.Error("Could not check archive status for context menu; Extract job snapshot did not contain archive info for key: {key}", item.archiveInfoKey);
                 } else Logger.Error("The selected item did not have an QueueItem tag set for item: {item}", queueListView.SelectedItems[0].Text);
                 viewHierachyItem.Visible = viewFileListItem.Visible = viewSeperator.Visible = true;
@@ -285,6 +289,32 @@ namespace DAZ_Installer.Windows.DP
                     queueListView.SelectedItems[0].Text);
                }
             } else Logger.Error("Cannot view file list due to a missing/unexpected Tag for item: {item}", 
+                queueListView.SelectedItems[0].Text);
+        }
+
+        /// <inheritdoc/>
+        public void OnViewErrors()
+        {
+            if (queueListView.SelectedItems.Count is not 1)
+            {
+                Logger.Warning("OnViewHierachy should not have been called for a count that is not 1");
+                return;
+            }
+
+            if (queueListView.SelectedItems[0].Tag is QueueItem item)
+            {
+                if (item.associatedJob.GetArchiveInfosSnapshot().TryGetValue(item.archiveInfoKey, out var archiveInfo))
+                {
+                    if (archiveInfo.Errors.Count > 0)
+                        extractView.ShowErrorsTab(archiveInfo);
+                }
+                else
+                {
+                    Logger.Error("Cannot view file list because archive info snapshot did not contain the key associated with the list item for item: {item}",
+                        queueListView.SelectedItems[0].Text);
+                }
+            }
+            else Logger.Error("Cannot view file list due to a missing/unexpected Tag for item: {item}",
                 queueListView.SelectedItems[0].Text);
         }
 

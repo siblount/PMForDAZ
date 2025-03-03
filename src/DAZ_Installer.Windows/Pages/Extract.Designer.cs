@@ -33,6 +33,7 @@ namespace DAZ_Installer.Windows.Pages
             System.Windows.Forms.ListViewGroup listViewGroup1 = new System.Windows.Forms.ListViewGroup("No extraction jobs processed yet", System.Windows.Forms.HorizontalAlignment.Left);
             System.Windows.Forms.ListViewItem listViewItem1 = new System.Windows.Forms.ListViewItem("");
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(Extract));
+            System.Windows.Forms.ListViewItem listViewItem2 = new System.Windows.Forms.ListViewItem(new string[] { "Ligma", "Balls" }, -1);
             tabControl1 = new System.Windows.Forms.TabControl();
             queuePage = new System.Windows.Forms.TabPage();
             queueListView = new System.Windows.Forms.ListView();
@@ -47,6 +48,7 @@ namespace DAZ_Installer.Windows.Pages
             viewStripSeperator = new System.Windows.Forms.ToolStripSeparator();
             viewFileListToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             viewFileHierachyToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            viewErrorsToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             statusIcons = new System.Windows.Forms.ImageList(components);
             archiveFolderIcons = new System.Windows.Forms.ImageList(components);
             fileListPage = new System.Windows.Forms.TabPage();
@@ -59,11 +61,15 @@ namespace DAZ_Installer.Windows.Pages
             noFilesSelectedToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             fileHierachyPage = new System.Windows.Forms.TabPage();
             fileHierachyTree = new System.Windows.Forms.TreeView();
+            errorsPage = new System.Windows.Forms.TabPage();
+            errorsListView = new System.Windows.Forms.ListView();
+            errorColumn = new System.Windows.Forms.ColumnHeader();
+            explanationColumn = new System.Windows.Forms.ColumnHeader();
             fileHierachyContextStrip = new System.Windows.Forms.ContextMenuStrip(components);
             inspectToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             selectInFileListToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             openInExplorerToolStripMenuItem1 = new System.Windows.Forms.ToolStripMenuItem();
-            progressCombo = new UI.ProgressCombo();
+            progressCombo = new DAZ_Installer.UI.ProgressCombo();
             splitContainer1 = new System.Windows.Forms.SplitContainer();
             tabControl1.SuspendLayout();
             queuePage.SuspendLayout();
@@ -71,6 +77,7 @@ namespace DAZ_Installer.Windows.Pages
             fileListPage.SuspendLayout();
             fileListContextStrip.SuspendLayout();
             fileHierachyPage.SuspendLayout();
+            errorsPage.SuspendLayout();
             fileHierachyContextStrip.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)splitContainer1).BeginInit();
             splitContainer1.Panel1.SuspendLayout();
@@ -82,6 +89,7 @@ namespace DAZ_Installer.Windows.Pages
             tabControl1.Controls.Add(queuePage);
             tabControl1.Controls.Add(fileListPage);
             tabControl1.Controls.Add(fileHierachyPage);
+            tabControl1.Controls.Add(errorsPage);
             tabControl1.Dock = System.Windows.Forms.DockStyle.Fill;
             tabControl1.Location = new System.Drawing.Point(0, 0);
             tabControl1.Margin = new System.Windows.Forms.Padding(4, 2, 4, 2);
@@ -136,9 +144,9 @@ namespace DAZ_Installer.Windows.Pages
             // 
             // queueContextStrip
             // 
-            queueContextStrip.Items.AddRange(new System.Windows.Forms.ToolStripItem[] { skipArchiveToolStripMenuItem, cancelCurrentArchiveToolStripMenuItem, cancelStripSeperator, cancelExtractJobToolStripMenuItem, cancelCurrentExtractJobToolStripMenuItem, viewStripSeperator, viewFileListToolStripMenuItem, viewFileHierachyToolStripMenuItem });
+            queueContextStrip.Items.AddRange(new System.Windows.Forms.ToolStripItem[] { skipArchiveToolStripMenuItem, cancelCurrentArchiveToolStripMenuItem, cancelStripSeperator, cancelExtractJobToolStripMenuItem, cancelCurrentExtractJobToolStripMenuItem, viewStripSeperator, viewFileListToolStripMenuItem, viewFileHierachyToolStripMenuItem, viewErrorsToolStripMenuItem });
             queueContextStrip.Name = "queueContextStrip";
-            queueContextStrip.Size = new System.Drawing.Size(211, 148);
+            queueContextStrip.Size = new System.Drawing.Size(211, 192);
             queueContextStrip.Opening += queueContextStrip_Opening;
             // 
             // skipArchiveToolStripMenuItem
@@ -192,6 +200,13 @@ namespace DAZ_Installer.Windows.Pages
             viewFileHierachyToolStripMenuItem.Size = new System.Drawing.Size(210, 22);
             viewFileHierachyToolStripMenuItem.Text = "View File Hierachy";
             viewFileHierachyToolStripMenuItem.Click += viewFileHierachyToolStripMenuItem_Click;
+            // 
+            // viewErrorsToolStripMenuItem
+            // 
+            viewErrorsToolStripMenuItem.Name = "viewErrorsToolStripMenuItem";
+            viewErrorsToolStripMenuItem.Size = new System.Drawing.Size(210, 22);
+            viewErrorsToolStripMenuItem.Text = "View Errors";
+            viewErrorsToolStripMenuItem.Click += viewErrorsToolStripMenuItem_Click;
             // 
             // statusIcons
             // 
@@ -303,6 +318,39 @@ namespace DAZ_Installer.Windows.Pages
             fileHierachyTree.StateImageList = archiveFolderIcons;
             fileHierachyTree.TabIndex = 0;
             // 
+            // errorsPage
+            // 
+            errorsPage.Controls.Add(errorsListView);
+            errorsPage.Location = new System.Drawing.Point(4, 24);
+            errorsPage.Name = "errorsPage";
+            errorsPage.Padding = new System.Windows.Forms.Padding(3);
+            errorsPage.Size = new System.Drawing.Size(485, 109);
+            errorsPage.TabIndex = 3;
+            errorsPage.Text = "Errors";
+            errorsPage.UseVisualStyleBackColor = true;
+            // 
+            // errorsListView
+            // 
+            errorsListView.Columns.AddRange(new System.Windows.Forms.ColumnHeader[] { errorColumn, explanationColumn });
+            errorsListView.Dock = System.Windows.Forms.DockStyle.Fill;
+            errorsListView.Items.AddRange(new System.Windows.Forms.ListViewItem[] { listViewItem2 });
+            errorsListView.Location = new System.Drawing.Point(3, 3);
+            errorsListView.Name = "errorsListView";
+            errorsListView.Size = new System.Drawing.Size(479, 103);
+            errorsListView.TabIndex = 0;
+            errorsListView.UseCompatibleStateImageBehavior = false;
+            errorsListView.View = System.Windows.Forms.View.Details;
+            // 
+            // errorColumn
+            // 
+            errorColumn.Text = "Error";
+            errorColumn.Width = 300;
+            // 
+            // explanationColumn
+            // 
+            explanationColumn.Text = "Explanation";
+            explanationColumn.Width = 300;
+            // 
             // fileHierachyContextStrip
             // 
             fileHierachyContextStrip.ImageScalingSize = new System.Drawing.Size(20, 20);
@@ -367,6 +415,7 @@ namespace DAZ_Installer.Windows.Pages
             fileListPage.ResumeLayout(false);
             fileListContextStrip.ResumeLayout(false);
             fileHierachyPage.ResumeLayout(false);
+            errorsPage.ResumeLayout(false);
             fileHierachyContextStrip.ResumeLayout(false);
             splitContainer1.Panel1.ResumeLayout(false);
             ((System.ComponentModel.ISupportInitialize)splitContainer1).EndInit();
@@ -407,5 +456,10 @@ namespace DAZ_Installer.Windows.Pages
         private System.Windows.Forms.ToolStripSeparator cancelStripSeperator;
         private System.Windows.Forms.ToolStripMenuItem cancelCurrentExtractJobToolStripMenuItem;
         private System.Windows.Forms.ToolStripSeparator viewStripSeperator;
+        private System.Windows.Forms.ToolStripMenuItem viewErrorsToolStripMenuItem;
+        private System.Windows.Forms.TabPage errorsPage;
+        private System.Windows.Forms.ListView errorsListView;
+        private System.Windows.Forms.ColumnHeader errorColumn;
+        private System.Windows.Forms.ColumnHeader explanationColumn;
     }
 }

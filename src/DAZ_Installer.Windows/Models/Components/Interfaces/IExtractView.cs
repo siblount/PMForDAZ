@@ -1,6 +1,7 @@
 ﻿using DAZ_Installer.Core;
 using DAZ_Installer.UI;
 using DAZ_Installer.Windows.DP;
+using System.Collections;
 
 namespace DAZ_Installer.Windows.DP
 {
@@ -59,6 +60,12 @@ namespace DAZ_Installer.Windows.DP
         /// </summary>
         /// <param name="archive">The archive to show the file hierachy for.</param>
         void ShowFileHierachyTab(IDPArchive archive);
+
+        /// <summary>
+        /// Opens the errors tab for the corresponding archive info.
+        /// </summary>
+        /// <param name="info">The corresponding archive info to show errors for.</param>
+        void ShowErrorsTab(DPArchiveInfo info);
 
         /// <summary>
         /// Updates the status of an existing extraction job in the UI.

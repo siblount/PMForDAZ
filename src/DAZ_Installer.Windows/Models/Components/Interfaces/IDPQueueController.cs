@@ -1,10 +1,4 @@
-﻿using System.Windows.Forms;
-using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.ComponentModel;
 
 namespace DAZ_Installer.Windows.DP
 {
@@ -65,6 +59,10 @@ namespace DAZ_Installer.Windows.DP
         /// Handles the view file list context menu event.
         /// </summary>
         public void OnViewFileList();
+        /// <summary>
+        /// Handles the view errors list context menu event.
+        /// </summary>
+        public void OnViewErrors();
         #endregion
     }
 }

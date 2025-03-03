@@ -41,6 +41,7 @@ namespace DAZ_Installer.Windows.Pages
         internal IDPQueueController QueueController { get; init; }
         internal bool fileHierachyShowing = false;
         internal bool fileListShowing = false;
+        internal bool errorListShowing = false;
 
         /// <summary>
         /// The constructor for the Extract component.
@@ -52,6 +53,7 @@ namespace DAZ_Installer.Windows.Pages
                                                     this,
                                                     viewFileHierachyToolStripMenuItem,
                                                     viewFileListToolStripMenuItem,
+                                                    viewErrorsToolStripMenuItem,
                                                     viewStripSeperator,
                                                     cancelExtractJobToolStripMenuItem,
                                                     cancelCurrentExtractJobToolStripMenuItem,
@@ -61,6 +63,7 @@ namespace DAZ_Installer.Windows.Pages
             ExtractPage = this;
             tabControl1.TabPages.Remove(fileListPage);
             tabControl1.TabPages.Remove(fileHierachyPage);
+            tabControl1.TabPages.Remove(errorsPage);
             var errorImage = SystemIcons.Error.ToBitmap(); // Do not dispose Handle
             var warningImage = SystemIcons.Warning.ToBitmap(); // Do not dispose Handle
             statusIcons.Images.Add("error", errorImage);
@@ -361,6 +364,59 @@ namespace DAZ_Installer.Windows.Pages
             tabControl1.TabIndex = tabControl1.Controls.IndexOf(fileListPage);
         }
 
+        /// <inheritdoc/>
+        public void ShowErrorsTab(DPArchiveInfo info)
+        {
+            if (info.Errors.Count is 0) return;
+            var errorItems = new ListViewItem[info.Errors.Count];
+            for (var i = 0; i < info.Errors.Count; i++)
+            {
+                var error = info.Errors[i];
+
+                // If no exception was thrown but a explanation exists, make the explanation the 'error'.
+                var errorText = error.Exception is not null ? error.Exception.Message : error.Explanation;
+                errorText ??= "An unknown error has occured";
+
+                var item = new ListViewItem(errorText);
+
+                // If the explanation is the error, then don't put it in the explanation column.
+                if (errorText == error.Exception?.Message && error.Explanation is not null)
+                    item.SubItems.Add(error.Explanation);
+
+                errorItems[i] = item;
+            }
+
+            void AddItems(ListViewItem[] items)
+            {
+                try
+                {
+                    if (errorListShowing) errorsPage.SuspendLayout();
+                    errorsListView.BeginUpdate();
+                    errorsListView.Items.Clear();
+                    errorsListView.Items.AddRange(items);
+                }
+                catch (Exception ex)
+                {
+                    Logger.Error(ex, "Failed to add errors to error list");
+                }
+                finally
+                {
+                    errorsListView.EndUpdate();
+                    if (errorListShowing) errorsPage.ResumeLayout();
+                }
+
+                if (!errorListShowing)
+                {
+                    tabControl1.Controls.Add(errorsPage);
+                    errorListShowing = true;
+                }
+                tabControl1.TabIndex = tabControl1.Controls.IndexOf(errorsPage);
+            }
+
+            if (InvokeRequired) BeginInvoke(() => AddItems(errorItems));
+            else AddItems(errorItems);
+        }
+
         #region Context Strip Events
         private void selectInHierachyToolStripMenuItem_Click(object sender, EventArgs e)
         {
@@ -435,6 +491,11 @@ namespace DAZ_Installer.Windows.Pages
         private void viewFileHierachyToolStripMenuItem_Click(object sender, EventArgs e)
         {
             QueueController.OnViewHierachy();
+        }
+
+        private void viewErrorsToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            QueueController.OnViewErrors();
         }
     }
 
