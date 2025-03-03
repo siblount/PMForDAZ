@@ -108,7 +108,7 @@ namespace DAZ_Installer.Windows.DP
             RecordManager = recordManager ?? new DPRecordManager(Database);
 
             foreach (var file in InitialFilesToProcess) {
-                ArchiveInfosMap[file] = new DPArchiveInfo(file);
+                ArchiveInfosMap[PathHelper.NormalizePath(file)] = new DPArchiveInfo(file);
             }
         }
 
@@ -124,17 +124,17 @@ namespace DAZ_Installer.Windows.DP
         public void CancelJob()
         {
             JobCancelled = true;
-            Processor.CancelProcessing();
             var ArchiveInfosToUpdate = ArchiveInfosMap.Values
                 .Where(archive => archive.Status is not DPArchiveStatus.Completed
                     and not DPArchiveStatus.CompletedWithIssues
                     and not DPArchiveStatus.Failed
                     and not DPArchiveStatus.Cancelled);
-            
+
             foreach (var info in ArchiveInfosToUpdate)
             {
                 SetArchiveStatus(info.FilePath, DPArchiveStatus.CancellationRequested);
             }
+            Processor.CancelProcessing();
         }
 
         /// <inheritdoc/>
@@ -167,12 +167,13 @@ namespace DAZ_Installer.Windows.DP
                     return;
             }
 
-            if (archiveInfo.Status is DPArchiveStatus.Pending)
-                SetArchiveStatus(archiveInfo.FilePath, DPArchiveStatus.CancellationPending);
-            if (Processor.CurrentArchive == archiveInfo.Archive || Processor.CurrentArchive?.FileInfo?.Path == archiveInfo.FilePath) {
+            if ((Processor.CurrentArchive != null && Processor.CurrentArchive == archiveInfo.Archive)
+                || Processor.CurrentArchive?.FileInfo?.Path == archiveInfo.FilePath) {
                 Processor.CancelCurrentArchive();
                 SetArchiveStatus(archiveInfo.FilePath, DPArchiveStatus.CancellationRequested);
             }
+            else if (archiveInfo.Status is DPArchiveStatus.Pending)
+                SetArchiveStatus(archiveInfo.FilePath, DPArchiveStatus.CancellationPending);
         }
 
         /// <inheritdoc/>
@@ -188,6 +189,13 @@ namespace DAZ_Installer.Windows.DP
             Processor.StateChanged += Processor_StateChanged;
             Processor.ExtractProgress += Processor_ExtractProgress;
             Processor.MoveProgress += Processor_MoveProgress;
+            Processor.Finished += Processor_Finished;
+        }
+
+        private void Processor_Finished()
+        {
+            CancelPendingArchives();
+            ExtractView.OnProcessorFinished(this);
         }
 
         private void RemoveEventHandlers() {
@@ -198,6 +206,7 @@ namespace DAZ_Installer.Windows.DP
             Processor.StateChanged -= Processor_StateChanged;
             Processor.ExtractProgress -= Processor_ExtractProgress;
             Processor.MoveProgress -= Processor_MoveProgress;
+            Processor.Finished -= Processor_Finished;
         }
 
         private void UpdateExtractView(string archivePath) {
@@ -235,12 +244,11 @@ namespace DAZ_Installer.Windows.DP
                 Logger.Error("Got a null FileInfo for the current archive in Processor_StateChanged");
                 return;
             }
-            CancelIfRequested(Processor.CurrentArchive);
-            if (Processor.State == ProcessorState.PreparingExtraction)
+            if (!CancelIfRequested(Processor.CurrentArchive) && Processor.State == ProcessorState.PreparingExtraction)
             {
                 SetArchiveStatus(PathHelper.NormalizePath(Processor.CurrentArchive.FileInfo.Path), DPArchiveStatus.Processing);
             }
-            else UpdateExtractView(Processor.CurrentArchive.FileInfo.Path);
+            else UpdateExtractView(PathHelper.NormalizePath(Processor.CurrentArchive.FileInfo.Path));
             ExtractView.OnProcessorStateUpdate(Processor);
             return;
         }
@@ -251,7 +259,7 @@ namespace DAZ_Installer.Windows.DP
             {
                 var archiveInfo = EnsureArchiveInfo(Processor.CurrentArchive);
                 ArchiveInfosMap.TryUpdate(archiveInfo.FilePath, archiveInfo.WithError(new(e.Ex, e.Explaination)), archiveInfo);
-                UpdateExtractView(Processor.CurrentArchive.FileInfo!.Path);
+                UpdateExtractView(PathHelper.NormalizePath(Processor.CurrentArchive.FileInfo!.Path));
             } else Logger.Error("Processor_CurrentArchive is null in Processor_ProcessError");
             return Task.CompletedTask;
         }
@@ -298,7 +306,7 @@ namespace DAZ_Installer.Windows.DP
 
                     if (result == DialogResult.Yes)
                     {
-                        if (e.Archive.FileInfo is not null) RemoveSourceFile(e.Archive.Path);
+                        if (e.Archive.FileInfo is not null) RemoveSourceFile(e.Archive.FileInfo.Path);
                         else Logger.Warning("Could not delete source file because archive's FileInfo was null.");
                     }
                     break;
@@ -308,7 +316,7 @@ namespace DAZ_Installer.Windows.DP
         private async Task Processor_ArchiveEnter(IDPProcessor sender, DPArchiveEnterArgs e)
         {
             var info = EnsureArchiveInfo(e.Archive);
-            UpdateExtractView(e.Archive.FileInfo!.Path);
+            UpdateExtractView(PathHelper.NormalizePath(e.Archive.FileInfo!.Path));
             if (CancelIfRequested(e.Archive)) return;
             CancellationTokenSource cts = new();
             cts.CancelAfter(TimeSpan.FromSeconds(15));
@@ -317,7 +325,7 @@ namespace DAZ_Installer.Windows.DP
             if (exists is null)
             {
                 DialogResult result = MessageBoxProvider.Show($"An error occurred while attempting to check if \"{e.Archive.FileName}\" was already processed. " +
-                    "This may indicate a database failure which could mean the product will install but with no record. " + 
+                    "This may indicate a database failure which could mean the product will install but with no record added. " + 
                     "Do you wish to continue processing this file?\n\n" +
                     "Pressing Cancel will stop the entire extraction job.", "Database failure - do you wish to proceed?",
                     MessageBoxButtons.YesNoCancel, MessageBoxIcon.Question);
@@ -325,12 +333,13 @@ namespace DAZ_Installer.Windows.DP
                 if (result == DialogResult.No) CancelCurrentArchive();
             } else
             {
+                ArchiveInfosMap.TryUpdate(info.FilePath, info.AppendFlags(DPArchiveInfo.InfoFlags.ProductAlreadyExists), info);
                 switch (UserSettings!.InstallPrevProducts)
                 {
                     case SettingOptions.Prompt:
                         DialogResult result = MessageBoxProvider.Show($"It seems that \"{e.Archive.FileName}\" was already processed. " +
                             $"Do you wish to continue processing this file?", "Archive already processed",
-                            MessageBoxButtons.YesNo, MessageBoxIcon.Information);
+                            MessageBoxButtons.YesNo, MessageBoxIcon.Question);
                         if (result == DialogResult.No) CancelCurrentArchive();
                         break;
                     case SettingOptions.No:
@@ -374,7 +383,7 @@ namespace DAZ_Installer.Windows.DP
                     var x = InitialFilesToProcess[i];
                     Logger.Information("Preparing to process {arc}", x);
 
-                    if (JobCancelled) return;
+                    if (JobCancelled) break;
 
                     if (!ArchiveInfosMap.ContainsKey(x))
                         Logger.Error("Could not find archive info for initial file.");
@@ -401,6 +410,7 @@ namespace DAZ_Installer.Windows.DP
                 RemoveEventHandlers();
                 GC.Collect();
             }
+            CancelPendingArchives();
         }
 
         /// <summary>
@@ -473,15 +483,15 @@ namespace DAZ_Installer.Windows.DP
             // But if it is, we really messed up.
             if (archive.FileInfo is null) 
                 throw new ArgumentException("Archive's FileInfo is null", nameof(archive));
-            var archiveInfo = ArchiveInfosMap.GetOrAdd(archive.FileInfo.Path, new DPArchiveInfo(archive));
+            var archiveInfo = ArchiveInfosMap.GetOrAdd(PathHelper.NormalizePath(archive.FileInfo.Path), new DPArchiveInfo(archive));
 
             // Add the archive object if the object was created via path only.
             var archiveInfoWithArchive = archiveInfo with { Archive = archive };
-            if (ArchiveInfosMap.TryUpdate(archive.FileInfo.Path, archiveInfo with { Archive = archive }, archiveInfo))
+            if (ArchiveInfosMap.TryUpdate(PathHelper.NormalizePath(archive.FileInfo.Path), archiveInfo with { Archive = archive }, archiveInfo))
                 archiveInfo = archiveInfoWithArchive;
             // If we created a new archive (ex: for a nested archive) and the parent is scheduled for cancellation, then
             // mark the nested archive for cancellation.
-            if (archive.AssociatedArchive is { FileInfo: not null } && ArchiveInfosMap.TryGetValue(archive.AssociatedArchive.FileInfo.Path, out DPArchiveInfo? value) 
+            if (archive.AssociatedArchive is { FileInfo: not null } && ArchiveInfosMap.TryGetValue(PathHelper.NormalizePath(archive.AssociatedArchive.FileInfo.Path), out DPArchiveInfo? value) 
                                             && IsInCancellableState(value.Status))
                 SetArchiveStatus(archiveInfo.FilePath, DPArchiveStatus.CancellationPending);
             return archiveInfo;
@@ -498,5 +508,17 @@ namespace DAZ_Installer.Windows.DP
         private static bool IsInCancellableState(DPArchiveStatus status) => status is DPArchiveStatus.CancellationRequested or 
                                                                                       DPArchiveStatus.Cancelled or 
                                                                                       DPArchiveStatus.CancellationPending;
+
+        private void CancelPendingArchives()
+        {
+            // Cancel rest of cancelled requested or pending.
+            var ArchiveInfosToUpdate = ArchiveInfosMap.Values
+            .Where(archive => archive.Status is DPArchiveStatus.CancellationPending or DPArchiveStatus.CancellationRequested);
+
+            foreach (var info in ArchiveInfosToUpdate)
+            {
+                SetArchiveStatus(info.FilePath, DPArchiveStatus.Cancelled);
+            }
+        }
     }
 }

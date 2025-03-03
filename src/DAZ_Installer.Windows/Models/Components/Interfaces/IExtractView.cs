@@ -97,5 +97,10 @@ namespace DAZ_Installer.Windows.DP
         /// </summary>
         /// <param name="archive">The archive whose records is being created for.</param>
         void OnCreatingRecords(IDPArchive archive);
+        /// <summary>
+        /// Updates the GUI when the processor has finished.
+        /// </summary>
+        /// <param name="job">The job that has been completed.</param>
+        void OnProcessorFinished(IDPExtractJob job);
     }
 }

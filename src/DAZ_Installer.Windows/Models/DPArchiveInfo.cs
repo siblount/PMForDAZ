@@ -13,6 +13,24 @@ namespace DAZ_Installer.Windows.DP {
     public record DPArchiveInfo
     {
         /// <summary>
+        /// Provides additional information about the archive
+        /// </summary>
+        [Flags]
+        public enum InfoFlags
+        {
+            /// <summary>
+            /// No additional information.
+            /// </summary>
+            None,
+            /// <summary>
+            /// A note that indicates that the archive already had existed according to the DB.
+            /// </summary>
+            /// <remarks>
+            /// This will explain why an archive was cancelled.
+            /// </remarks>
+            ProductAlreadyExists
+        }
+        /// <summary>
         /// A record struct for holding error information about an archive during processing.
         /// </summary>
         /// <param name="Exception">The exception that was thrown, if any.</param>
@@ -41,6 +59,10 @@ namespace DAZ_Installer.Windows.DP {
         /// archives and processed (regardless if it failed or not) 
         /// </remarks>
         public IDPArchive? Archive = null;
+        /// <summary>
+        /// Additional information about the archive.
+        /// </summary>
+        public InfoFlags Flags = InfoFlags.None;
 
         /// <summary>
         /// Create an archive info object with archive.
@@ -68,5 +90,12 @@ namespace DAZ_Installer.Windows.DP {
         /// <param name="errorInfo">A new error info to add</param>
         /// <returns>A new DPArchiveInfo with the added <paramref name="errorInfo"/>.</returns>
         public DPArchiveInfo WithError(ErrorInfo errorInfo) => this with { Errors = [..Errors, errorInfo] };
+        /// <summary>
+        /// Creates a new DPArchiveInfo record with the <paramref name="flags"/> bitwise or'd to the 
+        /// current <see cref="Flags"/>.
+        /// </summary>
+        /// <param name="flags">The flags to bitwise or with.</param>
+        /// <returns>A new DPArchiveInfo with updated flags.</returns>
+        public DPArchiveInfo AppendFlags(InfoFlags flags) => this with { Flags = Flags | flags };
     }
 }

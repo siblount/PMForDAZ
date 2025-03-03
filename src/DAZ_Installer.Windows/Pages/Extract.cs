@@ -251,6 +251,17 @@ namespace DAZ_Installer.Windows.Pages
         }
 
         /// <inheritdoc/>
+        public void OnProcessorFinished(IDPExtractJob job)
+        {
+            if (InvokeRequired)
+            {
+                BeginInvoke(() => OnProcessorFinished(job));
+                return;
+            }
+            QueueController.UpdateView(job);
+        }
+
+        /// <inheritdoc/>
         public void OnCreatingRecords(IDPArchive archive)
         {
             progressCombo.ChangeProgressBarStyle(true);
@@ -313,6 +324,7 @@ namespace DAZ_Installer.Windows.Pages
                 tabControl1.Controls.Add(fileHierachyPage);
                 fileHierachyShowing = true;
             }
+            tabControl1.TabIndex = tabControl1.Controls.IndexOf(fileHierachyPage);
         }
 
         /// <inheritdoc/>
@@ -346,6 +358,7 @@ namespace DAZ_Installer.Windows.Pages
                 tabControl1.Controls.Add(fileListPage);
                 fileListShowing = true;
             }
+            tabControl1.TabIndex = tabControl1.Controls.IndexOf(fileListPage);
         }
 
         #region Context Strip Events
