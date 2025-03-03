@@ -97,5 +97,15 @@ namespace DAZ_Installer.Windows.DP {
         /// <param name="flags">The flags to bitwise or with.</param>
         /// <returns>A new DPArchiveInfo with updated flags.</returns>
         public DPArchiveInfo AppendFlags(InfoFlags flags) => this with { Flags = Flags | flags };
+        /// <summary>
+        /// Returns an enumerable of distinct error messages determined by the exception or explanation message.
+        /// </summary>
+        /// <param name="errors">The raw error infos from the archive info</param>
+        /// <returns>An enumerable of distinct error messages</returns>
+        public static IEnumerable<ErrorInfo> GetUniqueErrors(IList<ErrorInfo> errors)
+        {
+            return errors.GroupBy(e => e.Exception?.Message ?? e.Explanation)
+                        .Select(g => g.First());
+        }
     }
 }

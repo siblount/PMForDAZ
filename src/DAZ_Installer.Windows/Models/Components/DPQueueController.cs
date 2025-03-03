@@ -461,7 +461,14 @@ namespace DAZ_Installer.Windows.DP
                     if (info.Errors.Count == 0)
                         subItem.Text = "Failed to extract";
                     else if (info.Errors.Count >= 2)
-                        subItem.Text = "Multiple errors occurred";
+                    {
+                        var uniqueErrors = DPArchiveInfo.GetUniqueErrors(info.Errors).ToArray();
+
+                        if (uniqueErrors.Length > 1)
+                            subItem.Text = "Multiple different errors occurred";
+                        else
+                            subItem.Text = (uniqueErrors[0].Exception?.Message ?? uniqueErrors[0].Explanation) ?? "Failed to extract due to an unknown error";
+                    }
                     else if (info.Errors[0].Exception is not null || info.Errors[0].Explanation is not null)
                         subItem.Text = info.Errors[0].Exception?.Message ?? info.Errors[0].Explanation;
                     else

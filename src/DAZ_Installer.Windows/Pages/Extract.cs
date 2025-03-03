@@ -368,10 +368,11 @@ namespace DAZ_Installer.Windows.Pages
         public void ShowErrorsTab(DPArchiveInfo info)
         {
             if (info.Errors.Count is 0) return;
-            var errorItems = new ListViewItem[info.Errors.Count];
-            for (var i = 0; i < info.Errors.Count; i++)
+            var uniqueErrors = DPArchiveInfo.GetUniqueErrors(info.Errors).ToArray();
+            var errorItems = new ListViewItem[uniqueErrors.Length];
+            for (var i = 0; i < uniqueErrors.Length; i++)
             {
-                var error = info.Errors[i];
+                var error = uniqueErrors[i];
 
                 // If no exception was thrown but a explanation exists, make the explanation the 'error'.
                 var errorText = error.Exception is not null ? error.Exception.Message : error.Explanation;
