@@ -16,6 +16,7 @@ using System.IO;
 using System.Linq;
 using System.Windows.Forms;
 using System.Threading.Tasks;
+using System.Data;
 namespace DAZ_Installer.Windows.Pages
 {
 
@@ -368,41 +369,59 @@ namespace DAZ_Installer.Windows.Pages
         public void ShowErrorsTab(DPArchiveInfo info)
         {
             if (info.Errors.Count is 0) return;
-            var uniqueErrors = DPArchiveInfo.GetUniqueErrors(info.Errors).ToArray();
-            var errorItems = new ListViewItem[uniqueErrors.Length];
-            for (var i = 0; i < uniqueErrors.Length; i++)
-            {
-                var error = uniqueErrors[i];
 
-                // If no exception was thrown but a explanation exists, make the explanation the 'error'.
+            var uniqueErrors = DPArchiveInfo.GetUniqueErrors(info.Errors).ToArray();
+
+            // Create a DataTable to bind to the DataGridView
+            var errorTable = new DataTable();
+            errorTable.Columns.Add("Error", typeof(string));
+            errorTable.Columns.Add("Explanation", typeof(string));
+
+            // Populate the DataTable with error information
+            foreach (var error in uniqueErrors)
+            {
+                // If no exception was thrown but an explanation exists, make the explanation the 'error'
                 var errorText = error.Exception is not null ? error.Exception.Message : error.Explanation;
                 errorText ??= "An unknown error has occured";
 
-                var item = new ListViewItem(errorText);
-
-                // If the explanation is the error, then don't put it in the explanation column.
+                // If the explanation is the error, then don't put it in the explanation column
+                string? explanationText = null;
                 if (errorText == error.Exception?.Message && error.Explanation is not null)
-                    item.SubItems.Add(error.Explanation);
+                    explanationText = error.Explanation;
 
-                errorItems[i] = item;
+                errorTable.Rows.Add(errorText, explanationText);
             }
 
-            void AddItems(ListViewItem[] items)
+            void SetupDataGrid(DataTable dataTable)
             {
                 try
                 {
                     if (errorListShowing) errorsPage.SuspendLayout();
-                    errorsListView.BeginUpdate();
-                    errorsListView.Items.Clear();
-                    errorsListView.Items.AddRange(items);
+
+                    // Configure the DataGridView
+                    if (errorDataGridView.DataSource is DataTable table) table.Dispose();
+                    errorDataGridView.DataSource = null;
+                    errorDataGridView.AutoGenerateColumns = true;
+
+                    // Set up multi-line support
+                    errorDataGridView.AutoSizeRowsMode = DataGridViewAutoSizeRowsMode.AllCells;
+                    errorDataGridView.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.DisplayedCellsExceptHeader;
+
+                    // Apply the data source
+                    errorDataGridView.DataSource = dataTable;
+
+                    // Configure columns for multi-line text
+                    foreach (DataGridViewColumn column in errorDataGridView.Columns)
+                    {
+                        column.DefaultCellStyle.WrapMode = DataGridViewTriState.True;
+                    }
                 }
                 catch (Exception ex)
                 {
-                    Logger.Error(ex, "Failed to add errors to error list");
+                    Logger.Error(ex, "Failed to add errors to error grid");
                 }
                 finally
                 {
-                    errorsListView.EndUpdate();
                     if (errorListShowing) errorsPage.ResumeLayout();
                 }
 
@@ -411,11 +430,12 @@ namespace DAZ_Installer.Windows.Pages
                     tabControl1.Controls.Add(errorsPage);
                     errorListShowing = true;
                 }
-                tabControl1.TabIndex = tabControl1.Controls.IndexOf(errorsPage);
+
+                tabControl1.SelectedTab = errorsPage;
             }
 
-            if (InvokeRequired) BeginInvoke(() => AddItems(errorItems));
-            else AddItems(errorItems);
+            if (InvokeRequired) BeginInvoke(() => SetupDataGrid(errorTable));
+            else SetupDataGrid(errorTable);
         }
 
         #region Context Strip Events
@@ -457,8 +477,6 @@ namespace DAZ_Installer.Windows.Pages
             tabControl1.SelectTab(fileListPage);
         }
 
-        #endregion
-
         private void queueContextStrip_Opening(object sender, CancelEventArgs e)
         {
             QueueController.OnContextMenu(sender, e);
@@ -497,6 +515,37 @@ namespace DAZ_Installer.Windows.Pages
         private void viewErrorsToolStripMenuItem_Click(object sender, EventArgs e)
         {
             QueueController.OnViewErrors();
+        }
+
+        private void copyToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            if (errorDataGridView.SelectedCells.Count is not 1) return;
+            if (errorDataGridView.SelectedCells[0].Value is string text)
+                Clipboard.SetText(text);
+            else
+            {
+                Logger.Warning("The selected cell for the error data grid was not a string value type, attempting to force to string");
+                try
+                {
+                    Clipboard.SetText(errorDataGridView.SelectedCells[0].Value!.ToString());
+                } catch (Exception ex)
+                {
+                    MessageBox.Show("Failed to copy cell data to clipboard", "Failed to copy", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    Logger.Error(ex, "Failed to copy value of selected cell in error data grid when forced");
+                }
+            }
+        }
+
+        #endregion
+
+        private void errorsMenuStrip_Opening(object sender, CancelEventArgs e)
+        {
+            if (errorDataGridView.SelectedCells.Count is 0)
+            {
+                e.Cancel = true;
+                return;
+            }
+            copyToolStripMenuItem.Enabled = errorDataGridView.SelectedCells.Count is 1;
         }
     }
 

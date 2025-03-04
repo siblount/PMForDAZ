@@ -33,7 +33,6 @@ namespace DAZ_Installer.Windows.Pages
             System.Windows.Forms.ListViewGroup listViewGroup1 = new System.Windows.Forms.ListViewGroup("No extraction jobs processed yet", System.Windows.Forms.HorizontalAlignment.Left);
             System.Windows.Forms.ListViewItem listViewItem1 = new System.Windows.Forms.ListViewItem("");
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(Extract));
-            System.Windows.Forms.ListViewItem listViewItem2 = new System.Windows.Forms.ListViewItem(new string[] { "Ligma", "Balls" }, -1);
             tabControl1 = new System.Windows.Forms.TabControl();
             queuePage = new System.Windows.Forms.TabPage();
             queueListView = new System.Windows.Forms.ListView();
@@ -62,9 +61,9 @@ namespace DAZ_Installer.Windows.Pages
             fileHierachyPage = new System.Windows.Forms.TabPage();
             fileHierachyTree = new System.Windows.Forms.TreeView();
             errorsPage = new System.Windows.Forms.TabPage();
-            errorsListView = new System.Windows.Forms.ListView();
-            errorColumn = new System.Windows.Forms.ColumnHeader();
-            explanationColumn = new System.Windows.Forms.ColumnHeader();
+            errorDataGridView = new System.Windows.Forms.DataGridView();
+            errorsMenuStrip = new System.Windows.Forms.ContextMenuStrip(components);
+            copyToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             fileHierachyContextStrip = new System.Windows.Forms.ContextMenuStrip(components);
             inspectToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             selectInFileListToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
@@ -78,6 +77,8 @@ namespace DAZ_Installer.Windows.Pages
             fileListContextStrip.SuspendLayout();
             fileHierachyPage.SuspendLayout();
             errorsPage.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)errorDataGridView).BeginInit();
+            errorsMenuStrip.SuspendLayout();
             fileHierachyContextStrip.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)splitContainer1).BeginInit();
             splitContainer1.Panel1.SuspendLayout();
@@ -320,7 +321,7 @@ namespace DAZ_Installer.Windows.Pages
             // 
             // errorsPage
             // 
-            errorsPage.Controls.Add(errorsListView);
+            errorsPage.Controls.Add(errorDataGridView);
             errorsPage.Location = new System.Drawing.Point(4, 24);
             errorsPage.Name = "errorsPage";
             errorsPage.Padding = new System.Windows.Forms.Padding(3);
@@ -329,27 +330,41 @@ namespace DAZ_Installer.Windows.Pages
             errorsPage.Text = "Errors";
             errorsPage.UseVisualStyleBackColor = true;
             // 
-            // errorsListView
+            // errorDataGridView
             // 
-            errorsListView.Columns.AddRange(new System.Windows.Forms.ColumnHeader[] { errorColumn, explanationColumn });
-            errorsListView.Dock = System.Windows.Forms.DockStyle.Fill;
-            errorsListView.Items.AddRange(new System.Windows.Forms.ListViewItem[] { listViewItem2 });
-            errorsListView.Location = new System.Drawing.Point(3, 3);
-            errorsListView.Name = "errorsListView";
-            errorsListView.Size = new System.Drawing.Size(479, 103);
-            errorsListView.TabIndex = 0;
-            errorsListView.UseCompatibleStateImageBehavior = false;
-            errorsListView.View = System.Windows.Forms.View.Details;
+            errorDataGridView.AllowUserToAddRows = false;
+            errorDataGridView.AllowUserToDeleteRows = false;
+            errorDataGridView.AutoSizeColumnsMode = System.Windows.Forms.DataGridViewAutoSizeColumnsMode.DisplayedCellsExceptHeader;
+            errorDataGridView.AutoSizeRowsMode = System.Windows.Forms.DataGridViewAutoSizeRowsMode.DisplayedCellsExceptHeaders;
+            errorDataGridView.BackgroundColor = System.Drawing.SystemColors.Window;
+            errorDataGridView.BorderStyle = System.Windows.Forms.BorderStyle.None;
+            errorDataGridView.ClipboardCopyMode = System.Windows.Forms.DataGridViewClipboardCopyMode.EnableWithoutHeaderText;
+            errorDataGridView.ColumnHeadersHeightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.AutoSize;
+            errorDataGridView.ContextMenuStrip = errorsMenuStrip;
+            errorDataGridView.Dock = System.Windows.Forms.DockStyle.Fill;
+            errorDataGridView.Location = new System.Drawing.Point(3, 3);
+            errorDataGridView.Name = "errorDataGridView";
+            errorDataGridView.ReadOnly = true;
+            errorDataGridView.SelectionMode = System.Windows.Forms.DataGridViewSelectionMode.CellSelect;
+            errorDataGridView.ShowCellErrors = false;
+            errorDataGridView.ShowEditingIcon = false;
+            errorDataGridView.ShowRowErrors = false;
+            errorDataGridView.Size = new System.Drawing.Size(479, 103);
+            errorDataGridView.TabIndex = 0;
             // 
-            // errorColumn
+            // errorsMenuStrip
             // 
-            errorColumn.Text = "Error";
-            errorColumn.Width = 300;
+            errorsMenuStrip.Items.AddRange(new System.Windows.Forms.ToolStripItem[] { copyToolStripMenuItem });
+            errorsMenuStrip.Name = "errorsMenuStrip";
+            errorsMenuStrip.Size = new System.Drawing.Size(103, 26);
+            errorsMenuStrip.Opening += errorsMenuStrip_Opening;
             // 
-            // explanationColumn
+            // copyToolStripMenuItem
             // 
-            explanationColumn.Text = "Explanation";
-            explanationColumn.Width = 300;
+            copyToolStripMenuItem.Name = "copyToolStripMenuItem";
+            copyToolStripMenuItem.Size = new System.Drawing.Size(102, 22);
+            copyToolStripMenuItem.Text = "Copy";
+            copyToolStripMenuItem.Click += copyToolStripMenuItem_Click;
             // 
             // fileHierachyContextStrip
             // 
@@ -417,6 +432,8 @@ namespace DAZ_Installer.Windows.Pages
             fileListContextStrip.ResumeLayout(false);
             fileHierachyPage.ResumeLayout(false);
             errorsPage.ResumeLayout(false);
+            ((System.ComponentModel.ISupportInitialize)errorDataGridView).EndInit();
+            errorsMenuStrip.ResumeLayout(false);
             fileHierachyContextStrip.ResumeLayout(false);
             splitContainer1.Panel1.ResumeLayout(false);
             ((System.ComponentModel.ISupportInitialize)splitContainer1).EndInit();
@@ -459,8 +476,8 @@ namespace DAZ_Installer.Windows.Pages
         private System.Windows.Forms.ToolStripSeparator viewStripSeperator;
         private System.Windows.Forms.ToolStripMenuItem viewErrorsToolStripMenuItem;
         private System.Windows.Forms.TabPage errorsPage;
-        private System.Windows.Forms.ListView errorsListView;
-        private System.Windows.Forms.ColumnHeader errorColumn;
-        private System.Windows.Forms.ColumnHeader explanationColumn;
+        private System.Windows.Forms.DataGridView errorDataGridView;
+        private System.Windows.Forms.ContextMenuStrip errorsMenuStrip;
+        private System.Windows.Forms.ToolStripMenuItem copyToolStripMenuItem;
     }
 }
