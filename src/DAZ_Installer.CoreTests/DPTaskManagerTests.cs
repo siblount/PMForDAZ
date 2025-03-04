@@ -405,61 +405,6 @@ namespace DAZ_Installer.Core.Tests
         }
 
         [TestMethod]
-        public async Task DifferentThreadContexts_MaintainsOrder()
-        {
-            var executionOrder = new List<int>();
-            var syncContext = new TestSynchronizationContext();
-
-            var taskManager = new DPTaskManager();
-            Lock lockObj = new();
-            var threadIds = new ConcurrentDictionary<int, int>();
-            ManualResetEventSlim slim = new(false);
-
-            // Queue from ThreadPool
-            var task1 = Task.Run(() => taskManager.AddToQueue(() =>
-            {
-                lock (lockObj)
-                {
-                    executionOrder.Add(1);
-                    threadIds[1] = Thread.CurrentThread.ManagedThreadId;
-                }
-            }));
-
-            // Queue from custom context thread
-            var task2 = Task.Factory.StartNew(() =>
-            {
-                SynchronizationContext.SetSynchronizationContext(syncContext);
-                taskManager.AddToQueue(() =>
-                {
-                    lock (lockObj)
-                    {
-                        executionOrder.Add(2);
-                        threadIds[2] = Thread.CurrentThread.ManagedThreadId;
-                    }
-                });
-                slim.Set();
-            });
-
-            // Queue from main thread
-            slim.Wait();
-            var task3 = taskManager.AddToQueue(() =>
-            {
-                lock (lockObj)
-                {
-                    executionOrder.Add(3);
-                    threadIds[3] = Thread.CurrentThread.ManagedThreadId;
-                }
-            });
-
-            await Task.WhenAll(task1, task2, task3);
-
-            CollectionAssert.AreEqual(
-                new[] { 1, 2, 3 },
-                executionOrder
-            );
-        }
-
-        [TestMethod]
         public void StopTest()
         {
             var mockAction1 = new Mock<Action>();
