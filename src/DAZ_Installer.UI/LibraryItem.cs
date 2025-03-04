@@ -60,7 +60,8 @@ namespace DAZ_Installer
         [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
         public ILogger Logger { get; set; } = Log.ForContext<LibraryItem>();
 
-        private const int TAG_PADDING = 5;
+        private const int TAG_X_PADDING = 1;
+        private const int TAG_Y_PADDING = 0;
         private const int TAG_SPACING = 5;
         private const float TAG_FONT_SIZE = 10.2F;
         private readonly Font tagFont = new("Segoe UI", TAG_FONT_SIZE, FontStyle.Regular, GraphicsUnit.Point);
@@ -135,41 +136,54 @@ namespace DAZ_Installer
         {
             if (tags.Count == 0) return;
 
-            // Calculate the tags area (similar to previous FlowLayoutPanel location)
-            var tagsArea = new Rectangle(135, 44, 328, 21);
-            float currentX = tagsArea.X;  // Change to float
-            float currentY = tagsArea.Y;  // Change to float for consistency
+            // Calculate the tags area
+            var tagsArea = new Rectangle(
+                135, 
+                44, 
+                Width - 150,  // Dynamic width based on control size, leaving some padding
+                21
+            );
+
+            float currentX = tagsArea.X;
+            float currentY = tagsArea.Y;
 
             using var tagBrush = new SolidBrush(tagBackColor);
             using var textBrush = new SolidBrush(tagTextColor);
 
-            g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
+            g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.HighSpeed;
             g.TextRenderingHint = System.Drawing.Text.TextRenderingHint.ClearTypeGridFit;
 
             for (int i = 0; i < tags.Count && i < MaxTagCount; i++)
             {
                 var tagText = tags[i];
                 var textSize = g.MeasureString(tagText, tagFont);
-
+                
                 // Calculate tag rectangle with padding
-                var tagWidth = textSize.Width + (TAG_PADDING * 2);
-                var tagHeight = tagsArea.Height;  // Use the full height of the tags area
+                var tagWidth = textSize.Width + (TAG_X_PADDING * 2);
+                var tagHeight = textSize.Height + TAG_Y_PADDING;
 
-                // Check if we need to stop due to width constraints
-                if (currentX + tagWidth > tagsArea.Right - TAG_SPACING)  // Leave space at the end
-                    break;
+                // If a single tag is too wide, truncate it with ellipsis
+                if (tagWidth > tagsArea.Width && i == 0)
+                {
+                    // Draw at least one tag with truncation
+                    tagWidth = tagsArea.Width - TAG_X_PADDING;
+                    tagText = TruncateText(tagText, tagWidth - (TAG_X_PADDING * 2), textSize.Width);
+                    textSize = new SizeF(tagWidth - (TAG_X_PADDING * 2), textSize.Height);
+                }
+                // For subsequent tags, check if there's enough space
+                else if (currentX + tagWidth > tagsArea.Right) break;
+
+                // Center the tag vertically in the available space
+                float tagY = currentY + (tagsArea.Height - tagHeight) / 2;
 
                 // Draw tag background
-                var tagRect = new RectangleF(currentX, currentY, tagWidth, tagHeight);
+                var tagRect = new RectangleF(currentX, tagY, tagWidth, tagHeight);
                 g.FillRectangle(tagBrush, tagRect);
-
-                // Center text vertically in the tag
-                float textY = currentY + (tagHeight - textSize.Height) / 2;
 
                 // Draw tag text
                 var textRect = new RectangleF(
-                    currentX + TAG_PADDING,
-                    textY,
+                    currentX + TAG_X_PADDING,
+                    tagY + 1,
                     textSize.Width,
                     textSize.Height);
                 g.DrawString(tagText, tagFont, textBrush, textRect);
@@ -177,6 +191,26 @@ namespace DAZ_Installer
                 // Move to next tag position
                 currentX += tagWidth + TAG_SPACING;
             }
+        }
+
+        private string TruncateText(string text, float maxWidth, float currentWidth)
+        {
+            string ellipsis = "...";
+            if (currentWidth <= maxWidth) return text;
+
+            // Calculate how much we need to remove based on the width ratio
+            float ratio = maxWidth / currentWidth;
+            int estimatedLength = (int)(text.Length * ratio) - 1; // -1 for safety
+            
+            // Start with estimated length to reduce iterations
+            int len = Math.Max(0, Math.Min(text.Length, estimatedLength));
+            return text[..len] + ellipsis;
+        }
+
+        protected override void OnClientSizeChanged(EventArgs e)
+        {
+            base.OnClientSizeChanged(e);
+            Invalidate();
         }
 
         private string[] GetTags()
