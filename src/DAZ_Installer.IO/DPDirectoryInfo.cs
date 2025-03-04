@@ -171,7 +171,7 @@ namespace DAZ_Installer.IO
             {
                 try
                 {
-                    targetInfo.Attributes = FileAttributes.Normal;
+                    targetInfo.Attributes &= ~(FileAttributes.ReadOnly | FileAttributes.Hidden);
                 }
                 catch (Exception ex)
                 {
@@ -205,7 +205,7 @@ namespace DAZ_Installer.IO
                 {
                     try
                     {
-                        directoryInfo.Attributes = FileAttributes.Normal;
+                        directoryInfo.Attributes &= ~(FileAttributes.ReadOnly | FileAttributes.Hidden);
                     }
                     catch (Exception e)
                     {
@@ -281,7 +281,7 @@ namespace DAZ_Installer.IO
             {
                 try
                 {
-                    info.Attributes = FileAttributes.Normal;
+                    info.Attributes &= ~(FileAttributes.ReadOnly | FileAttributes.Hidden);
                 }
                 catch (Exception e2)
                 {

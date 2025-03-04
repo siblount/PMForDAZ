@@ -507,6 +507,7 @@ namespace DAZ_Installer.IO.Tests
             var fs = new DPFileInfo(f.Object, unlimitedCtx, null);
             Assert.IsTrue(fs.TryAndFixMoveTo(Path.Combine(tempDir, "existing2.txt"), true, out var ex));
             Assert.IsNull(ex);
+            Assert.AreEqual(FileAttributes.None, f.Object.Attributes);
         }
         [TestMethod]
         public void TryAndFixMoveToTest_FixUnauthorizedFail()
@@ -517,6 +518,8 @@ namespace DAZ_Installer.IO.Tests
             var fs = new DPFileInfo(f.Object, unlimitedCtx, null);
             Assert.IsFalse(fs.TryAndFixMoveTo(Path.Combine(tempDir, "existing2.txt"), true, out var ex));
             Assert.IsNotNull(ex);
+            Assert.AreEqual(FileAttributes.None, f.Object.Attributes);
+
         }
         [TestMethod]
         public void TryAndFixCopyToTest()
@@ -560,6 +563,7 @@ namespace DAZ_Installer.IO.Tests
             Assert.IsTrue(fs.TryAndFixCopyTo(Path.Combine(tempDir, "existing2.txt"), true, out var stream, out var ex));
             Assert.IsNull(ex);
             Assert.IsNotNull(stream);
+            Assert.AreEqual(FileAttributes.None, f.Object.Attributes);
         }
         [TestMethod]
         public void TryAndFixCopyToTest_FixUnauthorizedFail()
@@ -571,6 +575,7 @@ namespace DAZ_Installer.IO.Tests
             Assert.IsFalse(fs.TryAndFixCopyTo(Path.Combine(tempDir, "existing2.txt"), true, out var stream, out var ex));
             Assert.IsNotNull(ex);
             Assert.IsNull(stream);
+            Assert.AreEqual(FileAttributes.None, f.Object.Attributes);
         }
         [TestMethod]
         public void TryAndFixOpenTest()
@@ -613,6 +618,7 @@ namespace DAZ_Installer.IO.Tests
             Assert.IsTrue(fs.TryAndFixOpen(FileMode.Open, FileAccess.Read, out var stream, out var ex));
             Assert.IsNotNull(stream);
             Assert.IsNull(ex);
+            Assert.AreEqual(FileAttributes.None, f.Object.Attributes);
         }
         [TestMethod]
         public void TryAndFixOpenTest_FixUnauthorizedFail()
@@ -625,6 +631,7 @@ namespace DAZ_Installer.IO.Tests
             Assert.IsFalse(fs.TryAndFixOpen(FileMode.Open, FileAccess.Read, out var stream, out var ex));
             Assert.IsNull(stream);
             Assert.IsNotNull(ex);
+            Assert.AreEqual(FileAttributes.None, f.Object.Attributes);
         }
         [TestMethod]
         public void TryAndFixDeleteTest()
@@ -662,6 +669,7 @@ namespace DAZ_Installer.IO.Tests
 
             Assert.IsTrue(fs.TryAndFixDelete(out var ex));
             Assert.IsNull(ex);
+            Assert.AreEqual(FileAttributes.None, f.Object.Attributes);
         }
         [TestMethod]
         public void TryAndFixDeleteTest_FixUnauthorizedFail()
@@ -673,6 +681,7 @@ namespace DAZ_Installer.IO.Tests
 
             Assert.IsFalse(fs.TryAndFixDelete(out var ex));
             Assert.IsNotNull(ex);
+            Assert.AreEqual(FileAttributes.None, f.Object.Attributes);
         }
     }
 }

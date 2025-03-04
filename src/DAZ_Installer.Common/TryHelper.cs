@@ -32,7 +32,7 @@ namespace DAZ_Installer
             if (!info.Exists) return false;
             try
             {
-                info.Attributes = FileAttributes.Normal;
+                info.Attributes &= ~(FileAttributes.ReadOnly | FileAttributes.Hidden);
                 info.OpenRead().Close(); // test that we have access.
                 return true;
             }
@@ -64,7 +64,7 @@ namespace DAZ_Installer
             if (!info.Exists) return false;
             try
             {
-                info.Attributes = FileAttributes.Normal;
+                info.Attributes &= ~(FileAttributes.ReadOnly | FileAttributes.Hidden);
                 info.EnumerateDirectories(); // test that it works.
                 return true;
             }

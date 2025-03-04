@@ -241,6 +241,7 @@ namespace DAZ_Installer.IO.Tests
             var fs = new DPDirectoryInfo(f.Object, unlimitedCtx, null);
             Assert.IsTrue(fs.TryAndFixMoveTo(Path.Combine(tempDir, "existing2"), out var ex));
             Assert.IsNull(ex);
+            Assert.AreEqual(FileAttributes.None, f.Object.Attributes);
         }
         [TestMethod]
         public void TryAndFixMoveToTest_FixUnauthorizedFail()
@@ -251,6 +252,7 @@ namespace DAZ_Installer.IO.Tests
             var fs = new DPDirectoryInfo(f.Object, unlimitedCtx, null);
             Assert.IsFalse(fs.TryAndFixMoveTo(Path.Combine(tempDir, "existing2"), out var ex));
             Assert.IsNotNull(ex);
+            Assert.AreEqual(FileAttributes.None, f.Object.Attributes);
         }
         [TestMethod]
         public void TryAndFixDeleteTest()
@@ -287,6 +289,7 @@ namespace DAZ_Installer.IO.Tests
             var fs = new DPDirectoryInfo(f.Object, unlimitedCtx, null);
             Assert.IsTrue(fs.TryAndFixDelete(true, out var ex));
             Assert.IsNull(ex);
+            Assert.AreEqual(FileAttributes.None, f.Object.Attributes);
         }
         [TestMethod]
         public void TryAndFixDeleteTest_FixUnauthorizedFail()
@@ -297,6 +300,7 @@ namespace DAZ_Installer.IO.Tests
             var fs = new DPDirectoryInfo(f.Object, unlimitedCtx, null);
             Assert.IsFalse(fs.TryAndFixDelete(true, out var ex));
             Assert.IsNotNull(ex);
+            Assert.AreEqual(FileAttributes.None, f.Object.Attributes);
         }
     }
 }
