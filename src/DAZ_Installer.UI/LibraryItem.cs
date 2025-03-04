@@ -1,7 +1,9 @@
 ﻿// This code is licensed under the Keep It Free License V1.
 // You may find a full copy of this license at root project directory\LICENSE
 
+using DAZ_Installer.Common;
 using DAZ_Installer.Database;
+using Serilog;
 using System.ComponentModel;
 
 namespace DAZ_Installer
@@ -13,9 +15,9 @@ namespace DAZ_Installer
     {
         public static Color initialColor;
         public static Color darkerColor = Color.FromArgb(60, Color.FromKnownColor(KnownColor.ForestGreen));
-        public event Action ProductRemovalRequested;
-        public event Action ProductRecordRemovalRequested;
-        protected bool initalized = false;
+        public event Action<LibraryItem>? ProductRemovalRequested;
+        public event Action<LibraryItem>? ProductRecordRemovalRequested;
+        private static bool initalized = false;
         [Description("Title text"), Category("Data"), Browsable(true), EditorBrowsable(EditorBrowsableState.Always), DesignerSerializationVisibility(DesignerSerializationVisibility.Visible)]
         public string TitleText
         {
@@ -25,7 +27,7 @@ namespace DAZ_Installer
 
         [Description("Holds the image inside of the imagebox."), Category("Data"), Browsable(true)]
         [DesignerSerializationVisibility(DesignerSerializationVisibility.Visible)]
-        public Image Image
+        public Image? Image
         {
             get => imageBox.Image;
             set => imageBox.Image = value;
@@ -53,6 +55,9 @@ namespace DAZ_Installer
         public Type ProductRecordFormType { get; set; }
 
         private readonly List<Label> labels = new();
+
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
+        public ILogger Logger { get; set; } = Log.ForContext<LibraryItem>();
         public LibraryItem()
         {
             InitializeComponent();
@@ -60,6 +65,56 @@ namespace DAZ_Installer
             {
                 initalized = true;
                 initialColor = titleLbl.BackColor;
+            }
+        }
+        private byte UpdateCount = 0;
+
+        public void BeginUpdate()
+        {
+            if (UpdateCount++ != 0) return;
+            tagsLayoutPanel.SuspendLayout();
+            SuspendLayout();
+        }
+
+        /// <summary>
+        /// Ends an update operation on the LibraryItem.
+        /// </summary>
+        /// <remarks>
+        /// If the internal update count is not zero, resume layout will not occur.
+        /// Consequently, <paramref name="resumeLayout"/> will be honored only if the update count
+        /// is zero.
+        /// </remarks>
+        /// <param name="resumeLayout">
+        /// Determines whether layout operations should not render 
+        /// immediately (false) or should render immediately (true).
+        /// </param>
+        public void EndUpdate(bool resumeLayout = true)
+        {
+            if (--UpdateCount != 0) return;
+            tagsLayoutPanel.ResumeLayout(resumeLayout);
+            ResumeLayout(resumeLayout);
+        }
+
+        public void Reset(bool resumeLayout = false)
+        {
+            if (InvokeRequired) Invoke(Reset);
+            else
+            {
+                BeginUpdate();
+                try
+                {
+                    ReleaseTags();
+                    Image = null;
+                    ProductRecord = new("Reset", null, [], -1);
+                    
+                    // Clear all events
+                    ProductRemovalRequested = null;
+                    ProductRecordRemovalRequested = null;
+                } catch (Exception ex)
+                {
+                    Logger.Error(ex, "Failed to reset a library item to completion");
+                }
+                EndUpdate(resumeLayout);
             }
         }
 
@@ -77,37 +132,28 @@ namespace DAZ_Installer
 
         private void UpdateTags(IReadOnlyList<string> tags)
         {
-
-            ReleaseTags(false);
-            labels.Clear();
+            BeginUpdate();
+            ReleaseTags();
             try
             {
-                var foundEllipsedLabel = false;
                 var t = 0;
 
                 for (var i = 0; i < tags.Count && t < MaxTagCount; i++)
-                // TODO: Use AddRange instead of Controls.Add
                 {
                     var tagName = tags[i];
                     if (string.IsNullOrWhiteSpace(tagName))
                         continue;
                     Label lbl = CreateTag(tags[i]);
-                    //// Only immediately add to the tag layout panel if it can be seen.
-                    //if (!foundEllipsedLabel) tagsLayoutPanel.Controls.Add
-                    //// If the label we created is ellipsed, show no more.
-                    //if (lbl.PreferredWidth > lbl.Width) foundEllipsedLabel = true;
-                    // But still add it to labels so we can show it when (or if) expanded.
                     labels.Add(lbl);
                     t++;
                 }
-                tagsLayoutPanel.Controls.AddRange(labels.ToArray());
+                tagsLayoutPanel.Controls.AddRange([..labels]);
             }
             catch (Exception e)
             {
-                // DPCommon.WriteToLog($"Failed to create tags. REASON: {e}");
+                Logger.Error(e, "Failed to update tags");
             }
-
-            tagsLayoutPanel.ResumeLayout();
+            EndUpdate();
         }
 
         private Label CreateTag(string tagName = "")
@@ -122,68 +168,18 @@ namespace DAZ_Installer
             return tag;
         }
 
-        private void ReleaseTags(bool restartLayout)
+        private void ReleaseTags()
         {
-            // Clear tags.
-            tagsLayoutPanel.SuspendLayout();
+            BeginUpdate();
             tagsLayoutPanel.Controls.Clear();
-
             labels.Clear();
-            if (restartLayout) tagsLayoutPanel.ResumeLayout();
-        }
-
-
-        private void tagsLayoutPanel_ClientSizeChanged(object sender, EventArgs e)
-        {
-            // Re-calculate visible tags.
-            tagsLayoutPanel.SuspendLayout();
-            try
-            {
-                var foundEllipsedLabel = false;
-                for (var i = 0; i < labels.Count && i < MaxTagCount; i++)
-                {
-                    Label workingLabel = labels[i];
-
-                    if (workingLabel.Parent == null)
-                    {
-                        // Only immediately add to the tag layout panel if it can be seen.
-                        if (!foundEllipsedLabel) tagsLayoutPanel.Controls.Add(workingLabel);
-
-                        // If the label we created is ellipsed, show no more.
-                        if (workingLabel.PreferredWidth > workingLabel.Width) foundEllipsedLabel = true;
-                    }
-                    else
-                    {
-                        if (!foundEllipsedLabel)
-                        {
-                            if (workingLabel.PreferredWidth > workingLabel.Width) foundEllipsedLabel = true;
-                        }
-                        else
-                        {
-                            tagsLayoutPanel.Controls.Remove(workingLabel);
-                            workingLabel.Parent = null;
-                        }
-                    }
-                }
-            }
-            catch (Exception ee)
-            {
-                // DPCommon.WriteToLog($"Failed to create tags. REASON: {ee}");
-            }
-            tagsLayoutPanel.ResumeLayout();
+            EndUpdate();
         }
 
         private void showFoldersBtn_Click(object sender, EventArgs e)
         {
-            if (ProductRecord == null)
-            {
-                MessageBox.Show("Unable to show record due to product record not available.", "Unable to view", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                return;
-            }
-            //ProductRecordForm recordForm = new ProductRecordForm(ProductRecord);
             var form = (Form)Activator.CreateInstance(ProductRecordFormType, ProductRecord)!;
             form.ShowDialog();
-            //recordForm.ShowDialog();
         }
 
         private void removeRecordToolStripMenuItem_Click(object sender, EventArgs e)
@@ -191,7 +187,7 @@ namespace DAZ_Installer
             DialogResult result = MessageBox.Show($"Are you sure you want to remove the record for {ProductRecord.Name}? " +
                 "This won't remove the files on disk and the record cannot be restored.", "Remove product record confirmation", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
             if (result == DialogResult.No) return;
-            ProductRecordRemovalRequested?.Invoke();
+            ProductRecordRemovalRequested?.Invoke(this);
         }
 
         private void removeProductToolStripMenuItem_Click(object sender, EventArgs e)
@@ -199,7 +195,7 @@ namespace DAZ_Installer
             DialogResult result = MessageBox.Show($"Are you sure you want to remove the record & product files for {ProductRecord.Name}? " +
                 "THIS CAN PERMANENTLY REMOVE ASSOCIATED FILES ON DISK (depending on Delete Action setting)!", "Remove product confirmation", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
             if (result == DialogResult.No) return;
-            ProductRemovalRequested?.Invoke();
+            ProductRemovalRequested?.Invoke(this);
         }
     }
 }

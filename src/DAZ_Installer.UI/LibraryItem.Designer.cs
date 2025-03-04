@@ -29,124 +29,120 @@ namespace DAZ_Installer
         /// </summary>
         private void InitializeComponent()
         {
-            this.components = new System.ComponentModel.Container();
-            this.imageBox = new System.Windows.Forms.PictureBox();
-            this.titleLbl = new System.Windows.Forms.Label();
-            this.tagsLayoutPanel = new System.Windows.Forms.FlowLayoutPanel();
-            this.invisibleLabel = new System.Windows.Forms.Label();
-            this.showFoldersBtn = new System.Windows.Forms.Button();
-            this.libraryItemMenuStrip = new System.Windows.Forms.ContextMenuStrip(this.components);
-            this.removeRecordToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.removeProductToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            ((System.ComponentModel.ISupportInitialize)(this.imageBox)).BeginInit();
-            this.libraryItemMenuStrip.SuspendLayout();
-            this.SuspendLayout();
+            components = new System.ComponentModel.Container();
+            imageBox = new PictureBox();
+            titleLbl = new Label();
+            tagsLayoutPanel = new FlowLayoutPanel();
+            invisibleLabel = new Label();
+            showFoldersBtn = new Button();
+            libraryItemMenuStrip = new ContextMenuStrip(components);
+            removeRecordToolStripMenuItem = new ToolStripMenuItem();
+            removeProductToolStripMenuItem = new ToolStripMenuItem();
+            ((System.ComponentModel.ISupportInitialize)imageBox).BeginInit();
+            libraryItemMenuStrip.SuspendLayout();
+            SuspendLayout();
             // 
             // imageBox
             // 
-            this.imageBox.Location = new System.Drawing.Point(12, 10);
-            this.imageBox.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
-            this.imageBox.Name = "imageBox";
-            this.imageBox.Size = new System.Drawing.Size(109, 94);
-            this.imageBox.SizeMode = System.Windows.Forms.PictureBoxSizeMode.Zoom;
-            this.imageBox.TabIndex = 0;
-            this.imageBox.TabStop = false;
+            imageBox.Location = new Point(12, 10);
+            imageBox.Margin = new Padding(3, 2, 3, 2);
+            imageBox.Name = "imageBox";
+            imageBox.Size = new Size(109, 94);
+            imageBox.SizeMode = PictureBoxSizeMode.Zoom;
+            imageBox.TabIndex = 0;
+            imageBox.TabStop = false;
             // 
-            // label1
+            // titleLbl
             // 
-            this.titleLbl.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
-            | System.Windows.Forms.AnchorStyles.Right)));
-            this.titleLbl.AutoEllipsis = true;
-            this.titleLbl.Font = new System.Drawing.Font("Segoe UI Variable Display Semil", 18F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
-            this.titleLbl.Location = new System.Drawing.Point(128, 10);
-            this.titleLbl.Margin = new System.Windows.Forms.Padding(0);
-            this.titleLbl.Name = "label1";
-            this.titleLbl.Size = new System.Drawing.Size(335, 31);
-            this.titleLbl.TabIndex = 1;
-            this.titleLbl.Text = "Title of Product";
-            this.titleLbl.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
+            titleLbl.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
+            titleLbl.AutoEllipsis = true;
+            titleLbl.Font = new Font("Segoe UI Variable Display Semil", 18F);
+            titleLbl.Location = new Point(128, 10);
+            titleLbl.Margin = new Padding(0);
+            titleLbl.Name = "titleLbl";
+            titleLbl.Size = new Size(335, 31);
+            titleLbl.TabIndex = 1;
+            titleLbl.Text = "Title of Product";
+            titleLbl.TextAlign = ContentAlignment.MiddleLeft;
             // 
             // tagsLayoutPanel
             // 
-            this.tagsLayoutPanel.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
-            | System.Windows.Forms.AnchorStyles.Right)));
-            this.tagsLayoutPanel.Location = new System.Drawing.Point(135, 44);
-            this.tagsLayoutPanel.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
-            this.tagsLayoutPanel.Name = "tagsLayoutPanel";
-            this.tagsLayoutPanel.Size = new System.Drawing.Size(328, 21);
-            this.tagsLayoutPanel.TabIndex = 8;
-            this.tagsLayoutPanel.WrapContents = false;
-            this.tagsLayoutPanel.ClientSizeChanged += new System.EventHandler(this.tagsLayoutPanel_ClientSizeChanged);
+            tagsLayoutPanel.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
+            tagsLayoutPanel.Location = new Point(135, 44);
+            tagsLayoutPanel.Margin = new Padding(3, 2, 3, 2);
+            tagsLayoutPanel.Name = "tagsLayoutPanel";
+            tagsLayoutPanel.Size = new Size(328, 21);
+            tagsLayoutPanel.TabIndex = 8;
+            tagsLayoutPanel.WrapContents = false;
+            tagsLayoutPanel.ClientSizeChanged += tagsLayoutPanel_ClientSizeChanged;
             // 
             // invisibleLabel
             // 
-            this.invisibleLabel.AutoSize = true;
-            this.invisibleLabel.Font = new System.Drawing.Font("Segoe UI", 4.8F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
-            this.invisibleLabel.Location = new System.Drawing.Point(64, 104);
-            this.invisibleLabel.Name = "invisibleLabel";
-            this.invisibleLabel.Size = new System.Drawing.Size(0, 10);
-            this.invisibleLabel.TabIndex = 11;
+            invisibleLabel.AutoSize = true;
+            invisibleLabel.Font = new Font("Segoe UI", 4.8F);
+            invisibleLabel.Location = new Point(64, 104);
+            invisibleLabel.Name = "invisibleLabel";
+            invisibleLabel.Size = new Size(0, 10);
+            invisibleLabel.TabIndex = 11;
             // 
             // showFoldersBtn
             // 
-            this.showFoldersBtn.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
-            | System.Windows.Forms.AnchorStyles.Right)));
-            this.showFoldersBtn.FlatAppearance.BorderSize = 0;
-            this.showFoldersBtn.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
-            this.showFoldersBtn.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
-            this.showFoldersBtn.ImageAlign = System.Drawing.ContentAlignment.MiddleLeft;
-            this.showFoldersBtn.Location = new System.Drawing.Point(135, 78);
-            this.showFoldersBtn.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
-            this.showFoldersBtn.Name = "showFoldersBtn";
-            this.showFoldersBtn.Size = new System.Drawing.Size(328, 22);
-            this.showFoldersBtn.TabIndex = 13;
-            this.showFoldersBtn.Text = "Show more info";
-            this.showFoldersBtn.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
-            this.showFoldersBtn.TextImageRelation = System.Windows.Forms.TextImageRelation.ImageBeforeText;
-            this.showFoldersBtn.UseVisualStyleBackColor = true;
-            this.showFoldersBtn.Click += new System.EventHandler(this.showFoldersBtn_Click);
+            showFoldersBtn.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
+            showFoldersBtn.FlatAppearance.BorderSize = 0;
+            showFoldersBtn.FlatStyle = FlatStyle.Flat;
+            showFoldersBtn.Font = new Font("Segoe UI", 9F);
+            showFoldersBtn.ImageAlign = ContentAlignment.MiddleLeft;
+            showFoldersBtn.Location = new Point(135, 78);
+            showFoldersBtn.Margin = new Padding(3, 2, 3, 2);
+            showFoldersBtn.Name = "showFoldersBtn";
+            showFoldersBtn.Size = new Size(328, 22);
+            showFoldersBtn.TabIndex = 13;
+            showFoldersBtn.Text = "Show more info";
+            showFoldersBtn.TextAlign = ContentAlignment.MiddleLeft;
+            showFoldersBtn.TextImageRelation = TextImageRelation.ImageBeforeText;
+            showFoldersBtn.UseVisualStyleBackColor = true;
+            showFoldersBtn.Click += showFoldersBtn_Click;
             // 
             // libraryItemMenuStrip
             // 
-            this.libraryItemMenuStrip.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
-            this.removeRecordToolStripMenuItem,
-            this.removeProductToolStripMenuItem});
-            this.libraryItemMenuStrip.Name = "libraryItemMenuStrip";
-            this.libraryItemMenuStrip.Size = new System.Drawing.Size(163, 48);
+            libraryItemMenuStrip.Items.AddRange(new ToolStripItem[] { removeRecordToolStripMenuItem, removeProductToolStripMenuItem });
+            libraryItemMenuStrip.Name = "libraryItemMenuStrip";
+            libraryItemMenuStrip.Size = new Size(163, 48);
             // 
             // removeRecordToolStripMenuItem
             // 
-            this.removeRecordToolStripMenuItem.Name = "removeRecordToolStripMenuItem";
-            this.removeRecordToolStripMenuItem.Size = new System.Drawing.Size(162, 22);
-            this.removeRecordToolStripMenuItem.Text = "Remove record";
-            this.removeRecordToolStripMenuItem.Click += new System.EventHandler(this.removeRecordToolStripMenuItem_Click);
+            removeRecordToolStripMenuItem.Name = "removeRecordToolStripMenuItem";
+            removeRecordToolStripMenuItem.Size = new Size(162, 22);
+            removeRecordToolStripMenuItem.Text = "Remove record";
+            removeRecordToolStripMenuItem.Click += removeRecordToolStripMenuItem_Click;
             // 
             // removeProductToolStripMenuItem
             // 
-            this.removeProductToolStripMenuItem.Name = "removeProductToolStripMenuItem";
-            this.removeProductToolStripMenuItem.Size = new System.Drawing.Size(162, 22);
-            this.removeProductToolStripMenuItem.Text = "Remove product";
-            this.removeProductToolStripMenuItem.Click += new System.EventHandler(this.removeProductToolStripMenuItem_Click);
+            removeProductToolStripMenuItem.Name = "removeProductToolStripMenuItem";
+            removeProductToolStripMenuItem.Size = new Size(162, 22);
+            removeProductToolStripMenuItem.Text = "Remove product";
+            removeProductToolStripMenuItem.Click += removeProductToolStripMenuItem_Click;
             // 
             // LibraryItem
             // 
-            this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
-            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.AutoSize = true;
-            this.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(192)))), ((int)(((byte)(255)))), ((int)(((byte)(192)))));
-            this.ContextMenuStrip = this.libraryItemMenuStrip;
-            this.Controls.Add(this.showFoldersBtn);
-            this.Controls.Add(this.invisibleLabel);
-            this.Controls.Add(this.tagsLayoutPanel);
-            this.Controls.Add(this.titleLbl);
-            this.Controls.Add(this.imageBox);
-            this.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
-            this.Name = "LibraryItem";
-            this.Size = new System.Drawing.Size(472, 116);
-            ((System.ComponentModel.ISupportInitialize)(this.imageBox)).EndInit();
-            this.libraryItemMenuStrip.ResumeLayout(false);
-            this.ResumeLayout(false);
-            this.PerformLayout();
+            AutoScaleDimensions = new SizeF(7F, 15F);
+            AutoScaleMode = AutoScaleMode.Font;
+            AutoSize = true;
+            BackColor = Color.FromArgb(192, 255, 192);
+            ContextMenuStrip = libraryItemMenuStrip;
+            Controls.Add(showFoldersBtn);
+            Controls.Add(invisibleLabel);
+            Controls.Add(tagsLayoutPanel);
+            Controls.Add(titleLbl);
+            Controls.Add(imageBox);
+            DoubleBuffered = true;
+            Margin = new Padding(3, 2, 3, 2);
+            Name = "LibraryItem";
+            Size = new Size(472, 116);
+            ((System.ComponentModel.ISupportInitialize)imageBox).EndInit();
+            libraryItemMenuStrip.ResumeLayout(false);
+            ResumeLayout(false);
+            PerformLayout();
 
         }
 

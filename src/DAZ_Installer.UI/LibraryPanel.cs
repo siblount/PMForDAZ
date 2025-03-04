@@ -2,6 +2,10 @@
 // You may find a full copy of this license at root project directory\LICENSE
 
 using System.ComponentModel;
+using Serilog;
+using DAZ_Installer.UI;
+using DAZ_Installer.Database;
+using System.Windows.Forms;
 
 namespace DAZ_Installer
 {
@@ -10,14 +14,13 @@ namespace DAZ_Installer
     /// </summary>
     public partial class LibraryPanel : UserControl
     {
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
+        public ILogger Logger { get; set; } = Log.ForContext<LibraryPanel>();
         public LibraryPanel() => InitializeComponent();
         
         [Browsable(true), EditorBrowsable(EditorBrowsableState.Always), Description("Holds the current library items."), Category("Items")]
         [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
         public List<LibraryItem> LibraryItems { get; } = new List<LibraryItem>(25);
-
-        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
-        public List<LibraryItem> SearchItems { get; set; } = new List<LibraryItem>(25);
 
         [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
         public uint CurrentPage
@@ -32,59 +35,82 @@ namespace DAZ_Installer
             get => pageButtonControl1.PageCount;
             set => pageButtonControl1.PageCount = value;
         }
-
+        private byte UpdateCount = 0;
         [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
-        public bool EditMode
-        {
-            set
-            {
-                if (editMode == value) return;
-                else
-                {
-                    
-                    if (value == true) SuspendLayout();
-                    else ResumeLayout();
-                    editMode = value;
-                }
-            }
-            get => editMode;
-        }
-        private bool editMode;
+        public LibraryItemPool LibraryItemPool { get; init; } = new LibraryItemPool();
         public volatile bool SearchMode = false;
 
-        public void UpdateMainContent()
+        public void UpdateMainContent(IReadOnlyList<DPProductRecordLite> records, Action<LibraryItem> configureItem)
         {
-            EditMode = true;
-            if (!SearchMode)
-            {
-                //// DPCommon.WriteToLog("Update main content.");
-                //// DPCommon.WriteToLog($"Library items: {LibraryItems.Count}");
+            BeginUpdate();
+            try {
+                Logger.Debug("Updating main content");
 
-                mainContentPanel.Controls.Clear();
-                mainContentPanel.Controls.AddRange(LibraryItems.ToArray());
+                var currentControls = mainContentPanel.Controls;
+                var currentCount = currentControls.Count;
+                var targetCount = records.Count;
 
-                foreach (LibraryItem item in LibraryItems)
+                // If we need more controls than we currently have
+                var itemsToAdd = new List<LibraryItem>(Math.Max(0, targetCount - currentCount));
+                while (currentCount < targetCount)
                 {
-                    if (item != null)
-                        item.Dock = DockStyle.Top;
+                    var newItem = LibraryItemPool.Rent();
+                    newItem.Reset();
+                    newItem.Anchor = AnchorStyles.Left | AnchorStyles.Right | AnchorStyles.Top;
+                    itemsToAdd.Add(newItem);
+                    currentCount++;
                 }
+                currentControls.AddRange([..itemsToAdd]);
 
-            }
-            else
-            {
-                //// DPCommon.WriteToLog("Update search content.");
-                //// DPCommon.WriteToLog($"Search items: {SearchItems.Count}");
-
-                mainContentPanel.Controls.Clear();
-                mainContentPanel.Controls.AddRange(SearchItems.ToArray());
-
-                foreach (LibraryItem item in SearchItems)
+                // Update or hide existing controls
+                for (int i = 0; i < currentCount; i++)
                 {
-                    if (item != null)
-                        item.Dock = DockStyle.Top;
+                    var control = (LibraryItem)currentControls[i];
+                    control.BeginUpdate();
+                    try
+                    {
+                        if (i < targetCount)
+                        {
+                            control.TitleText = records[i].Name;
+                            control.Tags = records[i].Tags;
+                            control.ProductRecord = records[i];
+                            control.Dock = DockStyle.Top; // Important: Dock must be set AFTER added to the panel controls.
+
+                            // Let the caller configure additional properties and events
+                            configureItem(control);
+                        
+                            control.Visible = true;
+                        }
+                        else
+                        {
+                            control.Visible = false;
+                            LibraryItemPool.Return(control);
+                        }
+                    } catch (Exception ex)
+                    {
+                        Logger.Error(ex, "Failed to update or hide a library item");
+                    }
+                    control.EndUpdate(true);
                 }
             }
-            EditMode = false;
+            catch (Exception ex) {
+                Logger.Error(ex, "Failed to update main content");
+            }
+            EndUpdate();
+        }
+
+        public void BeginUpdate()
+        {
+            if (UpdateCount++ != 0) return;
+            SuspendLayout();
+            mainContentPanel.SuspendLayout();
+        }
+
+        public void EndUpdate(bool resumeLayout = true)
+        {
+            if (--UpdateCount != 0) return;
+            mainContentPanel.ResumeLayout(resumeLayout);
+            ResumeLayout(resumeLayout);
         }
 
         public void NudgeCurrentPage(uint page) => pageButtonControl1.SilentUpdateCurrentPage(page);
@@ -97,20 +123,10 @@ namespace DAZ_Installer
 
         public void AddPageChangeListener(PageButtonControl.PageChangeHandler pageChangedFunc) => pageButtonControl1.PageChange += pageChangedFunc;
 
-        private void createNewRecordToolStripMenuItem_Click(object sender, EventArgs e)
-        {
-
-        }
-
         // Form.OnResizeEnd may be better performance wise.
         private void buttonsContainer_SizeChanged(object sender, EventArgs e) =>
             // We need to manually center it in the containing panel.
             // TODO: Hide 
             pageButtonControl1.Left = (buttonsContainer.ClientSize.Width - pageButtonControl1.Width) / 2;//pageButtonControl1.Top = (buttonsContainer.ClientSize.Height - pageButtonControl1.Height) / 2;
-
-        private void toolStripStatusLabel1_Click(object sender, EventArgs e)
-        {
-
-        }
     }
 }

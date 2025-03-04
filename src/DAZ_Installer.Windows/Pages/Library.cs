@@ -11,6 +11,9 @@ using System.Windows.Forms;
 using DAZ_Installer.Windows.DP;
 using Serilog;
 using DAZ_Installer.IO;
+using System.ComponentModel;
+using DAZ_Installer.Common;
+using System.Linq;
 
 namespace DAZ_Installer.Windows.Pages
 {
@@ -21,19 +24,15 @@ namespace DAZ_Installer.Windows.Pages
     {
         public static Library self;
         protected static Image noImageFound;
-        protected static Size lastClientSize;
-        protected const byte maxImagesLoad = byte.MaxValue;
         protected const byte MAX_CAPACITY = 25;
-        protected byte maxImageFit;
         protected List<LibraryItem> libraryItems => libraryPanel1.LibraryItems;
-        protected List<LibraryItem> searchItems { get => libraryPanel1.SearchItems; set => libraryPanel1.SearchItems = value; }
         protected List<DPProductRecordLite> ProductRecords { get; set; } = new(MAX_CAPACITY);
         private List<DPProductRecordLite> SearchRecords { get; set; } = new(MAX_CAPACITY);
-        protected bool mainImagesLoaded = false;
 
         internal DPSortMethod SortMethod = DPSortMethod.Date;
         private string lastSearchQuery = string.Empty;
-
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
+        public ILogger Logger { get; set; } = Log.ForContext<Library>();
         protected bool SearchMode
         {
             get => searchMode;
@@ -62,14 +61,11 @@ namespace DAZ_Installer.Windows.Pages
             Program.Database.ProductRecordModified += OnModifiedProductRecord;
         }
 
-        // Called on a different thread.
         private void LoadLibraryItemImages()
         {
             thumbnails.Images.Clear();
             thumbnails.Images.Add(Resources.NoImageFound);
             noImageFound = thumbnails.Images[0];
-
-            mainImagesLoaded = true;
             // DPCommon.WriteToLog("Loaded images.");
         }
 
@@ -84,7 +80,7 @@ namespace DAZ_Installer.Windows.Pages
 
         private void SetupSortMethodCombo()
         {
-            foreach (var option in Enum.GetNames(typeof(DPSortMethod)))
+            foreach (var option in Enum.GetNames<DPSortMethod>())
             {
                 sortByCombo.Items.Add(option);
             }
@@ -96,154 +92,42 @@ namespace DAZ_Installer.Windows.Pages
         /// </summary>
         private void ClearPageContents()
         {
-            libraryPanel1.EditMode = true;
-            if (searchMode)
-            {
-                foreach (LibraryItem lb in libraryPanel1.LibraryItems)
-                {
-                    if (lb == null || lb.ProductRecord == null) continue;
-
-                    lb.Image = null;
-                    RemoveReferenceImage(Path.GetFileName(lb.ProductRecord.Thumbnail));
-                    lb.Dispose();
-                }
-                libraryPanel1.LibraryItems.Clear();
-            }
-            else
-            {
-                if (searchItems == null)
-                {
-                    libraryPanel1.EditMode = false;
-                    return;
-                }
-                foreach (LibraryItem lb in libraryPanel1.SearchItems)
-                {
-                    if (lb == null || lb.ProductRecord == null) continue;
-
-                    lb.Image = null;
-                    RemoveReferenceImage(Path.GetFileName(lb.ProductRecord.Thumbnail));
-                    lb.Dispose();
-                }
-                libraryPanel1.SearchItems.Clear();
-            }
-            libraryPanel1.EditMode = false;
+            //foreach (var lb in libraryItems)
+            //{
+            //    var thumbnail = lb.ProductRecord.Thumbnail;
+            //    RemoveReferenceImage(Path.GetFileName(thumbnail));
+            //}
         }
 
-        internal LibraryItem AddNewSearchItem(DPProductRecordLite record)
+        private async void OnProductRemovalRequested(LibraryItem item)
         {
-            if (InvokeRequired)
-                return (LibraryItem)Invoke(new Func<DPProductRecordLite, LibraryItem>(AddNewSearchItem), record);
-
-            var searchItem = new LibraryItem();
-            searchItem.TitleText = record.Name;
-            searchItem.MaxTagCount = DPSettings.CurrentSettingsObject.MaxTagsToShow;
-            searchItem.Tags = record.Tags;
-            searchItem.Dock = DockStyle.Top;
-            searchItem.Anchor = AnchorStyles.Left | AnchorStyles.Right | AnchorStyles.Top;
-            searchItems.Add(searchItem);
-
-            return searchItem;
-        }
-
-        internal LibraryItem AddNewLibraryItem(DPProductRecordLite record)
-        {
-            if (InvokeRequired)
-            {
-                return (LibraryItem)Invoke(new Func<DPProductRecordLite, LibraryItem>(AddNewLibraryItem), record);
-            }
-            var lb = new LibraryItem();
-            lb.Database = Program.Database;
-            lb.ProductRecordFormType = typeof(ProductRecordForm);
-            lb.TitleText = record.Name;
-            lb.MaxTagCount = DPSettings.CurrentSettingsObject.MaxTagsToShow;
-            lb.Tags = record.Tags;
-            lb.Dock = DockStyle.Top;
-            lb.Anchor = AnchorStyles.Left | AnchorStyles.Right | AnchorStyles.Top;
-            lb.Image = noImageFound;
-            lb.Tag = record;
-            lb.ProductRecordRemovalRequested += () => OnProductRecordRemovalRequested(lb.Tag);
-            lb.ProductRemovalRequested += () => OnProductRemovalRequested(lb.Tag);
-
-            if (libraryItems.Count != libraryItems.Capacity) libraryItems.Add(lb);
-            return lb;
-        }
-
-        private async void OnProductRemovalRequested(object tag)
-        {
+            var record = item.ProductRecord;
             try
             {
-                if (tag is DPProductRecordLite record)
-                {
-                    var fullRecord = await Program.Database.GetFullProductRecord(record.ID).ConfigureAwait(false);
-                    if (fullRecord is null) throw new NullReferenceException();
-                    var fs = new DPFileSystem(new DPFileScopeSettings(Array.Empty<string>(), new[] { fullRecord.Destination }, false));
-                    var result = await DPProductRemover.RemoveProductAsync(record, Program.Database, DPSettings.CurrentSettingsObject,
-                        fs).ConfigureAwait(false);
-                    if (!result.Success) throw new NullReferenceException();
-                }
-                else if (tag is DPProductRecord record1)
-                {
-                    var fs = new DPFileSystem(new DPFileScopeSettings(Array.Empty<string>(), new[] { record1.Destination }, false));
-                    var result = await DPProductRemover.RemoveProductAsync(record1, Program.Database, DPSettings.CurrentSettingsObject,
-                        fs).ConfigureAwait(false);
-                    if (!result.Success) throw new NullReferenceException();
-                }
-                else
-                {
-                    Log.Error("OnProductRecordRemovalRequested: Tag is not a DPProductRecordLite or DPProductRecord");
-                    throw new ArgumentNullException(nameof(tag));
-                }
+                var fullRecord = await Program.Database.GetFullProductRecord(record.ID).ConfigureAwait(false) ?? throw new NullReferenceException();
+                var fs = new DPFileSystem(new DPFileScopeSettings(Array.Empty<string>(), [fullRecord.Destination], false));
+                var result = await DPProductRemover.RemoveProductAsync(record, Program.Database, DPSettings.CurrentSettingsObject,
+                    fs).ConfigureAwait(false);
+                if (!result.Success) throw new NullReferenceException();
             } catch (Exception ex)
             {
-                Log.Error(ex, "An unexpected error occurred while attempting to remove a product record");
+                Logger.Error(ex, "An unexpected error occurred while attempting to remove a product record");
                 MessageBox.Show($"Failed to remove product record.", "Failed to remove product record", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 
-        private async void OnProductRecordRemovalRequested(object tag)
+        private async void OnProductRecordRemovalRequested(LibraryItem item)
         {
             try
             {
-                if (tag is DPProductRecordLite record)
-                {
-                    var result = await DPProductRemover.RemoveRecordAsync(record, Program.Database).ConfigureAwait(false);
-                    if (!result) throw new NullReferenceException();
-                }
-                else if (tag is DPProductRecord record1)
-                {
-                    var result = await DPProductRemover.RemoveRecordAsync(record1, Program.Database).ConfigureAwait(false);
-                    if (!result) throw new NullReferenceException();
-                }
-                else
-                {
-                    Log.Error("OnProductRecordRemovalRequested: Tag is not a DPProductRecordLite or DPProductRecord");
-                    throw new ArgumentNullException(nameof(tag));
-                }
+                var result = await DPProductRemover.RemoveRecordAsync(item.ProductRecord, Program.Database).ConfigureAwait(false);
+                if (!result) throw new NullReferenceException();
             }
             catch (Exception ex)
             {
-                Log.Error(ex, "An unexpected error occurred while attempting to remove a product record");
+                Logger.Error(ex, "An unexpected error occurred while attempting to remove a product record");
                 MessageBox.Show($"Failed to remove product record.", "Failed to remove product record", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
-        }
-
-        public LibraryItem AddNewLibraryItem(string title, string[] tags, string[] folders)
-        {
-            if (InvokeRequired)
-            {
-                return (LibraryItem)Invoke(new Func<string, string[], string[], LibraryItem>(AddNewLibraryItem), title, tags, folders);
-            }
-            var lb = new LibraryItem();
-            lb.TitleText = title;
-            lb.Tags = tags;
-            lb.ProductRecordFormType = typeof(ProductRecordForm);
-            lb.Dock = DockStyle.Top;
-            lb.Anchor = AnchorStyles.Left | AnchorStyles.Right | AnchorStyles.Top;
-            lb.Image = noImageFound;
-
-            if (libraryItems.Count != libraryItems.Capacity) libraryItems.Add(lb);
-
-            return lb;
         }
 
         public Image AddReferenceImage(string filePath)
@@ -268,12 +152,12 @@ namespace DAZ_Installer.Windows.Pages
                     thumbnails.Images.SetKeyName(i, fileName);
                     return thumbnails.Images[i];
                 }
-
             }
         }
 
-        public void RemoveReferenceImage(string imageName)
+        private void RemoveReferenceImage(string? imageName)
         {
+            if (imageName is null) return;
             lock (thumbnails.Images)
             {
                 if (thumbnails.Images.ContainsKey(imageName))
@@ -295,46 +179,42 @@ namespace DAZ_Installer.Windows.Pages
                 Invoke(TryPageUpdate);
                 return;
             }
-            Log.ForContext<Library>().Information("Trying to update page.");
+
+            Logger.Information("Trying to update page.");
             try
             {
                 ClearPageContents();
-                ClearLibraryItems();
-                ClearSearchItems();
-                if (searchMode) AddSearchItems();
-                else AddLibraryItems();
-                // TO DO : Check if we need to move to the left page.
-                // Example - There are no library items on current page (invalid page) and no pages above it.
+                var records = searchMode ? SearchRecords : ProductRecords;
+                if (searchMode) {
+                    var startIndex = (int)(libraryPanel1.CurrentPage - 1) * MAX_CAPACITY;
+                    records = [..records.Skip(startIndex).Take(MAX_CAPACITY)];
+                }
+                // Just update the data and let LibraryPanel handle the UI controls
+                libraryPanel1.UpdateMainContent(records, (item) => {
+                    // Configure the item with our event handlers and data
+                    item.Database = Program.Database;
+                    item.MaxTagCount = DPSettings.CurrentSettingsObject.MaxTagsToShow;
+                    item.ProductRecordFormType = typeof(ProductRecordForm);
+                    item.ProductRemovalRequested += OnProductRemovalRequested;
+                    item.ProductRecordRemovalRequested += OnProductRecordRemovalRequested;
+                    item.Image = File.Exists(item.ProductRecord.Thumbnail) ? 
+                        AddReferenceImage(item.ProductRecord.Thumbnail) : 
+                        noImageFound;
+                });
+
                 UpdatePageCount();
-                if (InvokeRequired) Invoke(libraryPanel1.UpdateMainContent);
-                else libraryPanel1.UpdateMainContent();
             }
-            catch { }
-        }
-        public void ForcePageUpdate()
-        {
-            if (InvokeRequired) { Invoke(ForcePageUpdate); return; }
-            Log.ForContext<Library>().Information("Forcing page update");
-
-            // DPCommon.WriteToLog("force page update called.");
-            ClearPageContents();
-            ClearSearchItems();
-            ClearLibraryItems();
-            AddLibraryItems();
-            // TO DO : Check if we need to move to the left page.
-            // Example - There are no library items on current page (invalid page) and no pages above it.
-            UpdatePageCount();
-            libraryPanel1.UpdateMainContent();
-
+            catch (Exception ex)
+            {
+                Logger.Error(ex, "Failed to update page to completion");
+            }
         }
 
         // Used for handling page events.
         // TODO: Potential previous page == the same dispite mode.
         public void UpdatePage(uint page)
         {
-            // DPCommon.WriteToLog("page update called.");
-            // if (page == libraryPanel1.PreviousPage) return;
-
+            Logger.Debug("Update page called for page no. {page}", page);
             if (!searchMode)
             {
                 Program.Database.GetProductRecordsQ(SortMethod, page, 25, callback: OnLibraryQueryUpdate);
@@ -348,47 +228,10 @@ namespace DAZ_Installer.Windows.Pages
         private void UpdatePageCount()
         {
             var pageCount = searchMode ?
-                (uint)Math.Ceiling(SearchRecords.Count / 25f) :
-                (uint)Math.Ceiling(Program.Database.ProductRecordCount / 25f);
+                (uint)Math.Ceiling(SearchRecords.Count / (float)MAX_CAPACITY) :
+                (uint)Math.Ceiling(Program.Database.ProductRecordCount / (float)MAX_CAPACITY);
 
             if (pageCount != libraryPanel1.PageCount) libraryPanel1.PageCount = pageCount;
-        }
-
-        private void AddLibraryItems()
-        {
-            // DPCommon.WriteToLog("Add library items.");
-            libraryPanel1.EditMode = true;
-            // Loop while i is less than records count and count is less than 25.
-            for (var i = 0; i < ProductRecords.Count; i++)
-            {
-                DPProductRecordLite record = ProductRecords[i];
-                LibraryItem lb = AddNewLibraryItem(record);
-                lb.ProductRecord = record;
-
-                lb.Image = File.Exists(record.Thumbnail) ? AddReferenceImage(record.Thumbnail)
-                                                            : noImageFound;
-
-            }
-            libraryPanel1.EditMode = false;
-        }
-
-        private void AddSearchItems()
-        {
-            // DPCommon.WriteToLog("Add search items.");
-            libraryPanel1.EditMode = true;
-            // Loop while i is less than records count and count is less than 25.
-            var startIndex = (libraryPanel1.CurrentPage - 1) * 25;
-            var count = 0;
-            for (var i = startIndex; i < SearchRecords.Count && count < 25; i++, count++)
-            {
-                DPProductRecordLite record = SearchRecords[(int)i];
-                LibraryItem lb = AddNewSearchItem(record);
-                lb.ProductRecord = record;
-
-                lb.Image = File.Exists(record.Thumbnail) ? AddReferenceImage(record.Thumbnail)
-                                                            : noImageFound;
-            }
-            libraryPanel1.EditMode = false;
         }
 
         private void searchBox_TextChanged(object sender, EventArgs e)
@@ -434,7 +277,7 @@ namespace DAZ_Installer.Windows.Pages
             // DPCommon.WriteToLog($"A product has been added! {record.Name}");
             // First, check to see if it is in range of the current page.
             // If it is, then we need to update that page.
-            if (record.ID <= (libraryPanel1.CurrentPage) * 25 && record.ID > (libraryPanel1.CurrentPage - 1) * 25)
+            if (record.ID <= libraryPanel1.CurrentPage * 25 && record.ID > (libraryPanel1.CurrentPage - 1) * 25)
             {
                 ProductRecords.Add(record.ToLite());
                 TryPageUpdate();
@@ -477,9 +320,6 @@ namespace DAZ_Installer.Windows.Pages
             collection[i] = liteRecord;
         }
 
-        public void ClearLibraryItems() => libraryItems.Clear();
-        public void ClearSearchItems() => searchItems.Clear();
-
         private void UpdateLibraryItem(LibraryItem lb, DPProductRecordLite record)
         {
             if (InvokeRequired)
@@ -487,13 +327,19 @@ namespace DAZ_Installer.Windows.Pages
                 Invoke(UpdateLibraryItem, lb, record);
                 return;
             }
-            libraryPanel1.EditMode = true;
-            lb.TitleText = record.Name;
-            lb.Tags = record.Tags;
-            lb.ProductRecord = record;
-            lb.Image = File.Exists(record.Thumbnail) ? AddReferenceImage(record.Thumbnail)
-                                                        : noImageFound;
-            libraryPanel1.EditMode = false;
+            libraryPanel1.BeginUpdate();
+            try
+            {
+                lb.TitleText = record.Name;
+                lb.Tags = record.Tags;
+                lb.ProductRecord = record;
+                lb.Image = File.Exists(record.Thumbnail) ? AddReferenceImage(record.Thumbnail)
+                                                            : noImageFound;
+            } catch (Exception ex)
+            {
+                Logger.Error(ex, "Failed to update library item");
+            }
+            libraryPanel1.EndUpdate();
         }
 
         private void DisableLibraryItem(LibraryItem lb)
