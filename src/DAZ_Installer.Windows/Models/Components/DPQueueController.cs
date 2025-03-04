@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Drawing;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -324,11 +325,24 @@ namespace DAZ_Installer.Windows.DP
             if (item is not null)
             {
                 item.ForeColor = DetermineColorForArchive(info);
-                item.StateImageIndex = DetermineImageIndexForArchive(info);
+                item.StateImageIndex = DetermineStateIndex(info);
+                item.ImageIndex = DetermineImageIndex(info);
                 DetermineErrorMessage(info, item);
                 SetTooltipMessageForArchiveQueueListViewItem(info, item);
             }
             else Logger.Error("Failed to update associated queue item due to null queue item for arc: {arc}", info.FilePath);
+        }
+
+        private byte DetermineImageIndex(DPArchiveInfo info)
+        {
+            ReadOnlySpan<char> ext = Path.GetExtension(info.FilePath);
+            if (!ext.IsEmpty) ext = ext[1..];
+            return ext switch
+            {
+                "zip" or "7z" => 2,
+                "rar" => 1,
+                _ => 0
+            };
         }
 
         private void UpdateGroups()
@@ -487,7 +501,7 @@ namespace DAZ_Installer.Windows.DP
             return Color.Black;
         }
 
-        private int DetermineImageIndexForArchive(DPArchiveInfo info)
+        private int DetermineStateIndex(DPArchiveInfo info)
         {
             return info.Status switch
             {
