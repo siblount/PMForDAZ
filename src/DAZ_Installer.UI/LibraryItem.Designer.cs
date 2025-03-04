@@ -14,9 +14,10 @@ namespace DAZ_Installer
         /// <param name="disposing">true if managed resources should be disposed; otherwise, false.</param>
         protected override void Dispose(bool disposing)
         {
-            if (disposing && (components != null))
+            if (disposing)
             {
-                components.Dispose();
+                components?.Dispose();
+                tagFont?.Dispose();
             }
             base.Dispose(disposing);
         }
@@ -32,7 +33,6 @@ namespace DAZ_Installer
             components = new System.ComponentModel.Container();
             imageBox = new PictureBox();
             titleLbl = new Label();
-            tagsLayoutPanel = new FlowLayoutPanel();
             invisibleLabel = new Label();
             showFoldersBtn = new Button();
             libraryItemMenuStrip = new ContextMenuStrip(components);
@@ -64,16 +64,6 @@ namespace DAZ_Installer
             titleLbl.TabIndex = 1;
             titleLbl.Text = "Title of Product";
             titleLbl.TextAlign = ContentAlignment.MiddleLeft;
-            // 
-            // tagsLayoutPanel
-            // 
-            tagsLayoutPanel.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
-            tagsLayoutPanel.Location = new Point(135, 44);
-            tagsLayoutPanel.Margin = new Padding(3, 2, 3, 2);
-            tagsLayoutPanel.Name = "tagsLayoutPanel";
-            tagsLayoutPanel.Size = new Size(328, 21);
-            tagsLayoutPanel.TabIndex = 8;
-            tagsLayoutPanel.WrapContents = false;
             // 
             // invisibleLabel
             // 
@@ -131,7 +121,6 @@ namespace DAZ_Installer
             ContextMenuStrip = libraryItemMenuStrip;
             Controls.Add(showFoldersBtn);
             Controls.Add(invisibleLabel);
-            Controls.Add(tagsLayoutPanel);
             Controls.Add(titleLbl);
             Controls.Add(imageBox);
             DoubleBuffered = true;
@@ -149,7 +138,6 @@ namespace DAZ_Installer
 
         private System.Windows.Forms.PictureBox imageBox;
         private System.Windows.Forms.Label titleLbl;
-        private System.Windows.Forms.FlowLayoutPanel tagsLayoutPanel;
         private System.Windows.Forms.Label invisibleLabel;
         private System.Windows.Forms.Button showFoldersBtn;
         private System.Windows.Forms.ContextMenuStrip libraryItemMenuStrip;

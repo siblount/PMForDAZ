@@ -40,6 +40,7 @@ namespace DAZ_Installer
             get => GetTags();
             set => UpdateTags(value);
         }
+        private readonly List<string> tags = new();
 
         [Description("Determines the maximum number of tags to display."), Category("Data"), Browsable(true)]
         [DefaultValue(4)]
@@ -58,6 +59,14 @@ namespace DAZ_Installer
 
         [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
         public ILogger Logger { get; set; } = Log.ForContext<LibraryItem>();
+
+        private const int TAG_PADDING = 5;
+        private const int TAG_SPACING = 5;
+        private const float TAG_FONT_SIZE = 10.2F;
+        private readonly Font tagFont = new("Segoe UI", TAG_FONT_SIZE, FontStyle.Regular, GraphicsUnit.Point);
+        private readonly Color tagBackColor = Color.DarkSeaGreen;
+        private readonly Color tagTextColor = Color.Black;
+
         public LibraryItem()
         {
             InitializeComponent();
@@ -72,7 +81,6 @@ namespace DAZ_Installer
         public void BeginUpdate()
         {
             if (UpdateCount++ != 0) return;
-            tagsLayoutPanel.SuspendLayout();
             SuspendLayout();
         }
 
@@ -91,7 +99,6 @@ namespace DAZ_Installer
         public void EndUpdate(bool resumeLayout = true)
         {
             if (--UpdateCount != 0) return;
-            tagsLayoutPanel.ResumeLayout(resumeLayout);
             ResumeLayout(resumeLayout);
         }
 
@@ -118,6 +125,59 @@ namespace DAZ_Installer
             }
         }
 
+        protected override void OnPaint(PaintEventArgs e)
+        {
+            base.OnPaint(e);
+            RenderTags(e.Graphics);
+        }
+
+        private void RenderTags(Graphics g)
+        {
+            if (tags.Count == 0) return;
+
+            // Calculate the tags area (similar to previous FlowLayoutPanel location)
+            var tagsArea = new Rectangle(135, 44, 328, 21);
+            float currentX = tagsArea.X;  // Change to float
+            float currentY = tagsArea.Y;  // Change to float for consistency
+
+            using var tagBrush = new SolidBrush(tagBackColor);
+            using var textBrush = new SolidBrush(tagTextColor);
+
+            g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
+            g.TextRenderingHint = System.Drawing.Text.TextRenderingHint.ClearTypeGridFit;
+
+            for (int i = 0; i < tags.Count && i < MaxTagCount; i++)
+            {
+                var tagText = tags[i];
+                var textSize = g.MeasureString(tagText, tagFont);
+
+                // Calculate tag rectangle with padding
+                var tagWidth = textSize.Width + (TAG_PADDING * 2);
+                var tagHeight = tagsArea.Height;  // Use the full height of the tags area
+
+                // Check if we need to stop due to width constraints
+                if (currentX + tagWidth > tagsArea.Right - TAG_SPACING)  // Leave space at the end
+                    break;
+
+                // Draw tag background
+                var tagRect = new RectangleF(currentX, currentY, tagWidth, tagHeight);
+                g.FillRectangle(tagBrush, tagRect);
+
+                // Center text vertically in the tag
+                float textY = currentY + (tagHeight - textSize.Height) / 2;
+
+                // Draw tag text
+                var textRect = new RectangleF(
+                    currentX + TAG_PADDING,
+                    textY,
+                    textSize.Width,
+                    textSize.Height);
+                g.DrawString(tagText, tagFont, textBrush, textRect);
+
+                // Move to next tag position
+                currentX += tagWidth + TAG_SPACING;
+            }
+        }
 
         private string[] GetTags()
         {
@@ -130,48 +190,16 @@ namespace DAZ_Installer
         }
 
 
-        private void UpdateTags(IReadOnlyList<string> tags)
+        private void UpdateTags(IReadOnlyList<string> newTags)
         {
-            BeginUpdate();
-            ReleaseTags();
-            try
-            {
-                var t = 0;
-
-                for (var i = 0; i < tags.Count && t < MaxTagCount; i++)
-                {
-                    var tagName = tags[i];
-                    if (string.IsNullOrWhiteSpace(tagName))
-                        continue;
-                    Label lbl = CreateTag(tags[i]);
-                    labels.Add(lbl);
-                    t++;
-                }
-                tagsLayoutPanel.Controls.AddRange([..labels]);
-            }
-            catch (Exception e)
-            {
-                Logger.Error(e, "Failed to update tags");
-            }
-            EndUpdate();
-        }
-
-        private Label CreateTag(string tagName = "")
-        {
-            var tag = new Label();
-            tag.Text = tagName;
-            tag.BackColor = Color.DarkSeaGreen;
-            tag.Font = new Font("Segoe UI", 10.2F, FontStyle.Regular, GraphicsUnit.Point);
-            tag.AutoSize = true;
-            tag.AutoEllipsis = true;
-
-            return tag;
+            tags.Clear();
+            tags.AddRange(newTags.Where(t => !string.IsNullOrWhiteSpace(t)));
+            Invalidate(); // Trigger repaint
         }
 
         private void ReleaseTags()
         {
             BeginUpdate();
-            tagsLayoutPanel.Controls.Clear();
             labels.Clear();
             EndUpdate();
         }
