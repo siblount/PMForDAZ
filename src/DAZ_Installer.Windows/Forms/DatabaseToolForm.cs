@@ -82,7 +82,8 @@ namespace DAZ_Installer.Windows.Forms
             string location = Path.GetFileNameWithoutExtension(Program.Database.Path) + "_backup.db";
             if (!File.Exists(location))
             {
-                if (MessageBox.Show($"A backup has not been detected at {Environment.CurrentDirectory}. Please locate the backup file to restore.", "Backup Not Found", MessageBoxButtons.OKCancel) == DialogResult.Cancel)
+                if (MessageBox.Show($"A backup has not been detected at {Path.GetFullPath(Program.Database.Path)}. Please locate the backup file to restore on the next prompt.", 
+                    "Backup Not Found", MessageBoxButtons.OKCancel) == DialogResult.Cancel)
                     return;
                 var dialog = new OpenFileDialog
                 {
@@ -92,9 +93,11 @@ namespace DAZ_Installer.Windows.Forms
                 if (dialog.ShowDialog() == DialogResult.OK) location = dialog.FileName;
                 else return;
             }
-            if (MessageBox.Show("Are you sure you want to restore the database? This will overwrite the current database.", "Restore Database", MessageBoxButtons.YesNo) == DialogResult.No)
+            if (MessageBox.Show($"Are you sure you want to restore the database?\n\nTHIS WILL OVERWRITE THE CURRENT DATABASE FILE! " +
+                                $"\n\nMake a copy of the current database now if you need to, press Yes to proceed or No to cancel.", 
+                                "Restore Database", MessageBoxButtons.YesNo) == DialogResult.No)
                 return;
-            Program.Database.RestoreDatabaseQ(Path.GetFileNameWithoutExtension(location), OnRestoreComplete);
+            Program.Database.RestoreDatabaseQ(location, OnRestoreComplete);
         }
 
         private void OnRestoreComplete(bool result)
