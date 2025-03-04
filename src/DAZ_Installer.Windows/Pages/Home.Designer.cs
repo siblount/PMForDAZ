@@ -50,7 +50,7 @@ namespace DAZ_Installer.Windows.Pages
             // 
             titleLbl.BackColor = System.Drawing.Color.White;
             titleLbl.Dock = System.Windows.Forms.DockStyle.Top;
-            titleLbl.Font = new System.Drawing.Font("Segoe UI Variable Text Light", 18F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
+            titleLbl.Font = new System.Drawing.Font("Segoe UI Variable Text Light", 18F);
             titleLbl.ForeColor = System.Drawing.Color.FromArgb(31, 31, 31);
             titleLbl.Location = new System.Drawing.Point(0, 0);
             titleLbl.Name = "titleLbl";
@@ -172,7 +172,7 @@ namespace DAZ_Installer.Windows.Pages
             dropBtn.Cursor = System.Windows.Forms.Cursors.Hand;
             dropBtn.FlatAppearance.BorderSize = 0;
             dropBtn.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
-            dropBtn.Font = new System.Drawing.Font("Segoe UI Variable Display Semil", 18F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
+            dropBtn.Font = new System.Drawing.Font("Segoe UI Variable Display Semil", 18F);
             dropBtn.ForeColor = System.Drawing.Color.FromArgb(32, 32, 32);
             dropBtn.Location = new System.Drawing.Point(18, 55);
             dropBtn.Name = "dropBtn";
@@ -193,6 +193,7 @@ namespace DAZ_Installer.Windows.Pages
             Controls.Add(dropBtn);
             Controls.Add(titleLbl);
             Controls.Add(tableLayoutPanel1);
+            DoubleBuffered = true;
             Name = "Home";
             Size = new System.Drawing.Size(542, 344);
             DragDrop += Home_DragDrop;

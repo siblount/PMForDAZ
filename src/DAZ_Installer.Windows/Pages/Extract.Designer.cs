@@ -146,7 +146,7 @@ namespace DAZ_Installer.Windows.Pages
             // 
             queueContextStrip.Items.AddRange(new System.Windows.Forms.ToolStripItem[] { skipArchiveToolStripMenuItem, cancelCurrentArchiveToolStripMenuItem, cancelStripSeperator, cancelExtractJobToolStripMenuItem, cancelCurrentExtractJobToolStripMenuItem, viewStripSeperator, viewFileListToolStripMenuItem, viewFileHierachyToolStripMenuItem, viewErrorsToolStripMenuItem });
             queueContextStrip.Name = "queueContextStrip";
-            queueContextStrip.Size = new System.Drawing.Size(211, 192);
+            queueContextStrip.Size = new System.Drawing.Size(211, 170);
             queueContextStrip.Opening += queueContextStrip_Opening;
             // 
             // skipArchiveToolStripMenuItem
@@ -406,6 +406,7 @@ namespace DAZ_Installer.Windows.Pages
             BackColor = System.Drawing.Color.White;
             Controls.Add(splitContainer1);
             Controls.Add(progressCombo);
+            DoubleBuffered = true;
             Margin = new System.Windows.Forms.Padding(4, 2, 4, 2);
             Name = "Extract";
             Size = new System.Drawing.Size(542, 344);

@@ -74,7 +74,6 @@ namespace DAZ_Installer
             tagsLayoutPanel.Size = new Size(328, 21);
             tagsLayoutPanel.TabIndex = 8;
             tagsLayoutPanel.WrapContents = false;
-            tagsLayoutPanel.ClientSizeChanged += tagsLayoutPanel_ClientSizeChanged;
             // 
             // invisibleLabel
             // 

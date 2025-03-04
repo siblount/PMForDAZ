@@ -386,7 +386,6 @@ namespace DAZ_Installer.Windows.Pages
             // 
             contentFolderRedirectsListBox.Anchor = System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right;
             contentFolderRedirectsListBox.FormattingEnabled = true;
-            contentFolderRedirectsListBox.ItemHeight = 15;
             contentFolderRedirectsListBox.Location = new System.Drawing.Point(187, 180);
             contentFolderRedirectsListBox.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             contentFolderRedirectsListBox.Name = "contentFolderRedirectsListBox";
@@ -397,7 +396,6 @@ namespace DAZ_Installer.Windows.Pages
             // 
             contentFoldersListBox.Anchor = System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right;
             contentFoldersListBox.FormattingEnabled = true;
-            contentFoldersListBox.ItemHeight = 15;
             contentFoldersListBox.Location = new System.Drawing.Point(187, 86);
             contentFoldersListBox.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             contentFoldersListBox.Name = "contentFoldersListBox";
@@ -471,6 +469,7 @@ namespace DAZ_Installer.Windows.Pages
             Controls.Add(applySettingsBtn);
             Controls.Add(titleLbl);
             Controls.Add(loadingPanel);
+            DoubleBuffered = true;
             Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             Name = "Settings";
             Size = new System.Drawing.Size(542, 773);
