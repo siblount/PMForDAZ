@@ -2,21 +2,18 @@
 // You may find a full copy of this license at root project directory\LICENSE
 
 using DAZ_Installer.Core;
-using DAZ_Installer.IO;
 using DAZ_Installer.UI;
 using DAZ_Installer.Windows.DP;
-using Newtonsoft.Json.Linq;
 using Serilog;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Data;
 using System.Diagnostics;
 using System.Drawing;
 using System.IO;
 using System.Linq;
 using System.Windows.Forms;
-using System.Threading.Tasks;
-using System.Data;
 namespace DAZ_Installer.Windows.Pages
 {
 
@@ -328,7 +325,7 @@ namespace DAZ_Installer.Windows.Pages
                 tabControl1.Controls.Add(fileHierachyPage);
                 fileHierachyShowing = true;
             }
-            tabControl1.TabIndex = tabControl1.Controls.IndexOf(fileHierachyPage);
+            tabControl1.SelectedTab = fileHierachyPage;
         }
 
         /// <inheritdoc/>
@@ -337,7 +334,7 @@ namespace DAZ_Installer.Windows.Pages
             if (archive.Contents.Count == 0) return;
             if (InvokeRequired)
             {
-                BeginInvoke(() => ShowFileHierachyTab(archive));
+                BeginInvoke(() => ShowFileListTab(archive));
                 return;
             }
 
@@ -362,7 +359,7 @@ namespace DAZ_Installer.Windows.Pages
                 tabControl1.Controls.Add(fileListPage);
                 fileListShowing = true;
             }
-            tabControl1.TabIndex = tabControl1.Controls.IndexOf(fileListPage);
+            tabControl1.SelectedTab = fileListPage;
         }
 
         /// <inheritdoc/>
@@ -438,6 +435,24 @@ namespace DAZ_Installer.Windows.Pages
             else SetupDataGrid(errorTable);
         }
 
+        private static void OpenFileInExplorer(string path)
+        {
+            if (!File.Exists(path))
+            {
+                MessageBox.Show($"{path} does not exist or cannot be accessed due to insufficient permissions", "Failed to open in file explorer", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                Logger.Error("Failed to open file in explorer due to file not existing (or insufficient permissions): {file}", path);
+            }
+            try
+            {
+                Process.Start(@"explorer.exe", $"/select, \"{path}\"");
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Failed to open file due to an unknown error", "Failed to open in file explorer", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                Logger.Error(ex, "Failed to open path in explorer");
+            }
+        }
+
         #region Context Strip Events
         private void selectInHierachyToolStripMenuItem_Click(object sender, EventArgs e)
         {
@@ -452,20 +467,20 @@ namespace DAZ_Installer.Windows.Pages
 
         private void fileListContextStrip_Opening(object sender, CancelEventArgs e)
         {
-            var filesSelected = fileListView.SelectedItems.Count != 0;
-            IDPAbstractNode? node = filesSelected ? fileListView.SelectedItems[0].Tag as IDPAbstractNode : null;
-            if (filesSelected && node is null)
+            if (fileListView.SelectedItems.Count is 0)
+            {
+                noFilesSelectedToolStripMenuItem.Visible = true;
+                return;
+            }
+            IDPAbstractNode? node = fileListView.SelectedItems[0].Tag as IDPAbstractNode;
+            if (node is null)
             {
                 Logger.Error("Got null abstract node tag for a selected file list view item, select in hierachy disabled");
             }
-            inspectFileListMenuItem.Visible = !filesSelected;
-            openInExplorerToolStripMenuItem.Visible = filesSelected;
-            selectInHierachyToolStripMenuItem.Visible = node is not null &&
-                                                     associatedTreeNodes.TryGetValue(node, out var _);
-            noFilesSelectedToolStripMenuItem.Visible = !filesSelected;
+            openInExplorerToolStripMenuItem.Visible = node is IDPFile file && file is { FileInfo.Exists: true };
+            selectInHierachyToolStripMenuItem.Visible = node is not null && associatedTreeNodes.ContainsKey(node);
+            noFilesSelectedToolStripMenuItem.Visible = false;
         }
-
-        public void OpenFileInExplorer(string path) => Process.Start(@"explorer.exe", $"/select, \"{path}\"");
 
         private void selectInFileListToolStripMenuItem_Click(object sender, EventArgs e)
         {
@@ -475,6 +490,82 @@ namespace DAZ_Installer.Windows.Pages
 
             // Switch tab.
             tabControl1.SelectTab(fileListPage);
+        }
+
+        private void openInExplorerToolStripMenuItem_FileHierachy_Click(object sender, EventArgs e)
+        {
+            if (fileHierachyTree.SelectedNode is not null)
+            {
+                if (fileHierachyTree.SelectedNode.Tag is IDPFile file)
+                {
+                    if (file.FileInfo is not null) OpenFileInExplorer(file.FileInfo.Path);
+                    else Logger.Error("Failed to open file in explorer due to null FileInfo");
+                }
+                else Logger.Warning("Open in explorer was called for a non-file object (or tag is malformed).");
+            }
+            else Logger.Warning("Open in explorer should not have been called when selected items is not 1.");
+        }
+
+        private void openInExplorerToolStripMenuItem_FileList_Click(object sender, EventArgs e)
+        {
+            if (fileListView.SelectedItems.Count is 1)
+            {
+                if (fileListView.SelectedItems[0].Tag is IDPFile file)
+                {
+                    if (file.FileInfo is not null) OpenFileInExplorer(file.FileInfo.Path);
+                    else Logger.Error("Failed to open file in explorer due to null FileInfo");
+                }
+                else Logger.Warning("Open in explorer was called for a non-file object (or tag is malformed).");
+            }
+            else Logger.Warning("Open in explorer should not have been called when selected items is not 1.");
+        }
+
+        private void fileHierachyContextStrip_Opening(object sender, CancelEventArgs e)
+        {
+            if (fileHierachyTree.SelectedNode is null)
+            {
+                noNodesSelectedToolStripMenuItem.Visible = true;
+                return;
+            }
+            IDPAbstractNode? node = fileHierachyTree.SelectedNode.Tag as IDPAbstractNode;
+            if (node is null)
+            {
+                Logger.Error("Got null abstract node tag for a selected file list view item, select in hierachy disabled");
+            }
+            openInExplorerToolStripMenuItem.Visible = node is IDPFile file && file is { FileInfo.Exists: true };
+            selectInHierachyToolStripMenuItem.Visible = node is not null && associatedListItems.ContainsKey(node);
+            noNodesSelectedToolStripMenuItem.Visible = false;
+        }
+
+        private void copyToolStripMenuItem_Errors_Click(object sender, EventArgs e)
+        {
+            if (errorDataGridView.SelectedCells.Count is not 1) return;
+            try
+            {
+                if (errorDataGridView.SelectedCells[0].Value is string text)
+                    CopyToClipboard(text);
+                else
+                {
+                    Logger.Warning("The selected cell for the error data grid was not a string value type, attempting to force to string");
+                    if (errorDataGridView.SelectedCells[0].Value!.ToString() is string s) CopyToClipboard(s);
+                    else throw new ArgumentException("Selected cell could not be converted to a string");
+                }
+            } catch (Exception ex)
+            {
+                MessageBox.Show("Failed to copy cell data to clipboard", "Failed to copy", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                Logger.Error(ex, "Failed to copy value of selected cell in error data grid when forced");
+            }
+            
+        }
+
+        private void errorsMenuStrip_Opening(object sender, CancelEventArgs e)
+        {
+            if (errorDataGridView.SelectedCells.Count is 0)
+            {
+                e.Cancel = true;
+                return;
+            }
+            copyToolStripMenuItem.Enabled = errorDataGridView.SelectedCells.Count is 1;
         }
 
         private void queueContextStrip_Opening(object sender, CancelEventArgs e)
@@ -517,35 +608,30 @@ namespace DAZ_Installer.Windows.Pages
             QueueController.OnViewErrors();
         }
 
-        private void copyToolStripMenuItem_Click(object sender, EventArgs e)
+        #endregion
+
+        private void copyToolStripMenuItem_FileList_Click(object sender, EventArgs e)
         {
-            if (errorDataGridView.SelectedCells.Count is not 1) return;
-            if (errorDataGridView.SelectedCells[0].Value is string text)
-                Clipboard.SetText(text);
-            else
+            if (fileListView.SelectedItems.Count is 0) return;
+            try
             {
-                Logger.Warning("The selected cell for the error data grid was not a string value type, attempting to force to string");
-                try
-                {
-                    Clipboard.SetText(errorDataGridView.SelectedCells[0].Value!.ToString());
-                } catch (Exception ex)
-                {
-                    MessageBox.Show("Failed to copy cell data to clipboard", "Failed to copy", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                    Logger.Error(ex, "Failed to copy value of selected cell in error data grid when forced");
-                }
+                CopyToClipboard([..fileListView.SelectedItems.OfType<ListViewItem>().Select(x => x.Text)]);
+            } catch (Exception ex)
+            {
+                MessageBox.Show("Failed to copy cell data to clipboard", "Failed to copy", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                Logger.Error(ex, "Failed to copy value of selected cell in error data grid when forced");
             }
         }
 
-        #endregion
-
-        private void errorsMenuStrip_Opening(object sender, CancelEventArgs e)
+        /// <summary>
+        /// Copies items to clipboard with a new line seperator for each item.
+        /// </summary>
+        /// <param name="items">The items to add to clipboard seperated by a new line.</param>
+        /// <exception cref="Exception">Clipboard failed to set items</exception>
+        private void CopyToClipboard(params ReadOnlySpan<string> items)
         {
-            if (errorDataGridView.SelectedCells.Count is 0)
-            {
-                e.Cancel = true;
-                return;
-            }
-            copyToolStripMenuItem.Enabled = errorDataGridView.SelectedCells.Count is 1;
+            if (items.Length is 0) return;
+            Clipboard.SetText(string.Join('\n', items!));
         }
     }
 
