@@ -28,6 +28,7 @@ namespace DAZ_Installer.Windows
         public static int MainThreadID { get; private set; } = 0;
         public static bool IsOnMainThread => MainThreadID == Environment.CurrentManagedThreadId;
         public static DPDatabase Database { get; private set; } = new DPDatabase("Database/db.db");
+        public static ILogger Logger => Log.ForContext(typeof(Program));
         /// <summary>
         ///  The main entry point for the application.
         /// </summary>
@@ -48,7 +49,8 @@ namespace DAZ_Installer.Windows
                                            retainedFileTimeLimit: TimeSpan.FromDays(5)),
                 blockWhenFull: true)
                 .CreateLogger();
-            Log.ForContext(typeof(Program)).Information("Starting application");
+            Logger.Information("Starting application");
+            Logger.Information("App Version: {0} {1}", AppVersion, VersionSuffix);
             if (CheckInstances()) return;
             if (DatabaseUpdateRequired().Result == false) return;
             Thread.CurrentThread.Name = "Main";
@@ -69,7 +71,7 @@ namespace DAZ_Installer.Windows
                 // TODO: Show error handler here.
                 MessageBox.Show($"Oops! A fatal error occurred that requires the application to shut down. Error:\n{ex.Message}", 
                     "Fatal Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                Log.ForContext(typeof(Program)).Fatal(ex, "Application shutdown due to fatal error");
+                Logger.Fatal(ex, "Application shutdown due to fatal error");
             }
             finally {
                 mutex.ReleaseMutex();
@@ -80,20 +82,33 @@ namespace DAZ_Installer.Windows
         {
             if (Database.UpdateRequired)
             {
-                Log.Information("The database requires an update");
-                var result = MessageBox.Show("A database update is required before starting this application. Do you wish to start the update now? This may take a few minutes.", 
-                    "Database Update Required", MessageBoxButtons.YesNo, MessageBoxIcon.Information);
+                Logger.Information("Database update is required");
+                var result = MessageBox.Show($"A database update is required before starting this application. " +
+                    $"First, a backup of the database will be saved, then the update will proceed.\n\n" +
+                    $"Even though, a backup may be saved, as an extra precaution, it is highly recommended to manually backup the database located at: " +
+                    $"\n\n{Path.GetFullPath(Database.Path)}.\n\n" +
+                    $"Do you wish to start the update now? This may take a few minutes.", 
+                    "Database Update Required", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
                 if (result == DialogResult.No) return false;
-                CancellationTokenSource cts = new CancellationTokenSource();
+                using var cts = new CancellationTokenSource();
                 cts.CancelAfter(TimeSpan.FromMinutes(20));
+                var backupResult = await Database.BackupDatabaseQ().ConfigureAwait(false);
+                if (!backupResult)
+                {
+                    Logger.Warning("Database did not backup database successfully during database update procedure");
+                    result = MessageBox.Show($"Failed to backup the database. It is still possible to update the database. Do you wish to proceed or cancel?", 
+                        "Backup failed", MessageBoxButtons.YesNo, MessageBoxIcon.Error);
+                    if (result == DialogResult.No) return false;
+                }
                 await Database.UpdateDatabase(cts.Token).ConfigureAwait(false);
-                await Database.RefreshDatabaseQ(true);
+                await Database.RefreshDatabaseQ(true).ConfigureAwait(false);
                 if (Database.UpdateRequired)
                 {
-                    Log.Warning("The database update was not successful.");
+                    Logger.Warning("The database update was not successful.");
                     MessageBox.Show("The database update was not successful. The changes to the database have not been applied. The application will now close.", "Database Update Failed", MessageBoxButtons.OK, MessageBoxIcon.Error);
                     return false;
                 }
+                MessageBox.Show("The database update was a success. The application will now start.", "Database Update Success", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 return true;
             }
             return true;
@@ -107,12 +122,12 @@ namespace DAZ_Installer.Windows
                 DPSettings.CurrentSettingsObject = DPSettings.FromJson(txt.ReadToEnd());
                 if (DPSettings.CurrentSettingsObject == null)
                 {
-                    Log.Warning("Failed to load settings from disk. Using default settings.");
+                    Logger.Warning("Failed to load settings from disk. Using default settings.");
                     MessageBox.Show("Failed to load settings from disk. Using default settings.", "Settings Load Failed", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                     DPSettings.CurrentSettingsObject = new DPSettings();
                 }
             } catch (Exception ex) {
-                Log.Error(ex, "Failed to load settings from disk. Using default settings.");  
+                Logger.Error(ex, "Failed to load settings from disk. Using default settings.");  
             }
         }
         /// <summary>
@@ -126,7 +141,7 @@ namespace DAZ_Installer.Windows
             var isAnotherInstanceOpen = !mutex.WaitOne(0);
             if (isAnotherInstanceOpen)
             {
-                Log.Warning("User attempted to launch another instance of the application.");
+                Logger.Warning("User attempted to launch another instance of the application.");
                 MessageBox.Show(null, "Only one instance of Daz Product Installer is allowed!", "Launch cancelled", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return true;
             }
