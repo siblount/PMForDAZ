@@ -28,7 +28,6 @@ namespace DAZ_Installer.Database {
         /// </summary>
         /// <remarks>
         /// For most operations, you should use this method compared to <see cref="CreateConnection(ref DPConnectionOpts, bool)"/>.
-        /// If you need a 
         /// If connection is null, a connection will be created for you. If the connection fails to open or be
         /// created, it will return null. This will create the database file if it does not exist.
         /// </remarks>

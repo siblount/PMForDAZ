@@ -702,10 +702,10 @@ namespace DAZ_Installer.Database
                         DROP TABLE ProductRecords;
                         DROP TABLE ExtractionRecords;
                         DROP TABLE Tags;
-                        pragma VACCUM;
 ";
                     sqlCommand.ExecuteNonQuery();
                     transaction.Commit();
+                    VacuumDatabase(opts);
                 }
                 catch (Exception ex)
                 {

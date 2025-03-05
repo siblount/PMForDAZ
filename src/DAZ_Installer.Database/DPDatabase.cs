@@ -748,11 +748,11 @@ namespace DAZ_Installer.Database
 
         private bool VacuumDatabase(DPConnectionOpts opts)
         {
-            using var c = CreateAndOpenConnection(ref opts, true);
+            using var c = CreateAndOpenConnection(ref opts, false);
             if (!OpenConnection(c) || opts.IsCancellationRequested) return false;
             try
             {
-                using var cmd = opts.CreateCommand("pragma VACUUM");
+                using var cmd = opts.CreateCommand("VACUUM;");
                 cmd.ExecuteNonQuery();
                 return true;
             }
