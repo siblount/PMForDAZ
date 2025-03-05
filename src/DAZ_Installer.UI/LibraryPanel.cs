@@ -17,10 +17,7 @@ namespace DAZ_Installer
         [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
         public ILogger Logger { get; set; } = Log.ForContext<LibraryPanel>();
         public LibraryPanel() => InitializeComponent();
-        
-        [Browsable(true), EditorBrowsable(EditorBrowsableState.Always), Description("Holds the current library items."), Category("Items")]
-        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
-        public List<LibraryItem> LibraryItems { get; } = new List<LibraryItem>(25);
+        public IEnumerable<LibraryItem> LibraryItems => mainContentPanel.Controls.Cast<LibraryItem>();
 
         [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
         public uint CurrentPage

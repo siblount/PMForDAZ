@@ -15,8 +15,8 @@ namespace DAZ_Installer
     {
         public static Color initialColor;
         public static Color darkerColor = Color.FromArgb(60, Color.FromKnownColor(KnownColor.ForestGreen));
-        public event Action<LibraryItem>? ProductRemovalRequested;
-        public event Action<LibraryItem>? ProductRecordRemovalRequested;
+        public Action<LibraryItem>? ProductRemovalRequested;
+        public Action<LibraryItem>? ProductRecordRemovalRequested;
         private static bool initalized = false;
         [Description("Title text"), Category("Data"), Browsable(true), EditorBrowsable(EditorBrowsableState.Always), DesignerSerializationVisibility(DesignerSerializationVisibility.Visible)]
         public string TitleText
@@ -249,7 +249,8 @@ namespace DAZ_Installer
             DialogResult result = MessageBox.Show($"Are you sure you want to remove the record for {ProductRecord.Name}? " +
                 "This won't remove the files on disk and the record cannot be restored.", "Remove product record confirmation", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
             if (result == DialogResult.No) return;
-            ProductRecordRemovalRequested?.Invoke(this);
+            if (ProductRecordRemovalRequested is not null) 
+                ProductRecordRemovalRequested(this);
         }
 
         private void removeProductToolStripMenuItem_Click(object sender, EventArgs e)
@@ -257,7 +258,8 @@ namespace DAZ_Installer
             DialogResult result = MessageBox.Show($"Are you sure you want to remove the record & product files for {ProductRecord.Name}? " +
                 "THIS CAN PERMANENTLY REMOVE ASSOCIATED FILES ON DISK (depending on Delete Action setting)!", "Remove product confirmation", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
             if (result == DialogResult.No) return;
-            ProductRemovalRequested?.Invoke(this);
+            if (ProductRemovalRequested is not null)
+                ProductRemovalRequested(this);
         }
     }
 }

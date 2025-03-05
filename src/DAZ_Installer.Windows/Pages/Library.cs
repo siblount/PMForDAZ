@@ -25,7 +25,6 @@ namespace DAZ_Installer.Windows.Pages
         public static Library self;
         protected static Image noImageFound;
         protected const byte MAX_CAPACITY = 25;
-        protected List<LibraryItem> libraryItems => libraryPanel1.LibraryItems;
         protected List<DPProductRecordLite> ProductRecords { get; set; } = new(MAX_CAPACITY);
         private List<DPProductRecordLite> SearchRecords { get; set; } = new(MAX_CAPACITY);
 
@@ -92,11 +91,11 @@ namespace DAZ_Installer.Windows.Pages
         /// </summary>
         private void ClearPageContents()
         {
-            //foreach (var lb in libraryItems)
-            //{
-            //    var thumbnail = lb.ProductRecord.Thumbnail;
-            //    RemoveReferenceImage(Path.GetFileName(thumbnail));
-            //}
+            foreach (var lb in libraryPanel1.LibraryItems)
+            {
+                var thumbnail = lb.ProductRecord.Thumbnail;
+                RemoveReferenceImage(Path.GetFileName(thumbnail));
+            }
         }
 
         private async void OnProductRemovalRequested(LibraryItem item)
@@ -195,8 +194,8 @@ namespace DAZ_Installer.Windows.Pages
                     item.Database = Program.Database;
                     item.MaxTagCount = DPSettings.CurrentSettingsObject.MaxTagsToShow;
                     item.ProductRecordFormType = typeof(ProductRecordForm);
-                    item.ProductRemovalRequested += OnProductRemovalRequested;
-                    item.ProductRecordRemovalRequested += OnProductRecordRemovalRequested;
+                    item.ProductRemovalRequested = OnProductRemovalRequested;
+                    item.ProductRecordRemovalRequested = OnProductRecordRemovalRequested;
                     item.Image = File.Exists(item.ProductRecord.Thumbnail) ? 
                         AddReferenceImage(item.ProductRecord.Thumbnail) : 
                         noImageFound;
@@ -300,7 +299,7 @@ namespace DAZ_Installer.Windows.Pages
         private void OnRemovedProductRecord(long ID)
         {
             var collection = SearchMode ? SearchRecords : ProductRecords;
-            var lb = libraryPanel1.LibraryItems.Find(l => l.ProductRecord.ID == ID);
+            var lb = libraryPanel1.LibraryItems.FirstOrDefault(l => l.ProductRecord.ID == ID, null!);
             if (lb is null) return;
             var record = lb.ProductRecord;
             DisableLibraryItem(lb);
@@ -310,10 +309,10 @@ namespace DAZ_Installer.Windows.Pages
 
         private void OnModifiedProductRecord(DPProductRecord updatedRecord, long oldID)
         {
-            List<DPProductRecordLite> collection = searchMode ? SearchRecords : ProductRecords;
+            var collection = searchMode ? SearchRecords : ProductRecords;
             var i = collection.IndexOf(collection.Find(r => r.ID == oldID));
             if (i == -1) return;
-            LibraryItem? lb = libraryPanel1.LibraryItems.Find(l => l.ProductRecord == SearchRecords[i]);
+            var lb = libraryPanel1.LibraryItems.FirstOrDefault(l => l.ProductRecord == collection[i], null!);
             if (lb is null) return;
             var liteRecord = updatedRecord.ToLite();
             UpdateLibraryItem(lb, liteRecord);
