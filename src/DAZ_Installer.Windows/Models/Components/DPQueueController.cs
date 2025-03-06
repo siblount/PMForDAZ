@@ -49,6 +49,14 @@ namespace DAZ_Installer.Windows.DP
                 (associatedListItem, associatedJob, archiveInfoKey) = (item, job, key);
         }
 
+        /// <summary>
+        /// Creates a composite key combining job ID and file path to ensure uniqueness
+        /// </summary>
+        /// <param name="job">The extract job</param>
+        /// <param name="filePath">The file path</param>
+        /// <returns>A unique key string</returns>
+        private static string CreateCompositeKey(IDPExtractJob job, string filePath) => $"{job.GetHashCode()}:{filePath}";
+
         /// <inheritdoc/>
         public void AddJob(IDPExtractJob job)
         {
@@ -64,33 +72,40 @@ namespace DAZ_Installer.Windows.DP
             extractJobs.Add(job);
             var letter = (char)('A' - 1 + extractJobs.Count);
 
-            queueListView.BeginUpdate();
-            try
+            void AddInitialFiles()
             {
-                var groupKey = job.GetHashCode().ToString();
-                var group = queueListView.Groups.Add(groupKey, $"Extract Job {letter}");
-                group.Tag = job;
-                foreach (string file in job.InitialFilesToProcess)
+                queueListView.BeginUpdate();
+                try
                 {
-                    var normalizedFilePath = PathHelper.NormalizePath(file);
-                    var visibleArchiveName = PathHelper.GetFileName(normalizedFilePath);
-                    ListViewItem item = queueListView.Items.Add(visibleArchiveName);
-                    var queueItem = new QueueItem(item, job, normalizedFilePath);
-                    associatedQueueItems.Add(normalizedFilePath, queueItem);
-                    Logger.Debug("Added item with key: {key}", normalizedFilePath);
-                    item.Tag = queueItem;
-                    item.ToolTipText = "Manually added to queue";
-                    item.Group = group;
+                    var groupKey = job.GetHashCode().ToString();
+                    var group = queueListView.Groups.Add(groupKey, $"Extract Job {letter}");
+                    group.Tag = job;
+                    foreach (string file in job.InitialFilesToProcess)
+                    {
+                        var normalizedFilePath = PathHelper.NormalizePath(file);
+                        var visibleArchiveName = PathHelper.GetFileName(normalizedFilePath);
+                        ListViewItem item = queueListView.Items.Add(visibleArchiveName);
+                        var queueItem = new QueueItem(item, job, normalizedFilePath);
+                        var key = CreateCompositeKey(job, normalizedFilePath);
+                        associatedQueueItems.Add(key, queueItem);
+                        Logger.Debug("Added item with key: {key}", key);
+                        item.Tag = queueItem;
+                        item.ToolTipText = "Manually added to queue";
+                        item.Group = group;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Logger.Error(ex, "An unexpected error occured while adding an extract job to the queue");
+                }
+                finally
+                {
+                    queueListView.EndUpdate();
                 }
             }
-            catch (Exception ex)
-            {
-                Logger.Error(ex, "An unexpected error occured while adding an extract job to the queue");
-            }
-            finally
-            {
-                queueListView.EndUpdate();
-            }
+
+            if (queueListView.InvokeRequired) queueListView.BeginInvoke(AddInitialFiles);
+            else AddInitialFiles();
         }
 
         /// <inheritdoc/>
@@ -105,56 +120,65 @@ namespace DAZ_Installer.Windows.DP
         /// <inheritdoc/>
         public void UpdateView(IDPExtractJob job)
         {
-            queueListView.BeginUpdate();
-            try
-            {
-                var archiveInfosSnapshot = job.GetArchiveInfosSnapshot();
-                foreach (var info in archiveInfosSnapshot.Values)
+            if (queueListView.InvokeRequired) queueListView.BeginInvoke(() => UpdateView(job));
+            else {
+                queueListView.BeginUpdate();
+                try
                 {
-                    UpdateQueueItem(job, info);
+                    var archiveInfosSnapshot = job.GetArchiveInfosSnapshot();
+                    foreach (var info in archiveInfosSnapshot.Values)
+                    {
+                        UpdateQueueItem(job, info);
+                    }
+                    UpdateGroups();
                 }
-                UpdateGroups();
-            }
-            catch (Exception ex)
-            {
-                Logger.Error(ex, "An unexpected error occured when attempting to update the view for all queue items");
-            }
-            finally
-            {
-                queueListView.EndUpdate();
+                catch (Exception ex)
+                {
+                    Logger.Error(ex, "An unexpected error occured when attempting to update the view for all queue items");
+                }
+                finally
+                {
+                    queueListView.EndUpdate();
+                }
             }
         }
 
         /// <inheritdoc/>
         public void UpdateView(IDPExtractJob job, DPArchiveInfo info)
         {
-            queueListView.BeginUpdate();
-            try
-            {
-                UpdateQueueItem(job, info);
-            }
-            catch (Exception ex)
-            {
-                Logger.Error(ex, "An unexpected error occured when attempting to update the view");
-            }
-            finally
-            {
-                queueListView.EndUpdate();
+            if (queueListView.InvokeRequired) queueListView.BeginInvoke(() => UpdateView(job, info));
+            else {
+                queueListView.BeginUpdate();
+                try
+                {
+                    UpdateQueueItem(job, info);
+                }
+                catch (Exception ex)
+                {
+                    Logger.Error(ex, "An unexpected error occured when attempting to update the view");
+                }
+                finally
+                {
+                    queueListView.EndUpdate();
+                }
             }
         }
 
         /// <inheritdoc/>
         private void ClearExtractQueue()
         {
-            queueListView.BeginUpdate();
-            try
-            {
-                queueListView.Items.Clear();
-                queueListView.Groups.Clear();
-            }
-            finally
-            {
-                queueListView.EndUpdate();
+            if (queueListView.InvokeRequired) queueListView.BeginInvoke(ClearExtractQueue);
+            else {
+                queueListView.BeginUpdate();
+                try
+                {
+                    queueListView.Items.Clear();
+                    queueListView.Groups.Clear();
+                }
+                finally
+                {
+                    queueListView.EndUpdate();
+                }
             }
         }
 
@@ -365,7 +389,8 @@ namespace DAZ_Installer.Windows.DP
 
         private ListViewItem? EnsureAssociatedQueueItem(IDPExtractJob caller, DPArchiveInfo info)
         {
-            if (associatedQueueItems.TryGetValue(info.FilePath, out var item)) return item.associatedListItem;
+            var key = CreateCompositeKey(caller, info.FilePath);
+            if (associatedQueueItems.TryGetValue(key, out var item)) return item.associatedListItem;
             try
             {
                 queueListView.BeginUpdate();
@@ -375,8 +400,8 @@ namespace DAZ_Installer.Windows.DP
 
                 item = new QueueItem(listItem, caller, info.FilePath);
                 listItem.Tag = item;
-                associatedQueueItems.Add(info.FilePath, item);
-                Logger.Debug("Added item with key: {key}", info.FilePath);
+                associatedQueueItems.Add(key, item);
+                Logger.Debug("Added item with key: {key}", key);
 
                 SetTooltipMessageForArchiveQueueListViewItem(info, item.associatedListItem);
                 try
