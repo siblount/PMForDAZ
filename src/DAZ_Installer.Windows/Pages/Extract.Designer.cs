@@ -30,8 +30,8 @@ namespace DAZ_Installer.Windows.Pages
         private void InitializeComponent()
         {
             components = new System.ComponentModel.Container();
-            System.Windows.Forms.ListViewGroup listViewGroup1 = new System.Windows.Forms.ListViewGroup("No extraction jobs processed yet", System.Windows.Forms.HorizontalAlignment.Left);
-            System.Windows.Forms.ListViewItem listViewItem1 = new System.Windows.Forms.ListViewItem("");
+            System.Windows.Forms.ListViewGroup listViewGroup2 = new System.Windows.Forms.ListViewGroup("No extraction jobs processed yet", System.Windows.Forms.HorizontalAlignment.Left);
+            System.Windows.Forms.ListViewItem listViewItem2 = new System.Windows.Forms.ListViewItem("");
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(Extract));
             tabControl1 = new System.Windows.Forms.TabControl();
             queuePage = new System.Windows.Forms.TabPage();
@@ -54,7 +54,7 @@ namespace DAZ_Installer.Windows.Pages
             fileListView = new System.Windows.Forms.ListView();
             filePathColumn = new System.Windows.Forms.ColumnHeader();
             fileListContextStrip = new System.Windows.Forms.ContextMenuStrip(components);
-            copyToolStripMenuItem1 = new System.Windows.Forms.ToolStripMenuItem();
+            copyFileToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             selectInHierachyToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             openInExplorerToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             noFilesSelectedToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
@@ -63,7 +63,7 @@ namespace DAZ_Installer.Windows.Pages
             errorsPage = new System.Windows.Forms.TabPage();
             errorDataGridView = new System.Windows.Forms.DataGridView();
             errorsMenuStrip = new System.Windows.Forms.ContextMenuStrip(components);
-            copyToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            copyErrorToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             fileHierachyContextStrip = new System.Windows.Forms.ContextMenuStrip(components);
             selectInFileListToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             openInExplorerToolStripMenuItem1 = new System.Windows.Forms.ToolStripMenuItem();
@@ -117,11 +117,11 @@ namespace DAZ_Installer.Windows.Pages
             queueListView.ContextMenuStrip = queueContextStrip;
             queueListView.Dock = System.Windows.Forms.DockStyle.Fill;
             queueListView.GroupImageList = statusIcons;
-            listViewGroup1.Header = "No extraction jobs processed yet";
-            listViewGroup1.Name = "defaultGroup";
-            queueListView.Groups.AddRange(new System.Windows.Forms.ListViewGroup[] { listViewGroup1 });
-            listViewItem1.Group = listViewGroup1;
-            queueListView.Items.AddRange(new System.Windows.Forms.ListViewItem[] { listViewItem1 });
+            listViewGroup2.Header = "No extraction jobs processed yet";
+            listViewGroup2.Name = "defaultGroup";
+            queueListView.Groups.AddRange(new System.Windows.Forms.ListViewGroup[] { listViewGroup2 });
+            listViewItem2.Group = listViewGroup2;
+            queueListView.Items.AddRange(new System.Windows.Forms.ListViewItem[] { listViewItem2 });
             queueListView.LabelWrap = false;
             queueListView.Location = new System.Drawing.Point(4, 2);
             queueListView.Name = "queueListView";
@@ -259,19 +259,19 @@ namespace DAZ_Installer.Windows.Pages
             // 
             fileListContextStrip.DropShadowEnabled = false;
             fileListContextStrip.ImageScalingSize = new System.Drawing.Size(20, 20);
-            fileListContextStrip.Items.AddRange(new System.Windows.Forms.ToolStripItem[] { copyToolStripMenuItem1, selectInHierachyToolStripMenuItem, openInExplorerToolStripMenuItem, noFilesSelectedToolStripMenuItem });
+            fileListContextStrip.Items.AddRange(new System.Windows.Forms.ToolStripItem[] { copyFileToolStripMenuItem, selectInHierachyToolStripMenuItem, openInExplorerToolStripMenuItem, noFilesSelectedToolStripMenuItem });
             fileListContextStrip.Name = "contextMenuStrip1";
             fileListContextStrip.RenderMode = System.Windows.Forms.ToolStripRenderMode.Professional;
             fileListContextStrip.ShowImageMargin = false;
             fileListContextStrip.Size = new System.Drawing.Size(144, 92);
             fileListContextStrip.Opening += fileListContextStrip_Opening;
             // 
-            // copyToolStripMenuItem1
+            // copyFileToolStripMenuItem
             // 
-            copyToolStripMenuItem1.Name = "copyToolStripMenuItem1";
-            copyToolStripMenuItem1.Size = new System.Drawing.Size(143, 22);
-            copyToolStripMenuItem1.Text = "Copy";
-            copyToolStripMenuItem1.Click += copyToolStripMenuItem_FileList_Click;
+            copyFileToolStripMenuItem.Name = "copyFileToolStripMenuItem";
+            copyFileToolStripMenuItem.Size = new System.Drawing.Size(143, 22);
+            copyFileToolStripMenuItem.Text = "Copy";
+            copyFileToolStripMenuItem.Click += copyToolStripMenuItem_FileList_Click;
             // 
             // selectInHierachyToolStripMenuItem
             // 
@@ -354,17 +354,17 @@ namespace DAZ_Installer.Windows.Pages
             // 
             // errorsMenuStrip
             // 
-            errorsMenuStrip.Items.AddRange(new System.Windows.Forms.ToolStripItem[] { copyToolStripMenuItem });
+            errorsMenuStrip.Items.AddRange(new System.Windows.Forms.ToolStripItem[] { copyErrorToolStripMenuItem });
             errorsMenuStrip.Name = "errorsMenuStrip";
             errorsMenuStrip.Size = new System.Drawing.Size(103, 26);
             errorsMenuStrip.Opening += errorsMenuStrip_Opening;
             // 
-            // copyToolStripMenuItem
+            // copyErrorToolStripMenuItem
             // 
-            copyToolStripMenuItem.Name = "copyToolStripMenuItem";
-            copyToolStripMenuItem.Size = new System.Drawing.Size(102, 22);
-            copyToolStripMenuItem.Text = "Copy";
-            copyToolStripMenuItem.Click += copyToolStripMenuItem_Errors_Click;
+            copyErrorToolStripMenuItem.Name = "copyErrorToolStripMenuItem";
+            copyErrorToolStripMenuItem.Size = new System.Drawing.Size(102, 22);
+            copyErrorToolStripMenuItem.Text = "Copy";
+            copyErrorToolStripMenuItem.Click += copyToolStripMenuItem_Errors_Click;
             // 
             // fileHierachyContextStrip
             // 
@@ -479,8 +479,8 @@ namespace DAZ_Installer.Windows.Pages
         private System.Windows.Forms.TabPage errorsPage;
         private System.Windows.Forms.DataGridView errorDataGridView;
         private System.Windows.Forms.ContextMenuStrip errorsMenuStrip;
-        private System.Windows.Forms.ToolStripMenuItem copyToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem copyErrorToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem noNodesSelectedToolStripMenuItem;
-        private System.Windows.Forms.ToolStripMenuItem copyToolStripMenuItem1;
+        private System.Windows.Forms.ToolStripMenuItem copyFileToolStripMenuItem;
     }
 }

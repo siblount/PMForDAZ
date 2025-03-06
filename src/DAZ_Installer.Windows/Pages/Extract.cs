@@ -467,7 +467,8 @@ namespace DAZ_Installer.Windows.Pages
 
         private void fileListContextStrip_Opening(object sender, CancelEventArgs e)
         {
-            if (fileListView.SelectedItems.Count is 0)
+            var count = fileListView.SelectedIndices.Count;
+            if (count == 0)
             {
                 noFilesSelectedToolStripMenuItem.Visible = true;
                 return;
@@ -477,8 +478,9 @@ namespace DAZ_Installer.Windows.Pages
             {
                 Logger.Error("Got null abstract node tag for a selected file list view item, select in hierachy disabled");
             }
-            openInExplorerToolStripMenuItem.Visible = node is IDPFile file && file is { FileInfo.Exists: true };
-            selectInHierachyToolStripMenuItem.Visible = node is not null && associatedTreeNodes.ContainsKey(node);
+            openInExplorerToolStripMenuItem.Visible = count == 1 && node is IDPFile file && file is { FileInfo.Exists: true };
+            selectInHierachyToolStripMenuItem.Visible = count == 1 && node is not null && associatedTreeNodes.ContainsKey(node);
+            copyFileToolStripMenuItem.Visible = true;
             noFilesSelectedToolStripMenuItem.Visible = false;
         }
 
@@ -565,7 +567,7 @@ namespace DAZ_Installer.Windows.Pages
                 e.Cancel = true;
                 return;
             }
-            copyToolStripMenuItem.Enabled = errorDataGridView.SelectedCells.Count is 1;
+            copyErrorToolStripMenuItem.Enabled = errorDataGridView.SelectedCells.Count is 1;
         }
 
         private void queueContextStrip_Opening(object sender, CancelEventArgs e)
