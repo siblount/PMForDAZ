@@ -66,6 +66,11 @@ namespace DAZ_Installer.Windows.Pages
             var warningImage = SystemIcons.Warning.ToBitmap(); // Do not dispose Handle
             statusIcons.Images.Add("error", errorImage);
             statusIcons.Images.Add("warning", warningImage);
+
+            // Enable double buffering on the queueListView to reduce flickering
+            typeof(ListView).GetProperty("DoubleBuffered", 
+                System.Reflection.BindingFlags.NonPublic | 
+                System.Reflection.BindingFlags.Instance)?.SetValue(queueListView, true);
         }
 
         /// <inheritdoc/>
