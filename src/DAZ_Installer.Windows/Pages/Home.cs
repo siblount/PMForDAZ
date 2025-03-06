@@ -58,7 +58,7 @@ namespace DAZ_Installer.Windows.Pages
 
             // Goto next page.
             MainForm.SwitchPage(Extract.ExtractPage);
-            var newJob = new DPExtractJob(listView1.Items.Cast<ListViewItem>().Select(x => x.Text)); // Todo: make a list.
+            var newJob = new DPExtractJob(listView1.Items.Cast<ListViewItem>().Select(x => x.Text).Distinct());
             newJob.DoJob();
 
             // Clear list and reset home.
@@ -93,6 +93,7 @@ namespace DAZ_Installer.Windows.Pages
             if (result == DialogResult.OK)
             {
                 HandleNewFiles(openFileDialog1.FileNames);
+                if (listView1.Items.Count == 0) return;
                 listView1.BringToFront();
                 controlDragPanel(false);
             }
@@ -128,13 +129,23 @@ namespace DAZ_Installer.Windows.Pages
         }
 
         private void HandleNewFiles(IList<string> paths) {
+            HashSet<string> newFilesSet = [..paths];
+            HashSet<string> currentFilesSet = [..listView1.Items.Cast<ListViewItem>().Select(x => x.Text)];
             Queue<string> invalidFiles = new();
+            Queue<string> duplicateFiles = new();
             listView1.BeginUpdate();
             try {
-                foreach (var path in paths) {
+                foreach (var path in newFilesSet) {
                     var fileInfo = FileSystem.CreateFileInfo(path);
-                    if (DPArchive.IsValidSupportedArchive(fileInfo)) listView1.Items.Add(path);
-                    else invalidFiles.Enqueue(path);
+                    
+                    if (!DPArchive.IsValidSupportedArchive(fileInfo)) {
+                        invalidFiles.Enqueue(path);
+                        continue;
+                    }
+                    
+                    bool isDuplicate = currentFilesSet.Contains(path);
+                    if (isDuplicate) duplicateFiles.Enqueue(path);
+                    else listView1.Items.Add(path);
                 }
             } catch (Exception ex) {
                 MessageBox.Show($"An error occurred that may have prevented fully validating the new files:\n\n{ex.Message}", 
@@ -142,14 +153,27 @@ namespace DAZ_Installer.Windows.Pages
             } finally {
                 listView1.EndUpdate();
             }
+            
+            // Show message for invalid files
             if (invalidFiles.Count > 0)
             {
-                var builder = new StringBuilder(50 * paths.Count);
+                var builder = new StringBuilder(50 * invalidFiles.Count);
                 while (invalidFiles.Count != 0)
                     builder.AppendLine(" \u2022 " + invalidFiles.Dequeue());
                 MessageBox.Show("Files that cannot be processed where removed from the list." +
                     "\nRemoved files:\n" + builder.ToString(), "Invalid files removed", MessageBoxButtons.OK,
                     MessageBoxIcon.Warning);
+            }
+            
+            // Show message for duplicate files
+            if (duplicateFiles.Count > 0)
+            {
+                var builder = new StringBuilder(50 * duplicateFiles.Count);
+                while (duplicateFiles.Count != 0)
+                    builder.AppendLine(" \u2022 " + duplicateFiles.Dequeue());
+                MessageBox.Show("The following files were already in the list and were not added again:" +
+                    "\n" + builder.ToString(), "Duplicate files", MessageBoxButtons.OK,
+                    MessageBoxIcon.Information);
             }
         }
     }
